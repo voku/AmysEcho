@@ -83,7 +83,8 @@ test("built UI starts in the board region only and remains usable without TTS/ne
     assert.deepEqual(entry.children.map((child) => child.tagName), ["button", "progress", "p"]);
     assert.equal(entry.children[0].textContent, "Für Bezugspersonen");
     assert.equal(entry.children[0].handlers.click, undefined);
-    assert.deepEqual(documentEvents, ["visibilitychange"]);
+    // The caregiver area listens on the document for a hidden page and for Escape (which it answers only while it is open).
+    assert.deepEqual(documentEvents.sort(), ["keydown", "visibilitychange"]);
     assert.deepEqual(Object.keys(root.dataset), ["bootstrap"]);
 
     assert.match(part("board-notice").textContent, /Speicher.*nicht erreichbar.*Beispiele/);
@@ -243,7 +244,7 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
   const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
   // Names already shipped; a changed asset list or install step needs a name that is none of them.
-  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3", "caregiver-s1-v4", "board-ux-v1", "board-ux-v2", "board-ux-v3"].includes(name), `cache name ${name}`);
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3", "caregiver-s1-v4", "board-ux-v1", "board-ux-v2", "board-ux-v3", "board-ux-v4", "caregiver-ux-v1", "caregiver-ux-v2", "caregiver-ux-v3", "caregiver-ux-v4"].includes(name), `cache name ${name}`);
 
   // Run the worker with a fake scope and look at what install hands to the cache.
   const listeners = {};

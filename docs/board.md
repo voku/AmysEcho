@@ -52,9 +52,9 @@ installed app has no browser button for that, and pull-to-refresh is switched of
 - The static line of `index.html`, which shows when the script does not start, says to close the
   app and open it again.
 
-One line in the caregiver area (`src/caregiver.ts`, shown when the board could not be re-read
-after closing) still offers "lade die Seite neu" next to its own button "Tafel neu laden"; that
-file was outside this card.
+The line of the caregiver area that shows when the board could not be re-read after closing
+(`src/caregiver.ts`) no longer asks for a reload either; it names its own button "Tafel neu
+laden" ([caregiver.md](caregiver.md)).
 
 The board is a grid. Its rows share the height equally, so the tiles fill the board. A row is
 never lower than `--tile-min`: 112 px, 88 px in a window at most 600 px high (the smallest
@@ -140,10 +140,10 @@ No text while speech was asked for normally. One small line appears only when th
 | That happens again before any sentence reached its end | the same | "Vorlesen geht nicht. Hol eine Bezugsperson." |
 
 "Tap again" is said once where tapping again may help, and not a second time in a row for the
-same kind of problem. An empty
-voice list cannot be told apart from one that has not loaded yet, so the first such tap gets the
-benefit of the doubt and the second does not; that count has no time in it, so a quick double tap
-uses it up. Any other result, and a voice that arrives, starts the empty-list count again.
+same kind of problem. An empty voice list cannot be told apart from one that has not loaded yet,
+so the first such tap gets the benefit of the doubt and the second does not; that count has no
+time in it, so a quick double tap uses it up. Any other result, and a voice that arrives, starts
+the empty-list count again.
 
 A failure has a count of its own: the first says to tap again, a second one before any sentence
 reached its end says to fetch a caregiver. Only two things start the failure count again: the end
@@ -199,8 +199,8 @@ finger is a wrong word. That holds for a sentence of one line, and of two lines 
 upright; a longer sentence makes the bar grow by one small line. In a browser without `:has()`
 the line stands under the bar and the board gets that much lower. The line is one line
 (`white-space: nowrap`); all four texts fit a 320 px wide window that is higher than 480 px at
-the normal text size (measured, below). In a window of 480 px height or less, or with larger
-text, the end is cut off with an ellipsis.
+the normal text size (measured, below). In a 320 px wide window of 480 px height or less, or
+with larger text, a line that does not fit ends in an ellipsis.
 
 ## A sentence that is still being spoken
 
@@ -364,7 +364,8 @@ Also looked at:
   without scrolling. Whether that is enough for an unsteady hand is untested.
 - Above 12 tiles a phone held upright gets 4 columns, and tiles are then 70 to 88 px wide. With
   still more tiles the board scrolls, and a scrolling board hides words from a child who cannot
-  know to scroll. The caregiver area should warn before a board gets that large (card NG-13).
+  know to scroll. The caregiver area shows a warning line above 12 tiles and refuses nothing
+  ([caregiver.md](caregiver.md)).
 - Turning the device keeps the selection and the sentence but moves every tile, because the
   number of columns changes.
 - The mark on the tapped tile and the sentence in the bar stay for good, until another tile is

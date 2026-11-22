@@ -38,23 +38,26 @@ Early rebuild. What exists today:
   restored from a backup without stored wording, follows the current catalogue;
 - an app shell with a board region, a region for the caregiver area, and a controller that owns
   the page's one profile store and can re-mount the board without a reload;
-- a first caregiver area ([docs/caregiver.md](docs/caregiver.md)), opened by holding a small
-  control for three seconds: a profile can be created, made the active board and given catalogue
-  concepts in a chosen order, in the app, and the board shows the result without a reload. The
-  hold is a hurdle for a small child, not security.
+- a caregiver area ([docs/caregiver.md](docs/caregiver.md)), opened by holding a small control
+  for three seconds: a profile can be created, renamed, deleted, made the active board and given
+  catalogue concepts in a chosen order, in the app, and the board shows the result without a
+  reload. A header that stays says which board the child gets after closing, and concepts removed
+  during a visit can be put back while the same board stays in the editor. Deleting a profile
+  needs a two-second hold. The hold is a hurdle for a small child, not security.
 
-Still missing in the caregiver area: rewording a concept, custom concepts, export and import,
-renaming and deleting a profile, and help with damaged entries; those exist as library code only
-or not at all. Also not built: symbols for custom concepts, camera input and gesture recognition
-in the app. The caregiver area is tested in Node against a fake DOM, not in a browser, and the
-browser storage adapter has no automated test. Nothing here has been verified on a physical
-device or with a child.
+Still missing in the caregiver area: rewording a concept, custom concepts, export and import, and
+help with damaged entries; those exist as library code only or not at all. Also not built:
+symbols for custom concepts, camera input and gesture recognition in the app. The caregiver area
+is tested in Node against a fake DOM and was looked at in headless Chromium with a hand-run
+script; there is no browser test in CI, and the browser storage adapter has no automated test.
+Nothing here has been verified on a physical device, with a caregiver or with a child.
 
 A child's first name may be stored as the profile name (owner decision of 2026-11-22, card NG-7);
 how long data is kept, who counts as an authorised caregiver and deletion are still open there.
-The browser storage adapter has never run in a browser (card NG-14), so data entered now may not
-survive. There is no in-app removal of a single profile and no backup; clearing the site data of
-the browser removes all profiles in this browser and the offline copy of the app.
+The browser storage adapter has run in headless Chromium only, in a hand-run script, and never
+on a target device (card NG-14), so data entered now may not survive. A profile can be deleted in
+the caregiver area, and there is no backup; clearing the site data of the browser removes all
+profiles in this browser and the offline copy of the app.
 
 ## Principles
 

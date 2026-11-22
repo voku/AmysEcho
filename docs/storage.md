@@ -709,8 +709,9 @@ no permanence guarantee. The export file is the backup.
   remnants in its on-disk database files until it compacts them. No secure erase is attempted.
 - No encryption at rest and no export password (human decision pending; card NG-22).
 - No `navigator.storage.persist()` request and no quota handling.
-- The caregiver area ([caregiver.md](caregiver.md)) creates and activates profiles and sets their
-  boards. Export, restore, rename and delete controls are not built (card NG-13).
+- The caregiver area ([caregiver.md](caregiver.md)) creates, renames, deletes and activates
+  profiles and sets their boards. Export and restore controls are not built (card NG-13), and
+  nothing there deletes or repairs a damaged entry.
 - No stored gesture examples (card NG-19).
 - No real-browser test of the IndexedDB adapter (card NG-14).
 - No coordination between two open tabs. One `ProfileStore` runs its operations one after another;

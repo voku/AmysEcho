@@ -1,0 +1,14 @@
+{
+    "actor": "Lars Moelleken (delegated to Claude for this session)",
+    "attempt": 3,
+    "attention_id": "attention:a99965b8f2814c78",
+    "contract_revision": 1,
+    "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+    "kind": "execution_attention_resolution",
+    "resolved_at": "2026-11-22T19:31:24+00:00",
+    "response": "Continue with a structural fix instead of another patch: the delete confirmation takes over the body, only the on-screen hold may delete, a hold cancels when the finger leaves the button, and presses that began before a redraw are ignored.",
+    "run_id": "run:NG-31:e21389d8d0abe454",
+    "schema_version": "1.0",
+    "stage_id": "correctness-review",
+    "task_id": "NG-31"
+}

@@ -1,0 +1,185 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T16:57:30+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-31/contract.json",
+                "sha256": "sha256:cfac9bf3c6a69df842ed1594f8760ded822e5a4c29b89784f490ff69d5704f1f"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-31",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "2fe48b04729ee4e642558310f39e8d17d7f883957544187365ed58af055aa2ed",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-31.md",
+                "sha256": "sha256:2fe48b04729ee4e642558310f39e8d17d7f883957544187365ed58af055aa2ed"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The close button and the line naming the board the child will see are visible without scrolling at 360x640 while the area is scrolled to any position",
+                "Adding, removing or moving a concept changes the position of no other editable row in its list, and a removed concept can be put back at its former position with one action",
+                "A profile can be renamed and deleted; deleting asks again, says what is lost, and deleting the active profile leaves the child with the examples and says so",
+                "Ids this version cannot edit keep their exact place through every action, including undo",
+                "User-facing text is German and no profile name appears outside the caregiver region"
+            ],
+            "goal": "A caregiver sets up and maintains a child's board quickly and without surprises: a header that stays with a close button and the board the child will see, profile cards with rename and delete, a board editor of two lists in which only the acted-on row moves and the last removal can be undone, and a short notice with the details one tap away.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-31/contract.json",
+                "sha256": "sha256:cfac9bf3c6a69df842ed1594f8760ded822e5a4c29b89784f490ff69d5704f1f"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-31/contract.json",
+                "sha256": "sha256:cfac9bf3c6a69df842ed1594f8760ded822e5a4c29b89784f490ff69d5704f1f"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T21:12:54+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-31:e21389d8d0abe454",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/0e634c128a930599a33c8b63d0a4ae7d32ed3081d81642a26ccfce95d5f03bcd.json",
+                "sha256": "sha256:b7ec87619195a19979e7215f33b712f9a9e301946efbf28cefb656e86f56096a"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:814548fe52579e515fb7e0ab2c17302dbad17252c8f99d6c0c193fdd1d583070",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:6eaeb56c65079792124eef0d7f4005e11162eccb67a15823f4ff21cf2d9e296a"
+            },
+            "stale_entries": [
+                {
+                    "path": "public/sw.js",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 4,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-31:e21389d8d0abe454",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "dfeba7c9275d6500596e22453c44e9cdab839333407b9811abe61e95f8aab4a4",
+            "compilation_id": "compilation.NG-31.2026-11-22-165731.50760537",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "91737f85c4c714cda42756aa7717ddd18897fde15c58ab57f665f7216b4b8db3",
+            "source": {
+                "path": ".agent-loop/recall/NG-31/meta.json",
+                "sha256": "sha256:d468447eee56093d3bc1cd30d8691dbcda889d91c6ce23ccae1462b9a4ff7600"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-31/reviews/NG-31.blindspots.json",
+                "sha256": "sha256:96e0c1d2f7f01ec158a7c02d0bf95be173af062f0818413c5fcaffe46eb7e330"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "2634ee38c05443cd971db3cb441c0b8419938885",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-31-r1-bc157638",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-31-r1-bc157638/session.json",
+                "sha256": "sha256:699943e44f177eba84a6aec429f942cd18974c08dec89a9b7e28aa630a46591e"
+            },
+            "state": "done",
+            "task_id": "NG-31"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:dde35e27e6d1377642e1670ccdb2d14329f52392826895a8fa5613a28ae89c4a",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-31:e21389d8d0abe454",
+            "source": {
+                "path": ".agent-loop/runs/NG-31/verification.json",
+                "sha256": "sha256:51ca24d0ed24d2c40ca273b927690722891ec01a6615130ed3fae87d0746d838"
+            },
+            "source_session_id": "2026-11-22-ng-31-r1-bc157638",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-31:e21389d8d0abe454",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-31"
+}

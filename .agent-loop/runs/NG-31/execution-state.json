@@ -1,0 +1,587 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T17:22:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T17:22:59+00:00",
+                "artifact_references": [],
+                "candidate_revision": "2634ee38c05443cd971db3cb441c0b8419938885",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "2634ee38c05443cd971db3cb441c0b8419938885",
+                "context_id": "claude-main-ng31-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:e7e7d2a8",
+                "summary": "Chromium look at the area: notice dominates, ticked rows move under the finger, close is at the bottom, no rename or delete; store offers rename and remove",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T17:22:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T17:22:59+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "context_id": "claude-subagent-ng31-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:69079140",
+                "summary": "Sticky header with after-closing line and Fertig, Escape, profile cards with rename and two-step delete, two-list board editor with focus rules and undo, short notice with details, 12-tile warning, help section, no-board line without reload; walked in Chromium at five sizes; verify passes with 348 tests",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T17:34:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T17:34:42+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:3203b7fc123e57765f80caec7d56391b9ac0d1ea7d9996ba114959e0d0b1aee7",
+                    "execution-evidence:sha256:d68a4dc8789b7e239069f847d1356d96755a9991059a937e6f8dc8ef4ea6d09f",
+                    "execution-evidence:sha256:eeecac571201a9a515ee718328f55e164cbdd20bf5dc24826c335b86258f0ce9"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:3203b7fc123e57765f80caec7d56391b9ac0d1ea7d9996ba114959e0d0b1aee7",
+                    "execution-evidence:sha256:d68a4dc8789b7e239069f847d1356d96755a9991059a937e6f8dc8ef4ea6d09f",
+                    "execution-evidence:sha256:eeecac571201a9a515ee718328f55e164cbdd20bf5dc24826c335b86258f0ce9"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "context_id": "claude-subagent-ng31-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:94b8d9a5",
+                "summary": "caregiver.ts:527-530 after a failed Entfernen or Hinzufügen focus moves to another row's button so a retry acts on the wrong concept; blind-spot: at 640x360 a double tap on Löschen hits Endgültig löschen (caregiver.ts:846-852,894), a double tap on Entfernen removes two concepts with undo for one, and Tafel bearbeiten visibly does nothing because the editor is below the fold",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T18:03:24+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T18:03:24+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
+                "context_id": "claude-subagent-ng31-build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:b3ca276d",
+                "summary": "Second build: 800 ms guard on Endgültig löschen and on Entfernen after a removal with Abbrechen first, undo stack per visit, first-use focus and scroll to the editor, focus kept after a failed write, reveal under the sticky block and three-line status clamp, status cleared on action and scroll, duplicate names refused, Escape keeps typed text; double-tap probes in Chromium at five sizes; verify passes with 370 tests",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T18:18:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T18:18:29+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:87368c2c4a81bfdbc877d14cba069d9bd3af1646032882d2382f3c130fb54feb",
+                    "execution-evidence:sha256:7084ebc9aeca5ab155646a7c42298f3fa73e38d284c0bc61e14d0fb91a038e32"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:87368c2c4a81bfdbc877d14cba069d9bd3af1646032882d2382f3c130fb54feb",
+                    "execution-evidence:sha256:7084ebc9aeca5ab155646a7c42298f3fa73e38d284c0bc61e14d0fb91a038e32"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
+                "context_id": "claude-subagent-ng31-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:264fddec",
+                "summary": "caregiver.ts:667-671 the Entfernen guard is counted from the end of the write, not from the redraw, against docs/caregiver.md:233-235; caregiver.ts:794 a cancelled confirmation can still be confirmed before the redraw; blind-spot: a swallowed press does not restart the guard, so a third tap on Löschen at 360 px width deletes a profile",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T19:09:17+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T19:09:17+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "context_id": "claude-subagent-ng31-build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:5d73cf68",
+                "summary": "Third build: Endgültig löschen is a two-second hold and requires its confirmation to be the open one; Entfernen and Rückgängig guards counted from the redraw and restarted by a swallowed press with a wait message; errors survive scrolling; duplicate-name example; Escape on the document; tap probes in Chromium at seven sizes deleted nothing; verify passes with 391 tests",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T19:30:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T19:30:51+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:58a0661c7212ee9c347202ddfb7b7fdf7667a66c47f5e2d147d6b25878f02d1a",
+                    "execution-evidence:sha256:f7403bb8ec747fb3bbbdb99a4a57952976c8d300ad66103fe41444700054280a"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:58a0661c7212ee9c347202ddfb7b7fdf7667a66c47f5e2d147d6b25878f02d1a",
+                    "execution-evidence:sha256:f7403bb8ec747fb3bbbdb99a4a57952976c8d300ad66103fe41444700054280a"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "context_id": "claude-subagent-ng31-correctness-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:875bc37f",
+                "summary": "caregiver.ts:1136,1150,900 a hold started on a confirm button that a redraw then replaces is orphaned and deletes two seconds later after one tap; docs/caregiver.md:237 says a pointer leaving ends the hold, false on touch (implicit pointer capture); blind-spot: lifting the finger after a completed hold clicks what the redraw put there and can activate another profile, and the hold hint can be below the fold",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T20:16:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T20:16:35+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
+                "context_id": "build-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:bab156e0",
+                "summary": "Fourth build: press shield, holds tied to their button, finger must stay on the button, confirmation takes over and deletes on release; 418 tests pass; Chromium probes at five sizes show no unintended deletion",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T20:40:50+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T20:40:50+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:52c60f0244f759b5981fd899747d0e5f6afe027282b2e8b9d9d9941d5667ff13",
+                    "execution-evidence:sha256:962c59884982c05fa9cd95a86a8a514654721fb5f3526d8a04d0024f0ebc4553"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:52c60f0244f759b5981fd899747d0e5f6afe027282b2e8b9d9d9941d5667ff13",
+                    "execution-evidence:sha256:962c59884982c05fa9cd95a86a8a514654721fb5f3526d8a04d0024f0ebc4553"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
+                "context_id": "correctness-review-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:7da4ae2a",
+                "summary": "Doc claims the details summaries are not shielded but the click shield swallows them; a second finger on Abbrechen does not end a completed delete hold and the lift deletes; shield time is wall-clock so a backward clock step locks out presses; hint line height change moves the delete button at 320px with enlarged text",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T20:50:13+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T20:50:13+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "context_id": "build-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:67d1d5a1",
+                "summary": "Fifth build: second finger ends a delete hold, summaries exempt from the shield, monotonic shield time, hint height reserved; 424 tests pass",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:03:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:03:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0f55ff5d51d02ce53fbf4a0f69b4393b83406b41b455ecc773f88dcdf9813781",
+                    "execution-evidence:sha256:83d098baa3d2297c668fd543b160ee55cbfbf6f4654c36e4a0ed75364eb588b5"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0f55ff5d51d02ce53fbf4a0f69b4393b83406b41b455ecc773f88dcdf9813781",
+                    "execution-evidence:sha256:83d098baa3d2297c668fd543b160ee55cbfbf6f4654c36e4a0ed75364eb588b5"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "context_id": "correctness-review-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:7c8d1237",
+                "summary": "docs/caregiver.md says a second finger's tap on Abbrechen leaves the confirmation; Chromium sends no click for it, and the backing test fakes the click. Folding a details section moves content without marking a swap.",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:04:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:04:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 6,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "context_id": "build-6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:6:1b7f8108",
+                "summary": "Sixth build: details toggle marks a swap (tested), doc sentence on second-finger tap corrected, faked-click assertion removed; 424 tests pass",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:09:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:09:51+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:9a4a3307cd12fd534156f7b4ece796cc9b27cef59be25f1f7ee4bdf16ed859ea",
+                    "execution-evidence:sha256:36dca1257e496195981e4389fa7b45ed552ad4cbcd5a892d6b4268e5fc331168",
+                    "execution-evidence:sha256:282ad7ce23f880ad308de06da516da1de399b9fc9fd996b052226c27e172ad2b",
+                    "execution-evidence:sha256:c613cebd916ed1883b0de085257611d48256543bb85a70a48907e6a479162139",
+                    "execution-evidence:sha256:0dde1f57b27ced2a6d27f2611b7344241a4c597d861e30423c9d04e54f483bed",
+                    "execution-evidence:sha256:51b6136bb40659d7e49801843136e8ae0a1a8bae649086a6c96763305f5855f8",
+                    "execution-evidence:sha256:1690a38f9eb30506aca1584b4610d5e5ab6e490c31c5d162ab0ef64794a084d5",
+                    "execution-evidence:sha256:45ee14901a5eb0613d8eb072f50f3ac02b2ffe4e70478fd164707e81e89749bd",
+                    "execution-evidence:sha256:83d7f734691714bdaafcba391c44c56e928095db5f791caf1f41acf89dbd12a1"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:9a4a3307cd12fd534156f7b4ece796cc9b27cef59be25f1f7ee4bdf16ed859ea",
+                    "execution-evidence:sha256:36dca1257e496195981e4389fa7b45ed552ad4cbcd5a892d6b4268e5fc331168",
+                    "execution-evidence:sha256:282ad7ce23f880ad308de06da516da1de399b9fc9fd996b052226c27e172ad2b",
+                    "execution-evidence:sha256:c613cebd916ed1883b0de085257611d48256543bb85a70a48907e6a479162139",
+                    "execution-evidence:sha256:0dde1f57b27ced2a6d27f2611b7344241a4c597d861e30423c9d04e54f483bed",
+                    "execution-evidence:sha256:51b6136bb40659d7e49801843136e8ae0a1a8bae649086a6c96763305f5855f8",
+                    "execution-evidence:sha256:1690a38f9eb30506aca1584b4610d5e5ab6e490c31c5d162ab0ef64794a084d5",
+                    "execution-evidence:sha256:45ee14901a5eb0613d8eb072f50f3ac02b2ffe4e70478fd164707e81e89749bd",
+                    "execution-evidence:sha256:83d7f734691714bdaafcba391c44c56e928095db5f791caf1f41acf89dbd12a1"
+                ],
+                "attempt": 6,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "context_id": "correctness-review-6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "observations": [
+                    "src/caregiver.ts:1472 the swap is marked on the async toggle event about one frame after the fold; two synthetic taps inside that frame get through. Marking in the capture click handler's summary branch would close it.",
+                    "test/caregiver.test.mjs:4825 dispatches toggle by hand; only a browser probe shows a real fold fires it in time (NG-14).",
+                    "docs/caregiver.md:285 the no-click claim for a second-finger tap is Chromium-specific and has no unit test (NG-14)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:6:41a0387d",
+                "summary": "Sixth build passes: doc sentences true of the code, toggle mark verified in Chromium for human-speed taps, no lock-out, 424 tests pass",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:12:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:12:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:5ff02d221c08347abc3157fed215c8ddb33b44744dd4a5cbad4cdd8947d3ccfd",
+                    "execution-evidence:sha256:887f748bcf752b36a7c6cfa3fcee94ed84a4fde27a3b6bffcf77ba309eca6199",
+                    "execution-evidence:sha256:8eb77a8acc7441ba515f7ecbea4df2700deb2d48948cf883ca58e20b02175042",
+                    "execution-evidence:sha256:7586f220df7bc54a1a2e7b4f74daec38c391363d79575403f52b19a944e8b041",
+                    "execution-evidence:sha256:a0f9db6bdbbaaa85f6161333619cc16572492984c9d00423f35ef8ed22087921",
+                    "execution-evidence:sha256:8e238470447347109083e59e3a9b1138f08ab9dfb85abc3c7a66a3ec0c2e8dc1",
+                    "execution-evidence:sha256:d6323180fffbbfeb2d2570a9c89f511641d24af0136b3acf44222c78f26c61ba",
+                    "execution-evidence:sha256:2059672d22b0ac63bf5382dfcd08dafa8f12ee41abf8b086451406026c185fdb",
+                    "execution-evidence:sha256:18c3eb50be2d756e3e5606cf623fd5b5b36795c1b3575f3f57eb24c43bef3da7"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:5ff02d221c08347abc3157fed215c8ddb33b44744dd4a5cbad4cdd8947d3ccfd",
+                    "execution-evidence:sha256:887f748bcf752b36a7c6cfa3fcee94ed84a4fde27a3b6bffcf77ba309eca6199",
+                    "execution-evidence:sha256:8eb77a8acc7441ba515f7ecbea4df2700deb2d48948cf883ca58e20b02175042",
+                    "execution-evidence:sha256:7586f220df7bc54a1a2e7b4f74daec38c391363d79575403f52b19a944e8b041",
+                    "execution-evidence:sha256:a0f9db6bdbbaaa85f6161333619cc16572492984c9d00423f35ef8ed22087921",
+                    "execution-evidence:sha256:8e238470447347109083e59e3a9b1138f08ab9dfb85abc3c7a66a3ec0c2e8dc1",
+                    "execution-evidence:sha256:d6323180fffbbfeb2d2570a9c89f511641d24af0136b3acf44222c78f26c61ba",
+                    "execution-evidence:sha256:2059672d22b0ac63bf5382dfcd08dafa8f12ee41abf8b086451406026c185fdb",
+                    "execution-evidence:sha256:18c3eb50be2d756e3e5606cf623fd5b5b36795c1b3575f3f57eb24c43bef3da7"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "context_id": "blindspot-review-6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "observations": [
+                    "A second tap later than 0.3 s after folding a help section acts on what moved under the finger (at 820x1180 it opened the board editor); inside the documented grace gap, worth naming in a caregiver trial (NG-6).",
+                    "A hold ended by a second contact says nothing; the caregiver must lift and press again (NG-13).",
+                    "Two fingers on the delete button: the first lift deletes while the other is still down (NG-14).",
+                    "With enlarged text the opening control jumps when its hold starts and the sticky block can fill the screen (NG-14)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:84c0a173",
+                "summary": "Blind-spot review passes: toggle mark arrives before a second touch at three sizes, no lock-out, changed doc sentences verified in Chromium, no wrong deletion",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:12:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:12:20+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:8d23613c01ad24ea6dfd682edff9cd10759e4b5f2644922c21d457babd15367d",
+                    "execution-evidence:sha256:a5902f88f2fe833700aefa737fa2f77cb8e94bd4d700f1a7d2d5adc609f563ca"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "consistency_references": [
+                    "execution-evidence:sha256:6b26ba0dc0b2bbc42b3a3ed96bad05f15aaebad5e752cdb5f9bcbda3aa026eea"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "pass",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:e9cebd02db57fa661393a1d30b150173897f88ccabd31660cfa5c22fbff45ce7",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-31: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-31 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-31:e21389d8d0abe454 binds active Session 2026-11-22-ng-31-r1-bc157638 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-31 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-31",
+                "validation_references": [
+                    "execution-evidence:sha256:8d23613c01ad24ea6dfd682edff9cd10759e4b5f2644922c21d457babd15367d",
+                    "execution-evidence:sha256:a5902f88f2fe833700aefa737fa2f77cb8e94bd4d700f1a7d2d5adc609f563ca"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-31:e21389d8d0abe454",
+    "schema_version": "1.0",
+    "task_id": "NG-31"
+}

@@ -1,7 +1,8 @@
 /**
- * The caregiver area, first slice (card NG-29): a deliberate way in from the
- * child's screen, and inside it the profile list, creating a profile, making
- * one the active board, and choosing and ordering its catalogue concepts.
+ * The caregiver area (cards NG-29 and NG-31): a deliberate way in from the
+ * child's screen, and inside it a header that says which board the child
+ * sees after closing, the profiles as cards (make active, edit, rename,
+ * delete), creating a profile, and a board editor of two lists.
  *
  * This module writes into the caregiver region and into the entry element
  * that holds the opening control. Of the board region it only reads
@@ -37,6 +38,36 @@ export const CLOSE_WAIT_MS = STARTUP_WAIT_MS + 1000;
 export const STORE_WAIT_MS = STARTUP_WAIT_MS + 1000;
 /** The area closes by itself after this long without a pointer or key event inside it. A guess. */
 export const IDLE_CLOSE_MS = 2 * 60 * 1000;
+
+/** A board with more showable tiles than this gets a line that says the tiles become small on a phone. */
+export const BOARD_COMFORT_MAX = 12;
+
+/**
+ * How long "Entfernen" and "Rückgängig" ignore presses after the list was
+ * redrawn by one of them: another row, or the next undo, is then where the
+ * finger was, and the second tap of a double tap lands there. A press that
+ * is ignored starts the time again. A guess.
+ */
+export const GUARD_MS = 800;
+/**
+ * How long "Endgültig löschen" has to be held. Deleting cannot be taken back,
+ * so no number of taps may do it: a tap cannot be told from a child's.
+ */
+export const DELETE_HOLD_MS = 2000;
+/**
+ * How long content has to be on screen before a press on it counts. A press
+ * that began before the content appeared, or sooner than this after it, was
+ * aimed at what was there before.
+ */
+export const SHIELD_GRACE_MS = 300;
+/** How far a pointer may stray from a button that is being held before the hold ends. */
+export const HOLD_SLOP_PX = 8;
+/** A click by key comes with the key-down (Enter) or right after the key-up (Space). */
+const KEY_CLICK_WINDOW_MS = 50;
+/** A key that sent neither a repeat nor a key-up for this long is not taken as still held. */
+const KEY_STALE_MS = 1000;
+/** Room between the block at the top and an element that is brought out from under it. */
+const REVEAL_GAP_PX = 8;
 
 /** Calls `callback` once after `milliseconds`; the returned function cancels that. */
 export type SetTimer = (callback: () => void, milliseconds: number) => () => void;
@@ -136,6 +167,8 @@ export interface CaregiverOptions {
    * closes an open area; for tests. Default: the document's `visibilitychange`.
    */
   readonly onPageHidden?: (callback: () => void) => void;
+  /** The time in milliseconds, for "when did this press begin" and "when was this put on screen"; for tests. Default: `Date.now`. */
+  readonly now?: () => number;
 }
 
 export interface CaregiverHandle {
@@ -173,11 +206,13 @@ const READ_FAILED = "Die gespeicherten Profile können gerade nicht gelesen werd
 const READING = "Der Speicher wird gelesen.";
 const BOARD_LOADING = "Die Tafel wird geladen.";
 const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. "
-  + "Bitte drücke „Tafel neu laden“, lade die Seite neu oder gib einer Bezugsperson Bescheid.";
+  + "Bitte drücke „Tafel neu laden“ oder gib einer Bezugsperson Bescheid.";
+const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt.";
+const NAME_DETAILS = "Was wird gespeichert?";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
-  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen, und eine Sicherung gibt es noch nicht. "
+  + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
   + "Der Browser kann diese Daten auch von sich aus löschen.";
 const NONE_ACTIVE = "Gerade ist keine Tafel aktiv. Das Kind sieht Beispiele, bis eine Tafel als aktive Tafel verwendet wird.";
@@ -185,26 +220,83 @@ const EDITED_NOT_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht ei
 const EDITED_NONE_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht Beispiele.";
 const EDITED_NOT_ACTIVE_UNKNOWN = "Diese Tafel ist gerade nicht aktiv.";
 const ONLY_DAMAGED = "Kein gespeichertes Profil kann in dieser Version gelesen werden. Das Kind sieht Beispiele.";
-const ACTIVE_WITHOUT_CONCEPTS = "Auf dieser Tafel ist noch kein Begriff, der gezeigt werden kann. Das Kind sieht Beispiele, bis mindestens ein Begriff angekreuzt ist.";
-const CONCEPT_HELP = "Angekreuzte Begriffe sind auf der Tafel, in dieser Reihenfolge. Jede Änderung wird sofort gespeichert. "
-  + "Ein Begriff, der neu angekreuzt wird, kommt ans Ende der Tafel.";
+const ACTIVE_WITHOUT_CONCEPTS = "Auf dieser Tafel ist noch kein Begriff, der gezeigt werden kann. Das Kind sieht Beispiele, bis mindestens ein Begriff hinzugefügt ist.";
+const CONCEPT_HELP = "Jede Änderung wird sofort gespeichert. „Hinzufügen“ setzt einen Begriff ans Ende der Tafel. "
+  + "Mit „nach oben“ und „nach unten“ änderst du die Reihenfolge.";
+const MANY_CONCEPTS = `Mehr als ${BOARD_COMFORT_MAX} Begriffe: Auf einem Handy werden die Felder klein und die Tafel muss gescrollt werden.`;
+const ON_BOARD = "Auf der Tafel";
+const MORE_CONCEPTS = "Weitere Begriffe";
+const BOARD_EMPTY = "Auf dieser Tafel ist noch kein Begriff.";
+const NO_MORE_CONCEPTS = "Alle Begriffe aus der Auswahl sind auf der Tafel.";
+const MOVE_UP = "nach oben";
+const MOVE_DOWN = "nach unten";
+const REMOVE = "Entfernen";
+const ADD = "Hinzufügen";
+const UNDO = "Rückgängig";
+const DONE = "Fertig";
+const RENAME = "Umbenennen";
+const DELETE = "Löschen";
+const DELETE_FOR_GOOD = "Endgültig löschen";
+const CANCEL = "Abbrechen";
+const SAVE = "Speichern";
+const DELETE_LOSS = "Alle ausgewählten Begriffe dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
+const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel aktiv ist.";
+const AFTER_CLOSE = "Nach dem Schließen:";
+const afterDamagedLine = (count: number): string => (count === 1
+  ? `${AFTER_CLOSE} Beispiele – ein gespeichertes Profil kann in dieser Version nicht gelesen werden.`
+  : `${AFTER_CLOSE} Beispiele – ${count} gespeicherte Profile können in dieser Version nicht gelesen werden.`);
+const NAME_TAKEN = "Diesen Namen gibt es schon. Bitte wähle einen anderen";
+const PLEASE_WAIT = "Bitte kurz warten.";
+const DELETE_HOLD_HINT = `Zum Löschen ${DELETE_HOLD_MS / 1000} Sekunden gedrückt halten.`;
+const RELEASE_TO_DELETE = "Loslassen zum Löschen. Zum Abbrechen den Finger wegziehen.";
+const DELETING = "Wird gelöscht …";
+const AFTER_NONE_ACTIVE = `${AFTER_CLOSE} Beispiele – es ist keine Tafel aktiv.`;
+const AFTER_ACTIVE_EMPTY = `${AFTER_CLOSE} Beispiele – die aktive Tafel hat noch keinen Begriff.`;
+const AFTER_ACTIVE_UNREADABLE = `${AFTER_CLOSE} Beispiele – die aktive Tafel kann gerade nicht gelesen werden.`;
+const AFTER_READ_FAILED = `${AFTER_CLOSE} Beispiele – die Profile können gerade nicht gelesen werden.`;
+const AFTER_NO_STORAGE = `${AFTER_CLOSE} Beispiele – der Speicher ist nicht erreichbar.`;
+const HELP_SUMMARY = "Hilfe bei Problemen";
+const RELOAD_BOARD = "Tafel neu laden";
+const RELOAD_HELP = "Zeigt die Tafel des Kindes nicht, was hier eingestellt ist? „Tafel neu laden“ liest sie noch einmal aus dem Speicher dieses Geräts.";
+const VOICE_HELP = "Spricht das Gerät nicht? Dann ist es vielleicht stumm geschaltet, oder es fehlt eine deutsche Stimme. "
+  + "Sie wird in den Einstellungen des Geräts bei „Sprachausgabe“ oder „Text-in-Sprache“ installiert.";
 const RELOAD_NO_STORAGE = "Der Speicher dieses Geräts ist gerade nicht erreichbar. Die Tafel zeigt deshalb Beispiele.";
 const RELOAD_NOT_DRAWN = "Die Tafel kann gerade nicht angezeigt werden. Bitte versuche es noch einmal.";
 const NO_PROFILES = "Auf diesem Gerät gibt es noch kein Profil.";
 const ACTIVE_MARK = "Aktive Tafel";
 const ACTIVATE = "Als aktive Tafel verwenden";
-const EDIT_CONCEPTS = "Begriffe auswählen";
+const EDIT_BOARD = "Tafel bearbeiten";
 const NOT_EDITABLE = "Dieser Begriff kann in dieser Version nicht bearbeitet werden.";
 const RETIRED = "Dieser Begriff ist nicht mehr in der Auswahl.";
 const BOARD_UNREADABLE = "Die Begriffe dieses Profils können gerade nicht gelesen werden.";
-const SELECT_PROFILE = "Wähle oben bei einem Profil „Begriffe auswählen“.";
+const SELECT_PROFILE = "Wähle oben bei einem Profil „Tafel bearbeiten“.";
 const WRITE_FAILED = "Das konnte gerade nicht gespeichert werden. Bitte versuche es noch einmal.";
 const PROFILE_GONE = "Dieses Profil kann nicht gelesen werden oder ist nicht mehr gespeichert.";
 const RELOADING = "Die Tafel wird neu geladen.";
 const RELOADED = "Die Tafel wurde neu geladen.";
 const RELOAD_FAILED = "Die Tafel konnte gerade nicht neu geladen werden. Bitte versuche es noch einmal.";
 
+const BOARD_FULL = `Auf eine Tafel passen höchstens ${MAX_CONCEPT_IDS} Begriffe. Es wurde nichts geändert.`;
+
 const quoted = (text: string): string => `„${text}“`;
+
+type Focusable = HTMLElement & { disabled?: boolean };
+/** The one thing that can be open in the profile list: a rename field (with what was typed) or a delete confirmation. */
+type Mode = { readonly kind: "rename"; readonly id: string; readonly draft: string } | { readonly kind: "delete"; readonly id: string } | null;
+/** A removal that can be taken back: `before` is the id that followed the removed one in the stored list then. */
+interface UndoOffer {
+  readonly profileId: string;
+  readonly id: string;
+  readonly label: string;
+  readonly before: string | null;
+}
+/** What one reading of the store gives: the body, and the header's line about the board after closing. */
+interface Built {
+  readonly content: HTMLElement[];
+  readonly afterClose: string;
+  /** True when the content is a delete confirmation, which is then all there is to press below the block. */
+  readonly confirming?: boolean;
+}
 
 function damagedLine(count: number): string {
   const subject = count === 1
@@ -215,6 +307,49 @@ function damagedLine(count: number): string {
 
 /** A refusal this screen decides itself, already as a German sentence. */
 class Refusal extends Error {}
+
+/** What two profile names are compared by: NFC, trimmed, without regard to case. */
+function nameKey(name: string): string {
+  return name.normalize("NFC").trim().toLocaleLowerCase("de");
+}
+
+/** True when a readable profile other than `exceptId` already has this name. The store allows it; the area does not, because a board is named by it. */
+function nameTaken(profiles: readonly ProfileV1[], name: string, exceptId: string | null): boolean {
+  const key = nameKey(name);
+  return key !== "" && profiles.some((profile) => profile.id !== exceptId && nameKey(profile.displayName) === key);
+}
+
+/** The refusal of a taken name, with a way out that does not ask for a surname: the typed name and the first free number. */
+function nameTakenLine(profiles: readonly ProfileV1[], name: string): string {
+  const typed = name.normalize("NFC").trim();
+  for (let number = 2; number < 100; number += 1) {
+    const example = `${typed} ${number}`;
+    if ([...example].length > MAX_DISPLAY_NAME_LENGTH) break;
+    if (!nameTaken(profiles, example, null)) return `${NAME_TAKEN}, zum Beispiel ${quoted(example)}.`;
+  }
+  return `${NAME_TAKEN}.`;
+}
+
+const isHoldKey = (key: string): boolean => key === "Enter" || key === " " || key === "Spacebar";
+
+/** A button that has to be held. `cancel` ends a hold that is running, or one that is complete and waits for the release. */
+interface HeldButton {
+  readonly control: HTMLElement;
+  cancel(): void;
+}
+
+/** What "Entfernen" and "Rückgängig" each have: see `GUARD_MS`. */
+interface TapGuard {
+  /** True when a press counts. */
+  armed(): boolean;
+  /** A press was taken: from now on presses are ignored. */
+  take(): void;
+  /** The list was redrawn for that press. `changed`: the guard time starts now; otherwise presses count again at once. */
+  settle(changed: boolean): void;
+  /** A press was ignored. While the guard time runs, it starts again. */
+  swallow(): void;
+  reset(): void;
+}
 
 /**
  * One German sentence for a refused or failed profile name. The store only
@@ -363,10 +498,41 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let work: Promise<void> = Promise.resolve();
   let store: ProfileStore | null = null;
   let selectedId: string | null = null;
+  /**
+   * The one rename field or delete confirmation that is open, if any. Set
+   * when a button is pressed, not when the queue gets to it, so that Escape
+   * right after "Löschen" cancels the confirmation also while an earlier
+   * write is still under way.
+   */
+  let mode: Mode = null;
+  /** The held buttons of the body that is on screen. Only these can act; they are cancelled when the body is swapped. */
+  let bodyHolds: HeldButton[] = [];
+  /** What was typed into the create field, kept while a view without that field is shown. */
+  let createDraft = "";
+  /** True from a press that retires the message until the redraw for that press: the text keeps its place meanwhile. */
+  let statusStale = false;
+  // Monotonic where the platform has it: a wall clock that is set back would leave every button dead until it caught up.
+  const now = options.now ?? (typeof performance !== "undefined" && typeof performance.now === "function" ? () => performance.now() : () => Date.now());
+  /** When what is on screen was last put there or moved: a swap of the body, of the undo button, or a change of the status line. */
+  let swappedAt = Number.NEGATIVE_INFINITY;
+  const markSwap = (): void => {
+    swappedAt = now();
+  };
+  /** True for a press that began after what it lands on was on screen for the grace time. */
+  const aimed = (pressAt: number): boolean => pressAt >= swappedAt + SHIELD_GRACE_MS;
+  /** Whether the message in the status line is an error: an error stays when the caregiver scrolls. */
+  let statusIsError = false;
+  let undoButton: HTMLElement | null = null;
+  /** The removals of this visit for the edited profile that can still be taken back, latest last. */
+  let undoStack: UndoOffer[] = [];
   let heading: HTMLElement | null = null;
+  let topBlock: HTMLElement | null = null;
+  let afterClose: HTMLElement | null = null;
   let status: HTMLElement | null = null;
+  let undoBar: HTMLElement | null = null;
   let body: HTMLElement | null = null;
-  let focusables = new Map<string, HTMLElement & { disabled?: boolean }>();
+  let help: HTMLDetailsElement | null = null;
+  let focusables = new Map<string, Focusable>();
 
   const opener = button(OPEN_LABEL, "caregiver-open");
   const progress = element("progress", "caregiver-hold-progress");
@@ -379,9 +545,229 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   hint.setAttribute("role", "status");
   hint.setAttribute("aria-live", "polite");
 
-  const say = (text: string): void => {
-    if (status !== null && acting === session) status.textContent = text;
+  const show = (text: string, error: boolean): void => {
+    if (status === null) return;
+    // A message of another length moves what is below the block.
+    if (status.textContent !== text) markSwap();
+    status.textContent = text;
+    status.className = error ? "caregiver-status caregiver-status-error" : "caregiver-status";
+    statusIsError = error;
+    statusStale = false;
   };
+
+  /** A message of the running task. `error`: something was refused or failed. */
+  const say = (text: string, error = false): void => {
+    if (acting === session) show(text, error);
+  };
+
+  /**
+   * Retires an earlier message when a button is pressed, whatever it said.
+   * The text stays where it is until the redraw for that press: taking it
+   * away at once would move the content under the finger.
+   */
+  const clearStatus = (): void => {
+    if (isOpen && status !== null && status.textContent !== "") statusStale = true;
+  };
+
+  /** Scrolling takes away what was only good to know. An error stays until the next press: it must not vanish unread. */
+  const clearOnScroll = (): void => {
+    if (!statusIsError && isOpen && status !== null && status.textContent !== "") show("", false);
+  };
+
+  /** Ends every hold of the body that may be running or waiting for its release. */
+  const dropHold = (): void => {
+    for (const held of bodyHolds) held.cancel();
+  };
+
+  /**
+   * Makes `control` a button that has to be held (`createHold`), with a
+   * pointer or with Enter or Space. The finger has to stay on it: the
+   * implicit pointer capture of a touch is released so that leaving is
+   * reported, and a move or a lift outside the button (beyond
+   * `HOLD_SLOP_PX`) ends the hold. With `onReady`, a completed hold only
+   * waits; `act` is called when the pointer or key is let go on the button.
+   */
+  const heldButton = (control: HTMLElement, held: {
+    readonly durationMs: number;
+    /** Asked when a press begins: false, and no hold starts. */
+    allowed(): boolean;
+    onProgress(elapsedMs: number, remainingSeconds: number): void;
+    /** A hold ended without acting. */
+    onIdle(reason: "released" | "cancelled"): void;
+    onReady?(): void;
+    act(): void;
+  }): HeldButton => {
+    let source: string | null = null;
+    let ready = false;
+    const hold = createHold({
+      setTimer,
+      durationMs: held.durationMs,
+      onProgress: held.onProgress,
+      onEnd: (reason) => {
+        if (reason !== "completed") {
+          source = null;
+          held.onIdle(reason);
+        } else if (held.onReady === undefined) {
+          source = null;
+          held.act();
+        } else {
+          ready = true;
+          held.onReady();
+        }
+      },
+    });
+    const start = (from: string): void => {
+      if (ready || hold.isHolding() || !held.allowed()) return;
+      source = from;
+      hold.press(from);
+    };
+    const abort = (): void => {
+      if (ready) {
+        ready = false;
+        source = null;
+        held.onIdle("cancelled");
+        return;
+      }
+      hold.cancel();
+    };
+    const finish = (from: string): void => {
+      if (!ready) {
+        hold.release(from);
+        return;
+      }
+      if (from !== source) return;
+      ready = false;
+      source = null;
+      held.act();
+    };
+    /** True when the pointer is not on the button any more. Unknown without geometry: then leaving has to be reported by the browser. */
+    const outside = (event: PointerEvent): boolean => {
+      try {
+        if (typeof control.getBoundingClientRect !== "function" || typeof event.clientX !== "number" || typeof event.clientY !== "number") return false;
+        const box = control.getBoundingClientRect();
+        return event.clientX < box.left - HOLD_SLOP_PX || event.clientX > box.right + HOLD_SLOP_PX
+          || event.clientY < box.top - HOLD_SLOP_PX || event.clientY > box.bottom + HOLD_SLOP_PX;
+      } catch {
+        return false;
+      }
+    };
+    control.addEventListener("pointerdown", (event) => {
+      // Only the main button of a mouse; touch and pen report 0 as well.
+      if (event.button > 0) return;
+      try {
+        // A touch is captured by the element it began on: without this, a finger that slides off is not reported as leaving.
+        control.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Not captured, or no such pointer: nothing to release.
+      }
+      start("pointer");
+    });
+    control.addEventListener("pointermove", (event) => {
+      if (source === "pointer" && outside(event)) abort();
+    });
+    control.addEventListener("pointerup", (event) => {
+      if (source === "pointer" && outside(event)) abort();
+      else finish("pointer");
+    });
+    control.addEventListener("pointerleave", abort);
+    control.addEventListener("pointercancel", abort);
+    control.addEventListener("blur", abort);
+    // A long press must not bring up the context menu instead of counting.
+    control.addEventListener("contextmenu", (event) => event.preventDefault());
+    control.addEventListener("keydown", (event) => {
+      if (!isHoldKey(event.key)) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      start(`key:${event.key}`);
+    });
+    control.addEventListener("keyup", (event) => {
+      if (isHoldKey(event.key)) finish(`key:${event.key}`);
+    });
+    return { control, cancel: abort };
+  };
+
+  /** What every press of a button starts with: the earlier message goes, and so does an open rename field or confirmation unless the press belongs to it. */
+  const begin = (keepMode = false): void => {
+    clearStatus();
+    if (keepMode) return;
+    mode = null;
+    dropHold();
+  };
+
+  /** `mark` shows on the guarded buttons that are drawn whether a press counts. */
+  const tapGuard = (mark: (armed: boolean) => void): TapGuard => {
+    let armed = true;
+    let waiting = false;
+    let turn = 0;
+    let cancel = (): void => undefined;
+    /** The message that "Bitte kurz warten." took the place of. */
+    let replaced: { readonly text: string; readonly error: boolean } | null = null;
+    const stop = (): void => {
+      turn += 1;
+      cancel();
+      cancel = () => undefined;
+    };
+    const wait = (): void => {
+      stop();
+      const mine = turn;
+      waiting = true;
+      const arm = (): void => {
+        // A timer whose cancellation came too late belongs to an earlier guard.
+        if (mine !== turn) return;
+        armed = true;
+        waiting = false;
+        mark(true);
+        // The wait is over: the line must not go on asking for it.
+        if (isOpen && status !== null && status.textContent === PLEASE_WAIT) show(replaced?.text ?? "", replaced?.error ?? false);
+        replaced = null;
+      };
+      try {
+        cancel = setTimer(arm, GUARD_MS);
+      } catch {
+        arm();
+      }
+    };
+    return {
+      armed: () => armed,
+      take() {
+        stop();
+        armed = false;
+        waiting = false;
+        mark(false);
+      },
+      settle(changed) {
+        if (changed) {
+          mark(false);
+          wait();
+          return;
+        }
+        stop();
+        armed = true;
+        waiting = false;
+        mark(true);
+      },
+      swallow() {
+        // Steady tapping keeps being ignored; before the redraw there is no time running yet.
+        if (waiting) wait();
+        // Said where the eyes are, so that the grey buttons are explained.
+        if (!isOpen || status === null) return;
+        if (status.textContent !== PLEASE_WAIT) replaced = statusStale ? null : { text: status.textContent ?? "", error: statusIsError };
+        show(PLEASE_WAIT, false);
+      },
+      reset() {
+        stop();
+        armed = true;
+        waiting = false;
+        replaced = null;
+        mark(true);
+      },
+    };
+  };
+  const markButton = (control: HTMLElement | null | undefined, armed: boolean): void => control?.setAttribute("aria-disabled", armed ? "false" : "true");
+  const removeGuard = tapGuard((armed) => {
+    for (const [key, control] of focusables) if (key.startsWith("remove:")) markButton(control, armed);
+  });
+  const undoGuard = tapGuard((armed) => markButton(undoButton, armed));
 
   /** Carries tasks out one after another, in the order they were asked for, across closing and reopening. */
   const run = (task: () => Promise<void>): void => {
@@ -391,7 +777,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       return task();
     }).catch(() => {
       // A task that failed outside its own handling: the area keeps what it shows.
-      say(WRITE_FAILED);
+      say(WRITE_FAILED, true);
     });
   };
 
@@ -407,174 +793,424 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
   };
 
+  /**
+   * Makes sure `target` is not under the block that stays at the top: the
+   * top edge of `anchor` (the card around it, or `target` itself) comes to
+   * rest just below the block. With `toTop` it is brought there also from
+   * further down, so that what was asked for is the first thing under the
+   * block. If `target` then ends below the region, the region scrolls on as
+   * far as `target` stays clear of the block. Does nothing where the DOM has
+   * no geometry.
+   */
+  const reveal = (target: HTMLElement, anchor: HTMLElement, toTop: boolean): void => {
+    try {
+      if (topBlock === null || typeof target.getBoundingClientRect !== "function" || typeof topBlock.getBoundingClientRect !== "function") return;
+      const edge = topBlock.getBoundingClientRect().bottom + REVEAL_GAP_PX;
+      const at = anchor.getBoundingClientRect().top;
+      if (toTop || at < edge) caregiverRegion.scrollTop = Math.max(0, caregiverRegion.scrollTop + at - edge);
+      const now = target.getBoundingClientRect();
+      const below = now.bottom - caregiverRegion.getBoundingClientRect().bottom;
+      if (below > 0) caregiverRegion.scrollTop += Math.max(0, Math.min(below, now.top - edge));
+    } catch {
+      // Without geometry the browser's own scrolling on focus has to do.
+    }
+  };
+
+  /** Draws the undo button for the latest removal that can be taken back, or takes the button away. */
+  const renderUndo = (): void => {
+    if (undoBar === null) return;
+    const next = undoStack[undoStack.length - 1];
+    if (next === undefined) {
+      undoButton = null;
+      if (!undoBar.hidden) markSwap();
+      undoBar.replaceChildren();
+      undoBar.hidden = true;
+      return;
+    }
+    // More than one: said on the button, because the next one appears in the same place.
+    const more = undoStack.length - 1;
+    const rest = more === 0 ? "" : ` (noch ${more} ${more === 1 ? "weiterer" : "weitere"})`;
+    const back = button(`${UNDO}: ${quoted(next.label)}${rest}`);
+    back.setAttribute("aria-label", `${UNDO}: ${next.label} wieder auf die Tafel setzen${rest}`);
+    markButton(back, undoGuard.armed());
+    back.addEventListener("click", () => {
+      // The next removal to take back appears under the finger: a second tap must not take that one back too.
+      if (!undoGuard.armed()) {
+        undoGuard.swallow();
+        return;
+      }
+      undoGuard.take();
+      begin();
+      // Back to where it was: before the id that followed it then, if that one is still on the board.
+      changeBoard(next.profileId, [`remove:${next.id}`], null, `${quoted(next.label)} ist wieder auf der Tafel.`, (ids) => {
+        if (ids.includes(next.id)) {
+          dropUndo((offer) => offer === next);
+          return null;
+        }
+        if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+        const at = next.before === null ? -1 : ids.indexOf(next.before);
+        return at < 0 ? [...ids, next.id] : [...ids.slice(0, at), next.id, ...ids.slice(at)];
+      }, (succeeded) => {
+        if (succeeded) dropUndo((offer) => offer === next);
+        undoGuard.settle(succeeded);
+      });
+    });
+    undoButton = back;
+    undoBar.replaceChildren(back);
+    undoBar.hidden = false;
+    markSwap();
+  };
+
+  /** Takes offers off the undo stack. Only for the opening that asked: a task of an earlier opening leaves this one's stack alone. */
+  const dropUndo = (gone: (offer: UndoOffer) => boolean): void => {
+    if (acting !== session || !undoStack.some(gone)) return;
+    undoStack = undoStack.filter((offer) => !gone(offer));
+    renderUndo();
+  };
+
   /** Reads the store again and replaces the body. `focus` names the controls to try, in order, for the focus. */
-  const draw = async (focus: readonly string[] | null, draftName?: string): Promise<void> => {
+  const draw = async (focus: readonly string[] | null, options: { readonly draftName?: string; readonly toTop?: boolean } = {}): Promise<void> => {
     const mine = acting;
     if (!isOpen || mine !== session) return;
     // A name that is typed but not sent yet survives the redraw after another action.
-    const typed = draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? "";
-    const nextFocusables = new Map<string, HTMLElement & { disabled?: boolean }>();
-    let content: HTMLElement[];
+    const typed = options.draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? createDraft;
+    createDraft = typed;
+    const nextFocusables = new Map<string, Focusable>();
+    const nextHolds: HeldButton[] = [];
+    let built: Built;
+    let failed = false;
     if (store === null) {
-      content = [element("p", "caregiver-notice", STORAGE_UNREACHABLE)];
+      failed = true;
+      built = { content: [element("p", "caregiver-notice", STORAGE_UNREACHABLE)], afterClose: AFTER_NO_STORAGE };
     } else {
       try {
-        content = await build(store, nextFocusables, typed);
+        built = await build(store, nextFocusables, nextHolds, typed);
       } catch {
+        failed = true;
         nextFocusables.clear();
-        content = [element("p", "caregiver-notice", READ_FAILED)];
+        nextHolds.length = 0;
+        built = { content: [element("p", "caregiver-notice", READ_FAILED)], afterClose: AFTER_READ_FAILED };
       }
     }
     if (!isOpen || mine !== session || body === null) return;
-    body.replaceChildren(...content);
+    // A hold dies with its button: whatever was held on the content that goes now ends here, not when its successor was built.
+    dropHold();
+    body.replaceChildren(...built.content);
+    bodyHolds = nextHolds;
+    markSwap();
+    // The message that the press for this redraw retired, if the action put nothing in its place.
+    if (statusStale) show("", false);
+    if (afterClose !== null) afterClose.textContent = built.afterClose;
+    // "Tafel neu laden" is the retry then, so it must not sit behind a closed summary.
+    if (failed && help !== null) help.open = true;
+    if (help !== null) help.hidden = built.confirming === true;
     focusables = nextFocusables;
+    // The rows were built while storage was read; what they show of the guard is set from its state now.
+    for (const [key, control] of focusables) if (key.startsWith("remove:")) markButton(control, removeGuard.armed());
+    // Removals are taken back on the board they were made on; with another profile in the editor the offers go.
+    dropUndo((offer) => offer.profileId !== selectedId);
     if (focus === null) return;
     const target = focus.map((key) => focusables.get(key)).find((candidate) => candidate !== undefined && candidate.disabled !== true);
     (target ?? heading)?.focus();
+    if (target === undefined) return;
+    const key = focus.find((candidate) => focusables.get(candidate) === target);
+    reveal(target, focusables.get(`anchor:${key}`) ?? target, options.toTop === true);
   };
-
-  /** `raw` is the name as it was when the form was sent, not what the field holds when the queue gets here. */
-  const createProfile = (raw: string): void => runWrite(async () => {
-    if (store === null) return;
-    try {
-      const before = await store.list();
-      const first = before.profiles.length === 0 && before.damaged.length === 0;
-      const profile = await store.create(raw, []);
-      writes += 1;
-      selectedId = profile.id;
-      let line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist noch nicht die aktive Tafel.`;
-      if (first) {
-        try {
-          await store.setActive(profile.id);
-          line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist das erste Profil auf diesem Gerät und deshalb jetzt die aktive Tafel.`;
-        } catch {
-          line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es konnte aber nicht als aktive Tafel gespeichert werden.`;
-        }
-      }
-      say(line);
-      await draw(["create-name"], "");
-    } catch (error) {
-      say(nameErrorLine(error, raw));
-      await draw(["create-name"], raw);
-    }
-  });
-
-  const activate = (profile: ProfileV1): void => runWrite(async () => {
-    if (store === null) return;
-    try {
-      await store.setActive(profile.id);
-      writes += 1;
-      say(`${quoted(profile.displayName)} ist jetzt die aktive Tafel.`);
-    } catch (error) {
-      say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED);
-    }
-    await draw([`edit:${profile.id}`]);
-  });
-
-  const select = (profile: ProfileV1): void => run(async () => {
-    selectedId = profile.id;
-    say("");
-    await draw([`edit:${profile.id}`]);
-  });
 
   /**
    * One change of a board: reads the profile's full `conceptIds` from the
    * store, lets `change` build the new list from them, and saves it through
    * `setBoardConcepts`. `change` returns null when there is nothing to do.
+   * Focus goes to `focus` after a change that was saved and to `focusElse`
+   * otherwise (null: it stays where it is), so that a second press after a
+   * failure acts on the same concept. `after` hears whether it was saved,
+   * once the area has been drawn again: a guard counts from what is on
+   * screen, not from the end of the write.
    */
   const changeBoard = (
-    profileId: string, focus: readonly string[], done: string,
+    profileId: string, focus: readonly string[], focusElse: readonly string[] | null, done: string,
     change: (ids: readonly string[], editable: ReadonlySet<string>) => string[] | null,
+    after: (succeeded: boolean) => void = () => undefined,
   ): void => runWrite(async () => {
     if (store === null) return;
+    let succeeded = false;
     try {
       const board = await resolveBoard(store, profileId, catalogue);
       const next = change(board.profile.conceptIds, editableIds(board));
       if (next !== null) {
         await setBoardConcepts(store, profileId, next, catalogue);
         writes += 1;
+        succeeded = true;
         say(done);
       }
     } catch (error) {
-      say(boardErrorLine(error));
+      say(boardErrorLine(error), true);
     }
-    await draw(focus);
+    try {
+      await draw(succeeded ? focus : focusElse);
+    } finally {
+      after(succeeded);
+    }
   });
 
-  const conceptRow = (
-    profileId: string, index: number, id: string, shown: { labelDe: string; speechDe: string; symbolPath: string | null },
-    state: { chosen: boolean; canUp: boolean; canDown: boolean }, register: Map<string, HTMLElement>,
-  ): HTMLElement => {
-    const row = element("li", state.chosen ? "caregiver-concept caregiver-concept-chosen" : "caregiver-concept");
-    const checkbox = element("input", "caregiver-check");
-    checkbox.type = "checkbox";
-    checkbox.id = `caregiver-concept-${index}`;
-    checkbox.checked = state.chosen;
-    const label = element("label", "caregiver-concept-label");
-    label.htmlFor = checkbox.id;
+  /** `raw` is the name as it was when the form was sent, not what the field holds when the queue gets here. */
+  const createProfile = (raw: string): void => {
+    begin();
+    runWrite(async () => {
+      if (store === null) return;
+      try {
+        const before = await store.list();
+        if (nameTaken(before.profiles, raw, null)) throw new Refusal(nameTakenLine(before.profiles, raw));
+        const first = before.profiles.length === 0 && before.damaged.length === 0;
+        const profile = await store.create(raw, []);
+        writes += 1;
+        selectedId = profile.id;
+        let line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist noch nicht die aktive Tafel.`;
+        let partly = false;
+        if (first) {
+          try {
+            await store.setActive(profile.id);
+            line = `Das Profil ${quoted(profile.displayName)} ist angelegt und jetzt die aktive Tafel. Füge unten Begriffe hinzu.`;
+          } catch {
+            line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es konnte aber nicht als aktive Tafel gespeichert werden.`;
+            partly = true;
+          }
+        }
+        say(line, partly);
+        // The first profile: straight on to its board. A further one: its card, where "Als aktive Tafel verwenden" is.
+        if (first) await draw(["editor-heading"], { draftName: "", toTop: true });
+        else await draw([`activate:${profile.id}`, `edit:${profile.id}`], { draftName: "" });
+      } catch (error) {
+        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw), true);
+        await draw(["create-name"], { draftName: raw });
+      }
+    });
+  };
+
+  const activate = (profile: ProfileV1, label: string): void => {
+    begin();
+    runWrite(async () => {
+      if (store === null) return;
+      try {
+        await store.setActive(profile.id);
+        writes += 1;
+        say(`${quoted(label)} ist jetzt die aktive Tafel.`);
+      } catch (error) {
+        say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED, true);
+      }
+      await draw([`edit:${profile.id}`]);
+    });
+  };
+
+  /** Puts another profile into the editor and goes there: the editor is below the fold on a phone. */
+  const select = (profile: ProfileV1, label: string): void => {
+    begin();
+    run(async () => {
+      selectedId = profile.id;
+      say(`Tafel von ${quoted(label)} wird bearbeitet.`);
+      await draw(["editor-heading"], { toTop: true });
+    });
+  };
+
+  /** Opens the rename field or the delete confirmation of one profile; whatever was open before is closed. */
+  const openMode = (next: Exclude<Mode, null>, focus: string): void => {
+    clearStatus();
+    dropHold();
+    mode = next;
+    // A confirmation is the whole body: it starts right under the block.
+    run(() => draw([focus], { toTop: next.kind === "delete" }));
+  };
+
+  /** Closes the open rename field or confirmation without a change; focus returns to the button that opened it. */
+  const leaveMode = (): void => {
+    const was = mode;
+    if (was === null) return;
+    clearStatus();
+    dropHold();
+    mode = null;
+    run(() => draw([`${was.kind}:${was.id}`]));
+  };
+
+  /** `raw` is the name as it was when the form was sent. */
+  const renameProfile = (id: string, raw: string): void => {
+    clearStatus();
+    // The field stays open while the name is saved; it closes, or keeps what was typed, only if it is still this one then.
+    // A form that is no longer on screen has no field to close: whatever is open instead stays as it is.
+    const mine = mode !== null && mode.kind === "rename" && mode.id === id ? mode : null;
+    const settle = (next: Mode): void => {
+      if (acting === session && mine !== null && mode === mine) mode = next;
+    };
+    runWrite(async () => {
+      if (store === null) return;
+      try {
+        const others = (await store.list()).profiles;
+        if (nameTaken(others, raw, id)) throw new Refusal(nameTakenLine(others, raw));
+        const profile = await store.rename(id, raw);
+        writes += 1;
+        settle(null);
+        say(`Das Profil heißt jetzt ${quoted(profile.displayName)}.`);
+        await draw([`rename:${id}`]);
+      } catch (error) {
+        // `ProfileFormatError` is also what a damaged record gives; only a readable profile has a name to refuse.
+        const gone = error instanceof UnknownProfileError
+          || (error instanceof ProfileFormatError && await store.get(id).then(() => false, () => true));
+        if (gone) {
+          settle(null);
+          say(PROFILE_GONE, true);
+          await draw(["profiles-heading"]);
+          return;
+        }
+        // Refused or not written: the field stays open with what was typed.
+        settle({ kind: "rename", id, draft: raw });
+        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw), true);
+        await draw(["rename-name"]);
+      }
+    });
+  };
+
+  /** Asks for the delete of the profile whose confirmation is open. False when nothing was asked for. */
+  const deleteProfile = (profile: ProfileV1, label: string): boolean => {
+    // Only while the confirmation for this profile is the one that is open.
+    const mine = mode;
+    if (mine === null || mine.kind !== "delete" || mine.id !== profile.id) return false;
+    begin(true);
+    runWrite(async () => {
+      if (store === null) return;
+      const leave = (): void => {
+        if (acting === session && mode === mine) mode = null;
+      };
+      // The delete may have waited behind a slow write. "Abbrechen" or Escape in that time takes it back, and a
+      // second hold on the confirmation that was still drawn finds it closed by the first: one delete, one message.
+      if (mode !== mine) return;
+      try {
+        const wasActive = (await store.getActive()) === profile.id;
+        await store.remove(profile.id);
+        writes += 1;
+        leave();
+        if (selectedId === profile.id) selectedId = null;
+        // Nothing is made active in its place: which board the child gets is a caregiver's choice.
+        say(wasActive ? `Das Profil ${quoted(label)} wurde gelöscht. Gerade ist keine Tafel aktiv.` : `Das Profil ${quoted(label)} wurde gelöscht.`);
+        await draw(["profiles-heading"]);
+      } catch (error) {
+        leave();
+        say(error instanceof UnknownProfileError ? PROFILE_GONE : WRITE_FAILED, true);
+        await draw([`delete:${profile.id}`, "profiles-heading"]);
+      }
+    });
+    return true;
+  };
+
+  /** Picture (if any), label and sentence of one row. */
+  const conceptText = (shown: { labelDe: string; speechDe: string; symbolPath: string | null } | null, fallback: string): HTMLElement => {
+    const text = element("div", "caregiver-concept-text");
+    if (shown === null) {
+      text.append(element("span", "caregiver-concept-name", fallback));
+      return text;
+    }
     if (shown.symbolPath !== null) {
+      text.className = "caregiver-concept-text caregiver-concept-pictured";
       const picture = element("img", "");
       picture.src = shown.symbolPath;
       picture.alt = "";
       picture.width = 48;
       picture.height = 48;
-      label.append(picture);
+      text.append(picture);
     }
-    label.append(element("span", "caregiver-concept-name", shown.labelDe), element("span", "caregiver-concept-sentence", shown.speechDe));
-    checkbox.addEventListener("change", () => {
-      const add = checkbox.checked;
-      changeBoard(profileId, [`check:${id}`], `Gespeichert: ${quoted(shown.labelDe)} ist ${add ? "jetzt" : "nicht mehr"} auf der Tafel.`, (ids, editable) => {
-        if (add) {
-          if (ids.includes(id)) return null;
-          if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(`Auf eine Tafel passen höchstens ${MAX_CONCEPT_IDS} Begriffe. Es wurde nichts geändert.`);
-          return [...ids, id];
-        }
+    text.append(element("span", "caregiver-concept-name", shown.labelDe), element("span", "caregiver-concept-sentence", shown.speechDe));
+    return text;
+  };
+
+  /** A catalogue concept on the board: it can be moved among the editable rows and taken off. */
+  const boardRow = (
+    profileId: string, entry: BoardEntry, place: number, editableOrder: readonly string[], register: Map<string, Focusable>,
+  ): HTMLElement => {
+    const { id } = entry;
+    const row = element("li", "caregiver-concept");
+    // The target of the focus after "Hinzufügen" when no other concept is left to add.
+    row.tabIndex = -1;
+    register.set(`row:${id}`, row);
+    const actions = element("div", "caregiver-row-actions");
+    const move = (text: string, delta: -1 | 1, enabled: boolean): HTMLButtonElement => {
+      const control = button(text, "caregiver-button caregiver-move");
+      control.setAttribute("aria-label", `${entry.labelDe} ${text}`);
+      control.disabled = !enabled;
+      const key = `${delta < 0 ? "up" : "down"}:${id}`;
+      control.addEventListener("click", () => {
+        begin();
+        changeBoard(profileId, [key, `${delta < 0 ? "down" : "up"}:${id}`, `remove:${id}`], [key], "Die Reihenfolge wurde gespeichert.",
+          (ids, editable) => moved(ids, editable, id, delta));
+      });
+      register.set(key, control);
+      return control;
+    };
+    const remove = button(REMOVE);
+    remove.setAttribute("aria-label", `${REMOVE}: ${entry.labelDe}`);
+    remove.addEventListener("click", () => {
+      // After a removal another row is where this one was: a second tap on the same spot must not take that one off too.
+      if (!removeGuard.armed()) {
+        removeGuard.swallow();
+        return;
+      }
+      removeGuard.take();
+      begin();
+      const focus = [editableOrder[place + 1], editableOrder[place - 1]].filter((other) => other !== undefined).map((other) => `remove:${other}`);
+      let offer: UndoOffer | null = null;
+      changeBoard(profileId, [...focus, "more-heading"], [`remove:${id}`], `${quoted(entry.labelDe)} wurde von der Tafel genommen.`, (ids, editable) => {
         // Only what this screen may edit is ever taken off; every other id stays in the list.
-        return editable.has(id) ? ids.filter((other) => other !== id) : null;
+        const at = ids.indexOf(id);
+        if (at < 0 || !editable.has(id)) return null;
+        offer = { profileId, id, label: entry.labelDe, before: ids[at + 1] ?? null };
+        return ids.filter((other) => other !== id);
+      }, (succeeded) => {
+        removeGuard.settle(succeeded);
+        if (!succeeded || offer === null || acting !== session) return;
+        // A removal can be taken back at once, also when the guard of an earlier undo is still running.
+        undoGuard.reset();
+        undoStack = [...undoStack, offer];
+        renderUndo();
       });
     });
-    register.set(`check:${id}`, checkbox);
-    row.append(checkbox, label);
-    if (state.chosen) {
-      const move = (text: string, delta: -1 | 1, enabled: boolean): HTMLButtonElement => {
-        const control = button(text, "caregiver-button caregiver-move");
-        control.setAttribute("aria-label", `${shown.labelDe} ${text}`);
-        control.disabled = !enabled;
-        const key = `${delta < 0 ? "up" : "down"}:${id}`;
-        control.addEventListener("click", () => {
-          changeBoard(profileId, [key, `${delta < 0 ? "down" : "up"}:${id}`, `check:${id}`], "Die Reihenfolge wurde gespeichert.",
-            (ids, editable) => moved(ids, editable, id, delta));
-        });
-        register.set(key, control);
-        return control;
-      };
-      row.append(move("nach oben", -1, state.canUp), move("nach unten", 1, state.canDown));
-    }
+    register.set(`remove:${id}`, remove);
+    actions.append(move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1), remove);
+    row.append(conceptText(entry, ""), actions);
     return row;
   };
 
-  /** A concept on the board that this version does not edit: shown, checked, and not changeable. */
-  const lockedRow = (index: number, id: string, entry: BoardEntry | undefined): HTMLElement => {
-    const row = element("li", "caregiver-concept caregiver-concept-chosen caregiver-concept-locked");
-    const checkbox = element("input", "caregiver-check");
-    checkbox.type = "checkbox";
-    checkbox.id = `caregiver-concept-${index}`;
-    checkbox.checked = true;
-    checkbox.disabled = true;
-    const label = element("label", "caregiver-concept-label");
-    label.htmlFor = checkbox.id;
-    if (entry === undefined) {
-      label.append(element("span", "caregiver-concept-name", `Begriff ${quoted(id)}`));
-    } else {
-      label.append(element("span", "caregiver-concept-name", entry.labelDe), element("span", "caregiver-concept-sentence", entry.speechDe));
-    }
+  /** A concept on the board that this version does not edit: shown at its place, with the reason and no buttons. */
+  const lockedRow = (id: string, entry: BoardEntry | undefined): HTMLElement => {
+    const row = element("li", "caregiver-concept caregiver-concept-locked");
     const note = element("p", "caregiver-concept-note", entry?.source === "retired" ? `${RETIRED} ${NOT_EDITABLE}` : NOT_EDITABLE);
-    row.append(checkbox, label, note);
+    row.append(conceptText(entry ?? null, `Begriff ${quoted(id)}`), note);
     return row;
   };
 
-  const conceptSection = async (
-    current: ProfileStore, profile: ProfileV1, activeId: string | null, register: Map<string, HTMLElement>,
+  /** A catalogue concept that is not on the board. */
+  const moreRow = (profileId: string, concept: CatalogueConcept, place: number, rest: readonly CatalogueConcept[], register: Map<string, Focusable>): HTMLElement => {
+    const { id } = concept;
+    const row = element("li", "caregiver-concept");
+    const add = button(ADD);
+    add.setAttribute("aria-label", `${ADD}: ${concept.labelDe}`);
+    add.addEventListener("click", () => {
+      begin();
+      const focus = [rest[place + 1], rest[place - 1]].filter((other) => other !== undefined).map((other) => `add:${other.id}`);
+      changeBoard(profileId, [...focus, `row:${id}`], [`add:${id}`], `Gespeichert: ${quoted(concept.labelDe)} ist jetzt auf der Tafel.`, (ids) => {
+        if (ids.includes(id)) return null;
+        if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+        return [...ids, id];
+      }, (succeeded) => {
+        // Back on the board by hand: there is nothing left to take back for this concept.
+        if (succeeded) dropUndo((offer) => offer.profileId === profileId && offer.id === id);
+      });
+    });
+    register.set(`add:${id}`, add);
+    const actions = element("div", "caregiver-row-actions");
+    actions.append(add);
+    row.append(conceptText(concept, ""), actions);
+    return row;
+  };
+
+  const boardSection = async (
+    current: ProfileStore, profile: ProfileV1, label: string, activeId: string | null, register: Map<string, Focusable>,
   ): Promise<HTMLElement> => {
     // What the child sees while another profile is edited: that profile's board, or examples when it has nothing to show.
     let notActive = EDITED_NONE_ACTIVE;
@@ -586,7 +1222,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
     }
     const section = element("section", "caregiver-section");
-    section.append(element("h2", "", `Begriffe für ${quoted(profile.displayName)}`));
+    const editorHeading = element("h2", "", `Tafel von ${quoted(label)} bearbeiten`);
+    editorHeading.tabIndex = -1;
+    register.set("editor-heading", editorHeading);
+    section.append(editorHeading);
     // Which board the child sees must not depend on a status line that the next action replaces.
     if (profile.id !== activeId) {
       section.append(element("p", "caregiver-notice caregiver-warning", notActive));
@@ -600,27 +1239,178 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     if (profile.id === activeId && board.entries.length === 0) section.append(element("p", "caregiver-notice caregiver-warning", ACTIVE_WITHOUT_CONCEPTS));
     section.append(element("p", "caregiver-notice", CONCEPT_HELP));
+    if (board.entries.length > BOARD_COMFORT_MAX) section.append(element("p", "caregiver-notice caregiver-warning", MANY_CONCEPTS));
+
     const ids = board.profile.conceptIds;
     const editable = editableIds(board);
     const editableOrder = ids.filter((id) => editable.has(id));
-    const list = element("ul", "caregiver-concepts");
-    ids.forEach((id, index) => {
-      const entry = board.entries.find((candidate) => candidate.id === id);
-      if (entry !== undefined && editable.has(id)) {
-        const place = editableOrder.indexOf(id);
-        list.append(conceptRow(profile.id, index, id, entry, { chosen: true, canUp: place > 0, canDown: place < editableOrder.length - 1 }, register));
-      } else {
-        list.append(lockedRow(index, id, entry));
+    section.append(element("h3", "", ON_BOARD));
+    if (ids.length === 0) {
+      section.append(element("p", "caregiver-notice", BOARD_EMPTY));
+    } else {
+      const onBoard = element("ol", "caregiver-concepts");
+      for (const id of ids) {
+        const entry = board.entries.find((candidate) => candidate.id === id);
+        onBoard.append(entry !== undefined && editable.has(id)
+          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register)
+          : lockedRow(id, entry));
       }
-    });
-    catalogue.filter((concept) => !ids.includes(concept.id)).forEach((concept, offset) => {
-      list.append(conceptRow(profile.id, ids.length + offset, concept.id, concept, { chosen: false, canUp: false, canDown: false }, register));
-    });
-    section.append(list);
+      section.append(onBoard);
+    }
+
+    const moreHeading = element("h3", "", MORE_CONCEPTS);
+    moreHeading.tabIndex = -1;
+    register.set("more-heading", moreHeading);
+    section.append(moreHeading);
+    const rest = catalogue.filter((concept) => !ids.includes(concept.id));
+    if (rest.length === 0) {
+      section.append(element("p", "caregiver-notice", NO_MORE_CONCEPTS));
+    } else {
+      const more = element("ul", "caregiver-concepts");
+      rest.forEach((concept, place) => more.append(moreRow(profile.id, concept, place, rest, register)));
+      section.append(more);
+    }
     return section;
   };
 
-  const build = async (current: ProfileStore, register: Map<string, HTMLElement>, draftName: string): Promise<HTMLElement[]> => {
+  /** A text field for a profile name. Spell checking and correction can send typed text to a service; a name stays here. */
+  const nameField = (id: string, value: string): HTMLInputElement => {
+    const input = element("input", "caregiver-input");
+    input.type = "text";
+    input.id = id;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.setAttribute("autocapitalize", "off");
+    input.setAttribute("autocorrect", "off");
+    input.value = value;
+    return input;
+  };
+
+  /**
+   * The delete confirmation. While it is open it is the whole body: no card,
+   * no editor and no form is on screen, so nothing else can be hit, and
+   * nothing can be drawn under a finger that rests on it.
+   */
+  const confirmView = (profile: ProfileV1, label: string, isActive: boolean, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-confirm");
+    view.append(element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
+    if (isActive) view.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("confirm-cancel", cancel);
+    register.set("anchor:confirm-cancel", view);
+    // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
+    const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
+    const holdProgress = element("progress", "caregiver-delete-progress");
+    holdProgress.max = DELETE_HOLD_MS;
+    holdProgress.value = 0;
+    holdProgress.hidden = true;
+    // The line below says the same in words.
+    holdProgress.setAttribute("aria-hidden", "true");
+    const holdHint = element("p", "caregiver-confirm-hint", DELETE_HOLD_HINT);
+    holdHint.id = "caregiver-delete-hint";
+    holdHint.setAttribute("role", "status");
+    holdHint.setAttribute("aria-live", "polite");
+    confirm.setAttribute("aria-describedby", holdHint.id);
+    const idle = (): void => {
+      holdProgress.hidden = true;
+      holdProgress.value = 0;
+      holdHint.textContent = DELETE_HOLD_HINT;
+    };
+    /** Only the button that is on screen acts: not one that was swapped out while a finger rested on it. */
+    const current = (): boolean => bodyHolds.includes(held) && (confirm as { isConnected?: boolean }).isConnected !== false;
+    const held: HeldButton = heldButton(confirm, {
+      durationMs: DELETE_HOLD_MS,
+      // A press on a button that has only just appeared is not a decision to delete.
+      allowed: () => current() && aimed(now()),
+      onProgress: (elapsedMs, remainingSeconds) => {
+        holdProgress.hidden = false;
+        holdProgress.value = elapsedMs;
+        const line = holdLine(remainingSeconds);
+        if (holdHint.textContent !== line) holdHint.textContent = line;
+      },
+      onIdle: idle,
+      // The delete waits for the finger to come up: what the redraw puts there must not be under a finger that is down.
+      onReady: () => {
+        holdProgress.value = DELETE_HOLD_MS;
+        holdHint.textContent = RELEASE_TO_DELETE;
+      },
+      act: () => {
+        idle();
+        if (current() && deleteProfile(profile, label)) holdHint.textContent = DELETING;
+      },
+    });
+    holds.push(held);
+    // "Abbrechen" first, and nothing below "Endgültig löschen" but its own bar and line.
+    const actions = element("div", "caregiver-profile-actions");
+    actions.append(cancel, confirm);
+    view.append(actions, holdProgress, holdHint);
+    return view;
+  };
+
+  /** `label` is the name as the area shows it: the stored name, with "(2)" and so on for a second profile of the same name. */
+  const profileCard = (profile: ProfileV1, label: string, activeId: string | null, register: Map<string, Focusable>): HTMLElement => {
+    const isActive = profile.id === activeId;
+    const open = mode !== null && mode.id === profile.id ? mode : null;
+    const item = element("li", "caregiver-profile");
+    const head = element("div", "caregiver-profile-head");
+    if (open?.kind === "rename") {
+      const form = element("form", "caregiver-rename");
+      const fieldLabel = element("label", "", `Neuer Name für ${quoted(label)}`);
+      fieldLabel.htmlFor = "caregiver-rename-name";
+      const input = nameField("caregiver-rename-name", open.draft);
+      const save = element("button", "caregiver-button caregiver-primary", SAVE);
+      save.type = "submit";
+      const cancel = button(CANCEL);
+      cancel.addEventListener("click", leaveMode);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        // A form that has only just appeared is not sent by an Enter that was meant for something else.
+        if (!aimed(now())) return;
+        renameProfile(profile.id, input.value);
+      });
+      register.set("rename-name", input);
+      register.set("anchor:rename-name", item);
+      const actions = element("div", "caregiver-profile-actions");
+      actions.append(save, cancel);
+      form.append(fieldLabel, input, actions);
+      head.append(form);
+      if (isActive) head.append(element("span", "caregiver-active", ACTIVE_MARK));
+      item.append(head);
+      return item;
+    }
+    head.append(element("span", "caregiver-profile-name", label));
+    if (isActive) head.append(element("span", "caregiver-active", ACTIVE_MARK));
+    const actions = element("div", "caregiver-profile-actions");
+    const action = (text: string, key: string, onClick: () => void, className = "caregiver-button"): HTMLButtonElement => {
+      const control = button(text, className);
+      control.setAttribute("aria-label", `${text}: ${label}`);
+      control.addEventListener("click", onClick);
+      register.set(`${key}:${profile.id}`, control);
+      actions.append(control);
+      return control;
+    };
+    if (!isActive) action(ACTIVATE, "activate", () => activate(profile, label));
+    action(EDIT_BOARD, "edit", () => select(profile, label)).setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
+    action(RENAME, "rename", () => openMode({ kind: "rename", id: profile.id, draft: profile.displayName }, "rename-name"));
+    action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id }, "confirm-cancel"), "caregiver-button caregiver-danger-quiet");
+    item.append(head, actions);
+    return item;
+  };
+
+  /** What the child's screen shows once the area is closed, read off the store the way start-up reads it. */
+  const afterCloseLine = async (current: ProfileStore, activeId: string | null, labels: ReadonlyMap<string, string>, damaged: number): Promise<string> => {
+    // Without a readable active profile, damaged entries decide (as at start-up); one of them may be the active one.
+    if (activeId === null) return damaged > 0 ? afterDamagedLine(damaged) : AFTER_NONE_ACTIVE;
+    try {
+      const board = await resolveBoard(current, activeId, catalogue);
+      return board.entries.length === 0 ? AFTER_ACTIVE_EMPTY : `${AFTER_CLOSE} Tafel von ${quoted(labels.get(activeId) ?? board.profile.displayName)}`;
+    } catch {
+      return AFTER_ACTIVE_UNREADABLE;
+    }
+  };
+
+  const build = async (current: ProfileStore, register: Map<string, Focusable>, holds: HeldButton[], draftName: string): Promise<Built> => {
     const listing = await current.list();
     // Null also when the active profile's record is unreadable; the damaged note below covers that.
     const activeId = await current.getActive();
@@ -628,35 +1418,36 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (!profiles.some((profile) => profile.id === selectedId)) {
       selectedId = profiles.find((profile) => profile.id === activeId)?.id ?? (profiles.length === 1 ? (profiles[0] as ProfileV1).id : null);
     }
+    // A rename field or confirmation for a profile that is gone has nothing to show.
+    if (mode !== null && !profiles.some((profile) => profile.id === mode?.id)) mode = null;
+    // Two profiles of one name (from data stored before the area refused that) are told apart on screen only.
+    const labels = new Map<string, string>();
+    const met = new Map<string, number>();
+    for (const profile of profiles) {
+      const count = (met.get(nameKey(profile.displayName)) ?? 0) + 1;
+      met.set(nameKey(profile.displayName), count);
+      labels.set(profile.id, count === 1 ? profile.displayName : `${profile.displayName} (${count})`);
+    }
+    const labelOf = (profile: ProfileV1): string => labels.get(profile.id) ?? profile.displayName;
+    const header = await afterCloseLine(current, activeId, labels, listing.damaged.length);
+    // The confirmation takes over: see `confirmView`.
+    const confirming = mode !== null && mode.kind === "delete" ? profiles.find((profile) => profile.id === mode?.id) : undefined;
+    if (confirming !== undefined) {
+      return { content: [confirmView(confirming, labelOf(confirming), confirming.id === activeId, register, holds)], afterClose: header, confirming: true };
+    }
 
     const profileSection = element("section", "caregiver-section");
-    profileSection.append(element("h2", "", "Profile"));
+    const profilesHeading = element("h2", "", "Profile");
+    profilesHeading.tabIndex = -1;
+    register.set("profiles-heading", profilesHeading);
+    profileSection.append(profilesHeading);
     if (listing.damaged.length > 0) profileSection.append(element("p", "caregiver-notice caregiver-damaged", damagedLine(listing.damaged.length)));
     if (profiles.length === 0) {
       // Damaged entries are not "no profile yet": the device is not new.
       profileSection.append(element("p", "caregiver-notice", listing.damaged.length > 0 ? ONLY_DAMAGED : NO_PROFILES));
     } else {
       const list = element("ul", "caregiver-profiles");
-      for (const profile of profiles) {
-        const item = element("li", "caregiver-profile");
-        item.append(element("span", "caregiver-profile-name", profile.displayName));
-        if (profile.id === activeId) {
-          item.append(element("span", "caregiver-active", ACTIVE_MARK));
-        } else {
-          const make = button(ACTIVATE);
-          make.setAttribute("aria-label", `${ACTIVATE}: ${profile.displayName}`);
-          make.addEventListener("click", () => activate(profile));
-          register.set(`activate:${profile.id}`, make);
-          item.append(make);
-        }
-        const edit = button(EDIT_CONCEPTS);
-        edit.setAttribute("aria-label", `${EDIT_CONCEPTS}: ${profile.displayName}`);
-        edit.setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
-        edit.addEventListener("click", () => select(profile));
-        register.set(`edit:${profile.id}`, edit);
-        item.append(edit);
-        list.append(item);
-      }
+      for (const profile of profiles) list.append(profileCard(profile, labelOf(profile), activeId, register));
       profileSection.append(list);
       if (activeId === null) profileSection.append(element("p", "caregiver-notice caregiver-warning", NONE_ACTIVE));
     }
@@ -664,31 +1455,30 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const form = element("form", "caregiver-create");
     const nameLabel = element("label", "", "Name für ein neues Profil");
     nameLabel.htmlFor = "caregiver-new-name";
-    const nameInput = element("input", "caregiver-input");
-    nameInput.type = "text";
-    nameInput.id = "caregiver-new-name";
-    nameInput.autocomplete = "off";
-    // Spell checking and correction can send typed text to a service; a name stays here.
-    nameInput.spellcheck = false;
-    nameInput.setAttribute("autocapitalize", "off");
-    nameInput.setAttribute("autocorrect", "off");
-    const nameNotice = element("p", "caregiver-notice caregiver-name-notice", NAME_NOTICE);
-    nameNotice.id = "caregiver-new-name-notice";
-    nameInput.setAttribute("aria-describedby", nameNotice.id);
-    nameInput.value = draftName;
+    const nameInput = nameField("caregiver-new-name", draftName);
+    const nameShort = element("p", "caregiver-notice caregiver-name-notice", NAME_SHORT);
+    nameShort.id = "caregiver-new-name-notice";
+    nameInput.setAttribute("aria-describedby", nameShort.id);
     const submit = element("button", "caregiver-button", "Profil anlegen");
     submit.type = "submit";
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!aimed(now())) return;
       createProfile(nameInput.value);
     });
-    form.append(nameLabel, nameInput, submit, nameNotice);
+    const more = element("details", "caregiver-details");
+    more.append(element("summary", "", NAME_DETAILS), element("p", "caregiver-notice", NAME_NOTICE));
+    // Folding moves what is below it: what comes under the finger has only just appeared.
+    more.addEventListener("toggle", markSwap);
+    form.append(nameLabel, nameInput, submit, nameShort, more);
     register.set("create-name", nameInput);
     profileSection.append(form);
 
+    const content = [profileSection];
     const selected = profiles.find((profile) => profile.id === selectedId);
-    if (selected !== undefined) return [profileSection, await conceptSection(current, selected, activeId, register)];
-    return profiles.length === 0 ? [profileSection] : [profileSection, element("p", "caregiver-notice", SELECT_PROFILE)];
+    if (selected !== undefined) content.push(await boardSection(current, selected, labelOf(selected), activeId, register));
+    else if (profiles.length > 0) content.push(element("p", "caregiver-notice", SELECT_PROFILE));
+    return { content, afterClose: header };
   };
 
   const close = (): Promise<void> => {
@@ -699,6 +1489,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     cancelIdle();
     // The next opening edits the active profile again, whatever was picked this time.
     selectedId = null;
+    mode = null;
+    createDraft = "";
+    dropHold();
+    bodyHolds = [];
     closingNo += 1;
     const mine = closingNo;
     away = "waiting";
@@ -709,9 +1503,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     line.setAttribute("role", "status");
     line.setAttribute("aria-live", "polite");
     caregiverRegion.replaceChildren(line);
+    markSwap();
     heading = null;
+    topBlock = null;
+    afterClose = null;
     status = null;
+    undoBar = null;
     body = null;
+    help = null;
     focusables = new Map();
     closing = new Promise((resolve) => {
       let cancelBound = (): void => undefined;
@@ -738,19 +1537,25 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           }
           away = "stalled";
           line.textContent = NO_BOARD_YET;
-          const retry = button("Tafel neu laden");
+          const retry = button(RELOAD_BOARD);
           let attempt = 0;
           retry.addEventListener("click", () => {
             attempt += 1;
             const thisAttempt = attempt;
             line.textContent = BOARD_LOADING;
+            // The line changes its height, and with it the place of the button.
+            markSwap();
             // Any refresh asked for now reads what is stored now, so its answer may show the board.
             void within(refreshBoard(), CLOSE_WAIT_MS).then((answer) => {
               if (answer !== TIMED_OUT) showBoard();
-              else if (mine === closingNo && away === "stalled" && thisAttempt === attempt) line.textContent = NO_BOARD_YET;
+              else if (mine === closingNo && away === "stalled" && thisAttempt === attempt) {
+                line.textContent = NO_BOARD_YET;
+                markSwap();
+              }
             });
           });
           caregiverRegion.replaceChildren(line, retry);
+          markSwap();
           entry.hidden = false;
           retry.focus();
         }
@@ -782,7 +1587,78 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
   };
   caregiverRegion.addEventListener("pointerdown", restartIdle);
-  caregiverRegion.addEventListener("keydown", restartIdle);
+
+  // The press shield: a click counts only if its press began after what it lands on was on screen (`aimed`).
+  // The listeners are on the region, in the capture phase, so that they hear every press and decide before any button does.
+  const pointerPresses = new Map<number, number>();
+  let lastPointerPress: number | null = null;
+  let keyPress: { at: number; seenAt: number; upAt: number | null } | null = null;
+  caregiverRegion.addEventListener("pointerdown", (event) => {
+    const at = now();
+    if (pointerPresses.size > 32) pointerPresses.clear();
+    if (typeof event.pointerId === "number") pointerPresses.set(event.pointerId, at);
+    lastPointerPress = at;
+    // A second finger anywhere else is the way to back out of a hold: it ends every hold but one on the button it lands on.
+    for (const held of bodyHolds) if (event.target !== held.control) held.cancel();
+  }, true);
+  caregiverRegion.addEventListener("keydown", (event) => {
+    if (!isHoldKey(event.key)) return;
+    const at = now();
+    if (!event.repeat) keyPress = { at, seenAt: at, upAt: null };
+    else if (keyPress !== null) keyPress.seenAt = at;
+    // A repeat without a press seen here: the key went down somewhere else, before this content.
+    else keyPress = { at: Number.NEGATIVE_INFINITY, seenAt: at, upAt: null };
+  }, true);
+  caregiverRegion.addEventListener("keyup", (event) => {
+    if (isHoldKey(event.key) && keyPress !== null) keyPress.upAt = now();
+  }, true);
+  caregiverRegion.addEventListener("click", (event) => {
+    // The summaries only fold and unfold text: nothing is lost by a press that was not aimed.
+    const target = event.target as Partial<Element> | null;
+    if (String(target?.tagName ?? "").toLowerCase() === "summary" || (typeof target?.closest === "function" && target.closest("summary") !== null)) return;
+    const at = now();
+    const id = (event as Partial<PointerEvent>).pointerId;
+    const byPointer = typeof id === "number" ? id >= 0 : event.detail > 0;
+    // A click without a press of its own (assistive technology, a script) begins when it arrives.
+    let pressAt = at;
+    if (byPointer) {
+      // A pointer whose press this region did not see went down on something that is gone.
+      pressAt = (typeof id === "number" ? pointerPresses.get(id) : lastPointerPress) ?? Number.NEGATIVE_INFINITY;
+    } else if (keyPress !== null && (keyPress.upAt === null ? at - keyPress.seenAt <= KEY_STALE_MS : at - keyPress.upAt <= KEY_CLICK_WINDOW_MS)) {
+      pressAt = keyPress.at;
+    }
+    if (aimed(pressAt)) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+  /** Events that Escape was already answered for: one that bubbles from the region reaches the document as well. */
+  const answered = new WeakSet<object>();
+  const onEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || !isOpen || answered.has(event)) return;
+    answered.add(event);
+    event.preventDefault();
+    // Escape leaves the innermost thing: an open rename field or confirmation first.
+    if (mode !== null) {
+      leaveMode();
+      return;
+    }
+    // Then a text field with something typed into it: focus leaves the field, the text stays, the area stays open.
+    const target = event.target as Partial<HTMLInputElement> | null | undefined;
+    if (String(target?.tagName ?? "").toLowerCase() === "input" && target?.type === "text" && target.value !== "") {
+      heading?.focus();
+      return;
+    }
+    void close();
+  };
+  caregiverRegion.addEventListener("keydown", (event) => {
+    restartIdle();
+    onEscape(event);
+  });
+  // Also with the focus on nothing inside the area (after a tap on text, say). While the area is closed this does nothing.
+  if (typeof document.addEventListener === "function") document.addEventListener("keydown", onEscape);
+  // A message must not keep the block at the top tall while the caregiver reads on. Wheel and touch only: the area scrolls by itself after a focus move.
+  caregiverRegion.addEventListener("wheel", clearOnScroll, { passive: true });
+  caregiverRegion.addEventListener("touchmove", clearOnScroll, { passive: true });
   caregiverRegion.addEventListener("input", restartIdle);
 
   const open = (): boolean => {
@@ -795,34 +1671,60 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     session += 1;
     cancelRunningSpeech();
 
-    heading = element("h1", "caregiver-heading", "Für Bezugspersonen");
+    // Stays at the top while the rest scrolls: the title, the board the child gets, the way out, and what was just done.
+    const top = element("div", "caregiver-top");
+    topBlock = top;
+    const header = element("header", "caregiver-header");
+    heading = element("h1", "caregiver-heading", OPEN_LABEL);
     heading.tabIndex = -1;
+    afterClose = element("p", "caregiver-after-close");
+    const closer = button(DONE, "caregiver-button caregiver-primary");
+    closer.addEventListener("click", () => void close());
+    header.append(heading, afterClose, closer);
     status = element("p", "caregiver-status", READING);
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
+    undoBar = element("div", "caregiver-undo");
+    undoBar.hidden = true;
+    top.append(header, status, undoBar);
     body = element("div", "caregiver-body");
-    const actions = element("div", "caregiver-actions");
-    const reload = button("Tafel neu laden");
-    reload.addEventListener("click", () => run(async () => {
-      say(RELOADING);
-      const answer = await within(refreshBoard(), CLOSE_WAIT_MS);
-      // The board answers a failed refresh with the examples; that is not "reloaded".
-      const startup = boardRegion.dataset["startup"];
-      const fallback = boardRegion.dataset["boardFallback"];
-      if (answer === TIMED_OUT || startup === "refresh-timeout") say(RELOAD_FAILED);
-      else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE);
-      else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN);
-      else say(RELOADED);
-      // Also after a read that failed earlier: the area shows what the store holds now.
-      await draw(null);
-    }));
-    const closer = button("Schließen");
-    closer.addEventListener("click", () => void close());
-    actions.append(reload, closer);
+
+    help = element("details", "caregiver-details caregiver-help");
+    const reload = button(RELOAD_BOARD);
+    reload.addEventListener("click", () => {
+      begin();
+      run(async () => {
+        say(RELOADING);
+        const answer = await within(refreshBoard(), CLOSE_WAIT_MS);
+        // The board answers a failed refresh with the examples; that is not "reloaded".
+        const startup = boardRegion.dataset["startup"];
+        const fallback = boardRegion.dataset["boardFallback"];
+        if (answer === TIMED_OUT || startup === "refresh-timeout") say(RELOAD_FAILED, true);
+        else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE, true);
+        else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN, true);
+        else say(RELOADED);
+        // Also after a read that failed earlier: the area shows what the store holds now.
+        await draw(null);
+      });
+    });
+    help.append(element("summary", "", HELP_SUMMARY), element("p", "caregiver-notice", RELOAD_HELP), reload, element("p", "caregiver-notice", VOICE_HELP));
+    help.addEventListener("toggle", markSwap);
 
     boardRegion.hidden = true;
     entry.hidden = true;
-    caregiverRegion.replaceChildren(heading, status, body, actions);
+    mode = null;
+    // What an earlier visit removed is not offered again: the bar is new and the stack starts empty.
+    undoStack = [];
+    dropHold();
+    bodyHolds = [];
+    createDraft = "";
+    statusIsError = false;
+    statusStale = false;
+    undoButton = null;
+    removeGuard.reset();
+    undoGuard.reset();
+    caregiverRegion.replaceChildren(top, body, help);
+    markSwap();
     caregiverRegion.hidden = false;
     heading.focus();
     restartIdle();
@@ -841,45 +1743,21 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     progress.value = 0;
     hint.textContent = line;
   };
-  const hold = createHold({
-    setTimer,
+  const openerHold = heldButton(opener, {
+    durationMs: HOLD_DURATION_MS,
+    allowed: () => true,
     onProgress: (elapsedMs, remainingSeconds) => {
       progress.hidden = false;
       progress.value = elapsedMs;
       const line = holdLine(remainingSeconds);
       if (hint.textContent !== line) hint.textContent = line;
     },
-    onEnd: (reason) => {
-      if (reason === "released") showIdle(HOLD_HINT);
-      else if (reason === "cancelled") showIdle("");
-      else showIdle(open() ? "" : STILL_STARTING);
-    },
-  });
-
-  const isHoldKey = (key: string): boolean => key === "Enter" || key === " " || key === "Spacebar";
-  opener.addEventListener("pointerdown", (event) => {
-    // Only the main button of a mouse; touch and pen report 0 as well.
-    if (event.button > 0) return;
-    hold.press("pointer");
-  });
-  opener.addEventListener("pointerup", () => hold.release("pointer"));
-  opener.addEventListener("pointerleave", () => hold.cancel());
-  opener.addEventListener("pointercancel", () => hold.cancel());
-  opener.addEventListener("blur", () => hold.cancel());
-  // A long press must not bring up the context menu instead of counting.
-  opener.addEventListener("contextmenu", (event) => event.preventDefault());
-  opener.addEventListener("keydown", (event) => {
-    if (!isHoldKey(event.key)) return;
-    event.preventDefault();
-    if (event.repeat) return;
-    hold.press(`key:${event.key}`);
-  });
-  opener.addEventListener("keyup", (event) => {
-    if (isHoldKey(event.key)) hold.release(`key:${event.key}`);
+    onIdle: (reason) => showIdle(reason === "released" ? HOLD_HINT : ""),
+    act: () => showIdle(open() ? "" : STILL_STARTING),
   });
   // An open area must not be left behind on a device that is put away or handed to the child.
   (options.onPageHidden ?? defaultPageHidden)(() => {
-    hold.cancel();
+    openerHold.cancel();
     if (isOpen) void close();
   });
 
