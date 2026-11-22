@@ -4,10 +4,10 @@
 - **Lane:** BACKLOG
 - **Domain:** recognition
 - **Created:** 2026-11-22T08:00:52+00:00
-- **Updated:** 2026-11-22T09:48:12+00:00
+- **Updated:** 2026-11-22T11:35:16+00:00
 - **Summary:** Tap-to-start capture that turns camera frames into landmark frames for the matcher; assets bundled for offline use; nothing stored.
 - **Next:** Depends on NG-1 feature schema. Measure frame rate on a mid-range phone before adding pose or face.
-- **Validation:** npm ci --ignore-scripts && npm run typecheck && npm run build && npm test && npm run smoke:offline
+- **Validation:** npm ci --ignore-scripts && npm run verify
 - **Priority:** 9
 - **Wave:** Wave 2 - capture (S2)
 - **Format version:** 1

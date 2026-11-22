@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-22T11:33:29+00:00",
+    "reference": "execution-evidence:sha256:540157c3318285437a8430f95befc6d0ab337602b58466322368c815c879def7",
+    "run_id": "run:NG-11:28ddf7e18542ae7c",
+    "schema_version": "1.0",
+    "source_digest": "sha256:b4aabd3191e38befe27778adebc455bcd12297525272359dbd73aac06f666b47",
+    "source_reference": "workspace-file:.github/workflows/ci.yml",
+    "stage_id": "correctness-review",
+    "task_id": "NG-11"
+}

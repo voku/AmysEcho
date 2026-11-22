@@ -30,13 +30,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --ignore-scripts
-      - name: Type check
-        run: npm run typecheck
-      - name: Build
-        run: npm run build
-      - name: Test
-        run: npm test
-      - name: Verify local asset serving
-        run: npm run smoke:offline
+      - name: Verify (type check, build, tests, offline asset smoke)
+        run: npm run verify
       - name: Audit dependencies
         run: npm audit --audit-level=high

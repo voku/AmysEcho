@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "build": "tsc --project tsconfig.json && node scripts/assemble.mjs",
     "test": "node --test test/*.test.mjs",
-    "smoke:offline": "node scripts/offline-smoke.mjs"
+    "smoke:offline": "node scripts/offline-smoke.mjs",
+    "verify": "npm run typecheck && npm run build && npm test && npm run smoke:offline"
   },
   "devDependencies": {
     "typescript": "6.0.3"

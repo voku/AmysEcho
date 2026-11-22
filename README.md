@@ -40,11 +40,11 @@ Node 22 or newer.
 
 ```sh
 npm ci --ignore-scripts
-npm run typecheck
-npm run build
-npm test
-npm run smoke:offline
+npm run verify
 ```
+
+`npm run verify` runs the type check, the build, the tests and the offline asset smoke check; the
+single steps are `npm run typecheck`, `npm run build`, `npm test` and `npm run smoke:offline`.
 
 Serve `dist/` from a local HTTP origin (`localhost` works) and open it in a browser.
 
