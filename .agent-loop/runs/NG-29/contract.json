@@ -1,0 +1,50 @@
+{
+    "acceptance_criteria": [
+        "A short tap or an interrupted hold never opens the caregiver area; only a hold of the full duration does, and the countdown is visible while holding",
+        "A profile created and activated in the caregiver area is shown on the child's board after closing, without a page reload",
+        "Concepts chosen and ordered in the caregiver area appear on the board in that order; a concept this version cannot show stays on the profile when the order is changed",
+        "When storage is unavailable the caregiver area says so in German and offers nothing that would write",
+        "User-facing text is German and the child's board shows no profile name"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-22T14:08:48+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "05947ccd08be83869530506228ec0503ce7a6b51",
+    "behavior_anchors": [],
+    "created_at": "2026-11-22T14:08:48+00:00",
+    "goal": "A caregiver opens the caregiver area by a deliberate press-and-hold with a visible countdown, sees the stored profiles, creates a profile, makes one active, and chooses and orders catalogue concepts for it; closing returns to the child's board, which shows the change without a reload.",
+    "kind": "task_contract",
+    "non_goals": [
+        "No rewording, custom concepts, export or import, delete, or repair of damaged entries (NG-13)",
+        "No change to src/profiles/, src/board-data.ts, src/startup.ts or src/app.ts behaviour",
+        "No password or PIN"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/caregiver.ts",
+        "src/main.ts",
+        "public/index.html",
+        "public/styles.css",
+        "public/sw.js",
+        "test/caregiver.test.mjs",
+        "test/bootstrap.test.mjs",
+        "docs/caregiver.md",
+        "docs/storage.md",
+        "README.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-29",
+    "updated_at": "2026-11-22T14:08:48+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}
