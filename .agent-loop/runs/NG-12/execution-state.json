@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:55acece81b90ce9459e1c8b4b1330eb9feea2747",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
     "history": [
         {
@@ -66,6 +66,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:24b93bfe",
                 "summary": "Board data API, startup view resolution and view-driven board rendering with tests; verify passes with 126 tests",
+                "task_id": "NG-12",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:01:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:01:28+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:033bf16db4634d7bb4006dc89d68c7d93a0234f750f4abd2849a9d0491826197",
+                    "execution-evidence:sha256:90fbd02c6d6e959a61f4ce7b1ec58ceda81989c7fdb6fa0ef12d27b43a7cea5b",
+                    "execution-evidence:sha256:fc103ef2d3fde39bb98f39b6d393beed7e20e2a254da0ced788222347fd046a8"
+                ],
+                "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:55acece81b90ce9459e1c8b4b1330eb9feea2747",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-12:9ab8ce62c7eebc00",
+                "schema_version": "1.0",
+                "task_id": "NG-12",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:033bf16db4634d7bb4006dc89d68c7d93a0234f750f4abd2849a9d0491826197",
+                    "execution-evidence:sha256:90fbd02c6d6e959a61f4ce7b1ec58ceda81989c7fdb6fa0ef12d27b43a7cea5b",
+                    "execution-evidence:sha256:fc103ef2d3fde39bb98f39b6d393beed7e20e2a254da0ced788222347fd046a8"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:55acece81b90ce9459e1c8b4b1330eb9feea2747",
+                "context_id": "claude-subagent-ng12-correctness-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+                "outcome": "changes_required",
+                "run_id": "run:NG-12:9ab8ce62c7eebc00",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:5a85eab7",
+                "summary": "main.ts:15,26 shows tappable examples before storage answers and re-mounts without cancelling speech, wiping a selection; board.ts:31-32 says no concepts chosen when all failed to load; README.md:25 overstates when examples are shown",
                 "task_id": "NG-12",
                 "validation_references": []
             }
