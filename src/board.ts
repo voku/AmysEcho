@@ -1,6 +1,6 @@
 import { CONCEPTS } from "./concepts.js";
 import type { BoardEntry } from "./board-data.js";
-import { hasLocalGermanVoice, onVoicesChanged, requestLocalGermanSpeech, type SpeechAttempt } from "./speech.js";
+import { hasLocalGermanVoice, onVoicesChanged, requestLocalGermanSpeech, speechActivity, type SpeechAttempt } from "./speech.js";
 import { fallbackCause, isTroubled, showsExamples } from "./startup.js";
 import type { BoardHandle, BoardView, FallbackCause, StartupHost } from "./startup.js";
 
@@ -31,6 +31,8 @@ const SPEAKER_PATH = "./icons/sprechen.svg";
  * sentence bar on a 320 px phone. Longer help is in docs/board.md.
  */
 const NO_VOICE_LINE = "Keine Stimme. Bitte noch einmal tippen.";
+/** For when tapping again cannot help: no German voice on the device, or still none at the second tap in a row. */
+const NO_GERMAN_VOICE_LINE = "Keine deutsche Stimme. Hol eine Bezugsperson.";
 const SPEECH_FAILED_LINE = "Vorlesen ging nicht. Bitte noch einmal tippen.";
 
 /**
@@ -43,6 +45,20 @@ const SPEECH_FAILED_LINE = "Vorlesen ging nicht. Bitte noch einmal tippen.";
  * take longer, and is then restarted by a tap.
  */
 export const SPEECH_MAX_MS = 8000;
+
+/**
+ * How long after a request the engine's own word is not asked for. After
+ * that, an engine that says it neither speaks nor has anything queued is
+ * believed: the sentence is not running (it ended without a report, or was
+ * never spoken), and the next tap speaks. Right after a request `speaking`
+ * may not be true yet. A guess, not measured.
+ */
+export const SPEECH_GRACE_MS = 300;
+
+export interface FailureOptions {
+  /** Reloads the page; default `location.reload()`. For tests. */
+  readonly reload?: () => void;
+}
 
 export type BoardOrientation = "portrait" | "wide";
 
@@ -76,10 +92,11 @@ const FALLBACK_LINES: Record<FallbackCause, string> = {
   "unloadable-profile": "Die Begriffe der eigenen Tafel konnten nicht geladen werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
   // Also shown on a device without any profile whose storage never answers, so it does not speak of an own board.
   "timeout": "Das Laden dauert gerade länger. Deshalb werden Beispiele gezeigt.",
-  "timeout-kept": "Hier werden noch Beispiele gezeigt. Die eigene Tafel ist bereit und erscheint, wenn die Seite neu geladen wird.",
+  // No "reload the page": an installed app has no way to do that. The caregiver area re-reads the board.
+  "timeout-kept": "Hier werden noch Beispiele gezeigt. Die eigene Tafel ist bereit. Bitte hol eine Bezugsperson.",
   "render-failed": "Die eigene Tafel kann gerade nicht angezeigt werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
   // Also shown when no own board exists (no profile, or one that was just removed), so it promises none.
-  "refresh-timeout": "Die Tafel konnte nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Bitte lade die Seite neu oder hol eine Bezugsperson.",
+  "refresh-timeout": "Die Tafel konnte nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Bitte hol eine Bezugsperson.",
 };
 
 function fallbackLine(cause: FallbackCause | null): string {
@@ -126,14 +143,30 @@ function reportProblems(root: HTMLElement, view: BoardView): void {
 
 /** The state before storage has answered: nothing to tap, so nothing wrong can be said. */
 export function mountLoading(root: HTMLElement): void {
+  releaseMountedBoard();
   // Voices load in the background; asking now gives them time until the first tap.
   hasLocalGermanVoice();
   root.replaceChildren(makeHeading(), paragraph("board-notice board-line", "Die Tafel wird geladen."));
 }
 
-/** Last resort when no board can be drawn. It does not claim that anything is loading. */
-export function mountFailure(root: HTMLElement): void {
-  root.replaceChildren(makeHeading(), paragraph("board-notice board-line", "Die Tafel kann gerade nicht angezeigt werden. Bitte lade die Seite neu oder gib einer Bezugsperson Bescheid."));
+/**
+ * Last resort when no board can be drawn. It does not claim that anything is
+ * loading. Nothing in the app can recover this state, and an installed app
+ * has no browser button to reload, so the line comes with a button that does.
+ */
+export function mountFailure(root: HTMLElement, options: FailureOptions = {}): void {
+  releaseMountedBoard();
+  const reload = options.reload ?? ((): void => location.reload());
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "board-reload";
+  button.textContent = "Seite neu laden";
+  button.addEventListener("click", () => reload());
+  root.replaceChildren(
+    makeHeading(),
+    paragraph("board-notice board-line", "Die Tafel kann gerade nicht angezeigt werden. Bitte tippe auf „Seite neu laden“ oder hol eine Bezugsperson."),
+    button,
+  );
   delete root.dataset["boardFallback"];
   delete root.dataset["boardProblems"];
 }
@@ -228,6 +261,8 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
   /** When the sentence that is being spoken was asked for; null when none is, as far as the app knows. */
   let spokenSince: number | null = null;
   let stopWatchingVoices = (): void => undefined;
+  /** How many requests in a row found an empty voice list. */
+  let emptyLists = 0;
 
   /** The speech line, and with it the look of the speaker: dimmed while there is a problem. */
   const showStatus = (line: string): void => {
@@ -236,8 +271,9 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
   };
 
   /**
-   * After a tap that found no voice: when the engine's voice list changes and
-   * holds a local German voice, the "no voice" line goes. Nothing is spoken
+   * After a tap that found no voice (a voice may load late, or be installed
+   * while the app is open): when the engine's voice list changes and holds a
+   * local German voice, the "no voice" line goes. Nothing is spoken
    * then: a sentence that comes seconds after the tap would be wrong.
    */
   const watchVoices = (): void => {
@@ -246,7 +282,8 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
       // A report that still reaches a board that was replaced changes nothing.
       if (root.children[1] !== bar || !hasLocalGermanVoice()) return;
       stop();
-      // Only a tap that found no voice listens, so the line that goes is the "no voice" line.
+      emptyLists = 0;
+      // Only a tap that found no voice listens, so the line that goes is a "no voice" line.
       showStatus("");
     });
     stopWatchingVoices = stop;
@@ -263,16 +300,32 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
       if (thisAttempt === currentAttempt) spokenSince = null;
     });
     spokenSince = attempt === "requested" ? now() : null;
-    const lines: Record<SpeechAttempt, string> = { requested: "", unavailable: NO_VOICE_LINE, failed: SPEECH_FAILED_LINE };
+    emptyLists = attempt === "unavailable" ? emptyLists + 1 : 0;
+    // An empty voice list may still be loading: "tap again" is said once. If
+    // the next tap finds it empty too, tapping does not help.
+    const lines: Record<SpeechAttempt, string> = {
+      "requested": "",
+      "unavailable": emptyLists > 1 ? NO_GERMAN_VOICE_LINE : NO_VOICE_LINE,
+      "no-voice": NO_GERMAN_VOICE_LINE,
+      "failed": SPEECH_FAILED_LINE,
+    };
     showStatus(lines[attempt]);
-    if (attempt === "unavailable") watchVoices();
+    if (attempt === "unavailable" || attempt === "no-voice") watchVoices();
     else stopWatchingVoices();
+  };
+
+  /** True while the selected sentence is being spoken, as far as the app can know. */
+  const stillSpoken = (): boolean => {
+    if (spokenSince === null) return false;
+    const elapsed = now() - spokenSince;
+    if (elapsed >= SPEECH_MAX_MS) return false;
+    // An engine that took the sentence and says it is doing nothing is not speaking it.
+    return !(elapsed >= SPEECH_GRACE_MS && speechActivity() === "silent");
   };
 
   /** Speaks the selected sentence again, unless it is still being spoken. */
   const repeat = (concept: BoardEntry): void => {
-    if (spokenSince !== null && now() - spokenSince < SPEECH_MAX_MS) return;
-    speak(concept);
+    if (!stillSpoken()) speak(concept);
   };
 
   const select = (concept: BoardEntry, tile: HTMLElement): void => {

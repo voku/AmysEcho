@@ -4,7 +4,8 @@ How the board looks and behaves for the child (card NG-30). What the board shows
 may stand in for the child's own board, is in [storage.md](storage.md); the area for caregivers is
 in [caregiver.md](caregiver.md).
 
-Code: `mountBoard`, `boardColumns` and `SPEECH_MAX_MS` in `src/board.ts`; speech in `src/speech.ts`;
+Code: `mountBoard`, `mountFailure`, `boardColumns`, `SPEECH_MAX_MS` and `SPEECH_GRACE_MS` in
+`src/board.ts`; speech in `src/speech.ts`;
 the layout in `public/styles.css`; the page in `public/index.html`.
 
 ## Status
@@ -38,6 +39,22 @@ The page is one screen high (`100dvh`, `100vh` for browsers without it) and is a
 The app name is still an `h1`, for the document outline, but it is not visible
 (`.visually-hidden`). The waiting line, the last-resort line and the static line of `index.html`
 (`.board-line`) are drawn as a box where the sentence bar will be.
+
+No text on the child's screen asks to "reload the page": an installed app has no browser button
+for that, and pull-to-refresh is switched off (below).
+
+- The last-resort line ("Die Tafel kann gerade nicht angezeigt werden. Bitte tippe auf „Seite neu
+  laden“ oder hol eine Bezugsperson.") comes with a real button "Seite neu laden" that calls
+  `location.reload()`. Nothing else in the app can recover that state.
+- The two fallback sentences that used to ask for a reload (`timeout-kept`, `refresh-timeout`) now
+  end with "Bitte hol eine Bezugsperson."; the caregiver area re-reads the board when it is closed
+  and has "Tafel neu laden".
+- The static line of `index.html`, which shows when the script does not start, says to close the
+  app and open it again.
+
+One line in the caregiver area (`src/caregiver.ts`, shown when the board could not be re-read
+after closing) still offers "lade die Seite neu" next to its own button "Tafel neu laden"; that
+file was outside this card.
 
 The board is a grid. Its rows share the height equally, so the tiles fill the board. A row is
 never lower than `--tile-min`: 112 px, 88 px in a window at most 600 px high (the smallest
@@ -111,48 +128,76 @@ speaks the sentence exactly once has not been tried.
 
 ## Speech status
 
-No text while speech was asked for normally. One small line appears only when there is a problem,
-and while it shows the speaker picture in the bar is dimmed and grey (class `sentence-bar-mute`),
-so the bar does not show a working speaker:
+No text while speech was asked for normally. One small line appears only when there is a problem:
 
-| Situation | Line |
-| --- | --- |
-| No local German voice, or no speech engine | "Keine Stimme. Bitte noch einmal tippen." |
-| The engine threw, or reported an error for the latest request | "Vorlesen ging nicht. Bitte noch einmal tippen." |
+| What the request found | Result of `requestLocalGermanSpeech` | Line |
+| --- | --- | --- |
+| The voice list is empty (it may still be loading), first request in a row | `"unavailable"` | "Keine Stimme. Bitte noch einmal tippen." |
+| The voice list is empty again at the next request in a row | `"unavailable"` | "Keine deutsche Stimme. Hol eine Bezugsperson." |
+| Voices are there, none is a German voice on the device (also when a German voice exists that needs the network) | `"no-voice"` | "Keine deutsche Stimme. Hol eine Bezugsperson." |
+| No speech engine, or the browser cannot make an utterance | `"no-voice"` | "Keine deutsche Stimme. Hol eine Bezugsperson." |
+| The engine threw, or reported an error for the latest request | `"failed"`, or `onFailure` later | "Vorlesen ging nicht. Bitte noch einmal tippen." |
 
-The line is cleared by the next request that the engine accepts. It is a polite live region.
+"Tap again" is only said where tapping again can help. An empty voice list cannot be told apart
+from one that has not loaded yet, so the first such tap gets the benefit of the doubt and the
+second does not. Any other result, and a voice that arrives, starts that count again. The line is
+cleared by the next request that the engine accepts. It is a polite live region.
 
-**For caregivers, when "Keine Stimme" stays:** the app only speaks with a German voice that is
-installed on the device itself; it never uses a voice from the network. Install or switch on a
-German voice in the device's text-to-speech settings (Android: Settings, Accessibility or System,
-"Text-to-speech output", install German voice data; iOS and iPadOS: Settings, Accessibility,
-"Spoken Content", Voices, German), then tap again or reload the app. These paths are from the
-systems' documentation, not tried on a device with this app. This help is not on the child's
-screen.
+An utterance that was stopped is not a failure: when the engine reports the error `interrupted`
+or `canceled` (speech is cancelled when the caregiver area opens, for instance), the sentence
+counts as ended and no line is shown.
+
+**A bar that cannot speak looks different.** While a problem line shows, the bar has the class
+`sentence-bar-mute`: a grey-brown bar instead of the green one, and a grey speaker with a
+red-brown line through it (drawn in CSS on the bar's `::after`, no extra file). A child who cannot
+read the line still sees that this is not the bar that speaks. Colours as computed in Chromium:
+
+| Bar | Background | Border | Sentence colour, contrast | Speaker |
+| --- | --- | --- | --- | --- |
+| before a tap (idle) | rgb(238, 245, 247) | rgb(183, 207, 216) | rgb(74, 100, 114), 5.67:1 | opacity 0.35 |
+| after a tap, speech asked for | rgb(224, 242, 236) | rgb(33, 92, 118) | rgb(20, 49, 70), 11.61:1 | full |
+| problem line shows (muted) | rgb(230, 221, 208) | rgb(111, 94, 74) | rgb(20, 49, 70), 10.03:1 | opacity 0.45, grey, crossed out |
+
+The problem line itself is rgb(47, 71, 87) on the muted bar, 7.23:1. Whether a child reads the
+grey-brown, crossed-out bar as "no sound" has not been tried.
+
+**For caregivers, when "Keine deutsche Stimme" shows:** the app only speaks with a German voice
+that is installed on the device itself; it never uses a voice from the network. In general terms:
+open the device's settings for text-to-speech (on Android usually under Accessibility or System,
+"Text-to-speech output"; on iOS and iPadOS under Accessibility, "Spoken Content", "Voices"),
+choose German and download the voice so that it works without a connection, then come back to the
+app and tap again; if the line stays, close the app and open it again. A browser other than the
+system's own may bring its own voices or none. All of this is from the systems' general
+documentation: no device has been tried with this app, and it is not known which of the cases in
+the table a given device reports (an empty list, a list without German, or only a German voice
+that needs the network). This help is not on the child's screen.
 
 **Voices that load late.** Browsers fill their voice list in the background. The app asks for the
 list when the waiting line and when a board is mounted (`hasLocalGermanVoice` in `src/speech.ts`),
-which starts the loading before the first tap. If a tap still finds no voice, the board listens
-for the engine's `voiceschanged` event (one listener, removed when a voice has arrived, when a
-later tap finds a voice and when the board is mounted again). When a local German voice has
-arrived, the "Keine Stimme" line goes and the speaker is no longer dimmed. Nothing is spoken at
-that moment: a sentence that comes seconds after the tap would be wrong. The next tap speaks.
+which starts the loading before the first tap. If a tap still finds no German voice, in any of the
+cases above, the board listens for the engine's `voiceschanged` event (one listener, removed when
+a voice has arrived, when a later tap finds a voice, and when the board is replaced by another
+board, the waiting line or the last-resort line). When a local German voice has arrived, also one
+that was installed while the app was open, the line goes and the bar is green again. Nothing is
+spoken at that moment: a sentence that comes seconds after the tap would be wrong. The next tap
+speaks. An engine without `addEventListener` gets none of this: the line stays until the next tap.
 
 Where the browser knows `:has()`, the line is drawn inside the lower part of the sentence bar, in
 room the bar has anyway, so the tiles do not move when it appears: a tile that moves under a
 finger is a wrong word. That holds for a sentence of one line, and of two lines on a phone held
 upright; a longer sentence makes the bar grow by one small line. In a browser without `:has()`
 the line stands under the bar and the board gets that much lower. The line is one line
-(`white-space: nowrap`); both texts fit a 320 px wide window at the normal text size (measured,
-below). With larger text the end is cut off with an ellipsis.
+(`white-space: nowrap`); all three texts fit a 320 px wide window at the normal text size
+(measured, below). With larger text the end is cut off with an ellipsis.
 
 ## A sentence that is still being spoken
 
 `requestLocalGermanSpeech` reports the end of an utterance (`utterance.onend`) and an error
 (`utterance.onerror`) to the board. While the selected sentence is being spoken, a tap that asks
 for the same sentence (its tile again, or the bar) is ignored: it does not cancel and restart the
-sentence, however long the sentence is and however many taps come. An unsteady hand often lands
-twice. As soon as the engine has reported the end, or an error, or when there was no voice, the
+sentence, however many taps come, for as long as the app takes the sentence to be running. That
+is until the engine reports its end or an error, until the engine says it is doing nothing
+(below), and at most `SPEECH_MAX_MS`. An unsteady hand often lands twice. As soon as the engine has reported the end, or an error, or when there was no voice, the
 next tap speaks at once; so a child who taps "Mehr" again after hearing it gets it again. A tap on
 **another** tile always takes over at once.
 
@@ -166,16 +211,27 @@ speaks. The value is a guess. A sentence that really takes longer than 8 s (sent
 200 characters) is cut off and restarted by a tap after that time. Whether engines on real devices
 report the end reliably is untested.
 
+**An engine that took the sentence and stays silent.** The engine's own word is asked as well
+(`speechActivity` in `src/speech.ts`): when it says that it is neither speaking nor has anything
+queued (`speaking` and `pending` both false), the sentence is not running and the next tap
+speaks. So a tile does not look dead for eight seconds when the engine accepted the utterance and
+did nothing, or ended it without a report. This is not asked during the first `SPEECH_GRACE_MS`
+(300 ms, a guess) after a request, because `speaking` may turn true a moment late. An engine that
+does not have both properties as booleans is treated as unknown, and then only end, error and
+`SPEECH_MAX_MS` count. What real engines report in `speaking` and `pending`, and when, is
+untested on devices.
+
 ## Touch behaviour and stray gestures
 
 Tiles and bar: `touch-action: manipulation` (no double-tap zoom, no delay), no text selection, no
 tap highlight flash, no long-press callout; the pictures cannot be dragged and do not take the
 press themselves (`pointer-events: none`). A long press does not open the browser's context menu
-on a tile or on the bar (`contextmenu` is prevented there, and only there).
+on a tile or on the bar (`contextmenu` is prevented there; the hold button of the caregiver area
+prevents it too, see [caregiver.md](caregiver.md); notices and the rest of the page do not).
 
-`overscroll-behavior: none` on `html` and `body`: a pull that starts on the bar or on a notice does
-not reach the browser's pull-to-refresh. The fallback sentences still say "lade die Seite neu";
-how a caregiver reloads an installed app that has no browser buttons is not solved here.
+`overscroll-behavior: none` on `html` and `body`: a pull that starts on the bar or on a notice
+should not reach the browser's pull-to-refresh. The computed style was checked in Chromium; that
+a pull really reloads nothing is untested on a device.
 
 Pinch zoom is left possible on purpose, for people who need it. A zoomed board has no on-screen way
 back: someone has to pinch out again.
@@ -248,12 +304,14 @@ the notice in text lines.
 | `empty-profile` | 2 | 158x120 | yes |
 | `unloadable-profile` | 3 | 158x114 | yes |
 | `timeout` | 2 | 158x120 | yes |
-| `timeout-kept` | 3 | 158x114 | yes |
+| `timeout-kept` | 2 | 158x120 | yes |
 | `render-failed` | 3 | 158x114 | yes |
 | `refresh-timeout` | 3 | 158x114 | yes |
 
-Both speech lines fit their one line in both windows (text width equal to the line's width, no
-ellipsis).
+The three speech lines on their one line, text width / room in px: "Keine Stimme. Bitte noch
+einmal tippen." 209 / 272 at 320 px and 229 / 312 at 360 px; "Keine deutsche Stimme. Hol eine
+Bezugsperson." 256 / 272 and 280 / 312; "Vorlesen ging nicht. Bitte noch einmal tippen."
+239 / 272 and 261 / 312. None is cut off.
 
 Also looked at:
 
@@ -265,10 +323,17 @@ Also looked at:
 - With reduced motion a pressed tile changes colour and does not shrink.
 - With a stand-in speech engine put into the page at 320x568 (no real voice was available): the
   voice list was asked for twice before any tap; a tap without a voice showed the line and the
-  dimmed speaker (opacity 0.3); when a voice arrived the line went, the speaker was at full
+  muted bar; when a voice arrived the line went, the speaker was at full
   strength and nothing was spoken; the next tap on the bar spoke; ten quick taps on tile and bar
   during that utterance caused no further `speak` and no `cancel`; after the engine's end event
   the next tap spoke at once; another tile took over at once.
+- With a stand-in engine at 320x568, 360x640 and 844x390: idle, active and muted bars as in the
+  colour table above; neither the bar's height nor the first tile's position changed between the
+  three (bar 88 px, 62 px at 844x390). An engine with `speaking` and `pending` false: a second tap
+  at once was ignored, a tap 400 ms later spoke; with `speaking` true the tap was ignored; after
+  an `interrupted` error no line showed and the next tap spoke.
+- The last-resort line with its button "Seite neu laden" (188x54 px) fits all three windows; a
+  tap called the reload function once.
 - `contextmenu` was prevented on a tile and on the bar and not on a notice; `html` and `body`
   computed to `overscroll-behavior: none`.
 
@@ -293,6 +358,12 @@ Also looked at:
   the bar that replaces it. Nothing can be tapped while it shows.
 - An engine that never reports the end of an utterance holds repeats of the same sentence back for
   8 s (`SPEECH_MAX_MS`); a sentence longer than 8 s can be restarted by a tap after that time.
-- With pull-to-refresh switched off, an installed app has no gesture to reload the page.
+- A long sentence that is being spoken can only be stopped by tapping another field, which speaks
+  something else; there is no "stop".
+- An engine without `addEventListener` (older Safari) gets no late-voice handling: a "no voice"
+  line stays until the next tap.
+- With pull-to-refresh switched off, an installed app has no gesture to reload the page; only the
+  last-resort line has a reload button. A board of examples that stays wrong needs the caregiver
+  area, or closing and opening the app.
 - A zoomed board has no on-screen way back.
 - Everything under "Not tested" above.

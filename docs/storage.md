@@ -451,13 +451,16 @@ The sequence (`runStartup` in `src/startup.ts`, run by `createApp`):
      (`data-startup-late="replaced"`, `data-startup="profile"`).
    - The view is a profile's own board and the child has already chosen something: the examples
      stay and the own board's problems are traced (`data-board-problems`, console lines), with
-     the `timeout-kept` sentence saying that the own board appears when the page is
-     loaded again (`data-startup-late="kept"`, `data-startup` stays `demo-timeout`). So a child
-     with a profile on a slow device can be left on the examples for that session.
+     the `timeout-kept` sentence saying that the own board is ready and to fetch a caregiver
+     (`data-startup-late="kept"`, `data-startup` stays `demo-timeout`). The own board is mounted
+     by the next refresh (closing the caregiver area, or "Tafel neu laden" there) or page load.
+     The sentence does not ask to reload the page: an installed app has no button for that. So a
+     child with a profile on a slow device can be left on the examples for that session.
 5. If a view cannot be drawn, the examples are shown with the `render-failed` sentence
    (`data-startup="failed"`). If not even those can be drawn, a plain line replaces whatever is
-   there, also the waiting line (`data-startup="unrenderable"`); it asks to reload the page or tell
-   a caregiver and does not claim that anything is loading.
+   there, also the waiting line (`data-startup="unrenderable"`); it comes with a button "Seite neu
+   laden" that reloads the page, asks to tap it or fetch a caregiver, and does not claim that
+   anything is loading.
 6. Nothing in the sequence throws, also when showing the waiting line or setting the timer fails.
    In that case the static line of the page stays until a board is mounted.
 

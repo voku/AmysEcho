@@ -1,5 +1,5 @@
 /* The child's screen (docs/board.md): one screen high, a column of sentence bar, notice lines, board and the caregiver control. One rule per line; tests read rules by their first line. */
-:root { color-scheme: light; font-family: system-ui, sans-serif; color: #143146; background: #f4fafc; --tile-min: 112px; --gap: .5rem; --bar-min: clamp(5.5rem, 11vh, 6.5rem); --status-room: 1.15rem; }
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #143146; background: #f4fafc; --tile-min: 112px; --gap: .5rem; --bar-min: clamp(5.5rem, 11vh, 6.5rem); --status-room: 1.15rem; --speaker: clamp(2.25rem, 9vmin, 3.25rem); }
 html { height: 100%; overscroll-behavior: none; }
 body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; margin: 0; overscroll-behavior: none; }
 main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
@@ -10,9 +10,13 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .sentence-bar:active { background: #c3e4d9; }
 .sentence-bar-idle, .sentence-bar-idle:active { border-color: #b7cfd8; background: #eef5f7; color: #4a6472; font-weight: 500; cursor: default; }
 .sentence { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.sentence-speaker { flex: none; width: clamp(2.25rem, 9vmin, 3.25rem); height: auto; pointer-events: none; }
+.sentence-speaker { flex: none; width: var(--speaker); height: auto; pointer-events: none; }
 .sentence-bar-idle .sentence-speaker { opacity: .35; }
-.sentence-bar-mute .sentence-speaker { opacity: .3; filter: grayscale(1); }
+.sentence-bar-mute, .sentence-bar-mute:active { border-color: #6f5e4a; background: #e6ddd0; }
+.sentence-bar-mute .sentence-speaker { opacity: .45; filter: grayscale(1); }
+.sentence-bar-mute::after { content: ""; position: absolute; top: calc(50% - var(--speaker) / 2); right: .9rem; width: var(--speaker); height: var(--speaker); background: linear-gradient(to top right, transparent calc(50% - 3px), #8a2f14 calc(50% - 3px), #8a2f14 calc(50% + 3px), transparent calc(50% + 3px)); pointer-events: none; }
+.board-reload { align-self: flex-start; min-width: 44px; min-height: 54px; margin: .6rem 0 0; padding: .6rem 1.2rem; border: 3px solid #215c76; border-radius: 1rem; background: white; color: #143146; font: 700 1.2rem system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+.board-reload:focus-visible { outline: 5px solid #cf681e; outline-offset: 3px; }
 .speech-status { flex: none; margin: .4rem 0 0; padding: 0 .4rem; color: #2f4757; font-size: clamp(.7rem, 3.4vw, .8rem); line-height: 1.2; }
 .speech-status:empty { margin: 0; }
 .board-notice { flex: none; margin: .4rem 0 0; padding: 0 .4rem; color: #3d5666; font-size: .85rem; line-height: 1.35; }

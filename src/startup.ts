@@ -54,7 +54,7 @@ export async function resolveStartupView(store: ProfileStore, catalogue: readonl
  * chosen concepts could be loaded).
  * From the start-up sequence: "timeout" (storage has not answered yet),
  * "timeout-kept" (it answered late, the child was already using the examples,
- * the own board comes with the next page load), "render-failed" (the own
+ * the own board comes with the next refresh or page load), "render-failed" (the own
  * board could not be drawn).
  * From a refresh: "refresh-timeout" (storage did not answer a re-read in time).
  */
@@ -196,8 +196,8 @@ export function mountStartupView(host: StartupHost, view: StartupView): BoardHan
  *    - the view is a profile's own board and nothing has been chosen yet: the
  *      board is replaced (`data-startup-late="replaced"`);
  *    - the view is a profile's own board and the child has already chosen
- *      something: the examples stay and say that the own board comes with a
- *      reload (`data-startup-late="kept"`). Never swap a board under a child
+ *      something: the examples stay and say that the own board is ready and
+ *      to fetch a caregiver (`data-startup-late="kept"`). Never swap a board under a child
  *      who is using it.
  *
  * A rejected `view` counts as unavailable storage. Nothing here throws, also
