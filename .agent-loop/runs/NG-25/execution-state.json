@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
     "contract_revision": 1,
     "current_attempt": 4,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -253,6 +253,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:3:e146ee4b",
                 "summary": "readProfile's correcting usage write (store.ts:430,484-488) is unguarded, so export fails when storage refuses writes; backup.ts:32-34 still claims a store-written profile never hits ExportSizeError; a too-high record makes set refuse data that fits.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:30:50+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:30:50+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "context_id": "claude-subagent-ng25-build-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:31198e4d",
+                "summary": "Fourth build: correcting usage write is best-effort, set recounts before a size refusal, wording qualified; verify passes with 92 tests",
                 "task_id": "NG-25",
                 "validation_references": []
             }
