@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
     "contract_revision": 2,
-    "current_attempt": 5,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
     "history": [
         {
@@ -413,6 +413,177 @@
                 "summary": "Sixth build, docs only: docs/board.md says that at 320x480 the first speech line fits and the other three end in an ellipsis, that all four fit a 320 px window higher than 480 px, and that 'tap again' is not repeated for the same kind of problem; verify passes with 287 tests",
                 "task_id": "NG-30",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T16:52:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:52:16+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:93119073dc41e5e3a171c8c91159a5dd79cecb85b30e1ef59f6b7a347f882d7a",
+                    "execution-evidence:sha256:965ad34982e996e0589d142192d15803efafca99e5b16ed993d4dcd22faf6352",
+                    "execution-evidence:sha256:062e51a58360cbb66d2a812940d80843a6f859f99cbe8c5d54cfe89b96afce2d",
+                    "execution-evidence:sha256:3370a476b1e4dc9785f021070426ce82acec486536ae6b6aa67d479a9b7bd72f",
+                    "execution-evidence:sha256:607a8497c73dc27a9b49a0ce764f7866869c8dd4c5a0a09ab5c950a9a096b0cc",
+                    "execution-evidence:sha256:87f56ba56b32e49329b721e72dfee12298878253aab4598ef312c22986a80212",
+                    "execution-evidence:sha256:42f4bb2b806961a53b744e423104a9ac49350eca9a0f95699e9221f02f09a851",
+                    "execution-evidence:sha256:a7eff97a6d6b1389c3f644d4be490eb382695b316d5c5e7c7d4b49d0c7c9569a",
+                    "execution-evidence:sha256:be662d5a81340accfce301902dedbca4bb4dfbc2d8a7909496cc4167f16c934f",
+                    "execution-evidence:sha256:e9340e5d1cdd6f3c5e6bd6f2621a00e5f5064efc7ba077731a24e28de66d46f9",
+                    "execution-evidence:sha256:18f4d26f011a30eef191fc412280efcbe38e38a8a3f6fcf3e357362f47d32ffa",
+                    "execution-evidence:sha256:6d9356a155de4268939c6049f53827174cd4e19c52215177f32a331a29179123",
+                    "execution-evidence:sha256:94ef8d61804dd679f66938b5dd3f97c8477d295cd4d33bd2afe237cb0d2330cb",
+                    "execution-evidence:sha256:bb8cad1f828c13eb8c3f723e61427600409185c2bb50c8fb54e91b8f434bdf6f"
+                ],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:93119073dc41e5e3a171c8c91159a5dd79cecb85b30e1ef59f6b7a347f882d7a",
+                    "execution-evidence:sha256:965ad34982e996e0589d142192d15803efafca99e5b16ed993d4dcd22faf6352",
+                    "execution-evidence:sha256:062e51a58360cbb66d2a812940d80843a6f859f99cbe8c5d54cfe89b96afce2d",
+                    "execution-evidence:sha256:3370a476b1e4dc9785f021070426ce82acec486536ae6b6aa67d479a9b7bd72f",
+                    "execution-evidence:sha256:607a8497c73dc27a9b49a0ce764f7866869c8dd4c5a0a09ab5c950a9a096b0cc",
+                    "execution-evidence:sha256:87f56ba56b32e49329b721e72dfee12298878253aab4598ef312c22986a80212",
+                    "execution-evidence:sha256:42f4bb2b806961a53b744e423104a9ac49350eca9a0f95699e9221f02f09a851",
+                    "execution-evidence:sha256:a7eff97a6d6b1389c3f644d4be490eb382695b316d5c5e7c7d4b49d0c7c9569a",
+                    "execution-evidence:sha256:be662d5a81340accfce301902dedbca4bb4dfbc2d8a7909496cc4167f16c934f",
+                    "execution-evidence:sha256:e9340e5d1cdd6f3c5e6bd6f2621a00e5f5064efc7ba077731a24e28de66d46f9",
+                    "execution-evidence:sha256:18f4d26f011a30eef191fc412280efcbe38e38a8a3f6fcf3e357362f47d32ffa",
+                    "execution-evidence:sha256:6d9356a155de4268939c6049f53827174cd4e19c52215177f32a331a29179123",
+                    "execution-evidence:sha256:94ef8d61804dd679f66938b5dd3f97c8477d295cd4d33bd2afe237cb0d2330cb",
+                    "execution-evidence:sha256:bb8cad1f828c13eb8c3f723e61427600409185c2bb50c8fb54e91b8f434bdf6f"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "context_id": "claude-subagent-ng30-correctness-6",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "observations": [
+                    "docs/board.md:202-203 the 480 px sentence is true only for a 320 px wide window and for three of the four lines; exact figures are at 327-328",
+                    "docs/board.md:323-328 no 360x480 figure"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:4759d9be",
+                "summary": "Pass: d78d150 changes only docs/board.md; the three sentences hold against re-measured widths at seven window sizes and against the two counters; verify passes with 287 tests",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T16:52:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:52:16+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a233fd97089b9da58c6573b74aa0716ac2083a463923388b0c4e0fd70d6eb3d0",
+                    "execution-evidence:sha256:21d7c56ecfbf05a04c5fb5110d00b27e7d7323ec2d8eca12cac87a3a9033fb66",
+                    "execution-evidence:sha256:a8070391a8212dc83a345165bf3597d5c75a8f6983015bf50d7242e38ab0b6e4",
+                    "execution-evidence:sha256:32cb1c59e1f0dee48055d3142b9a1baff4218e3a60c88452039a9fb97adba1ac",
+                    "execution-evidence:sha256:6ec0dfda7ec4dce46972f9b042eb523d73a1538546ccddf137a6829e5bd45eaa",
+                    "execution-evidence:sha256:9a22c4871d4a549477d4545597413f4d0039b5488dba7908fac6215e29e61367",
+                    "execution-evidence:sha256:bca093d10f3f4febe6ff3313b263942978e35769a7cae2e023135132cd6e3fdc",
+                    "execution-evidence:sha256:c30ccf3e1387b1d414750ed62f2ba73d7b1a3df7fc374d91cdf8da9c9be57aa8",
+                    "execution-evidence:sha256:4249743ea67bb584fd54a3e529b1aed9d5c7033225aabeb3cf276414aba15771",
+                    "execution-evidence:sha256:b2cecb0b14a4ab38b05cf541e5e577b9601d11747d4fc4da9ebe255d8333fb42",
+                    "execution-evidence:sha256:81f4fc4b630b2087359bb7e2554b23c688c1a94f293a92fe197c9143646ccc2f",
+                    "execution-evidence:sha256:d87dbcef9650fe9639f4f16b4ae6f2d0305935a991bb7cec6a5c116f7ee6d155",
+                    "execution-evidence:sha256:bdfb5346945ec5303c312082f8c247432fa9f41f609e89ebf4cbcb4d4eb566fe",
+                    "execution-evidence:sha256:5cd6a0d759ee0fe144bf53d0fe7053360daf82f6cc64a575e862655b6e036edc"
+                ],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a233fd97089b9da58c6573b74aa0716ac2083a463923388b0c4e0fd70d6eb3d0",
+                    "execution-evidence:sha256:21d7c56ecfbf05a04c5fb5110d00b27e7d7323ec2d8eca12cac87a3a9033fb66",
+                    "execution-evidence:sha256:a8070391a8212dc83a345165bf3597d5c75a8f6983015bf50d7242e38ab0b6e4",
+                    "execution-evidence:sha256:32cb1c59e1f0dee48055d3142b9a1baff4218e3a60c88452039a9fb97adba1ac",
+                    "execution-evidence:sha256:6ec0dfda7ec4dce46972f9b042eb523d73a1538546ccddf137a6829e5bd45eaa",
+                    "execution-evidence:sha256:9a22c4871d4a549477d4545597413f4d0039b5488dba7908fac6215e29e61367",
+                    "execution-evidence:sha256:bca093d10f3f4febe6ff3313b263942978e35769a7cae2e023135132cd6e3fdc",
+                    "execution-evidence:sha256:c30ccf3e1387b1d414750ed62f2ba73d7b1a3df7fc374d91cdf8da9c9be57aa8",
+                    "execution-evidence:sha256:4249743ea67bb584fd54a3e529b1aed9d5c7033225aabeb3cf276414aba15771",
+                    "execution-evidence:sha256:b2cecb0b14a4ab38b05cf541e5e577b9601d11747d4fc4da9ebe255d8333fb42",
+                    "execution-evidence:sha256:81f4fc4b630b2087359bb7e2554b23c688c1a94f293a92fe197c9143646ccc2f",
+                    "execution-evidence:sha256:d87dbcef9650fe9639f4f16b4ae6f2d0305935a991bb7cec6a5c116f7ee6d155",
+                    "execution-evidence:sha256:bdfb5346945ec5303c312082f8c247432fa9f41f609e89ebf4cbcb4d4eb566fe",
+                    "execution-evidence:sha256:5cd6a0d759ee0fe144bf53d0fe7053360daf82f6cc64a575e862655b6e036edc"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "context_id": "claude-subagent-ng30-blindspot-6",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "observations": [
+                    "docs/board.md:202-203 still slightly too strong for the first line and for a low but wide window; to be tightened with the next change to that file"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:1cf2ceeb",
+                "summary": "Pass: the three wording nits are stated truthfully against the counters and the CSS rule",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T16:52:32+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:52:32+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:abc23ed98dea0bfc68d739800e1b3ab9831c63ac7eaeb0595fcfca3a83ee3cfe",
+                    "execution-evidence:sha256:9dbebb062c0e1e6afd24855f0714ab809a63dcb67f7734416e3e0b4eaa967271"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "consistency_references": [
+                    "execution-evidence:sha256:f7e5d8562f23d6f436cfdbc66a37d0b6cfbf57106931d6347237d6365cc6e124"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "outcome": "pass",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:2e84687bf39709adf16ff1cec5065e484acb62ea6ddafe7df5389a9ad5243cf2",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-30: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-30 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-30:c7005b152ab42c3f binds active Session 2026-11-22-ng-30-r2-2d852992 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-30 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-30",
+                "validation_references": [
+                    "execution-evidence:sha256:abc23ed98dea0bfc68d739800e1b3ab9831c63ac7eaeb0595fcfca3a83ee3cfe",
+                    "execution-evidence:sha256:9dbebb062c0e1e6afd24855f0714ab809a63dcb67f7734416e3e0b4eaa967271"
+                ]
             }
         }
     ],
