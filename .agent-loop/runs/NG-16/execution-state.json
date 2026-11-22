@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "blindspot-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
     "history": [
         {
@@ -180,6 +180,89 @@
                 "summary": "Decision record passes: three fixes made and true, acceptance holds",
                 "task_id": "NG-16",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:34:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:34:31+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:618e372d8fd8127d04690b4c75e98e55accb30ce149077c20f71c6afe89ab06f",
+                    "execution-evidence:sha256:90b9dce9005966dc7ada3b3fa3849f2c4cf0532a1c8105f41183ae664d2eaba0"
+                ],
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "schema_version": "1.0",
+                "task_id": "NG-16",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:618e372d8fd8127d04690b4c75e98e55accb30ce149077c20f71c6afe89ab06f",
+                    "execution-evidence:sha256:90b9dce9005966dc7ada3b3fa3849f2c4cf0532a1c8105f41183ae664d2eaba0"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "context_id": "blindspot-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "observations": [
+                    "tracker-decision.md:68 says to add the tracker files to the precache while :73-75 and plan step 4 keep them in a separate cache; the board install must never depend on the 25 MB download (NG-3).",
+                    "tracker-decision.md:229 thresholds from recorded sequences: recordings stay on the device, never committed or uploaded (NG-18).",
+                    "No re-evaluation trigger for the pinned tracker version; add a CI check that the vendored bundle has no network calls; call navigator.storage.persist(); stop rule for frame rate, heat and battery is unmeasured; a caregiver's hands in the frame (NG-3, NG-20)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:1f7dde05",
+                "summary": "Blind-spot review passes: nothing contradicts the product contract or repository rules; follow-ups for NG-3, NG-14, NG-18, NG-20",
+                "task_id": "NG-16",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:34:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:34:45+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "schema_version": "1.0",
+                "task_id": "NG-16",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:f0d88e70a9601739f6e367d6b1d1216eb8bcc1dd6d87726aa7ebe82991159bf8",
+                    "execution-evidence:sha256:b5101072622c6509f1015e025e9515b7f801458a13f8faac7417873885e0e78f"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "consistency_references": [
+                    "execution-evidence:sha256:8633ae0b60e209a91272a0becbe9680bdf66d6eb6f983c5a3bb7ee7b3eefba34"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "outcome": "pass",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:338f4ec55690b0361df0281bd9123041cab891dda6ed822e35be1891019d3d80",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-16: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-16 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-16:9802dc61311a68f0 binds active Session 2026-11-22-ng-16-r1-2694209e to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-16 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-16",
+                "validation_references": [
+                    "execution-evidence:sha256:f0d88e70a9601739f6e367d6b1d1216eb8bcc1dd6d87726aa7ebe82991159bf8",
+                    "execution-evidence:sha256:b5101072622c6509f1015e025e9515b7f801458a13f8faac7417873885e0e78f"
+                ]
             }
         }
     ],
