@@ -31,7 +31,8 @@ export class ExportFormatError extends Error {}
 /**
  * The document has more data names or more data than the limits allow. The
  * limits are the ones `ProfileStore` enforces on every write (see store.ts),
- * so a profile written through the store never runs into this on export.
+ * so a profile written through one store instance does not run into this when
+ * it is exported with the same limits. See `exportProfile` for when it can.
  */
 export class ExportSizeError extends ExportFormatError {}
 

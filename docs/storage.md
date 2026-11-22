@@ -56,6 +56,8 @@ keys, not in ids. It is stored in Unicode NFC form and trimmed, and the 1-40 cha
 to that form. A stored or imported name that is valid but not in NFC form (the first version of this
 module stored names as typed) is read as its NFC form; the stored record is left as it is until the
 next change to the profile writes it again. Surrounding whitespace in a stored name is rejected.
+NFC can also make a name longer (a few characters have a longer normal form); a stored name that
+exceeds 40 characters once normalised reads as `unreadable`.
 
 The character rules below are stricter than in the first version of this module and are not
 backwards compatible: a record whose name contains a now-forbidden format character is listed as
@@ -93,7 +95,7 @@ free-text `reason`, and a `kind`:
   1. A newer version of the app wrote it. The record and its data are most likely intact; this app
   version just cannot read them.
 - `"unreadable"`: everything else (unknown fields, missing record, id mismatch, malformed key, a
-  name that is not in stored form).
+  stored name that is invalid or has surrounding whitespace).
 
 What a user interface must do with this (card NG-13):
 
@@ -179,7 +181,8 @@ up. Two instances writing at the same time are not coordinated; see "Two tabs" b
   authoritative and slow call: it reads all of the profile's data, counts it, and writes the record
   when the stored one differs. So this read can write. `bytes` or `names` can be above the maximum.
 - `exportProfile` reads all data anyway, so it counts too, corrects the record when it differs, and
-  checks the limits against the count. Within one store instance that check does not fail.
+  checks the limits against the count. Within one store instance, and with the limits
+  the data was written under, that check does not fail.
 
 #### Two tabs
 
@@ -188,12 +191,21 @@ the same profile at the same moment, each updates the usage record from the valu
 update is lost. The record can then be too low (two additions) or too high (two deletions), and a
 record that is too low lets the profile grow past the limits. Nothing notices this at once.
 
-- It heals when `usage(id)` or an export runs in any tab: the record is replaced by the count.
+- It heals when `usage(id)` or an export runs in any tab: they count and try to replace the record.
+  If that write fails, the count is still returned and the export still produced; the next count
+  tries again.
+- A record that is too high does not block data that fits: before `set` refuses anything for size
+  it counts the real data and decides on that.
+- These reads write the usage key. If another tab removed the profile in between, a read can
+  recreate that one key. It holds only the two counts, the leftover is listed as damaged, and
+  `removeDamaged` (or `remove`) clears it.
 - If the profile really is over a limit, `exportProfile` fails with `ExportSizeError`, further
   growth is refused, and deleting or shrinking entries is accepted until it fits again.
 - The data is not lost in the meantime: `exportProfile(store, id, { limits })` with higher limits
   still produces the document, and `importProfile` accepts it with the same higher limits.
-- A user interface should call `usage(id)` before it shows how full a profile is, not cache it.
+- `usage(id)` reads the whole profile, so it is slow for a large one. Call it deliberately (when a
+  storage view opens, before a teaching session), not on every render, and do not rely on a value
+  cached from an earlier call.
 
 For scale: 300 gesture examples of 32 x 86 numbers are about 17 MB. A file saved with indentation is
 larger on disk than the counted size. The limits can be lowered per store

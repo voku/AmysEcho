@@ -370,13 +370,17 @@ export class ProfileStore {
         const key = dataKey(prefix, name);
         const copy = cloneJson(value);
         await this.#requireExisting(id);
-        const before = await this.#readUsage(id);
+        let before = await this.#readUsage(id);
         const old = await this.#backend.get(key);
-        const after = {
-          names: before.names + (old === undefined ? 1 : 0),
-          bytes: before.bytes - (old === undefined ? 0 : entryBytes(name, old)) + entryBytes(name, copy),
-        };
-        if (after.names > before.names || after.bytes > before.bytes) {
+        const addedNames = old === undefined ? 1 : 0;
+        const addedBytes = entryBytes(name, copy) - (old === undefined ? 0 : entryBytes(name, old));
+        const plan = (from: Usage): Usage => ({ names: from.names + addedNames, bytes: from.bytes + addedBytes });
+        let after = plan(before);
+        const grows = addedNames > 0 || addedBytes > 0;
+        if (grows && (sizeProblem(before, this.#limits) !== null || sizeProblem(after, this.#limits) !== null)) {
+          // The stored record may be too high. Refuse only on what is really stored.
+          before = await this.#correctUsage(id, await this.#countUsage(id));
+          after = plan(before);
           const already = sizeProblem(before, this.#limits);
           if (already !== null) throw new ProfileSizeError(`the profile is already over the limit (${already}); delete entries before adding data`);
           checkProfileSize(after, this.#limits);
@@ -480,11 +484,17 @@ export class ProfileStore {
     return isUsage(stored) ? { names: stored.names, bytes: stored.bytes } : this.#countUsage(id);
   }
 
-  /** Writes `counted` as the usage record unless exactly that is stored already. */
+  /**
+   * Writes `counted` as the usage record unless exactly that is stored
+   * already. Best effort: the callers have read everything they need, so a
+   * failing write must not fail them; the next count tries again.
+   */
   async #correctUsage(id: string, counted: Usage): Promise<Usage> {
     const key = `${profilePrefix(id)}usage`;
     const stored = await this.#backend.get(key);
-    if (!isUsage(stored) || stored.names !== counted.names || stored.bytes !== counted.bytes) await this.#backend.write({ set: { [key]: counted } });
+    if (!isUsage(stored) || stored.names !== counted.names || stored.bytes !== counted.bytes) {
+      await this.#backend.write({ set: { [key]: counted } }).catch(() => undefined);
+    }
     return counted;
   }
 

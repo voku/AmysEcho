@@ -896,3 +896,107 @@ test("a value whose JSON text the engine cannot build is refused as too large", 
   assert.deepEqual(backend.snapshot(), before);
   await store.data(a.id).set("big", "too long for one string");
 });
+
+/** A backend that counts writes and can be told to refuse them all. */
+const watched = (backend) => {
+  const state = { writes: 0, refuse: false };
+  return {
+    state,
+    get: (key) => backend.get(key),
+    keys: (prefix) => backend.keys(prefix),
+    write: async (batch) => {
+      state.writes += 1;
+      if (state.refuse) throw new InjectedWriteError("storage refuses writes");
+      return backend.write(batch);
+    },
+  };
+};
+
+test("export and usage still answer when the usage record cannot be corrected", async () => {
+  const memory = new MemoryBackend();
+  const backend = watched(memory);
+  const store = await ProfileStore.open(backend);
+  const a = await store.create("A", []);
+  await store.data(a.id).set("one", [1, 2, 3]);
+  await store.data(a.id).set("two", "x".repeat(10));
+  const key = `profile/${a.id}/usage`;
+  const counted = recount(memory.snapshot(), a.id);
+  const expected = { ...counted, maxNames: MAX_EXPORT_DATA_NAMES, maxBytes: MAX_EXPORT_BYTES - EXPORT_ENVELOPE_RESERVE };
+
+  // A consistent record: reading attempts no write at all.
+  backend.state.writes = 0;
+  assert.deepEqual(await store.usage(a.id), expected);
+  assert.deepEqual((await exportProfile(store, a.id)).data, { one: [1, 2, 3], two: "x".repeat(10) });
+  assert.deepEqual((await store.readProfile(a.id)).usage, counted);
+  assert.equal(backend.state.writes, 0);
+
+  for (const [label, plant] of [
+    ["no usage record", { delete: [key] }],
+    ["record too low", { set: { [key]: { names: 1, bytes: 5 } } }],
+    ["record too high", { set: { [key]: { names: 9, bytes: 9999 } } }],
+  ]) {
+    await memory.write(plant);
+    const before = memory.snapshot();
+    backend.state.refuse = true;
+    backend.state.writes = 0;
+    assert.deepEqual(await store.usage(a.id), expected, label);
+    assert.deepEqual((await exportProfile(store, a.id)).data, { one: [1, 2, 3], two: "x".repeat(10) }, label);
+    assert.deepEqual((await exportProfile(store, a.id, { limits: { maxBytes: MAX_EXPORT_BYTES * 2 } })).profile, a, label);
+    assert.deepEqual((await store.readProfile(a.id)).usage, counted, label);
+    assert.equal(backend.state.writes, 4, `${label}: each read tried to correct the record`);
+    assert.deepEqual(memory.snapshot(), before, label);
+    // Writes that are the point of the call still fail loudly.
+    await assert.rejects(store.data(a.id).set("three", 3), InjectedWriteError, label);
+    backend.state.refuse = false;
+    assert.deepEqual(await store.usage(a.id), expected, label);
+    assert.deepEqual(memory.snapshot()[key], counted, `${label}: corrected once storage accepts writes again`);
+  }
+});
+
+test("a usage record that is too high does not make set refuse data that fits", async () => {
+  const memory = new MemoryBackend();
+  const backend = watched(memory);
+  const store = await ProfileStore.open(backend, { limits: { maxDataNames: 3, maxBytes: EXPORT_ENVELOPE_RESERVE + 100 } });
+  const a = await store.create("A", []);
+  const key = `profile/${a.id}/usage`;
+  await store.data(a.id).set("one", "x".repeat(10)); // 12 + 3 + 4 = 19
+  const tooHigh = { names: 3, bytes: 140 };
+
+  // Recorded as over both limits, really one small entry: a small value is accepted.
+  await memory.write({ set: { [key]: tooHigh } });
+  await store.data(a.id).set("two", "y".repeat(10));
+  assert.deepEqual(memory.snapshot()[key], { names: 2, bytes: 38 });
+  assert.deepEqual(memory.snapshot()[key], recount(memory.snapshot(), a.id));
+  // Recorded as just below the limit: the planned total would be over, the real one is not.
+  await memory.write({ set: { [key]: { names: 2, bytes: 95 } } });
+  await store.data(a.id).set("two", "y".repeat(20));
+  assert.deepEqual(memory.snapshot()[key], recount(memory.snapshot(), a.id));
+  // Recorded as full of names.
+  await memory.write({ set: { [key]: { names: 3, bytes: 48 } } });
+  await store.data(a.id).set("six", 1);
+  assert.deepEqual(memory.snapshot()[key], { names: 3, bytes: 48 + 8 });
+
+  // The decision does not depend on being able to store the correction.
+  await memory.write({ delete: [`profile/${a.id}/data/six`], set: { [key]: tooHigh } });
+  backend.state.refuse = true;
+  await assert.rejects(store.data(a.id).set("six", 1), InjectedWriteError);
+  backend.state.refuse = false;
+  await store.data(a.id).set("six", 1);
+  assert.deepEqual(memory.snapshot()[key], recount(memory.snapshot(), a.id));
+
+  // What really does not fit is still refused, and the refusal leaves a correct record behind.
+  await memory.write({ set: { [key]: tooHigh } });
+  const data = Object.fromEntries(Object.entries(memory.snapshot()).filter(([name]) => name.includes("/data/")));
+  await assert.rejects(store.data(a.id).set("seven", 1), (error) => error instanceof ProfileSizeError && !/already over/.test(error.message));
+  await assert.rejects(store.data(a.id).set("one", "x".repeat(70)), (error) => error instanceof ProfileSizeError && !/already over/.test(error.message));
+  assert.deepEqual(memory.snapshot()[key], recount(memory.snapshot(), a.id));
+  // Genuinely over the limit (written under a higher limit): refused as before.
+  await memory.write({ set: { [`profile/${a.id}/data/one`]: "x".repeat(90), [key]: tooHigh } });
+  await assert.rejects(store.data(a.id).set("one", "x".repeat(91)), /already over the limit/);
+  await memory.write({ set: { [key]: { names: 1, bytes: 1 } } });
+  assert.ok((await store.usage(a.id)).bytes > 100);
+  await assert.rejects(store.data(a.id).set("one", "x".repeat(91)), /already over the limit/);
+  await store.data(a.id).set("one", "x".repeat(10));
+  assert.deepEqual(Object.keys(data).length, 3);
+  assert.deepEqual(memory.snapshot()[key], recount(memory.snapshot(), a.id));
+});
