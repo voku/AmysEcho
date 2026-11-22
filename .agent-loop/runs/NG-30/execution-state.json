@@ -1,8 +1,8 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:e38ca8dcf9a68a25b9ddb0ba722d43ce4b03ce9a",
+    "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
     "contract_revision": 2,
-    "current_attempt": 4,
+    "current_attempt": 5,
     "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
     "history": [
@@ -346,10 +346,78 @@
                 "task_id": "NG-30",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T16:50:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:50:35+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7c25b45080034ca8bc23500db3760900bebf6773d747cc6b1f4c66ea9354b4ee"
+                ],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:e38ca8dcf9a68a25b9ddb0ba722d43ce4b03ce9a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7c25b45080034ca8bc23500db3760900bebf6773d747cc6b1f4c66ea9354b4ee"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:e38ca8dcf9a68a25b9ddb0ba722d43ce4b03ce9a",
+                "context_id": "claude-subagent-ng30-correctness-5",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "outcome": "changes_required",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:fde722ac",
+                "summary": "docs/board.md:325 'the lines end in an ellipsis' at 320x480 is false for the first line (209 px in 222 px), and :200 'all four texts fit a 320 px wide window' does not hold at 320x480",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T16:50:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:50:59+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+                "context_id": "claude-main-ng30-build-6",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "outcome": "completed",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:ac64a8d6",
+                "summary": "Sixth build, docs only: docs/board.md says that at 320x480 the first speech line fits and the other three end in an ellipsis, that all four fit a 320 px window higher than 480 px, and that 'tap again' is not repeated for the same kind of problem; verify passes with 287 tests",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": "attention:e8768699a6c34b07",
+    "last_attention_id": null,
     "recovery_history": [],
     "run_id": "run:NG-30:c7005b152ab42c3f",
     "schema_version": "1.0",
