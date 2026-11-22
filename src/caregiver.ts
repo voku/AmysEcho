@@ -1,7 +1,8 @@
 /**
- * The caregiver area, first slice (card NG-29): a deliberate way in from the
- * child's screen, and inside it the profile list, creating a profile, making
- * one the active board, and choosing and ordering its catalogue concepts.
+ * The caregiver area (cards NG-29 and NG-31): a deliberate way in from the
+ * child's screen, and inside it a header that says which board the child
+ * sees after closing, the profiles as cards (make active, edit, rename,
+ * delete), creating a profile, and a board editor of two lists.
  *
  * This module writes into the caregiver region and into the entry element
  * that holds the opening control. Of the board region it only reads
@@ -37,6 +38,9 @@ export const CLOSE_WAIT_MS = STARTUP_WAIT_MS + 1000;
 export const STORE_WAIT_MS = STARTUP_WAIT_MS + 1000;
 /** The area closes by itself after this long without a pointer or key event inside it. A guess. */
 export const IDLE_CLOSE_MS = 2 * 60 * 1000;
+
+/** A board with more showable tiles than this gets a line that says the tiles become small on a phone. */
+export const BOARD_COMFORT_MAX = 12;
 
 /** Calls `callback` once after `milliseconds`; the returned function cancels that. */
 export type SetTimer = (callback: () => void, milliseconds: number) => () => void;
@@ -173,11 +177,13 @@ const READ_FAILED = "Die gespeicherten Profile können gerade nicht gelesen werd
 const READING = "Der Speicher wird gelesen.";
 const BOARD_LOADING = "Die Tafel wird geladen.";
 const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. "
-  + "Bitte drücke „Tafel neu laden“, lade die Seite neu oder gib einer Bezugsperson Bescheid.";
+  + "Bitte drücke „Tafel neu laden“ oder gib einer Bezugsperson Bescheid.";
+const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt.";
+const NAME_DETAILS = "Was wird gespeichert?";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
-  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen, und eine Sicherung gibt es noch nicht. "
+  + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
   + "Der Browser kann diese Daten auch von sich aus löschen.";
 const NONE_ACTIVE = "Gerade ist keine Tafel aktiv. Das Kind sieht Beispiele, bis eine Tafel als aktive Tafel verwendet wird.";
@@ -185,26 +191,73 @@ const EDITED_NOT_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht ei
 const EDITED_NONE_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht Beispiele.";
 const EDITED_NOT_ACTIVE_UNKNOWN = "Diese Tafel ist gerade nicht aktiv.";
 const ONLY_DAMAGED = "Kein gespeichertes Profil kann in dieser Version gelesen werden. Das Kind sieht Beispiele.";
-const ACTIVE_WITHOUT_CONCEPTS = "Auf dieser Tafel ist noch kein Begriff, der gezeigt werden kann. Das Kind sieht Beispiele, bis mindestens ein Begriff angekreuzt ist.";
-const CONCEPT_HELP = "Angekreuzte Begriffe sind auf der Tafel, in dieser Reihenfolge. Jede Änderung wird sofort gespeichert. "
-  + "Ein Begriff, der neu angekreuzt wird, kommt ans Ende der Tafel.";
+const ACTIVE_WITHOUT_CONCEPTS = "Auf dieser Tafel ist noch kein Begriff, der gezeigt werden kann. Das Kind sieht Beispiele, bis mindestens ein Begriff hinzugefügt ist.";
+const CONCEPT_HELP = "Jede Änderung wird sofort gespeichert. „Hinzufügen“ setzt einen Begriff ans Ende der Tafel. "
+  + "Mit „nach oben“ und „nach unten“ änderst du die Reihenfolge.";
+const MANY_CONCEPTS = `Mehr als ${BOARD_COMFORT_MAX} Begriffe: Auf einem Handy werden die Felder klein und die Tafel muss gescrollt werden.`;
+const ON_BOARD = "Auf der Tafel";
+const MORE_CONCEPTS = "Weitere Begriffe";
+const BOARD_EMPTY = "Auf dieser Tafel ist noch kein Begriff.";
+const NO_MORE_CONCEPTS = "Alle Begriffe aus der Auswahl sind auf der Tafel.";
+const MOVE_UP = "nach oben";
+const MOVE_DOWN = "nach unten";
+const REMOVE = "Entfernen";
+const ADD = "Hinzufügen";
+const UNDO = "Rückgängig";
+const DONE = "Fertig";
+const RENAME = "Umbenennen";
+const DELETE = "Löschen";
+const DELETE_FOR_GOOD = "Endgültig löschen";
+const CANCEL = "Abbrechen";
+const SAVE = "Speichern";
+const DELETE_LOSS = "Alle ausgewählten Begriffe dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
+const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel aktiv ist.";
+const AFTER_CLOSE = "Nach dem Schließen:";
+const AFTER_NONE_ACTIVE = `${AFTER_CLOSE} Beispiele – es ist keine Tafel aktiv.`;
+const AFTER_ACTIVE_EMPTY = `${AFTER_CLOSE} Beispiele – die aktive Tafel hat noch keinen Begriff.`;
+const AFTER_ACTIVE_UNREADABLE = `${AFTER_CLOSE} Beispiele – die aktive Tafel kann gerade nicht gelesen werden.`;
+const AFTER_READ_FAILED = `${AFTER_CLOSE} Beispiele – die Profile können gerade nicht gelesen werden.`;
+const AFTER_NO_STORAGE = `${AFTER_CLOSE} Beispiele – der Speicher ist nicht erreichbar.`;
+const HELP_SUMMARY = "Hilfe bei Problemen";
+const RELOAD_BOARD = "Tafel neu laden";
+const RELOAD_HELP = "Zeigt die Tafel des Kindes nicht, was hier eingestellt ist? „Tafel neu laden“ liest sie noch einmal aus dem Speicher dieses Geräts.";
+const VOICE_HELP = "Spricht das Gerät nicht? Dann fehlt eine deutsche Stimme. "
+  + "Sie wird in den Einstellungen des Geräts bei „Sprachausgabe“ oder „Text-in-Sprache“ installiert.";
 const RELOAD_NO_STORAGE = "Der Speicher dieses Geräts ist gerade nicht erreichbar. Die Tafel zeigt deshalb Beispiele.";
 const RELOAD_NOT_DRAWN = "Die Tafel kann gerade nicht angezeigt werden. Bitte versuche es noch einmal.";
 const NO_PROFILES = "Auf diesem Gerät gibt es noch kein Profil.";
 const ACTIVE_MARK = "Aktive Tafel";
 const ACTIVATE = "Als aktive Tafel verwenden";
-const EDIT_CONCEPTS = "Begriffe auswählen";
+const EDIT_BOARD = "Tafel bearbeiten";
 const NOT_EDITABLE = "Dieser Begriff kann in dieser Version nicht bearbeitet werden.";
 const RETIRED = "Dieser Begriff ist nicht mehr in der Auswahl.";
 const BOARD_UNREADABLE = "Die Begriffe dieses Profils können gerade nicht gelesen werden.";
-const SELECT_PROFILE = "Wähle oben bei einem Profil „Begriffe auswählen“.";
+const SELECT_PROFILE = "Wähle oben bei einem Profil „Tafel bearbeiten“.";
 const WRITE_FAILED = "Das konnte gerade nicht gespeichert werden. Bitte versuche es noch einmal.";
 const PROFILE_GONE = "Dieses Profil kann nicht gelesen werden oder ist nicht mehr gespeichert.";
 const RELOADING = "Die Tafel wird neu geladen.";
 const RELOADED = "Die Tafel wurde neu geladen.";
 const RELOAD_FAILED = "Die Tafel konnte gerade nicht neu geladen werden. Bitte versuche es noch einmal.";
 
+const BOARD_FULL = `Auf eine Tafel passen höchstens ${MAX_CONCEPT_IDS} Begriffe. Es wurde nichts geändert.`;
+
 const quoted = (text: string): string => `„${text}“`;
+
+type Focusable = HTMLElement & { disabled?: boolean };
+/** The one thing that can be open in the profile list: a rename field (with what was typed) or a delete confirmation. */
+type Mode = { readonly kind: "rename"; readonly id: string; readonly draft: string } | { readonly kind: "delete"; readonly id: string } | null;
+/** A removal that can be taken back: `before` is the id that followed the removed one in the stored list then. */
+interface UndoOffer {
+  readonly profileId: string;
+  readonly id: string;
+  readonly label: string;
+  readonly before: string | null;
+}
+/** What one reading of the store gives: the body, and the header's line about the board after closing. */
+interface Built {
+  readonly content: HTMLElement[];
+  readonly afterClose: string;
+}
 
 function damagedLine(count: number): string {
   const subject = count === 1
@@ -363,10 +416,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let work: Promise<void> = Promise.resolve();
   let store: ProfileStore | null = null;
   let selectedId: string | null = null;
+  /** The one rename field or delete confirmation that is open, if any. Changed only by queued tasks. */
+  let mode: Mode = null;
   let heading: HTMLElement | null = null;
+  let afterClose: HTMLElement | null = null;
   let status: HTMLElement | null = null;
+  let undoBar: HTMLElement | null = null;
   let body: HTMLElement | null = null;
-  let focusables = new Map<string, HTMLElement & { disabled?: boolean }>();
+  let help: HTMLDetailsElement | null = null;
+  let focusables = new Map<string, Focusable>();
 
   const opener = button(OPEN_LABEL, "caregiver-open");
   const progress = element("progress", "caregiver-hold-progress");
@@ -407,40 +465,111 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
   };
 
+  /** Closes an open rename field or confirmation; every action other than opening one starts with this. */
+  const cancelMode = (): void => {
+    if (acting === session) mode = null;
+  };
+
   /** Reads the store again and replaces the body. `focus` names the controls to try, in order, for the focus. */
   const draw = async (focus: readonly string[] | null, draftName?: string): Promise<void> => {
     const mine = acting;
     if (!isOpen || mine !== session) return;
     // A name that is typed but not sent yet survives the redraw after another action.
     const typed = draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? "";
-    const nextFocusables = new Map<string, HTMLElement & { disabled?: boolean }>();
-    let content: HTMLElement[];
+    const nextFocusables = new Map<string, Focusable>();
+    let built: Built;
+    let failed = false;
     if (store === null) {
-      content = [element("p", "caregiver-notice", STORAGE_UNREACHABLE)];
+      failed = true;
+      built = { content: [element("p", "caregiver-notice", STORAGE_UNREACHABLE)], afterClose: AFTER_NO_STORAGE };
     } else {
       try {
-        content = await build(store, nextFocusables, typed);
+        built = await build(store, nextFocusables, typed);
       } catch {
+        failed = true;
         nextFocusables.clear();
-        content = [element("p", "caregiver-notice", READ_FAILED)];
+        built = { content: [element("p", "caregiver-notice", READ_FAILED)], afterClose: AFTER_READ_FAILED };
       }
     }
     if (!isOpen || mine !== session || body === null) return;
-    body.replaceChildren(...content);
+    body.replaceChildren(...built.content);
+    if (afterClose !== null) afterClose.textContent = built.afterClose;
+    // "Tafel neu laden" is the retry then, so it must not sit behind a closed summary.
+    if (failed && help !== null) help.open = true;
     focusables = nextFocusables;
     if (focus === null) return;
     const target = focus.map((key) => focusables.get(key)).find((candidate) => candidate !== undefined && candidate.disabled !== true);
     (target ?? heading)?.focus();
   };
 
+  /**
+   * One change of a board: reads the profile's full `conceptIds` from the
+   * store, lets `change` build the new list from them, and saves it through
+   * `setBoardConcepts`. `change` returns null when there is nothing to do.
+   * A change that succeeds ends an earlier undo offer; `offer` in its result
+   * is the new one.
+   */
+  const changeBoard = (
+    profileId: string, focus: readonly string[], done: string,
+    change: (ids: readonly string[], editable: ReadonlySet<string>) => { ids: string[]; offer?: UndoOffer } | null,
+  ): void => runWrite(async () => {
+    if (store === null) return;
+    cancelMode();
+    try {
+      const board = await resolveBoard(store, profileId, catalogue);
+      const next = change(board.profile.conceptIds, editableIds(board));
+      if (next !== null) {
+        await setBoardConcepts(store, profileId, next.ids, catalogue);
+        writes += 1;
+        offerUndo(next.offer ?? null);
+        say(done);
+      }
+    } catch (error) {
+      say(boardErrorLine(error));
+    }
+    await draw(focus);
+  });
+
+  /**
+   * Shows the undo button for the last removal next to the status line, or
+   * takes it away. Only for the opening that asked; the bar itself goes with
+   * the area when it closes.
+   */
+  function offerUndo(next: UndoOffer | null): void {
+    if (acting !== session || undoBar === null) return;
+    if (next === null) {
+      undoBar.replaceChildren();
+      undoBar.hidden = true;
+      return;
+    }
+    const back = button(UNDO);
+    back.setAttribute("aria-label", `${UNDO}: ${next.label} wieder auf die Tafel setzen`);
+    back.addEventListener("click", () => {
+      // Back to where it was: before the id that followed it then, if that one is still on the board.
+      changeBoard(next.profileId, [`remove:${next.id}`], `${quoted(next.label)} ist wieder auf der Tafel.`, (ids) => {
+        if (ids.includes(next.id)) {
+          offerUndo(null);
+          return null;
+        }
+        if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+        const at = next.before === null ? -1 : ids.indexOf(next.before);
+        return { ids: at < 0 ? [...ids, next.id] : [...ids.slice(0, at), next.id, ...ids.slice(at)] };
+      });
+    });
+    undoBar.replaceChildren(back);
+    undoBar.hidden = false;
+  }
+
   /** `raw` is the name as it was when the form was sent, not what the field holds when the queue gets here. */
   const createProfile = (raw: string): void => runWrite(async () => {
     if (store === null) return;
+    cancelMode();
     try {
       const before = await store.list();
       const first = before.profiles.length === 0 && before.damaged.length === 0;
       const profile = await store.create(raw, []);
       writes += 1;
+      offerUndo(null);
       selectedId = profile.id;
       let line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist noch nicht die aktive Tafel.`;
       if (first) {
@@ -461,9 +590,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
   const activate = (profile: ProfileV1): void => runWrite(async () => {
     if (store === null) return;
+    cancelMode();
     try {
       await store.setActive(profile.id);
       writes += 1;
+      offerUndo(null);
       say(`${quoted(profile.displayName)} ist jetzt die aktive Tafel.`);
     } catch (error) {
       say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED);
@@ -472,109 +603,167 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   });
 
   const select = (profile: ProfileV1): void => run(async () => {
+    cancelMode();
     selectedId = profile.id;
+    offerUndo(null);
     say("");
     await draw([`edit:${profile.id}`]);
   });
 
-  /**
-   * One change of a board: reads the profile's full `conceptIds` from the
-   * store, lets `change` build the new list from them, and saves it through
-   * `setBoardConcepts`. `change` returns null when there is nothing to do.
-   */
-  const changeBoard = (
-    profileId: string, focus: readonly string[], done: string,
-    change: (ids: readonly string[], editable: ReadonlySet<string>) => string[] | null,
-  ): void => runWrite(async () => {
-    if (store === null) return;
-    try {
-      const board = await resolveBoard(store, profileId, catalogue);
-      const next = change(board.profile.conceptIds, editableIds(board));
-      if (next !== null) {
-        await setBoardConcepts(store, profileId, next, catalogue);
-        writes += 1;
-        say(done);
-      }
-    } catch (error) {
-      say(boardErrorLine(error));
-    }
-    await draw(focus);
+  /** Opens the rename field or the delete confirmation of one profile; whatever was open before is closed. */
+  const openMode = (next: Exclude<Mode, null>, focus: string): void => run(async () => {
+    if (acting !== session) return;
+    mode = next;
+    await draw([focus]);
   });
 
-  const conceptRow = (
-    profileId: string, index: number, id: string, shown: { labelDe: string; speechDe: string; symbolPath: string | null },
-    state: { chosen: boolean; canUp: boolean; canDown: boolean }, register: Map<string, HTMLElement>,
-  ): HTMLElement => {
-    const row = element("li", state.chosen ? "caregiver-concept caregiver-concept-chosen" : "caregiver-concept");
-    const checkbox = element("input", "caregiver-check");
-    checkbox.type = "checkbox";
-    checkbox.id = `caregiver-concept-${index}`;
-    checkbox.checked = state.chosen;
-    const label = element("label", "caregiver-concept-label");
-    label.htmlFor = checkbox.id;
+  /** Closes the open rename field or confirmation without a change; focus returns to the button that opened it. */
+  const leaveMode = (): void => run(async () => {
+    const was = mode;
+    if (was === null || acting !== session) return;
+    mode = null;
+    await draw([`${was.kind}:${was.id}`]);
+  });
+
+  /** `raw` is the name as it was when the form was sent. */
+  const renameProfile = (id: string, raw: string): void => runWrite(async () => {
+    if (store === null) return;
+    try {
+      const profile = await store.rename(id, raw);
+      writes += 1;
+      cancelMode();
+      offerUndo(null);
+      say(`Das Profil heißt jetzt ${quoted(profile.displayName)}.`);
+      await draw([`rename:${id}`]);
+    } catch (error) {
+      // `ProfileFormatError` is also what a damaged record gives; only a readable profile has a name to refuse.
+      const gone = error instanceof UnknownProfileError
+        || (error instanceof ProfileFormatError && await store.get(id).then(() => false, () => true));
+      if (gone) {
+        cancelMode();
+        say(PROFILE_GONE);
+        await draw(["profiles-heading"]);
+        return;
+      }
+      // Refused or not written: the field stays open with what was typed, and the stored name stays on screen nowhere else.
+      if (acting === session) mode = { kind: "rename", id, draft: raw };
+      say(nameErrorLine(error, raw));
+      await draw(["rename-name"]);
+    }
+  });
+
+  const deleteProfile = (profile: ProfileV1): void => runWrite(async () => {
+    if (store === null) return;
+    cancelMode();
+    try {
+      const wasActive = (await store.getActive()) === profile.id;
+      await store.remove(profile.id);
+      writes += 1;
+      offerUndo(null);
+      if (selectedId === profile.id) selectedId = null;
+      // Nothing is made active in its place: which board the child gets is a caregiver's choice.
+      say(wasActive
+        ? `Das Profil ${quoted(profile.displayName)} wurde gelöscht. Gerade ist keine Tafel aktiv.`
+        : `Das Profil ${quoted(profile.displayName)} wurde gelöscht.`);
+      await draw(["profiles-heading"]);
+    } catch (error) {
+      say(error instanceof UnknownProfileError ? PROFILE_GONE : WRITE_FAILED);
+      await draw([`delete:${profile.id}`, "profiles-heading"]);
+    }
+  });
+
+  /** Picture (if any), label and sentence of one row. */
+  const conceptText = (shown: { labelDe: string; speechDe: string; symbolPath: string | null } | null, fallback: string): HTMLElement => {
+    const text = element("div", "caregiver-concept-text");
+    if (shown === null) {
+      text.append(element("span", "caregiver-concept-name", fallback));
+      return text;
+    }
     if (shown.symbolPath !== null) {
+      text.className = "caregiver-concept-text caregiver-concept-pictured";
       const picture = element("img", "");
       picture.src = shown.symbolPath;
       picture.alt = "";
       picture.width = 48;
       picture.height = 48;
-      label.append(picture);
+      text.append(picture);
     }
-    label.append(element("span", "caregiver-concept-name", shown.labelDe), element("span", "caregiver-concept-sentence", shown.speechDe));
-    checkbox.addEventListener("change", () => {
-      const add = checkbox.checked;
-      changeBoard(profileId, [`check:${id}`], `Gespeichert: ${quoted(shown.labelDe)} ist ${add ? "jetzt" : "nicht mehr"} auf der Tafel.`, (ids, editable) => {
-        if (add) {
-          if (ids.includes(id)) return null;
-          if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(`Auf eine Tafel passen höchstens ${MAX_CONCEPT_IDS} Begriffe. Es wurde nichts geändert.`);
-          return [...ids, id];
-        }
+    text.append(element("span", "caregiver-concept-name", shown.labelDe), element("span", "caregiver-concept-sentence", shown.speechDe));
+    return text;
+  };
+
+  /** A catalogue concept on the board: it can be moved among the editable rows and taken off. */
+  const boardRow = (
+    profileId: string, entry: BoardEntry, place: number, editableOrder: readonly string[], register: Map<string, Focusable>,
+  ): HTMLElement => {
+    const { id } = entry;
+    const row = element("li", "caregiver-concept");
+    // The target of the focus after "Hinzufügen" when no other concept is left to add.
+    row.tabIndex = -1;
+    register.set(`row:${id}`, row);
+    const actions = element("div", "caregiver-row-actions");
+    const move = (text: string, delta: -1 | 1, enabled: boolean): HTMLButtonElement => {
+      const control = button(text, "caregiver-button caregiver-move");
+      control.setAttribute("aria-label", `${entry.labelDe} ${text}`);
+      control.disabled = !enabled;
+      const key = `${delta < 0 ? "up" : "down"}:${id}`;
+      control.addEventListener("click", () => {
+        changeBoard(profileId, [key, `${delta < 0 ? "down" : "up"}:${id}`, `remove:${id}`], "Die Reihenfolge wurde gespeichert.", (ids, editable) => {
+          const next = moved(ids, editable, id, delta);
+          return next === null ? null : { ids: next };
+        });
+      });
+      register.set(key, control);
+      return control;
+    };
+    const remove = button(REMOVE);
+    remove.setAttribute("aria-label", `${REMOVE}: ${entry.labelDe}`);
+    remove.addEventListener("click", () => {
+      const focus = [editableOrder[place + 1], editableOrder[place - 1]].filter((other) => other !== undefined).map((other) => `remove:${other}`);
+      changeBoard(profileId, [...focus, "more-heading"], `${quoted(entry.labelDe)} wurde von der Tafel genommen.`, (ids, editable) => {
         // Only what this screen may edit is ever taken off; every other id stays in the list.
-        return editable.has(id) ? ids.filter((other) => other !== id) : null;
+        const at = ids.indexOf(id);
+        if (at < 0 || !editable.has(id)) return null;
+        return { ids: ids.filter((other) => other !== id), offer: { profileId, id, label: entry.labelDe, before: ids[at + 1] ?? null } };
       });
     });
-    register.set(`check:${id}`, checkbox);
-    row.append(checkbox, label);
-    if (state.chosen) {
-      const move = (text: string, delta: -1 | 1, enabled: boolean): HTMLButtonElement => {
-        const control = button(text, "caregiver-button caregiver-move");
-        control.setAttribute("aria-label", `${shown.labelDe} ${text}`);
-        control.disabled = !enabled;
-        const key = `${delta < 0 ? "up" : "down"}:${id}`;
-        control.addEventListener("click", () => {
-          changeBoard(profileId, [key, `${delta < 0 ? "down" : "up"}:${id}`, `check:${id}`], "Die Reihenfolge wurde gespeichert.",
-            (ids, editable) => moved(ids, editable, id, delta));
-        });
-        register.set(key, control);
-        return control;
-      };
-      row.append(move("nach oben", -1, state.canUp), move("nach unten", 1, state.canDown));
-    }
+    register.set(`remove:${id}`, remove);
+    actions.append(move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1), remove);
+    row.append(conceptText(entry, ""), actions);
     return row;
   };
 
-  /** A concept on the board that this version does not edit: shown, checked, and not changeable. */
-  const lockedRow = (index: number, id: string, entry: BoardEntry | undefined): HTMLElement => {
-    const row = element("li", "caregiver-concept caregiver-concept-chosen caregiver-concept-locked");
-    const checkbox = element("input", "caregiver-check");
-    checkbox.type = "checkbox";
-    checkbox.id = `caregiver-concept-${index}`;
-    checkbox.checked = true;
-    checkbox.disabled = true;
-    const label = element("label", "caregiver-concept-label");
-    label.htmlFor = checkbox.id;
-    if (entry === undefined) {
-      label.append(element("span", "caregiver-concept-name", `Begriff ${quoted(id)}`));
-    } else {
-      label.append(element("span", "caregiver-concept-name", entry.labelDe), element("span", "caregiver-concept-sentence", entry.speechDe));
-    }
+  /** A concept on the board that this version does not edit: shown at its place, with the reason and no buttons. */
+  const lockedRow = (id: string, entry: BoardEntry | undefined): HTMLElement => {
+    const row = element("li", "caregiver-concept caregiver-concept-locked");
     const note = element("p", "caregiver-concept-note", entry?.source === "retired" ? `${RETIRED} ${NOT_EDITABLE}` : NOT_EDITABLE);
-    row.append(checkbox, label, note);
+    row.append(conceptText(entry ?? null, `Begriff ${quoted(id)}`), note);
     return row;
   };
 
-  const conceptSection = async (
-    current: ProfileStore, profile: ProfileV1, activeId: string | null, register: Map<string, HTMLElement>,
+  /** A catalogue concept that is not on the board. */
+  const moreRow = (profileId: string, concept: CatalogueConcept, place: number, rest: readonly CatalogueConcept[], register: Map<string, Focusable>): HTMLElement => {
+    const { id } = concept;
+    const row = element("li", "caregiver-concept");
+    const add = button(ADD);
+    add.setAttribute("aria-label", `${ADD}: ${concept.labelDe}`);
+    add.addEventListener("click", () => {
+      const focus = [rest[place + 1], rest[place - 1]].filter((other) => other !== undefined).map((other) => `add:${other.id}`);
+      changeBoard(profileId, [...focus, `row:${id}`], `Gespeichert: ${quoted(concept.labelDe)} ist jetzt auf der Tafel.`, (ids) => {
+        if (ids.includes(id)) return null;
+        if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+        return { ids: [...ids, id] };
+      });
+    });
+    register.set(`add:${id}`, add);
+    const actions = element("div", "caregiver-row-actions");
+    actions.append(add);
+    row.append(conceptText(concept, ""), actions);
+    return row;
+  };
+
+  const boardSection = async (
+    current: ProfileStore, profile: ProfileV1, activeId: string | null, register: Map<string, Focusable>,
   ): Promise<HTMLElement> => {
     // What the child sees while another profile is edited: that profile's board, or examples when it has nothing to show.
     let notActive = EDITED_NONE_ACTIVE;
@@ -586,7 +775,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
     }
     const section = element("section", "caregiver-section");
-    section.append(element("h2", "", `Begriffe für ${quoted(profile.displayName)}`));
+    section.append(element("h2", "", `Tafel von ${quoted(profile.displayName)} bearbeiten`));
     // Which board the child sees must not depend on a status line that the next action replaces.
     if (profile.id !== activeId) {
       section.append(element("p", "caregiver-notice caregiver-warning", notActive));
@@ -600,27 +789,125 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     if (profile.id === activeId && board.entries.length === 0) section.append(element("p", "caregiver-notice caregiver-warning", ACTIVE_WITHOUT_CONCEPTS));
     section.append(element("p", "caregiver-notice", CONCEPT_HELP));
+    if (board.entries.length > BOARD_COMFORT_MAX) section.append(element("p", "caregiver-notice caregiver-warning", MANY_CONCEPTS));
+
     const ids = board.profile.conceptIds;
     const editable = editableIds(board);
     const editableOrder = ids.filter((id) => editable.has(id));
-    const list = element("ul", "caregiver-concepts");
-    ids.forEach((id, index) => {
-      const entry = board.entries.find((candidate) => candidate.id === id);
-      if (entry !== undefined && editable.has(id)) {
-        const place = editableOrder.indexOf(id);
-        list.append(conceptRow(profile.id, index, id, entry, { chosen: true, canUp: place > 0, canDown: place < editableOrder.length - 1 }, register));
-      } else {
-        list.append(lockedRow(index, id, entry));
+    section.append(element("h3", "", ON_BOARD));
+    if (ids.length === 0) {
+      section.append(element("p", "caregiver-notice", BOARD_EMPTY));
+    } else {
+      const onBoard = element("ol", "caregiver-concepts");
+      for (const id of ids) {
+        const entry = board.entries.find((candidate) => candidate.id === id);
+        onBoard.append(entry !== undefined && editable.has(id)
+          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register)
+          : lockedRow(id, entry));
       }
-    });
-    catalogue.filter((concept) => !ids.includes(concept.id)).forEach((concept, offset) => {
-      list.append(conceptRow(profile.id, ids.length + offset, concept.id, concept, { chosen: false, canUp: false, canDown: false }, register));
-    });
-    section.append(list);
+      section.append(onBoard);
+    }
+
+    const moreHeading = element("h3", "", MORE_CONCEPTS);
+    moreHeading.tabIndex = -1;
+    register.set("more-heading", moreHeading);
+    section.append(moreHeading);
+    const rest = catalogue.filter((concept) => !ids.includes(concept.id));
+    if (rest.length === 0) {
+      section.append(element("p", "caregiver-notice", NO_MORE_CONCEPTS));
+    } else {
+      const more = element("ul", "caregiver-concepts");
+      rest.forEach((concept, place) => more.append(moreRow(profile.id, concept, place, rest, register)));
+      section.append(more);
+    }
     return section;
   };
 
-  const build = async (current: ProfileStore, register: Map<string, HTMLElement>, draftName: string): Promise<HTMLElement[]> => {
+  /** A text field for a profile name. Spell checking and correction can send typed text to a service; a name stays here. */
+  const nameField = (id: string, value: string): HTMLInputElement => {
+    const input = element("input", "caregiver-input");
+    input.type = "text";
+    input.id = id;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.setAttribute("autocapitalize", "off");
+    input.setAttribute("autocorrect", "off");
+    input.value = value;
+    return input;
+  };
+
+  const profileCard = (profile: ProfileV1, activeId: string | null, register: Map<string, Focusable>): HTMLElement => {
+    const isActive = profile.id === activeId;
+    const open = mode !== null && mode.id === profile.id ? mode : null;
+    if (open?.kind === "delete") {
+      const item = element("li", "caregiver-profile caregiver-confirm");
+      item.append(element("p", "caregiver-confirm-title", `Profil ${quoted(profile.displayName)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
+      if (isActive) item.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
+      const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger");
+      confirm.addEventListener("click", () => deleteProfile(profile));
+      const cancel = button(CANCEL);
+      cancel.addEventListener("click", leaveMode);
+      register.set("confirm-cancel", cancel);
+      const actions = element("div", "caregiver-profile-actions");
+      actions.append(confirm, cancel);
+      item.append(actions);
+      return item;
+    }
+    const item = element("li", "caregiver-profile");
+    const head = element("div", "caregiver-profile-head");
+    if (open?.kind === "rename") {
+      const form = element("form", "caregiver-rename");
+      const label = element("label", "", `Neuer Name für ${quoted(profile.displayName)}`);
+      label.htmlFor = "caregiver-rename-name";
+      const input = nameField("caregiver-rename-name", open.draft);
+      const save = element("button", "caregiver-button caregiver-primary", SAVE);
+      save.type = "submit";
+      const cancel = button(CANCEL);
+      cancel.addEventListener("click", leaveMode);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        renameProfile(profile.id, input.value);
+      });
+      register.set("rename-name", input);
+      const actions = element("div", "caregiver-profile-actions");
+      actions.append(save, cancel);
+      form.append(label, input, actions);
+      head.append(form);
+      if (isActive) head.append(element("span", "caregiver-active", ACTIVE_MARK));
+      item.append(head);
+      return item;
+    }
+    head.append(element("span", "caregiver-profile-name", profile.displayName));
+    if (isActive) head.append(element("span", "caregiver-active", ACTIVE_MARK));
+    const actions = element("div", "caregiver-profile-actions");
+    const action = (text: string, key: string, onClick: () => void, className = "caregiver-button"): HTMLButtonElement => {
+      const control = button(text, className);
+      control.setAttribute("aria-label", `${text}: ${profile.displayName}`);
+      control.addEventListener("click", onClick);
+      register.set(`${key}:${profile.id}`, control);
+      actions.append(control);
+      return control;
+    };
+    if (!isActive) action(ACTIVATE, "activate", () => activate(profile));
+    action(EDIT_BOARD, "edit", () => select(profile)).setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
+    action(RENAME, "rename", () => openMode({ kind: "rename", id: profile.id, draft: profile.displayName }, "rename-name"));
+    action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id }, "confirm-cancel"), "caregiver-button caregiver-danger-quiet");
+    item.append(head, actions);
+    return item;
+  };
+
+  /** What the child's screen shows once the area is closed, read off the store the way start-up reads it. */
+  const afterCloseLine = async (current: ProfileStore, activeId: string | null): Promise<string> => {
+    if (activeId === null) return AFTER_NONE_ACTIVE;
+    try {
+      const board = await resolveBoard(current, activeId, catalogue);
+      return board.entries.length === 0 ? AFTER_ACTIVE_EMPTY : `${AFTER_CLOSE} Tafel von ${quoted(board.profile.displayName)}`;
+    } catch {
+      return AFTER_ACTIVE_UNREADABLE;
+    }
+  };
+
+  const build = async (current: ProfileStore, register: Map<string, Focusable>, draftName: string): Promise<Built> => {
     const listing = await current.list();
     // Null also when the active profile's record is unreadable; the damaged note below covers that.
     const activeId = await current.getActive();
@@ -628,35 +915,21 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (!profiles.some((profile) => profile.id === selectedId)) {
       selectedId = profiles.find((profile) => profile.id === activeId)?.id ?? (profiles.length === 1 ? (profiles[0] as ProfileV1).id : null);
     }
+    // A rename field or confirmation for a profile that is gone has nothing to show.
+    if (mode !== null && !profiles.some((profile) => profile.id === mode?.id)) mode = null;
 
     const profileSection = element("section", "caregiver-section");
-    profileSection.append(element("h2", "", "Profile"));
+    const profilesHeading = element("h2", "", "Profile");
+    profilesHeading.tabIndex = -1;
+    register.set("profiles-heading", profilesHeading);
+    profileSection.append(profilesHeading);
     if (listing.damaged.length > 0) profileSection.append(element("p", "caregiver-notice caregiver-damaged", damagedLine(listing.damaged.length)));
     if (profiles.length === 0) {
       // Damaged entries are not "no profile yet": the device is not new.
       profileSection.append(element("p", "caregiver-notice", listing.damaged.length > 0 ? ONLY_DAMAGED : NO_PROFILES));
     } else {
       const list = element("ul", "caregiver-profiles");
-      for (const profile of profiles) {
-        const item = element("li", "caregiver-profile");
-        item.append(element("span", "caregiver-profile-name", profile.displayName));
-        if (profile.id === activeId) {
-          item.append(element("span", "caregiver-active", ACTIVE_MARK));
-        } else {
-          const make = button(ACTIVATE);
-          make.setAttribute("aria-label", `${ACTIVATE}: ${profile.displayName}`);
-          make.addEventListener("click", () => activate(profile));
-          register.set(`activate:${profile.id}`, make);
-          item.append(make);
-        }
-        const edit = button(EDIT_CONCEPTS);
-        edit.setAttribute("aria-label", `${EDIT_CONCEPTS}: ${profile.displayName}`);
-        edit.setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
-        edit.addEventListener("click", () => select(profile));
-        register.set(`edit:${profile.id}`, edit);
-        item.append(edit);
-        list.append(item);
-      }
+      for (const profile of profiles) list.append(profileCard(profile, activeId, register));
       profileSection.append(list);
       if (activeId === null) profileSection.append(element("p", "caregiver-notice caregiver-warning", NONE_ACTIVE));
     }
@@ -664,31 +937,27 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const form = element("form", "caregiver-create");
     const nameLabel = element("label", "", "Name für ein neues Profil");
     nameLabel.htmlFor = "caregiver-new-name";
-    const nameInput = element("input", "caregiver-input");
-    nameInput.type = "text";
-    nameInput.id = "caregiver-new-name";
-    nameInput.autocomplete = "off";
-    // Spell checking and correction can send typed text to a service; a name stays here.
-    nameInput.spellcheck = false;
-    nameInput.setAttribute("autocapitalize", "off");
-    nameInput.setAttribute("autocorrect", "off");
-    const nameNotice = element("p", "caregiver-notice caregiver-name-notice", NAME_NOTICE);
-    nameNotice.id = "caregiver-new-name-notice";
-    nameInput.setAttribute("aria-describedby", nameNotice.id);
-    nameInput.value = draftName;
+    const nameInput = nameField("caregiver-new-name", draftName);
+    const nameShort = element("p", "caregiver-notice caregiver-name-notice", NAME_SHORT);
+    nameShort.id = "caregiver-new-name-notice";
+    nameInput.setAttribute("aria-describedby", nameShort.id);
     const submit = element("button", "caregiver-button", "Profil anlegen");
     submit.type = "submit";
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       createProfile(nameInput.value);
     });
-    form.append(nameLabel, nameInput, submit, nameNotice);
+    const more = element("details", "caregiver-details");
+    more.append(element("summary", "", NAME_DETAILS), element("p", "caregiver-notice", NAME_NOTICE));
+    form.append(nameLabel, nameInput, submit, nameShort, more);
     register.set("create-name", nameInput);
     profileSection.append(form);
 
+    const content = [profileSection];
     const selected = profiles.find((profile) => profile.id === selectedId);
-    if (selected !== undefined) return [profileSection, await conceptSection(current, selected, activeId, register)];
-    return profiles.length === 0 ? [profileSection] : [profileSection, element("p", "caregiver-notice", SELECT_PROFILE)];
+    if (selected !== undefined) content.push(await boardSection(current, selected, activeId, register));
+    else if (profiles.length > 0) content.push(element("p", "caregiver-notice", SELECT_PROFILE));
+    return { content, afterClose: await afterCloseLine(current, activeId) };
   };
 
   const close = (): Promise<void> => {
@@ -699,6 +968,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     cancelIdle();
     // The next opening edits the active profile again, whatever was picked this time.
     selectedId = null;
+    mode = null;
     closingNo += 1;
     const mine = closingNo;
     away = "waiting";
@@ -710,8 +980,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     line.setAttribute("aria-live", "polite");
     caregiverRegion.replaceChildren(line);
     heading = null;
+    afterClose = null;
     status = null;
+    undoBar = null;
     body = null;
+    help = null;
     focusables = new Map();
     closing = new Promise((resolve) => {
       let cancelBound = (): void => undefined;
@@ -738,7 +1011,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           }
           away = "stalled";
           line.textContent = NO_BOARD_YET;
-          const retry = button("Tafel neu laden");
+          const retry = button(RELOAD_BOARD);
           let attempt = 0;
           retry.addEventListener("click", () => {
             attempt += 1;
@@ -782,7 +1055,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
   };
   caregiverRegion.addEventListener("pointerdown", restartIdle);
-  caregiverRegion.addEventListener("keydown", restartIdle);
+  caregiverRegion.addEventListener("keydown", (event) => {
+    restartIdle();
+    if (event.key !== "Escape" || !isOpen) return;
+    event.preventDefault();
+    // Escape leaves the innermost thing: an open rename field or confirmation first, the area otherwise.
+    if (mode !== null) leaveMode();
+    else void close();
+  });
   caregiverRegion.addEventListener("input", restartIdle);
 
   const open = (): boolean => {
@@ -795,15 +1075,27 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     session += 1;
     cancelRunningSpeech();
 
-    heading = element("h1", "caregiver-heading", "Für Bezugspersonen");
+    // Stays at the top while the rest scrolls: the title, the board the child gets, the way out, and what was just done.
+    const top = element("div", "caregiver-top");
+    const header = element("header", "caregiver-header");
+    heading = element("h1", "caregiver-heading", OPEN_LABEL);
     heading.tabIndex = -1;
+    afterClose = element("p", "caregiver-after-close");
+    const closer = button(DONE, "caregiver-button caregiver-primary");
+    closer.addEventListener("click", () => void close());
+    header.append(heading, afterClose, closer);
     status = element("p", "caregiver-status", READING);
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
+    undoBar = element("div", "caregiver-undo");
+    undoBar.hidden = true;
+    top.append(header, status, undoBar);
     body = element("div", "caregiver-body");
-    const actions = element("div", "caregiver-actions");
-    const reload = button("Tafel neu laden");
+
+    help = element("details", "caregiver-details caregiver-help");
+    const reload = button(RELOAD_BOARD);
     reload.addEventListener("click", () => run(async () => {
+      cancelMode();
       say(RELOADING);
       const answer = await within(refreshBoard(), CLOSE_WAIT_MS);
       // The board answers a failed refresh with the examples; that is not "reloaded".
@@ -816,13 +1108,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       // Also after a read that failed earlier: the area shows what the store holds now.
       await draw(null);
     }));
-    const closer = button("Schließen");
-    closer.addEventListener("click", () => void close());
-    actions.append(reload, closer);
+    help.append(element("summary", "", HELP_SUMMARY), element("p", "caregiver-notice", RELOAD_HELP), reload, element("p", "caregiver-notice", VOICE_HELP));
 
     boardRegion.hidden = true;
     entry.hidden = true;
-    caregiverRegion.replaceChildren(heading, status, body, actions);
+    mode = null;
+    caregiverRegion.replaceChildren(top, body, help);
     caregiverRegion.hidden = false;
     heading.focus();
     restartIdle();
