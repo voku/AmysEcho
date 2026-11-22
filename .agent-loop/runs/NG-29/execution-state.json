@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:9f1bdfd6d8af01a1a649dd34f03e0cbd3e030d2a",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
     "history": [
         {
@@ -138,6 +138,107 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:333a4a10",
                 "summary": "Second build: per-closing token and no stale board at the bound, storage notice and input attributes, auto-close on hidden page and idle, persistent active-board lines, draft name kept, truthful reload sentences, store bound, tests for queueing and previously untested guards; verify passes with 251 tests",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:48:15+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:48:15+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2130da4ac05394401df13757b2715e0e200e86d7a0554b2c7361acdbfa5c7ae2",
+                    "execution-evidence:sha256:4032c40bce4e24e3b023498aaa65bef3dd4fe78fc6ecaef7d960bba6b02f2930",
+                    "execution-evidence:sha256:f5919bca5491386f8d24f08fd2f881436f644677ff134ed0c2e496ac5a727bd1",
+                    "execution-evidence:sha256:cf2b07fc50f486e8c1b6cb7fd42a772fc8149d7c0898db0c648be1f77439ff72",
+                    "execution-evidence:sha256:d3d563fad004cc110fb92fd95dcb5a075c66f1a32f61e6ab7aa5b58fe991cd0b",
+                    "execution-evidence:sha256:0d9ae63b844548b766aa5bcc34b3c9edd635a4802441361e746f7decc6556ac9",
+                    "execution-evidence:sha256:424c548fe997757e115e531d5d362d9636a544800e2d55229d4e6d987d521492",
+                    "execution-evidence:sha256:fe1114fc516438aa4d01bf61cd3ad4bf2163ee00929069f506c02509d7d40f12",
+                    "execution-evidence:sha256:489acb22ed89f1ad79a4d1f4d755658c0d4e2dd1374f7f5f454e9a393b92aa10",
+                    "execution-evidence:sha256:68d54c268dc6f57a433ce567fa77f6a2f7bae0168f3b064c6e8795ec14552694"
+                ],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:9f1bdfd6d8af01a1a649dd34f03e0cbd3e030d2a",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2130da4ac05394401df13757b2715e0e200e86d7a0554b2c7361acdbfa5c7ae2",
+                    "execution-evidence:sha256:4032c40bce4e24e3b023498aaa65bef3dd4fe78fc6ecaef7d960bba6b02f2930",
+                    "execution-evidence:sha256:f5919bca5491386f8d24f08fd2f881436f644677ff134ed0c2e496ac5a727bd1",
+                    "execution-evidence:sha256:cf2b07fc50f486e8c1b6cb7fd42a772fc8149d7c0898db0c648be1f77439ff72",
+                    "execution-evidence:sha256:d3d563fad004cc110fb92fd95dcb5a075c66f1a32f61e6ab7aa5b58fe991cd0b",
+                    "execution-evidence:sha256:0d9ae63b844548b766aa5bcc34b3c9edd635a4802441361e746f7decc6556ac9",
+                    "execution-evidence:sha256:424c548fe997757e115e531d5d362d9636a544800e2d55229d4e6d987d521492",
+                    "execution-evidence:sha256:fe1114fc516438aa4d01bf61cd3ad4bf2163ee00929069f506c02509d7d40f12",
+                    "execution-evidence:sha256:489acb22ed89f1ad79a4d1f4d755658c0d4e2dd1374f7f5f454e9a393b92aa10",
+                    "execution-evidence:sha256:68d54c268dc6f57a433ce567fa77f6a2f7bae0168f3b064c6e8795ec14552694"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:9f1bdfd6d8af01a1a649dd34f03e0cbd3e030d2a",
+                "context_id": "claude-subagent-ng29-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "observations": [
+                    "test/caregiver.test.mjs:1330 does not prove that an earlier opening's idle timer cannot close the next opening; the guard at src/caregiver.ts:713 is untested",
+                    "src/caregiver.ts:685 overlapping retry attempts are untested",
+                    "src/caregiver.ts:176 'Das Kind sieht eine andere Tafel' is imprecise when the active profile has no showable concept",
+                    "src/caregiver.ts:391 createProfile reads the input when the queued task runs, not at submit",
+                    "docs/caregiver.md:196 at demo-timeout with storage never answering, opening and auto-closing takes away the working example board"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:36066e26",
+                "summary": "Pass: close state machine verified in every probed ordering with an app double and the real createApp; 39 of 41 mutations killed; verify passes with 251 tests",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:48:15+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:48:15+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2833e93d30cc43e67cf171cae9cd1f059d1bf4cdbbbc92bb49830f85018cf8e3",
+                    "execution-evidence:sha256:506aaf4d4d9bf992348e814e5a345c37dc6e1d21aec6e82cde28d3ce2f2856ce",
+                    "execution-evidence:sha256:a30ed2a2a317fc33ca8b63dd22138de2ce85fce113a3971753d65ced48b6fe4f"
+                ],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:9f1bdfd6d8af01a1a649dd34f03e0cbd3e030d2a",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2833e93d30cc43e67cf171cae9cd1f059d1bf4cdbbbc92bb49830f85018cf8e3",
+                    "execution-evidence:sha256:506aaf4d4d9bf992348e814e5a345c37dc6e1d21aec6e82cde28d3ce2f2856ce",
+                    "execution-evidence:sha256:a30ed2a2a317fc33ca8b63dd22138de2ce85fce113a3971753d65ced48b6fe4f"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:9f1bdfd6d8af01a1a649dd34f03e0cbd3e030d2a",
+                "context_id": "claude-subagent-ng29-blindspot-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "changes_required",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:463324a7",
+                "summary": "caregiver.ts:672-693 the no-board state hides a board that cannot be stale (examples, or no store, or nothing written) and with storage hung at start-up the device cannot leave it, since every refresh queues behind start-up; caregiver.ts:172-174 the name notice understates what clearing site data removes and invites a first name while docs forbid real names",
                 "task_id": "NG-29",
                 "validation_references": []
             }
