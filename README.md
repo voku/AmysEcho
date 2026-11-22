@@ -18,9 +18,15 @@ Early rebuild. What exists today:
 - an offline concept board with five **synthetic, not caregiver-approved** example concepts,
   German text, bundled placeholder symbols and speech through a local German voice when the
   browser offers one;
-- a service worker that pre-caches the local bundle.
+- a service worker that pre-caches the local bundle;
+- child profiles with export, restore and delete, and a board per profile (its own concepts, order,
+  German wording and text-only custom concepts), as library code tested in Node against an
+  in-memory store ([docs/storage.md](docs/storage.md));
+- a board that shows the active profile when one is stored, and the example concepts otherwise.
 
-Not built yet: child profiles, export/restore/delete, camera input and gesture recognition.
+Not built yet: a caregiver screen. Nothing in the app can create, choose or edit a profile, so in
+practice the board still shows the examples. Also not built: symbols for custom concepts, camera
+input and gesture recognition in the app. The browser storage adapter has no automated test.
 Nothing here has been verified on a physical device or with a child.
 
 ## Principles

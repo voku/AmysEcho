@@ -1,6 +1,7 @@
 # Local storage: profiles, export, restore, delete
 
-Card NG-2. Library code in `src/profiles/`; no user interface and not yet wired into the app.
+Card NG-2. Library code in `src/profiles/`. Since card NG-12 the board reads it at start (see
+"Board data" below); there is still no screen that creates or changes a profile.
 Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
 
 ## Verification status
@@ -10,6 +11,12 @@ Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
 - **The IndexedDB adapter (`indexeddb-backend.ts`) has no automated test.** Node has no IndexedDB, so
   the file is only type-checked. Card NG-14 adds a real-browser test. Until then nothing here shows
   that data survives in a real browser, and the adapter must be treated as unverified.
+- The board data (`src/board-data.ts`) and the start-up decision (`src/startup.ts`) are tested in
+  Node against the in-memory backend, and the rendering against a minimal fake document
+  (`test/board.test.mjs`). The one untested line is in `src/main.ts`, which hands
+  `openIndexedDbBackend` to `loadStartupView`. So "the board shows the active profile in a real
+  browser" is unverified until card NG-14. In Node, where there is no IndexedDB, the tested result
+  is the example board with a notice.
 
 ## Layers
 
@@ -21,6 +28,8 @@ Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
 | `profile.ts` | `ProfileV1`, id generation, strict `parseProfile`. |
 | `store.ts` | `ProfileStore`: the key layout and every profile operation. |
 | `backup.ts` | `exportProfile`, `importProfile`. |
+| `../board-data.ts` | Per-profile board: concept order, wording, custom concepts. Uses the public `ProfileStore` API only. |
+| `../startup.ts` | `resolveStartupView`, `loadStartupView`: what the board shows at start. |
 
 ## Key layout
 
@@ -114,6 +123,121 @@ Removing damaged entries:
   `profile//x`), can be removed with `removeDamaged(segment)`, where `segment` is exactly the `id`
   that `list()` reported. It deletes only `profile/<segment>` and keys below `profile/<segment>/`,
   refuses a segment containing `/`, and refuses a profile that is readable (`NotDamagedError`).
+
+## Board data
+
+Card NG-12. Code: `src/board-data.ts` (it sits next to `src/profiles/`, not inside, because a test
+pins the list of files in that directory). It builds no storage keys of its own; it uses
+`store.get`, `store.setConceptIds` and `store.data(id)`.
+
+### Layout
+
+Everything belongs to one profile:
+
+```
+profile/<id>/meta                        conceptIds: the board, concept ids in display order
+profile/<id>/data/concept.<conceptId>    wording for that concept, or a custom concept
+```
+
+```json
+{ "version": 1, "labelDe": "Hilf mir", "speechDe": "Bitte hilf mir." }
+{ "version": 1, "labelDe": "Ball", "speechDe": "Ich möchte mit dem Ball spielen.", "custom": true }
+```
+
+- Without `custom`, the entry is this profile's wording for a catalogue concept (`src/concepts.ts`).
+  The symbol stays the catalogue's.
+- With `custom: true`, the entry is a concept of this profile only. It has no symbol yet and the
+  board shows it as a text button; symbol images are a later card.
+- A custom concept exists as soon as its entry is stored. It is on the board only when its id is in
+  `conceptIds`.
+
+### Limits
+
+| What | Rule | Constant |
+| --- | --- | --- |
+| Concept id written by this module | `[a-z0-9][a-z0-9-]{0,39}` | `MAX_BOARD_CONCEPT_ID_LENGTH` |
+| `labelDe` | 1-40 code points | `MAX_LABEL_LENGTH` |
+| `speechDe` | 1-200 code points | `MAX_SPEECH_LENGTH` |
+
+- Text is stored in Unicode NFC form and trimmed; the limits count that form. Control characters,
+  line and paragraph separators, unpaired surrogates and invisible format characters are rejected,
+  with the same exception as for display names (a zero-width joiner or non-joiner between two
+  visible characters).
+- The id rule is narrower than what `conceptIds` accepts (64 characters, also `.` and `_`), so that
+  `concept.<id>` is always a valid data name. A custom id must not be a catalogue id.
+- The store's limits apply on top: at most 500 ids in `conceptIds`, and the profile's size limits.
+
+### Writing
+
+All writes validate first and store nothing when they refuse (`BoardDataError` with a `kind`).
+
+| Function | Does | Store writes |
+| --- | --- | --- |
+| `setBoardConcepts(store, id, ids, catalogue)` | Sets the board and its order. Every id must be a catalogue concept or a readable custom concept of this profile; no duplicates. | 1 |
+| `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept or an existing custom concept. | 1 |
+| `clearWording(store, id, conceptId)` | Removes the wording, so the catalogue wording shows again. Refuses a custom concept. | 1 |
+| `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. | 1 |
+| `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom concept off the board and deletes it. | 2 |
+| `listCustomConcepts(store, id)` | Read only: the profile's custom concepts, and the ids of unreadable entries. | 0 |
+
+What is atomic and what is not:
+
+- Each store write is atomic (one backend batch).
+- `removeCustomConcept` is two writes: first the id is taken out of `conceptIds`, then the entry is
+  deleted. If the second fails, the board no longer names the concept and reads without a problem;
+  the entry is still there and listed by `listCustomConcepts`. Calling the function again finishes
+  it. A test injects that failure.
+- Putting a new custom concept on the board is two calls by the caller (`putCustomConcept`, then
+  `setBoardConcepts`). After a failure in between the concept exists and is not on the board.
+- The checks read before they write, and that is not one step with the write. Two of these calls at
+  the same time for one profile, or two tabs, can interleave: for example a board can be set to
+  name a custom concept that is being removed. Reading then reports it (see below); nothing is
+  shown wrongly.
+
+### Reading
+
+`resolveBoard(store, id, catalogue)` returns `{ profile, entries, problems }`. `entries` follow
+`conceptIds`. It rejects only when the profile record itself cannot be read or storage fails. A bad
+concept entry becomes a problem with a `kind`:
+
+| Kind | When | Board |
+| --- | --- | --- |
+| `unknown-concept` | The id is not in the catalogue and the profile has no custom concept for it. | Left off. |
+| `damaged-custom-concept` | Not in the catalogue, and the profile's entry cannot be read. | Left off. |
+| `damaged-wording` | A catalogue concept whose stored wording cannot be read. | Catalogue wording. |
+| `custom-shadows-catalogue` | A custom concept whose id the catalogue uses too (a later catalogue could add it). | The profile's own concept, as text. |
+
+The two damaged kinds carry `damage`: `unsupported-version` (a `version` greater than 1; a newer app
+wrote it) or `unreadable`. An id is never shown as some other concept. The board shows one plain
+line when a board has problems; telling the caregiver which, and offering repair, is card NG-13.
+
+An entry is read strictly: exactly the fields above, version 1, text already in stored form.
+
+### Isolation and backup
+
+- Every function takes one profile id and reaches storage only through that profile's record and
+  data accessor. A custom concept of one profile is unknown to every other profile, also under the
+  same id. Tests cover this.
+- The entries are ordinary profile data, so `exportProfile` includes them, `importProfile` restores
+  them, and `remove` deletes them with the profile. Import does not validate them as board entries;
+  an invalid one is reported when the board is read.
+
+### What the board shows at start
+
+`resolveStartupView(store, catalogue)` in `src/startup.ts`:
+
+| View | When | Board |
+| --- | --- | --- |
+| `demo`, `storage: "empty"` | No stored profile at all. | The synthetic example concepts, labelled as examples. |
+| `profile` | `getActive()` names a readable profile. | That profile's concepts and name; a message when it has none. |
+| `damaged` | No readable active profile, and `list()` reports damaged entries. | A message only. Never the examples. |
+| `no-active` | Readable profiles, none active, nothing damaged. | A message only. |
+| `demo`, `storage: "unavailable"` | From `loadStartupView` only: storage could not be opened or read, including an unknown storage layout. | The examples, with a notice. |
+
+`damaged` wins over `no-active` when both apply. With a readable active profile, damaged entries
+elsewhere are not looked for at start. `src/main.ts` mounts the example board first, without
+storage, and replaces it once the view is known. Opening the store on an empty device writes
+`app/schema` and nothing else.
 
 ## Export format
 
@@ -257,8 +381,9 @@ no permanence guarantee. The export file is the backup.
   `docs/s0a-product-contract-v0.1.md` has no such field. The two differ until the contract is
   updated or the field is removed here. That is an owner decision and is not made in this module.
 - Section 6 of the product contract says an authorised caregiver and a retention policy must be
-  decided before personal data is stored (board card NG-7). That decision is pending. Nothing in the
-  app uses this module yet, so no personal data is stored today.
+  decided before personal data is stored (board card NG-7). That decision is pending. The app reads
+  storage at start but has no screen that creates a profile or writes profile data, so no personal
+  data is stored today.
 - Deletion is logical. After `remove`, the keys are gone for the app, but the browser may keep
   remnants in its on-disk database files until it compacts them. No secure erase is attempted.
 - No encryption at rest and no export password (human decision pending; card NG-22).
