@@ -1,0 +1,49 @@
+{
+    "acceptance_criteria": [
+        "Profile ids are opaque random values; names, birth dates or other personal data never appear in ids or storage keys",
+        "Data written for one profile is never readable through another profile, and deleting a profile removes every key it owns while other profiles stay intact",
+        "Export produces a versioned document; restoring it into an empty store reproduces the profile and its data exactly",
+        "A malformed, truncated or incompatible-version import is rejected and leaves the store unchanged",
+        "A failed multi-key write does not leave a half-written profile visible",
+        "No runtime dependency is added; src/profiles uses no network API"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-22T11:46:04+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "57785be2970ea53542c71b562a5a3feac54e5f9e",
+    "behavior_anchors": [],
+    "created_at": "2026-11-22T11:46:04+00:00",
+    "goal": "Several child profiles on one device with isolated local data: a versioned ProfileV1, a profile store over a pluggable key-value backend, and a versioned export, restore and delete round trip",
+    "kind": "task_contract",
+    "non_goals": [
+        "User interface, board wiring, gesture examples, encryption, sync or any network use",
+        "Claims that the IndexedDB adapter is verified; it has no real-browser test until card NG-14"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "claude",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/profiles/profile.ts",
+        "src/profiles/backend.ts",
+        "src/profiles/memory-backend.ts",
+        "src/profiles/indexeddb-backend.ts",
+        "src/profiles/store.ts",
+        "src/profiles/backup.ts",
+        "test/profiles.test.mjs",
+        "test/profiles-backup.test.mjs",
+        "docs/storage.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-2",
+    "updated_at": "2026-11-22T11:46:04+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

@@ -1,0 +1,237 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T11:46:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:46:10+00:00",
+                "artifact_references": [],
+                "candidate_revision": "57785be2970ea53542c71b562a5a3feac54e5f9e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "schema_version": "1.0",
+                "task_id": "NG-2",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "57785be2970ea53542c71b562a5a3feac54e5f9e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "outcome": "completed",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:ef2132dd",
+                "summary": "No profile or storage code exists: src/ has board.ts, concepts.ts, main.ts, speech.ts, status.ts and src/recognition/. Concepts are a fixed frozen list in src/concepts.ts (ConceptV1 with id, labelDe, speechDe, symbolPath). Tests are Node test files against dist/. The product contract section 3 defines ProfileV1 { version, id, conceptIds } and section 6 the export, restore and delete rules. All nine scope files are new.",
+                "task_id": "NG-2",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:53:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:53:48+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "schema_version": "1.0",
+                "task_id": "NG-2",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "context_id": "claude-subagent-ng2-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "outcome": "completed",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:45a62df7",
+                "summary": "Implemented src/profiles: KeyValueBackend seam with atomic write, in-memory backend with failure injection, IndexedDB adapter (type-checked only, no automated test until NG-14), ProfileV1 with opaque random ids and strict parsing, ProfileStore with per-profile key prefixes, schema marker and serialised operations, and versioned export/import with reject, replace and copy conflict modes. 29 new tests; npm run verify passes with 68 tests. docs/storage.md documents layout, export format and limits.",
+                "task_id": "NG-2",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:56:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:56:46+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2f36ea139dab57539e484b5da249fd246b38dec849f2cf1d5270346a64d88f27",
+                    "execution-evidence:sha256:25a7520582441f45d293ed4b920c5127d4008458e3e1a639885c614c41f1e857",
+                    "execution-evidence:sha256:3bd1c0075e7e9c6c9cf638a416532cacc0858905a0842f3ab751dbb62a199cd0",
+                    "execution-evidence:sha256:d1f3b60750265e5d53c955a0d67e203e80defc6533eb578a38ee20b98f7236be",
+                    "execution-evidence:sha256:81e8d8a3396df72ab0cb848db2d6b583ed79c2dc124b84e83eeeccd705065856",
+                    "execution-evidence:sha256:028c43aa6da03784bff7ebbe2acdabae6c7962176e9e73065640159294e008d2",
+                    "execution-evidence:sha256:18c4b4b951cb8e90daf33697f54eb475cc3f8b2d3b3b71bde7580971864939a2",
+                    "execution-evidence:sha256:3482989273760074172f538456689d642556d665b5b7fd8b7f609aad84ac256c",
+                    "execution-evidence:sha256:06aecc701f3536ecf02b2e17b2700cf51556a94e9767e5be1f16368205a8729b"
+                ],
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "schema_version": "1.0",
+                "task_id": "NG-2",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2f36ea139dab57539e484b5da249fd246b38dec849f2cf1d5270346a64d88f27",
+                    "execution-evidence:sha256:25a7520582441f45d293ed4b920c5127d4008458e3e1a639885c614c41f1e857",
+                    "execution-evidence:sha256:3bd1c0075e7e9c6c9cf638a416532cacc0858905a0842f3ab751dbb62a199cd0",
+                    "execution-evidence:sha256:d1f3b60750265e5d53c955a0d67e203e80defc6533eb578a38ee20b98f7236be",
+                    "execution-evidence:sha256:81e8d8a3396df72ab0cb848db2d6b583ed79c2dc124b84e83eeeccd705065856",
+                    "execution-evidence:sha256:028c43aa6da03784bff7ebbe2acdabae6c7962176e9e73065640159294e008d2",
+                    "execution-evidence:sha256:18c4b4b951cb8e90daf33697f54eb475cc3f8b2d3b3b71bde7580971864939a2",
+                    "execution-evidence:sha256:3482989273760074172f538456689d642556d665b5b7fd8b7f609aad84ac256c",
+                    "execution-evidence:sha256:06aecc701f3536ecf02b2e17b2700cf51556a94e9767e5be1f16368205a8729b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "context_id": "claude-subagent-ng2-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "observations": [
+                    "backup.ts: exportedAt validation accepts impossible timestamps such as 2026-02-31; docs say the timestamp is checked.",
+                    "backend.ts: cloneJson drops non-enumerable and extra array properties and evaluates getters although its comment says nothing is altered silently.",
+                    "store.ts: restoreProfile called directly accepts an array as data and throws a raw TypeError on null; damaged entries with a malformed id segment cannot be removed; getActive returns the id of a profile whose meta is unparseable.",
+                    "profile.ts: display names allow bidi and format characters and are not NFC-normalised; import has no overall size limit.",
+                    "indexeddb-backend.ts: after onblocked a later onsuccess opens a connection nobody closes; no onclose handler; after onversionchange every operation fails until reload."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:8f443405",
+                "summary": "Fresh-context review of docs/storage.md, src/profiles/backend.ts, backup.ts, indexeddb-backend.ts, memory-backend.ts, profile.ts, store.ts, test/profiles-backup.test.mjs and test/profiles.test.mjs: npm run verify passes (68 tests); out-of-repo probes found no isolation, atomicity or import-validation failure; each of the six acceptance criteria has a demonstrating test.",
+                "task_id": "NG-2",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:56:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:56:46+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ef2425b98f95f2790c995b18de683de42697a8ad08e10073e22a2262858ef3e2",
+                    "execution-evidence:sha256:f6ec56f8112675c7ecb7922c1125294d6732890712432d392353f2e388401ab8",
+                    "execution-evidence:sha256:c3159f6dc17c22971782712d845b910675f070bac40cb80268c154120d0806a4",
+                    "execution-evidence:sha256:5969c8b5fa208c30c6818f3a10c9c474e4b99835789ff2f9aec10bb9fad83ffe",
+                    "execution-evidence:sha256:b13d34baaa4d6f5082673d2856e3e3794a562f74e6d859a55f815e59ad91e397",
+                    "execution-evidence:sha256:6cb417639e9b53381a50f4fc434829f5d22a149488d89308c1ed53ead5047a35",
+                    "execution-evidence:sha256:6296bf232425edbee8c53b5026e9b9bc0a9480635f3b1871acff2f12a246e8a7",
+                    "execution-evidence:sha256:712809bffeaf4d4595f5ae21c8830034bc70c9523cf8ab90193d022393f4064c",
+                    "execution-evidence:sha256:8aed9474e73c9710d1867acb1110d133e356bfcc4c7c84bbe9af9a0a195e70f5"
+                ],
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "schema_version": "1.0",
+                "task_id": "NG-2",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ef2425b98f95f2790c995b18de683de42697a8ad08e10073e22a2262858ef3e2",
+                    "execution-evidence:sha256:f6ec56f8112675c7ecb7922c1125294d6732890712432d392353f2e388401ab8",
+                    "execution-evidence:sha256:c3159f6dc17c22971782712d845b910675f070bac40cb80268c154120d0806a4",
+                    "execution-evidence:sha256:5969c8b5fa208c30c6818f3a10c9c474e4b99835789ff2f9aec10bb9fad83ffe",
+                    "execution-evidence:sha256:b13d34baaa4d6f5082673d2856e3e3794a562f74e6d859a55f815e59ad91e397",
+                    "execution-evidence:sha256:6cb417639e9b53381a50f4fc434829f5d22a149488d89308c1ed53ead5047a35",
+                    "execution-evidence:sha256:6296bf232425edbee8c53b5026e9b9bc0a9480635f3b1871acff2f12a246e8a7",
+                    "execution-evidence:sha256:712809bffeaf4d4595f5ae21c8830034bc70c9523cf8ab90193d022393f4064c",
+                    "execution-evidence:sha256:8aed9474e73c9710d1867acb1110d133e356bfcc4c7c84bbe9af9a0a195e70f5"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "context_id": "claude-subagent-ng2-blindspot-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "observations": [
+                    "ProfileV1 here has displayName while the product contract section 3 shape does not, and section 6 ties storing personal data to a pending caregiver decision; docs/storage.md should say both.",
+                    "Export version 1 does not cover the shape of data; an older app accepts unknown data names from a newer one.",
+                    "Photos do not fit a JSON-only export; needs export version 2 that still reads version 1.",
+                    "An unknown schema marker leaves a family with no export path; a layout change needs migration or read-only export first.",
+                    "Two stores over one backend are not coordinated; data.set racing remove in another tab can leave an orphan key."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:0a53a9c6",
+                "summary": "Fresh-context blind-spot review of docs/storage.md, src/profiles/backend.ts, backup.ts, indexeddb-backend.ts, memory-backend.ts, profile.ts, store.ts, test/profiles-backup.test.mjs and test/profiles.test.mjs: nothing outside src/profiles imports the module or the unverified IndexedDB adapter; delete wording is key-scoped; displayName never enters ids or keys; a probe with 300 gesture examples gave a 17 MB export handled in under a second in memory.",
+                "task_id": "NG-2",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:57:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:57:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "schema_version": "1.0",
+                "task_id": "NG-2",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:2edee15847525a1d45cf1da59cb3df57a1213887bddf8b602f4d44a03c02663a",
+                    "execution-evidence:sha256:137ac06cebdcf70497eba16463ef535d786919d409faf02560827784eeabf901"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "consistency_references": [
+                    "execution-evidence:sha256:d363f3c7b02b98566fc6943f3ab0ba9631628951a0b7e4c799cbb39ab1ffce58"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "outcome": "pass",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:8daed988bae9c0fabfa7b09df3cc6f7754e4f3677cee6e5859ff2ec095e10572",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-2: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-2 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-2:98bf0dfe244a52be binds active Session 2026-11-22-ng-2-r1-513a72db to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-2 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-2",
+                "validation_references": [
+                    "execution-evidence:sha256:2edee15847525a1d45cf1da59cb3df57a1213887bddf8b602f4d44a03c02663a",
+                    "execution-evidence:sha256:137ac06cebdcf70497eba16463ef535d786919d409faf02560827784eeabf901"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-2:98bf0dfe244a52be",
+    "schema_version": "1.0",
+    "task_id": "NG-2"
+}
