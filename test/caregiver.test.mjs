@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
+import { BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
 import { setBoardConcepts, setWording } from "../dist/board-data.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
@@ -19,23 +19,53 @@ function installFakes(rect) {
   const previousWarn = console.warn;
   const speech = { cancelled: 0, spoken: [] };
   const focused = { current: null };
-  const fakeElement = (tagName) => ({
-    tagName, textContent: "", className: "", children: [], dataset: {}, handlers: {},
-    hidden: false, disabled: false,
-    setAttribute(name, value) { this[name] = value; },
-    addEventListener(name, handler) { this.handlers[name] = handler; },
-    append(...nodes) { this.children.push(...nodes); },
-    replaceChildren(...nodes) { this.children = nodes; },
-    focus() { focused.current = this; },
-    /** Calls the handler as a browser would; a disabled control gets no events. */
-    dispatch(name, event = {}) {
-      if (this.disabled) return;
-      this.handlers[name]?.({ preventDefault() {}, ...event });
-    },
-    click() { this.dispatch("click"); },
-    // Geometry only where a test supplies it; without it the area must cope (as with any DOM that has none).
-    ...(rect === undefined ? {} : { scrollTop: 0, getBoundingClientRect() { return rect(this); } }),
-  });
+  const fakeElement = (tagName) => {
+    const created = {
+      tagName, textContent: "", className: "", children: [], dataset: {}, handlers: {},
+      hidden: false, disabled: false,
+      setAttribute(name, value) { this[name] = value; },
+      /** A third argument of `true` (or `{ capture: true }`) registers for the capture phase, as in a browser. */
+      addEventListener(name, handler, options) {
+        if (options === true || options?.capture === true) this.captureHandlers[name] = handler;
+        else this.handlers[name] = handler;
+      },
+      append(...nodes) {
+        for (const node of nodes) node.parent = this;
+        this.children.push(...nodes);
+      },
+      replaceChildren(...nodes) {
+        // What is taken out is detached: events on it no longer pass through its former ancestors.
+        for (const node of this.children) node.parent = null;
+        for (const node of nodes) node.parent = this;
+        this.children = nodes;
+      },
+      focus() { focused.current = this; },
+      /**
+       * Calls the handlers as a browser would for the capture and target phases: first the capture
+       * listeners of the ancestors, outermost first, then this element's own. A listener that stops
+       * propagation ends it there. Nothing bubbles. A disabled control gets no events.
+       */
+      dispatch(name, event = {}) {
+        if (this.disabled) return;
+        let stopped = false;
+        const full = { preventDefault() {}, target: this, ...event, stopPropagation() { stopped = true; } };
+        const path = [];
+        for (let node = this.parent; node; node = node.parent) path.unshift(node);
+        for (const node of [...path, this]) {
+          node.captureHandlers[name]?.(full);
+          if (stopped) return;
+        }
+        this.handlers[name]?.(full);
+      },
+      click(event = {}) { this.dispatch("click", event); },
+      // Geometry only where a test supplies it; without it the area must cope (as with any DOM that has none).
+      ...(rect === undefined ? {} : { scrollTop: 0, getBoundingClientRect() { return rect(this); } }),
+    };
+    // Not enumerable: `stringsIn` walks every own property, and a parent would lead it in circles.
+    Object.defineProperty(created, "parent", { value: null, writable: true, enumerable: false });
+    Object.defineProperty(created, "captureHandlers", { value: {}, enumerable: false });
+    return created;
+  };
   // The document takes listeners like an element; `dispatch` calls them as for an event that nothing inside the page handled.
   globalThis.document = {
     createElement: fakeElement, handlers: {},
@@ -61,6 +91,16 @@ function installFakes(rect) {
       }
     },
   };
+}
+
+/**
+ * A time source for the press shield under which every press counts: each reading is a second
+ * after the one before, so nothing is ever "pressed too soon after it appeared". Tests of the
+ * shield itself pass their own.
+ */
+function alwaysAimed() {
+  let time = 0;
+  return () => { time += 1000; return time; };
 }
 
 /** Timers on a clock the test moves by hand. */
@@ -147,7 +187,7 @@ async function withArea(options, callback) {
     const page = { hide: () => undefined };
     const handle = mountCaregiver({
       app: counted, boardRegion, caregiverRegion, entry, catalogue: options.catalogue ?? CONCEPTS,
-      setTimer: clock.setTimer, onPageHidden: (hidden) => { page.hide = hidden; },
+      setTimer: clock.setTimer, onPageHidden: (hidden) => { page.hide = hidden; }, now: options.now ?? alwaysAimed(),
     });
     const [opener, progress, hint] = entry.children;
     const area = {
@@ -211,10 +251,21 @@ async function withArea(options, callback) {
         await area.act(() => area.concept(name).remove.click());
         clock.advance(GUARD_MS);
       },
-      /** Holds "Endgültig löschen" for the full duration. */
+      /** The delete confirmation while it is the body of the area, or null. */
+      confirmation() {
+        const view = byClass(caregiverRegion, "caregiver-confirm");
+        if (view === undefined) return null;
+        return {
+          view, texts: textsIn(view), confirm: buttonNamed(view, "Endgültig löschen"), cancel: buttonNamed(view, "Abbrechen"),
+          hint: byClass(view, "caregiver-confirm-hint"), progress: byClass(view, "caregiver-delete-progress"),
+        };
+      },
+      /** Holds "Endgültig löschen" for the full duration and lets go. */
       async confirmDelete() {
-        area.button("Endgültig löschen").dispatch("pointerdown", { button: 0 });
+        const confirm = area.button("Endgültig löschen");
+        confirm.dispatch("pointerdown", { button: 0 });
         clock.advance(DELETE_HOLD_MS);
+        confirm.dispatch("pointerup");
         await handle.settled();
       },
       /** Presses "Rückgängig" and lets its guard time pass, so that the next press counts. */
@@ -253,6 +304,23 @@ async function withArea(options, callback) {
   } finally {
     fakes.restore();
   }
+}
+
+/** A backend on which the test can hold back every read from a chosen moment on. */
+function gatedBackend() {
+  const inner = new MemoryBackend();
+  const gate = { held: false, release: () => undefined, onWrite: () => undefined };
+  let waiting = Promise.resolve();
+  gate.hold = () => { gate.held = true; waiting = new Promise((resolve) => { gate.release = () => { gate.held = false; resolve(); }; }); };
+  const read = async () => { while (gate.held) await waiting; };
+  return {
+    inner, gate,
+    backend: {
+      get: async (key) => { await read(); return inner.get(key); },
+      keys: async (prefix) => { await read(); return inner.keys(prefix); },
+      write: async (batch) => { const answer = await inner.write(batch); gate.onWrite(batch); return answer; },
+    },
+  };
 }
 
 const createMia = async (store) => {
@@ -590,7 +658,7 @@ test("area: 'Tafel neu laden' refreshes the board, and says so in German when th
     let refreshes = 0;
     let outcome = "refresh-timeout";
     const app = { store: async () => null, refreshBoard: async () => { refreshes += 1; boardRegion.dataset.startup = outcome; } };
-    const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: () => () => undefined, onPageHidden: () => undefined });
+    const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: () => () => undefined, onPageHidden: () => undefined, now: alwaysAimed() });
     assert.equal(handle.open(), true);
     await handle.settled();
     const status = () => statusOf(caregiverRegion);
@@ -1275,7 +1343,7 @@ async function withSlowRefresh(callback, options = {}) {
     };
     const clock = fakeClock();
     const page = { hide: () => undefined };
-    const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: options.setTimer ?? clock.setTimer, onPageHidden: (hidden) => { page.hide = hidden; } });
+    const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: options.setTimer ?? clock.setTimer, onPageHidden: (hidden) => { page.hide = hidden; }, now: options.now ?? alwaysAimed() });
     const [opener, , hint] = entry.children;
     /** Makes the profile that is not active the active one: a write that succeeds. */
     const write = async () => {
@@ -1741,7 +1809,7 @@ async function withReload(callback) {
       },
     };
     const clock = fakeClock();
-    const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: clock.setTimer, onPageHidden: () => undefined });
+    const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: clock.setTimer, onPageHidden: () => undefined, now: alwaysAimed() });
     assert.equal(handle.open(), true);
     await handle.settled();
     await callback({
@@ -2038,6 +2106,7 @@ for (const [what, change] of [
     await handle.settled();
     buttonNamed(region, "Endgültig löschen").dispatch("pointerdown", { button: 0 });
     clock.advance(DELETE_HOLD_MS);
+    buttonNamed(region, "Endgültig löschen").dispatch("pointerup");
   }],
 ]) {
   test(`no-board state: after ${what}, a refresh that hangs leaves no board`, async () => {
@@ -2523,32 +2592,53 @@ const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel ak
 const DELETE_HOLD_HINT = "Zum Löschen 2 Sekunden gedrückt halten.";
 const PLEASE_WAIT = "Bitte kurz warten.";
 
-test("delete: 'Löschen' deletes nothing; the card becomes a confirmation with the name, what is lost and two buttons, and focus is on 'Abbrechen'", async () => {
-  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, profiles, backend, focused, button, caregiverRegion }) => {
+test("delete: 'Löschen' deletes nothing; the confirmation takes over the body: the name, what is lost, 'Abbrechen' first, and nothing else to press", async () => {
+  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, profiles, confirmation, backend, focused, button, caregiverRegion, nameInput, concepts }) => {
     await holdOpen();
     const before = JSON.stringify(backend.snapshot());
     await act(() => profile("Ben").remove.click());
     assert.equal(JSON.stringify(backend.snapshot()), before);
-    const [card, mia] = profiles();
-    assert.equal(card.confirming, true);
+    const shown = confirmation();
     // Not the active profile: no sentence about what the child sees.
-    // "Abbrechen" comes first: a second tap on the spot where "Löschen" was must not find "Endgültig löschen" there.
-    assert.deepEqual(card.texts, ["Profil „Ben“ löschen?", DELETE_LOSS, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
+    // "Abbrechen" comes first; below "Endgültig löschen" is only its own line.
+    assert.deepEqual(shown.texts, ["Profil „Ben“ löschen?", DELETE_LOSS, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
     assert.equal(focused.current, button("Abbrechen"));
     assert.ok(hasClass(button("Endgültig löschen"), "caregiver-danger"));
     assert.ok(!hasClass(button("Endgültig löschen"), "caregiver-primary"));
-    // It is part of the page, not a dialog element, and the other card is as it was.
+    // It is the whole body: no card, no editor, no form, no help to hit by mistake, and nothing that a redraw could put under a finger.
+    const body = byClass(caregiverRegion, "caregiver-body");
+    assert.deepEqual(body.children, [shown.view]);
+    assert.deepEqual(profiles(), []);
+    assert.deepEqual(concepts(), []);
+    assert.equal(nameInput(), undefined);
+    assert.equal(byClass(caregiverRegion, "caregiver-help").hidden, true);
+    assert.deepEqual(controlsIn(body).map((element) => element.textContent), ["Abbrechen", "Endgültig löschen"]);
+    // Part of the page, not a dialog element.
     assert.deepEqual(tree(caregiverRegion).filter((element) => element.tagName === "dialog"), []);
-    assert.equal(mia.name, "Mia");
-    assert.equal(mia.confirming, false);
   });
 });
 
 test("delete: the confirmation for the active profile also says what the child sees afterwards", async () => {
-  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, profiles }) => {
+  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation }) => {
     await holdOpen();
     await act(() => profile("Mia").remove.click());
-    assert.deepEqual(profiles()[1].texts, ["Profil „Mia“ löschen?", DELETE_LOSS, DELETE_ACTIVE, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
+    assert.deepEqual(confirmation().texts, ["Profil „Mia“ löschen?", DELETE_LOSS, DELETE_ACTIVE, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
+  });
+});
+
+test("delete: 'Abbrechen' brings the normal body back, with the help section and with what was typed into the create field", async () => {
+  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, profiles, confirmation, button, nameInput, caregiverRegion, focused, concept }) => {
+    await holdOpen();
+    nameInput().value = "Cle";
+    await act(() => profile("Ben").remove.click());
+    assert.notEqual(confirmation(), null);
+    await act(() => button("Abbrechen").click());
+    assert.equal(confirmation(), null);
+    assert.deepEqual(profiles().map((card) => card.name), ["Ben", "Mia"]);
+    assert.equal(focused.current, profile("Ben").remove);
+    assert.equal(byClass(caregiverRegion, "caregiver-help").hidden, false);
+    assert.equal(nameInput().value, "Cle");
+    assert.ok(concept("Hilfe").onBoard);
   });
 });
 
@@ -2658,21 +2748,23 @@ test("damaged entries: with rename and delete in the area, a damaged entry still
 
 test("profiles: only one rename field or confirmation is open at a time; opening another closes the first", async () => {
   await withArea({ seed: seedMiaAndBen }, async (area) => {
-    const { holdOpen, act, profile, profiles, renameInput, button } = area;
+    const { holdOpen, act, profile, renameInput, button, confirmation, texts } = area;
     await holdOpen();
-    const open = () => [renameInput() !== null, profiles().filter((card) => card.confirming).length];
     await act(() => profile("Ben").rename.click());
-    assert.deepEqual(open(), [true, 0]);
-    await act(() => profile("Mia").remove.click());
-    assert.deepEqual(open(), [false, 1]);
-    assert.equal(profile("Ben").name, "Ben");
-    await act(() => profile("Ben").remove.click());
-    assert.deepEqual(open(), [false, 1]);
-    assert.equal(profiles()[0].confirming, true);
-    assert.equal(profile("Mia").confirming, false);
+    assert.notEqual(renameInput(), null);
+    assert.ok(texts().includes("Neuer Name für „Ben“"));
+    // Another rename: the first field is gone.
     await act(() => profile("Mia").rename.click());
-    assert.deepEqual(open(), [true, 0]);
-    assert.equal(button("Endgültig löschen"), undefined);
+    assert.ok(texts().includes("Neuer Name für „Mia“"));
+    assert.ok(!texts().includes("Neuer Name für „Ben“"));
+    assert.equal(profile("Ben").name, "Ben");
+    // A confirmation: no rename field under it, and none when it is left.
+    await act(() => profile("Ben").remove.click());
+    assert.notEqual(confirmation(), null);
+    assert.equal(renameInput(), null);
+    await act(() => button("Abbrechen").click());
+    assert.equal(renameInput(), null);
+    assert.equal(confirmation(), null);
   });
 });
 
@@ -2684,19 +2776,16 @@ for (const [what, other] of [
   ["creating a profile", (area) => { area.nameInput().value = "Cleo"; area.createForm().dispatch("submit"); }],
   ["reloading the board", (area) => area.button("Tafel neu laden").click()],
 ]) {
-  test(`profiles: ${what} cancels an open delete confirmation and an open rename field, and deletes or renames nothing`, async () => {
-    for (const opener of ["remove", "rename"]) {
-      await withArea({ seed: seedMiaAndBen }, async (area) => {
-        const { holdOpen, act, profile, profiles, renameInput, store } = area;
-        await holdOpen();
-        await act(() => profile("Mia")[opener].click());
-        assert.equal(profiles().some((card) => card.confirming) || renameInput() !== null, true, opener);
-        await act(() => other(area));
-        assert.equal(profiles().some((card) => card.confirming), false, opener);
-        assert.equal(renameInput(), null, opener);
-        assert.ok((await (await store()).list()).profiles.some((stored) => stored.displayName === "Mia"), opener);
-      });
-    }
+  test(`profiles: ${what} cancels an open rename field and renames nothing`, async () => {
+    await withArea({ seed: seedMiaAndBen }, async (area) => {
+      const { holdOpen, act, profile, renameInput, store } = area;
+      await holdOpen();
+      await act(() => profile("Mia").rename.click());
+      renameInput().value = "Mia X";
+      await act(() => other(area));
+      assert.equal(renameInput(), null);
+      assert.ok((await (await store()).list()).profiles.some((stored) => stored.displayName === "Mia"));
+    });
   });
 }
 
@@ -3154,7 +3243,7 @@ test("remove: a guard that was started by an earlier removal does not end the gu
     const entry = fakes.fakeElement("footer");
     const handle = mountCaregiver({
       app: { store: async () => store, refreshBoard: async () => undefined }, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS,
-      setTimer: (callback, milliseconds) => { timers.push({ callback, milliseconds }); return () => undefined; }, onPageHidden: () => undefined,
+      setTimer: (callback, milliseconds) => { timers.push({ callback, milliseconds }); return () => undefined; }, onPageHidden: () => undefined, now: alwaysAimed(),
     });
     handle.open();
     await handle.settled();
@@ -3240,7 +3329,7 @@ test("view: a control that gets the focus under the block at the top is brought 
 test("view: a rename field and a confirmation are brought out by their card, and the focused button is not left below the region", async () => {
   const layout = fakeLayout();
   // The card starts at 400, its field or "Abbrechen" 60 px further down.
-  layout.at = (element) => (hasClass(element, "caregiver-profile") ? 400 : element.id === "caregiver-rename-name" || element.textContent === "Abbrechen" ? 460 : 1000);
+  layout.at = (element) => (hasClass(element, "caregiver-profile") || hasClass(element, "caregiver-confirm") ? 400 : element.id === "caregiver-rename-name" || element.textContent === "Abbrechen" ? 460 : 1000);
   await withArea({ seed: seedMiaAndBen, rect: layout.rect }, async ({ holdOpen, act, profile, caregiverRegion, button, focused }) => {
     layout.region = caregiverRegion;
     await holdOpen();
@@ -3249,7 +3338,8 @@ test("view: a rename field and a confirmation are brought out by their card, and
     await act(() => profile("Ben").rename.click());
     assert.equal(caregiverRegion.scrollTop, 400 - UNDER_BLOCK);
     await act(() => button("Abbrechen").click());
-    caregiverRegion.scrollTop = 300;
+    // The confirmation is the whole body: it is brought to just under the block, also when it starts further down.
+    caregiverRegion.scrollTop = 0;
     await act(() => profile("Ben").remove.click());
     assert.equal(focused.current, button("Abbrechen"));
     assert.equal(caregiverRegion.scrollTop, 400 - UNDER_BLOCK);
@@ -3285,50 +3375,46 @@ test("view: 'Tafel bearbeiten' and the first profile bring the editor heading to
 
 // --- The status line does not linger ---
 
-test("status: opening a rename field or a confirmation, leaving one, and pressing any button clear an earlier message at once", async () => {
-  const inner = new MemoryBackend();
-  const slow = () => new Promise((resolve) => setImmediate(resolve));
-  const backend = {
-    get: async (key) => { await slow(); return inner.get(key); },
-    keys: async (prefix) => { await slow(); return inner.keys(prefix); },
-    write: async (batch) => { await slow(); return inner.write(batch); },
-  };
+test("status: a press retires an earlier message without moving anything: the text keeps its place until the redraw for that press", async () => {
+  const { inner, gate, backend } = gatedBackend();
   await seedMiaAndBen(await ProfileStore.open(inner));
   await withArea({ backend }, async (area) => {
-    const { holdOpen, act, add, profile, concept, status, button, handle, key } = area;
+    const { holdOpen, add, profile, concept, status, button, handle, rename } = area;
     await holdOpen();
     const message = "Gespeichert: „Pause“ ist jetzt auf der Tafel.";
     await add("Pause");
     assert.equal(status(), message);
-    // At the press, before storage has answered.
+    // Pressed while storage is slow: the line is as it was, so the next tap lands where it was aimed.
+    gate.hold();
     profile("Ben").rename.click();
-    assert.equal(status(), "");
+    for (let round = 0; round < 10; round += 1) await turn();
+    assert.equal(status(), message, "opening a rename field");
+    gate.release();
     await handle.settled();
-    assert.equal(status(), "");
-    /** Puts a message into the status line again, by adding or removing "Mehr". */
-    const sayAgain = async () => {
-      await handle.settled();
-      await act(() => (concept("Mehr").add ?? concept("Mehr").remove).click());
-      area.clock.advance(GUARD_MS);
-      assert.notEqual(status(), "");
-    };
-    await sayAgain();
-    profile("Ben").remove.click();
-    assert.equal(status(), "", "opening a confirmation");
+    assert.equal(status(), "", "gone with the redraw");
     // A refusal in the rename field, then "Abbrechen".
-    await handle.settled();
-    await area.rename("Mia", "");
+    await rename("Mia", "");
     assert.equal(status(), "Bitte gib einen Namen ein.");
+    gate.hold();
     button("Abbrechen").click();
-    assert.equal(status(), "", "leaving the rename field");
-    await sayAgain();
-    concept("Pause").up.click();
-    assert.equal(status(), "", "a move");
-    await sayAgain();
-    button("Tafel neu laden").click();
-    assert.equal(status(), "", "reloading");
+    for (let round = 0; round < 10; round += 1) await turn();
+    assert.equal(status(), "Bitte gib einen Namen ein.");
+    gate.release();
     await handle.settled();
-    assert.equal(key("a"), 0);
+    assert.equal(status(), "");
+    // An action with an answer of its own: the old message stays until the new one takes its place.
+    await add("Mehr");
+    gate.hold();
+    concept("Pause").up.click();
+    for (let round = 0; round < 10; round += 1) await turn();
+    assert.equal(status(), "Gespeichert: „Mehr“ ist jetzt auf der Tafel.");
+    gate.release();
+    await handle.settled();
+    assert.equal(status(), "Die Reihenfolge wurde gespeichert.");
+    // A confirmation, and leaving it.
+    profile("Ben").remove.click();
+    await handle.settled();
+    assert.equal(status(), "");
   });
 });
 
@@ -3542,7 +3628,7 @@ test("undo: a removal of an earlier visit is not offered again behind a removal 
   });
 });
 
-// --- Deleting is a hold (card NG-31, third round) ---
+// --- Deleting is a hold and then a release (card NG-31, third and fourth round) ---
 
 /** One tap on a button as a browser reports it: down, up after `heldMs`, and the click that follows. */
 function tap(control, clock, heldMs = 60) {
@@ -3551,6 +3637,7 @@ function tap(control, clock, heldMs = 60) {
   control.dispatch("pointerup");
   control.click();
 }
+const RELEASE_TO_DELETE = "Loslassen zum Löschen.";
 
 for (const [what, gaps] of [
   ["three taps at 0, 400 and 900 ms", [400, 500]],
@@ -3559,12 +3646,12 @@ for (const [what, gaps] of [
   ["taps that are each held for almost the full time", Array(6).fill(10)],
 ]) {
   test(`delete: ${what} on 'Endgültig löschen' delete nothing`, async () => {
-    await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, profiles, button, clock, backend, handle, caregiverRegion }) => {
+    await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation, clock, backend, handle }) => {
       assert.equal(DELETE_HOLD_MS, 2000);
       await holdOpen();
       const before = JSON.stringify(backend.snapshot());
       await act(() => profile("Ben").remove.click());
-      const confirm = button("Endgültig löschen");
+      const { confirm, hint, progress } = confirmation();
       // There is nothing a click could do.
       assert.equal(confirm.handlers.click, undefined);
       const heldMs = what.startsWith("taps that are each held") ? DELETE_HOLD_MS - 1 : 60;
@@ -3577,22 +3664,20 @@ for (const [what, gaps] of [
       clock.advance(DELETE_HOLD_MS);
       await handle.settled();
       assert.equal(JSON.stringify(backend.snapshot()), before);
-      assert.equal(profiles()[0].confirming, true, "the confirmation is still open");
+      assert.equal(confirmation().confirm, confirm, "the confirmation is still open, and was not drawn again");
       // What a tap gets is the line that says how.
-      assert.equal(byClass(caregiverRegion, "caregiver-confirm-hint").textContent, DELETE_HOLD_HINT);
-      assert.equal(byClass(caregiverRegion, "caregiver-delete-progress").hidden, true);
+      assert.equal(hint.textContent, DELETE_HOLD_HINT);
+      assert.equal(progress.hidden, true);
     });
   });
 }
 
-test("delete: holding 'Endgültig löschen' for two seconds deletes once, with a countdown and a progress bar; letting go at 1999 ms does not", async () => {
-  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, button, clock, backend, handle, caregiverRegion, status, store }) => {
+test("delete: holding 'Endgültig löschen' for two seconds asks to let go, and the release deletes once; letting go at 1999 ms does not", async () => {
+  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation, clock, backend, handle, status, store, focused, caregiverRegion, profiles }) => {
     await holdOpen();
     const before = JSON.stringify(backend.snapshot());
     await act(() => profile("Ben").remove.click());
-    const confirm = button("Endgültig löschen");
-    const hint = byClass(caregiverRegion, "caregiver-confirm-hint");
-    const progress = byClass(caregiverRegion, "caregiver-delete-progress");
+    const { confirm, hint, progress } = confirmation();
     assert.equal(hint.role, "status");
     assert.equal(confirm["aria-describedby"], hint.id);
     assert.equal(progress.max, DELETE_HOLD_MS);
@@ -3613,43 +3698,73 @@ test("delete: holding 'Endgültig löschen' for two seconds deletes once, with a
     assert.equal(progress.hidden, true);
     assert.equal(progress.value, 0);
 
-    // A new hold starts from zero and needs the full time.
+    // A new hold starts from zero and needs the full time. Then nothing happens while the finger is down.
     confirm.dispatch("pointerdown", { button: 0 });
     clock.advance(DELETE_HOLD_MS - 1);
-    await handle.settled();
-    assert.equal(JSON.stringify(backend.snapshot()), before);
+    assert.equal(hint.textContent, "Weiter halten … 1");
     clock.advance(1);
+    assert.equal(hint.textContent, RELEASE_TO_DELETE);
+    assert.equal(progress.hidden, false);
+    assert.equal(progress.value, DELETE_HOLD_MS);
+    clock.advance(10_000);
+    await handle.settled();
+    assert.equal(JSON.stringify(backend.snapshot()), before, "the finger is still down: what a redraw would put under it cannot be pressed by the lift");
+    assert.equal(confirmation().confirm, confirm);
+    // More key-downs or presses while it waits for the release change nothing.
+    confirm.dispatch("pointerdown", { button: 0 });
+    assert.equal(hint.textContent, RELEASE_TO_DELETE);
+
+    confirm.dispatch("pointerup");
+    assert.equal(hint.textContent, "Wird gelöscht …");
+    // The click that follows the lift lands on a button without a click handler.
+    confirm.click();
     await handle.settled();
     assert.equal(status(), "Das Profil „Ben“ wurde gelöscht.");
     assert.deepEqual((await (await store()).list()).profiles.map((stored) => stored.displayName), ["Mia"]);
-    // Letting go, and pressing the button that is no longer on screen, is not a second delete.
-    confirm.dispatch("pointerup");
+    // The normal body is back, with the focus on the heading of the list.
+    assert.equal(confirmation(), null);
+    assert.deepEqual(profiles().map((card) => card.name), ["Mia"]);
+    assert.equal(focused.current, tree(caregiverRegion).find((element) => element.tagName === "h2" && element.textContent === "Profile"));
+    // Holding the button that is no longer on screen is not a second delete, and no second message.
     confirm.dispatch("pointerdown", { button: 0 });
     clock.advance(DELETE_HOLD_MS);
+    confirm.dispatch("pointerup");
     await handle.settled();
     assert.equal(status(), "Das Profil „Ben“ wurde gelöscht.");
   });
 });
 
-test("delete: the pointer leaving, a pointer cancel, losing focus, another mouse button and a long-press menu do not let a hold complete", async () => {
-  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, button, clock, backend, handle, caregiverRegion }) => {
+test("delete: the pointer leaving, a pointer cancel, losing focus, another mouse button and a long-press menu do not let a hold complete, nor a completed one delete", async () => {
+  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation, clock, backend, handle }) => {
     await holdOpen();
     const before = JSON.stringify(backend.snapshot());
     await act(() => profile("Ben").remove.click());
-    const confirm = button("Endgültig löschen");
-    const hint = byClass(caregiverRegion, "caregiver-confirm-hint");
+    const { confirm, hint, progress } = confirmation();
     for (const interruption of ["pointerleave", "pointercancel", "blur"]) {
+      // During the hold.
       confirm.dispatch("pointerdown", { button: 0 });
       clock.advance(DELETE_HOLD_MS - 100);
       confirm.dispatch(interruption);
       clock.advance(5000);
+      confirm.dispatch("pointerup");
       await handle.settled();
       assert.equal(JSON.stringify(backend.snapshot()), before, interruption);
       assert.equal(hint.textContent, DELETE_HOLD_HINT, interruption);
       assert.equal(clock.waiting(), 1, `${interruption}: only the idle timer is left`);
+      // After it is complete, before the release.
+      confirm.dispatch("pointerdown", { button: 0 });
+      clock.advance(DELETE_HOLD_MS);
+      assert.equal(hint.textContent, RELEASE_TO_DELETE);
+      confirm.dispatch(interruption);
+      assert.equal(hint.textContent, DELETE_HOLD_HINT, interruption);
+      assert.equal(progress.hidden, true, interruption);
+      confirm.dispatch("pointerup");
+      await handle.settled();
+      assert.equal(JSON.stringify(backend.snapshot()), before, `${interruption} after completion`);
     }
     confirm.dispatch("pointerdown", { button: 2 });
     clock.advance(DELETE_HOLD_MS);
+    confirm.dispatch("pointerup");
     await handle.settled();
     assert.equal(JSON.stringify(backend.snapshot()), before);
     let prevented = 0;
@@ -3661,43 +3776,46 @@ test("delete: the pointer leaving, a pointer cancel, losing focus, another mouse
 for (const [what, leave] of [
   ["Escape", (area) => area.key("Escape")],
   ["'Abbrechen'", (area) => area.button("Abbrechen").click()],
-  ["another action", (area) => area.concept("Pause").add.click()],
+  ["another action, pressed on a button of the body that was there before", (area, stale) => stale.click()],
+  ["'Rückgängig'", (area) => area.undo().click()],
   ["a hidden page", (area) => area.page.hide()],
 ]) {
-  test(`delete: a hold that is under way when ${what} comes deletes nothing, also on the button that is still drawn`, async () => {
-    await withArea({ seed: seedMiaAndBen }, async (area) => {
-      const { holdOpen, act, profile, button, clock, handle, store, caregiverRegion } = area;
-      await holdOpen();
-      await act(() => profile("Ben").remove.click());
-      const confirm = button("Endgültig löschen");
-      const hint = byClass(caregiverRegion, "caregiver-confirm-hint");
-      const progress = byClass(caregiverRegion, "caregiver-delete-progress");
-      confirm.dispatch("pointerdown", { button: 0 });
-      clock.advance(DELETE_HOLD_MS - 1);
-      assert.equal(progress.hidden, false);
-      leave(area);
-      // The hold ends there and then: no countdown runs on towards a delete that would not be carried out.
-      assert.equal(hint.textContent, DELETE_HOLD_HINT);
-      assert.equal(progress.hidden, true);
-      // The finger is still down; and a whole new hold on the old button, before the card is drawn again.
-      clock.advance(1);
-      confirm.dispatch("pointerup");
-      confirm.dispatch("pointerdown", { button: 0 });
-      clock.advance(DELETE_HOLD_MS);
-      await handle.settled();
-      assert.deepEqual((await (await store()).list()).profiles.map((stored) => stored.displayName).sort(), ["Ben", "Mia"]);
+  for (const stage of ["under way", "complete and waits for the release"]) {
+    test(`delete: a hold that is ${stage} when ${what} comes deletes nothing, also on the button that is still drawn`, async () => {
+      await withArea({ seed: seedMiaAndBen }, async (area) => {
+        const { holdOpen, act, profile, concept, remove, confirmation, clock, handle, store } = area;
+        await holdOpen();
+        await remove("Hilfe");
+        const stale = concept("Pause").add;
+        await act(() => profile("Ben").remove.click());
+        const { confirm, hint, progress } = confirmation();
+        confirm.dispatch("pointerdown", { button: 0 });
+        clock.advance(stage === "under way" ? DELETE_HOLD_MS - 1 : DELETE_HOLD_MS);
+        assert.equal(progress.hidden, false);
+        leave(area, stale);
+        // The hold ends there and then: no countdown runs on, and nothing waits for a release.
+        assert.equal(hint.textContent, DELETE_HOLD_HINT);
+        assert.equal(progress.hidden, true);
+        // The finger is still down, then lifts; and a whole new hold and release on the old button, before the body is drawn again.
+        clock.advance(1);
+        confirm.dispatch("pointerup");
+        confirm.dispatch("pointerdown", { button: 0 });
+        clock.advance(DELETE_HOLD_MS);
+        confirm.dispatch("pointerup");
+        await handle.settled();
+        assert.deepEqual((await (await store()).list()).profiles.map((stored) => stored.displayName).sort(), ["Ben", "Mia"]);
+      });
     });
-  });
+  }
 }
 
 for (const key of ["Enter", " "]) {
-  test(`delete: holding ${key === " " ? "Space" : key} on 'Endgültig löschen' deletes after the full time; key repeat neither shortens nor restarts it, and an early release resets`, async () => {
-    await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, button, clock, handle, store, caregiverRegion }) => {
+  test(`delete: holding ${key === " " ? "Space" : key} on 'Endgültig löschen' and letting go deletes; key repeat neither shortens nor restarts it, and an early release resets`, async () => {
+    await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation, clock, handle, store }) => {
       await holdOpen();
       const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
       await act(() => profile("Ben").remove.click());
-      const confirm = button("Endgültig löschen");
-      const hint = byClass(caregiverRegion, "caregiver-confirm-hint");
+      const { confirm, hint } = confirmation();
       let prevented = 0;
       const event = (repeat) => ({ key, repeat, preventDefault() { prevented += 1; } });
       // A short press of the key: what a click would have been.
@@ -3718,9 +3836,15 @@ for (const key of ["Enter", " "]) {
       // The release of another key does not end it.
       confirm.dispatch("keyup", { key: "a" });
       clock.advance(999);
+      assert.equal(hint.textContent, "Weiter halten … 1");
+      clock.advance(1);
+      assert.equal(hint.textContent, RELEASE_TO_DELETE);
+      // Still held, with repeats, and the release of another hold key: nothing yet.
+      confirm.dispatch("keydown", event(true));
+      confirm.dispatch("keyup", { key: key === " " ? "Enter" : " " });
       await handle.settled();
       assert.deepEqual(await names(), ["Ben", "Mia"]);
-      clock.advance(1);
+      confirm.dispatch("keyup", { key });
       await handle.settled();
       assert.deepEqual(await names(), ["Mia"]);
     });
@@ -3728,7 +3852,7 @@ for (const key of ["Enter", " "]) {
 }
 
 test("delete: a second confirmation starts from zero; time held on an earlier one does not count", async () => {
-  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, button, clock, handle, store }) => {
+  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, button, confirmation, clock, handle, store }) => {
     await holdOpen();
     const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
     await act(() => profile("Ben").remove.click());
@@ -3736,12 +3860,16 @@ test("delete: a second confirmation starts from zero; time held on an earlier on
     clock.advance(1500);
     await act(() => button("Abbrechen").click());
     await act(() => profile("Mia").remove.click());
-    const second = button("Endgültig löschen");
-    second.dispatch("pointerdown", { button: 0 });
+    const { confirm, hint } = confirmation();
+    confirm.dispatch("pointerdown", { button: 0 });
     clock.advance(DELETE_HOLD_MS - 1);
+    assert.equal(hint.textContent, "Weiter halten … 1");
+    confirm.dispatch("pointerup");
     await handle.settled();
     assert.deepEqual(await names(), ["Ben", "Mia"]);
-    clock.advance(1);
+    confirm.dispatch("pointerdown", { button: 0 });
+    clock.advance(DELETE_HOLD_MS);
+    confirm.dispatch("pointerup");
     await handle.settled();
     // And it is the profile of the second confirmation that goes.
     assert.deepEqual(await names(), ["Ben"]);
@@ -3749,23 +3877,6 @@ test("delete: a second confirmation starts from zero; time held on an earlier on
 });
 
 // --- The guard of "Entfernen" and "Rückgängig" ---
-
-/** A backend on which the test can hold back every read from a chosen moment on. */
-function gatedBackend() {
-  const inner = new MemoryBackend();
-  const gate = { held: false, release: () => undefined, onWrite: () => undefined };
-  let waiting = Promise.resolve();
-  gate.hold = () => { gate.held = true; waiting = new Promise((resolve) => { gate.release = () => { gate.held = false; resolve(); }; }); };
-  const read = async () => { while (gate.held) await waiting; };
-  return {
-    inner, gate,
-    backend: {
-      get: async (key) => { await read(); return inner.get(key); },
-      keys: async (prefix) => { await read(); return inner.keys(prefix); },
-      write: async (batch) => { const answer = await inner.write(batch); gate.onWrite(batch); return answer; },
-    },
-  };
-}
 
 test("remove: the guard time is counted from the redraw of the list, not from the end of the write", async () => {
   const { inner, gate, backend } = gatedBackend();
@@ -3915,7 +4026,7 @@ test("status: an error stays when the area is scrolled and goes with the next pr
       caregiverRegion.dispatch(type);
       assert.equal(status(), failure, type);
     }
-    // The next press takes it away, and a success is not marked.
+    // The next press takes it away (with its redraw), and a success is not marked.
     await remove("Pause");
     assert.equal(status(), "„Pause“ wurde von der Tafel genommen.");
     assert.ok(!hasClass(element, "caregiver-status-error"));
@@ -4005,5 +4116,625 @@ test("header: several damaged entries are counted in the header line as in the b
   await withArea({ seed }, async ({ holdOpen, afterClose }) => {
     await holdOpen();
     assert.equal(afterClose(), "Nach dem Schließen: Beispiele – 2 gespeicherte Profile können in dieser Version nicht gelesen werden.");
+  });
+});
+
+// --- The press shield: a press counts only on what was on screen when it began (card NG-31, fourth round) ---
+
+/** A time the test moves by hand, for "when did the press begin" and "when was this put on screen". */
+function wallClock() {
+  const wall = { t: 100_000 };
+  wall.now = () => wall.t;
+  return wall;
+}
+
+test("shield: a click whose press began before the content under it was swapped does nothing, however late it comes; a new press counts", async () => {
+  const wall = wallClock();
+  await withArea({ seed: createMia, now: wall.now }, async ({ holdOpen, concept, handle, onBoard }) => {
+    assert.equal(SHIELD_GRACE_MS, 300);
+    await holdOpen();
+    wall.t += 1000;
+    // A finger goes down on "Hinzufügen" of "Hilfe" ...
+    concept("Hilfe").add.dispatch("pointerdown", { pointerId: 7, button: 0 });
+    // ... and before it lifts, the list is drawn again (here: an add by a click that has no press of its own).
+    concept("Trinken").add.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken"]);
+    // The lift: the click goes to whatever is there now. It is not what the finger went down on.
+    let prevented = 0;
+    for (const later of [0, 299, 300, 60_000]) {
+      wall.t += later;
+      concept("Hilfe").add.click({ pointerId: 7, detail: 1, preventDefault() { prevented += 1; } });
+      concept("Pause").add.click({ pointerId: 7, detail: 1, preventDefault() { prevented += 1; } });
+    }
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken"]);
+    assert.equal(prevented, 8, "the swallowed click is also kept from its default action");
+    // A pointer whose press the area never saw (it went down on something that is gone) does not count either.
+    concept("Pause").add.click({ pointerId: 99, detail: 1 });
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken"]);
+    // A press that begins now, on what is on screen now, counts.
+    const button = concept("Pause").add;
+    button.dispatch("pointerdown", { pointerId: 8, button: 0 });
+    button.click({ pointerId: 8, detail: 1 });
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken", "Pause"]);
+  });
+});
+
+test("shield: a press that begins within the grace time after a swap does nothing: what has just appeared under a finger is not a target", async () => {
+  const wall = wallClock();
+  await withArea({ seed: createMia, now: wall.now }, async ({ holdOpen, concept, handle, onBoard }) => {
+    await holdOpen();
+    wall.t += 1000;
+    concept("Trinken").add.click();
+    await handle.settled();
+    // A click without a press of its own (assistive technology) begins when it arrives.
+    wall.t += SHIELD_GRACE_MS - 1;
+    concept("Pause").add.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken"]);
+    wall.t += 1;
+    concept("Pause").add.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken", "Pause"]);
+    // A pointer: it is the moment the finger goes down that counts, not the moment of the click.
+    wall.t += SHIELD_GRACE_MS - 1;
+    concept("Mehr").add.dispatch("pointerdown", { pointerId: 3, button: 0 });
+    wall.t += 5000;
+    concept("Mehr").add.click({ pointerId: 3, detail: 1 });
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken", "Pause"]);
+    concept("Mehr").add.dispatch("pointerdown", { pointerId: 4, button: 0 });
+    concept("Mehr").add.click({ pointerId: 4, detail: 1 });
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken", "Pause", "Mehr"]);
+  });
+});
+
+test("shield: a key that is held across a swap activates nothing on the new content; let go and pressed again, it does", async () => {
+  const wall = wallClock();
+  await withArea({ seed: seedFive, now: wall.now }, async ({ holdOpen, concept, handle, onBoard, focused, clock }) => {
+    await holdOpen();
+    wall.t += 1000;
+    // Enter goes down on "nach unten" of "Pause"; the browser clicks at once.
+    const first = concept("Pause").down;
+    first.dispatch("keydown", { key: "Enter", repeat: false });
+    first.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Pause", "Trinken", "Mehr", "Fertig"]);
+    // Still held: every repeat clicks the button that has the focus now. None of them counts, also much later.
+    for (const later of [50, 400, 5000]) {
+      wall.t += later;
+      focused.current.dispatch("keydown", { key: "Enter", repeat: true });
+      focused.current.click();
+    }
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Pause", "Trinken", "Mehr", "Fertig"]);
+    // Released and pressed again.
+    focused.current.dispatch("keyup", { key: "Enter" });
+    wall.t += 100;
+    focused.current.dispatch("keydown", { key: "Enter", repeat: false });
+    focused.current.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause", "Mehr", "Fertig"]);
+    focused.current.dispatch("keyup", { key: "Enter" });
+
+    // Space clicks on the key-up: the press that counts is the key-down.
+    wall.t += SHIELD_GRACE_MS - 1;
+    const second = concept("Mehr").up;
+    second.dispatch("keydown", { key: " ", repeat: false });
+    wall.t += 1000;
+    second.dispatch("keyup", { key: " " });
+    second.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause", "Mehr", "Fertig"], "the key went down within the grace time");
+    // Long after that key was let go, a click without a press of its own is judged by its own time.
+    wall.t += 1000;
+    concept("Mehr").up.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Mehr", "Pause", "Fertig"]);
+    assert.equal(clock.waiting(), 1);
+    // A key-down that was never followed by a repeat or a key-up (the window lost the focus) is not "still held" for good.
+    wall.t += 1000;
+    concept("Fertig").up.dispatch("keydown", { key: "Enter", repeat: false });
+    concept("Fertig").up.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Mehr", "Fertig", "Pause"]);
+    wall.t += 5000;
+    concept("Fertig").up.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Fertig", "Mehr", "Pause"]);
+  });
+  // A repeat of a key that went down before the area had the focus: no press was seen, so it began before.
+  await withArea({ seed: seedFive, now: wall.now }, async ({ holdOpen, concept, handle, onBoard }) => {
+    await holdOpen();
+    wall.t += 1000;
+    concept("Pause").down.dispatch("keydown", { key: "Enter", repeat: true });
+    concept("Pause").down.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Trinken", "Mehr", "Fertig"]);
+  });
+});
+
+test("shield: it does not eat Escape, other keys or typed text, and a form is sent once it has been on screen for the grace time", async () => {
+  const wall = wallClock();
+  await withArea({ seed: createMia, now: wall.now }, async ({ holdOpen, key, handle, nameInput, createForm, profiles, profile, renameInput, concept, caregiverRegion }) => {
+    await holdOpen();
+    // Right after the swap: a letter and Tab pass, a text field takes its input.
+    let stopped = 0;
+    for (const pressed of ["a", "Tab"]) caregiverRegion.dispatch("keydown", { key: pressed, target: nameInput(), stopPropagation() { stopped += 1; } });
+    nameInput().value = "Ben";
+    nameInput().dispatch("input");
+    assert.equal(nameInput().value, "Ben");
+    // Enter in the field sends the form; not while the form has only just appeared.
+    createForm().dispatch("submit");
+    await handle.settled();
+    assert.deepEqual(profiles().map((card) => card.name), ["Mia"]);
+    wall.t += SHIELD_GRACE_MS;
+    createForm().dispatch("submit");
+    await handle.settled();
+    assert.deepEqual(profiles().map((card) => card.name), ["Ben", "Mia"]);
+    // The same for the rename form.
+    wall.t += 1000;
+    profile("Ben").rename.click();
+    await handle.settled();
+    renameInput().value = "Benno";
+    byClass(caregiverRegion, "caregiver-rename").dispatch("submit");
+    await handle.settled();
+    assert.deepEqual(profiles().map((card) => card.name), [null, "Mia"]);
+    wall.t += SHIELD_GRACE_MS;
+    byClass(caregiverRegion, "caregiver-rename").dispatch("submit");
+    await handle.settled();
+    assert.deepEqual(profiles().map((card) => card.name), ["Benno", "Mia"]);
+    // Escape right after that redraw still closes.
+    nameInput().value = "";
+    assert.equal(key("Escape", concept("Hilfe").add), 1);
+    assert.equal(handle.isOpen(), false);
+  });
+});
+
+test("shield: a new undo button and a changed status line count as content that has just appeared", async () => {
+  const wall = wallClock();
+  await withArea({ seed: seedFive, now: wall.now }, async ({ holdOpen, concept, undo, handle, onBoard, clock, status }) => {
+    await holdOpen();
+    wall.t += 1000;
+    concept("Pause").remove.click();
+    await handle.settled();
+    clock.advance(GUARD_MS);
+    // The button "Rückgängig" appeared in the block at the top with this redraw.
+    wall.t += SHIELD_GRACE_MS - 1;
+    undo().click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Mehr", "Fertig"]);
+    wall.t += 1;
+    undo().click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Trinken", "Mehr", "Fertig"]);
+    // "Bitte kurz warten." changes the height of the block, and so the place of everything below it.
+    clock.advance(GUARD_MS);
+    wall.t += 1000;
+    concept("Pause").remove.click();
+    await handle.settled();
+    wall.t += 1000;
+    concept("Hilfe").remove.click();
+    assert.equal(status(), PLEASE_WAIT);
+    wall.t += SHIELD_GRACE_MS - 1;
+    concept("Fertig").up.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Mehr", "Fertig"]);
+    wall.t += 1;
+    concept("Fertig").up.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Fertig", "Mehr"]);
+  });
+});
+
+test("shield: a hold on 'Endgültig löschen' does not start while the confirmation has only just appeared", async () => {
+  const wall = wallClock();
+  await withArea({ seed: seedMiaAndBen, now: wall.now }, async ({ holdOpen, profile, confirmation, clock, handle, store }) => {
+    await holdOpen();
+    wall.t += 1000;
+    profile("Ben").remove.click();
+    await handle.settled();
+    const { confirm, hint, progress } = confirmation();
+    const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+    for (const start of [(control) => control.dispatch("pointerdown", { button: 0 }), (control) => control.dispatch("keydown", { key: "Enter", repeat: false })]) {
+      wall.t = wall.t - (wall.t % 1) + 0;
+      const appeared = wall.t;
+      wall.t = appeared + SHIELD_GRACE_MS - 1;
+      start(confirm);
+      assert.equal(hint.textContent, DELETE_HOLD_HINT);
+      assert.equal(progress.hidden, true);
+      clock.advance(DELETE_HOLD_MS);
+      confirm.dispatch("pointerup");
+      confirm.dispatch("keyup", { key: "Enter" });
+      await handle.settled();
+      assert.deepEqual(await names(), ["Ben", "Mia"]);
+      wall.t = appeared;
+    }
+    wall.t += SHIELD_GRACE_MS;
+    confirm.dispatch("pointerdown", { button: 0 });
+    assert.equal(hint.textContent, "Weiter halten … 2");
+    clock.advance(DELETE_HOLD_MS);
+    confirm.dispatch("pointerup");
+    await handle.settled();
+    assert.deepEqual(await names(), ["Mia"]);
+  });
+});
+
+// --- A hold belongs to the button that is on screen ---
+
+test("hold: a redraw that replaces 'Endgültig löschen' ends the hold on it; the button that is gone can neither finish nor start one", async () => {
+  const { inner, gate, backend } = gatedBackend();
+  await seedMiaAndBen(await ProfileStore.open(inner));
+  await withArea({ backend }, async ({ holdOpen, concept, profile, confirmation, clock, handle, store, caregiverRegion }) => {
+    await holdOpen();
+    const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+    // After the next swap of the body, storage is held: the redraw behind it waits.
+    const body = byClass(caregiverRegion, "caregiver-body");
+    const swap = body.replaceChildren.bind(body);
+    let holdNext = true;
+    body.replaceChildren = (...nodes) => {
+      swap(...nodes);
+      if (holdNext) gate.hold();
+      holdNext = false;
+    };
+    // A write is under way when "Löschen" is pressed: its redraw already shows the confirmation, and the redraw for "Löschen" follows.
+    concept("Pause").add.click();
+    profile("Ben").remove.click();
+    for (let round = 0; round < 40; round += 1) await turn();
+    assert.equal(gate.held, true);
+    const first = confirmation();
+    first.confirm.dispatch("pointerdown", { button: 0 });
+    clock.advance(500);
+    assert.equal(first.progress.hidden, false);
+    gate.release();
+    await handle.settled();
+    const second = confirmation();
+    assert.notEqual(second.confirm, first.confirm);
+    // The hold ended when its button left the screen, not two seconds later.
+    assert.equal(first.hint.textContent, DELETE_HOLD_HINT);
+    assert.equal(first.progress.hidden, true);
+    clock.advance(DELETE_HOLD_MS);
+    first.confirm.dispatch("pointerup");
+    await handle.settled();
+    assert.deepEqual(await names(), ["Ben", "Mia"]);
+    // The finger never lifted and presses on: the old button starts nothing, although the confirmation for Ben is open.
+    first.confirm.dispatch("pointerdown", { button: 0 });
+    assert.equal(first.progress.hidden, true);
+    clock.advance(DELETE_HOLD_MS);
+    first.confirm.dispatch("pointerup");
+    await handle.settled();
+    assert.deepEqual(await names(), ["Ben", "Mia"]);
+    assert.equal(second.hint.textContent, DELETE_HOLD_HINT);
+    assert.equal(second.progress.hidden, true);
+    // The button that is on screen works.
+    second.confirm.dispatch("pointerdown", { button: 0 });
+    clock.advance(DELETE_HOLD_MS);
+    second.confirm.dispatch("pointerup");
+    await handle.settled();
+    assert.deepEqual(await names(), ["Mia"]);
+  });
+});
+
+/** The area on a store whose writes the test can hold; Mia (active, Hilfe) and Ben. A stale rename form of Mia is what queues a slow write while a confirmation is open. */
+async function withHeldWrites(callback) {
+  const inner = new MemoryBackend();
+  const writes = { held: false, waiting: [] };
+  const backend = {
+    get: (key) => inner.get(key),
+    keys: (prefix) => inner.keys(prefix),
+    async write(batch) {
+      if (writes.held) await new Promise((resolve) => { writes.waiting.push(resolve); });
+      return inner.write(batch);
+    },
+  };
+  writes.release = async () => {
+    writes.held = false;
+    while (writes.waiting.length > 0) {
+      writes.waiting.shift()();
+      await turn();
+    }
+  };
+  const store = await ProfileStore.open(backend);
+  await seedMiaAndBen(store);
+  const app = { store: async () => store, refreshBoard: async () => undefined };
+  await withArea({ backend, app }, async (area) => {
+    const { holdOpen, act, profile, renameInput, button, caregiverRegion, confirmation, clock } = area;
+    await holdOpen();
+    await act(() => profile("Mia").rename.click());
+    const staleForm = byClass(caregiverRegion, "caregiver-rename");
+    renameInput().value = "Mia X";
+    await act(() => button("Abbrechen").click());
+    await act(() => profile("Ben").remove.click());
+    writes.held = true;
+    staleForm.dispatch("submit");
+    await turn();
+    const holdAndRelease = () => {
+      const { confirm } = confirmation();
+      confirm.dispatch("pointerdown", { button: 0 });
+      clock.advance(DELETE_HOLD_MS);
+      confirm.dispatch("pointerup");
+    };
+    const names = async () => (await store.list()).profiles.map((stored) => stored.displayName).sort();
+    await callback({ ...area, writes, holdAndRelease, names });
+  });
+}
+
+for (const [what, leave] of [["Escape", (area) => area.key("Escape")], ["'Abbrechen'", (area) => area.button("Abbrechen").click()]]) {
+  test(`delete: a completed hold whose delete waits behind a slow write deletes nothing after ${what}`, async () => {
+    await withHeldWrites(async (area) => {
+      const { writes, holdAndRelease, names, handle, confirmation, status } = area;
+      holdAndRelease();
+      assert.equal(confirmation().hint.textContent, "Wird gelöscht …");
+      leave(area);
+      await writes.release();
+      await handle.settled();
+      // The write before it went through; the delete that was taken back did not.
+      assert.deepEqual(await names(), ["Ben", "Mia X"]);
+      assert.equal(confirmation(), null);
+      assert.ok(!/gelöscht/.test(status()));
+    });
+  });
+}
+
+test("delete: two completed holds while the first delete still waits behind a slow write are one delete and one message", async () => {
+  await withHeldWrites(async ({ writes, holdAndRelease, names, handle, status, caregiverRegion }) => {
+    holdAndRelease();
+    holdAndRelease();
+    await writes.release();
+    await handle.settled();
+    assert.deepEqual(await names(), ["Mia X"]);
+    assert.equal(status(), "Das Profil „Ben“ wurde gelöscht.");
+    assert.ok(!hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+  });
+});
+
+test("rename: a rename that was sent from a form that is gone does not close a confirmation that is open meanwhile", async () => {
+  await withHeldWrites(async ({ writes, names, handle, confirmation }) => {
+    await writes.release();
+    await handle.settled();
+    assert.deepEqual(await names(), ["Ben", "Mia X"]);
+    assert.notEqual(confirmation(), null);
+  });
+});
+
+// --- A hold needs the finger on the button ---
+
+const BOX = { left: 100, right: 300, top: 500, bottom: 544 };
+const INSIDE = { clientX: 200, clientY: 520 };
+/** A point `distance` px outside the box, per side. */
+const beyond = (distance) => [
+  { clientX: BOX.left - distance, clientY: 520 }, { clientX: BOX.right + distance, clientY: 520 },
+  { clientX: 200, clientY: BOX.top - distance }, { clientX: 200, clientY: BOX.bottom + distance },
+];
+
+test("hold: the opening control gives up the pointer capture and ends the hold when the pointer strays more than the tolerance from it", async () => {
+  await withArea({ rect: () => BOX }, async ({ opener, hint, clock, handle }) => {
+    assert.equal(HOLD_SLOP_PX, 8);
+    const released = [];
+    opener.releasePointerCapture = (id) => { released.push(id); };
+    // A drift inside the tolerance, on every side: the hold goes on and opens.
+    opener.dispatch("pointerdown", { button: 0, pointerId: 5, ...INSIDE });
+    assert.deepEqual(released, [5], "without this a finger that slides off a touch screen is not reported as leaving");
+    for (const point of beyond(HOLD_SLOP_PX)) {
+      clock.advance(500);
+      opener.dispatch("pointermove", { pointerId: 5, ...point });
+    }
+    assert.equal(hint.textContent, "Weiter halten … 1");
+    clock.advance(HOLD_DURATION_MS - 2000);
+    assert.equal(handle.isOpen(), true);
+    await handle.close();
+    // One pixel more, on each side: it ends without a word, and the lift is not "let go early".
+    for (const point of beyond(HOLD_SLOP_PX + 1)) {
+      opener.dispatch("pointerdown", { button: 0, pointerId: 6, ...INSIDE });
+      clock.advance(HOLD_DURATION_MS - 100);
+      opener.dispatch("pointermove", { pointerId: 6, ...point });
+      assert.equal(hint.textContent, "");
+      clock.advance(5000);
+      opener.dispatch("pointerup", { pointerId: 6, ...point });
+      assert.equal(handle.isOpen(), false);
+      assert.equal(hint.textContent, "");
+    }
+    // A lift outside the button, without a move before it, is not a completed hold either.
+    opener.dispatch("pointerdown", { button: 0, pointerId: 7, ...INSIDE });
+    clock.advance(HOLD_DURATION_MS - 1);
+    opener.dispatch("pointerup", { pointerId: 7, clientX: 200, clientY: 700 });
+    clock.advance(5000);
+    assert.equal(handle.isOpen(), false);
+    assert.equal(hint.textContent, "");
+    // A hold by key is not ended by a pointer that moves somewhere.
+    opener.dispatch("keydown", { key: "Enter", repeat: false });
+    opener.dispatch("pointermove", { pointerId: 8, clientX: 0, clientY: 0 });
+    clock.advance(HOLD_DURATION_MS);
+    assert.equal(handle.isOpen(), true);
+  });
+});
+
+test("hold: 'Endgültig löschen' ends the hold when the finger slides off, and a lift outside the button after a completed hold deletes nothing", async () => {
+  await withArea({ seed: seedMiaAndBen, rect: () => BOX }, async ({ holdOpen, act, profile, confirmation, clock, handle, store }) => {
+    await holdOpen();
+    const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+    await act(() => profile("Ben").remove.click());
+    const { confirm, hint, progress } = confirmation();
+    const released = [];
+    confirm.releasePointerCapture = (id) => { released.push(id); };
+    // Sliding off during the hold: below, above, to the side (onto "Abbrechen").
+    for (const point of beyond(60)) {
+      confirm.dispatch("pointerdown", { button: 0, pointerId: 1, ...INSIDE });
+      clock.advance(1000);
+      confirm.dispatch("pointermove", { pointerId: 1, ...point });
+      assert.equal(hint.textContent, DELETE_HOLD_HINT);
+      assert.equal(progress.hidden, true);
+      clock.advance(2500);
+      confirm.dispatch("pointerup", { pointerId: 1, ...point });
+      await handle.settled();
+      assert.deepEqual(await names(), ["Ben", "Mia"]);
+    }
+    assert.deepEqual(released, [1, 1, 1, 1]);
+    // Completed, then the finger slides off before it lifts; and completed, then lifted outside.
+    for (const leave of [(point) => confirm.dispatch("pointermove", { pointerId: 2, ...point }), () => undefined]) {
+      confirm.dispatch("pointerdown", { button: 0, pointerId: 2, ...INSIDE });
+      clock.advance(DELETE_HOLD_MS);
+      assert.equal(hint.textContent, RELEASE_TO_DELETE);
+      leave({ clientX: 200, clientY: BOX.bottom + 60 });
+      confirm.dispatch("pointerup", { pointerId: 2, clientX: 200, clientY: BOX.bottom + 60 });
+      assert.equal(hint.textContent, DELETE_HOLD_HINT);
+      await handle.settled();
+      assert.deepEqual(await names(), ["Ben", "Mia"]);
+    }
+    // A small drift, inside the tolerance, and the lift on the button: deleted.
+    confirm.dispatch("pointerdown", { button: 0, pointerId: 3, ...INSIDE });
+    clock.advance(1000);
+    confirm.dispatch("pointermove", { pointerId: 3, clientX: 204, clientY: BOX.bottom + 6 });
+    clock.advance(1000);
+    assert.equal(hint.textContent, RELEASE_TO_DELETE);
+    confirm.dispatch("pointerup", { pointerId: 3, clientX: 204, clientY: BOX.bottom + 6 });
+    await handle.settled();
+    assert.deepEqual(await names(), ["Mia"]);
+  });
+});
+
+// --- The guards, once more ---
+
+test("guard: when the wait is over, 'Bitte kurz warten.' gives the line back to the message it replaced, or clears it", async () => {
+  await withArea({ seed: seedFive }, async ({ holdOpen, act, concept, clock, status, focused, takeBack, undo }) => {
+    await holdOpen();
+    await act(() => concept("Pause").remove.click());
+    await act(() => focused.current.click());
+    assert.equal(status(), PLEASE_WAIT);
+    clock.advance(GUARD_MS);
+    assert.equal(status(), "„Pause“ wurde von der Tafel genommen.");
+    // The same for "Rückgängig"; and when the replaced message has gone meanwhile, the line is cleared.
+    await act(() => concept("Hilfe").remove.click());
+    clock.advance(GUARD_MS);
+    await act(() => undo().click());
+    await act(() => undo().click());
+    assert.equal(status(), PLEASE_WAIT);
+    clock.advance(GUARD_MS);
+    assert.equal(status(), "„Hilfe“ ist wieder auf der Tafel.");
+    await takeBack();
+    assert.equal(undo(), null);
+  });
+  // An error that was replaced comes back as an error.
+  await withArea({ seed: seedFive }, async ({ holdOpen, act, concept, clock, status, backend, caregiverRegion }) => {
+    await holdOpen();
+    await act(() => concept("Pause").remove.click());
+    backend.failWrite(1);
+    await act(() => concept("Fertig").up.click());
+    assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+    await act(() => concept("Hilfe").remove.click());
+    assert.equal(status(), PLEASE_WAIT);
+    assert.ok(!hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+    clock.advance(GUARD_MS);
+    assert.match(status(), /^Das konnte gerade nicht gespeichert werden/);
+    assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+  });
+});
+
+test("guard: a removal resets the guard of 'Rückgängig': undo, remove, undo in quick succession all count", async () => {
+  await withArea({ seed: seedFive }, async ({ holdOpen, remove, act, concept, undo, onBoard }) => {
+    await holdOpen();
+    await remove("Pause");
+    await act(() => undo().click());
+    assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Trinken", "Mehr", "Fertig"]);
+    // The guard of "Rückgängig" would still run; the removal that follows can be taken back at once all the same.
+    await act(() => concept("Mehr").remove.click());
+    assert.equal(undo()["aria-disabled"], "false");
+    await act(() => undo().click());
+    assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Trinken", "Mehr", "Fertig"]);
+    assert.equal(undo(), null);
+  });
+});
+
+test("guard: an undo whose write failed can be tried again at once", async () => {
+  await withArea({ seed: seedFive }, async ({ holdOpen, remove, act, undo, onBoard, backend, status }) => {
+    await holdOpen();
+    await remove("Pause");
+    backend.failWrite(1);
+    await act(() => undo().click());
+    assert.match(status(), /^Das konnte gerade nicht gespeichert werden/);
+    assert.equal(undo()["aria-disabled"], "false");
+    await act(() => undo().click());
+    assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Trinken", "Mehr", "Fertig"]);
+  });
+});
+
+test("guard: the guards do not carry over to the next opening", async () => {
+  await withArea({ seed: seedFive }, async ({ holdOpen, act, concept, concepts, handle, onBoard }) => {
+    await holdOpen();
+    await act(() => concept("Pause").remove.click());
+    assert.equal(concept("Hilfe").remove["aria-disabled"], "true");
+    await handle.close();
+    // Opened again before the guard time of the last visit is over (no time passes on the test's clock).
+    assert.equal(handle.open(), true);
+    await handle.settled();
+    assert.deepEqual(concepts().filter((row) => row.onBoard).map((row) => row.remove["aria-disabled"]), Array(4).fill("false"));
+    await act(() => concept("Hilfe").remove.click());
+    assert.deepEqual(onBoard(), ["Trinken", "Mehr", "Fertig"]);
+  });
+});
+
+test("names: the example in the refusal may be exactly as long as a name may be", async () => {
+  // 38 characters and " 2" are 40; 39 and " 2" are one too many.
+  for (const [length, withExample] of [[38, true], [39, false]]) {
+    const name = "x".repeat(length);
+    await withArea({ seed: async (store) => { await store.create(name, []); } }, async ({ holdOpen, create, status }) => {
+      await holdOpen();
+      await create(name);
+      assert.equal(status(), withExample ? nameTaken(`${name} 2`) : "Diesen Namen gibt es schon. Bitte wähle einen anderen.", `${length}`);
+    });
+  }
+});
+
+test("shield: 'Tafel neu laden' in the state without a board has only just appeared when the bound passes", async () => {
+  const wall = wallClock();
+  await withSlowRefresh(async (area) => {
+    const { caregiverRegion, refresh, handle, write } = area;
+    assert.equal(handle.open(), true);
+    await handle.settled();
+    wall.t += 1000;
+    await write();
+    wall.t += 1000;
+    // The waiting line appears now; the button only when the bound passes, some time later.
+    const closing = handle.close();
+    await turn();
+    wall.t += CLOSE_WAIT_MS;
+    area.clock.advance(CLOSE_WAIT_MS);
+    await closing;
+    noBoard(area);
+    const retry = buttonNamed(caregiverRegion, "Tafel neu laden");
+    wall.t += SHIELD_GRACE_MS - 1;
+    retry.click();
+    await turn();
+    assert.equal(refresh.calls, 1);
+    wall.t += 1;
+    retry.click();
+    await turn();
+    assert.equal(refresh.calls, 2);
+  }, { now: wall.now, open: false });
+});
+
+test("delete: a completed hold deletes only the profile whose confirmation is the open one, not the one that is still drawn", async () => {
+  const { inner, gate, backend } = gatedBackend();
+  await seedMiaAndBen(await ProfileStore.open(inner));
+  await withArea({ backend }, async ({ holdOpen, act, profile, confirmation, clock, handle, store }) => {
+    await holdOpen();
+    const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+    const staleDeleteMia = profile("Mia").remove;
+    await act(() => profile("Ben").remove.click());
+    const { confirm } = confirmation();
+    // "Löschen: Mia" is pressed (on a button from before), and its confirmation is not drawn yet: Ben's is still on screen.
+    gate.hold();
+    staleDeleteMia.click();
+    confirm.dispatch("pointerdown", { button: 0 });
+    clock.advance(DELETE_HOLD_MS);
+    confirm.dispatch("pointerup");
+    gate.release();
+    await handle.settled();
+    assert.deepEqual(await names(), ["Ben", "Mia"]);
+    assert.deepEqual(confirmation().texts.slice(0, 1), ["Profil „Mia“ löschen?"]);
   });
 });

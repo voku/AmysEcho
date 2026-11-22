@@ -54,6 +54,18 @@ export const GUARD_MS = 800;
  * so no number of taps may do it: a tap cannot be told from a child's.
  */
 export const DELETE_HOLD_MS = 2000;
+/**
+ * How long content has to be on screen before a press on it counts. A press
+ * that began before the content appeared, or sooner than this after it, was
+ * aimed at what was there before.
+ */
+export const SHIELD_GRACE_MS = 300;
+/** How far a pointer may stray from a button that is being held before the hold ends. */
+export const HOLD_SLOP_PX = 8;
+/** A click by key comes with the key-down (Enter) or right after the key-up (Space). */
+const KEY_CLICK_WINDOW_MS = 50;
+/** A key that sent neither a repeat nor a key-up for this long is not taken as still held. */
+const KEY_STALE_MS = 1000;
 /** Room between the block at the top and an element that is brought out from under it. */
 const REVEAL_GAP_PX = 8;
 
@@ -155,6 +167,8 @@ export interface CaregiverOptions {
    * closes an open area; for tests. Default: the document's `visibilitychange`.
    */
   readonly onPageHidden?: (callback: () => void) => void;
+  /** The time in milliseconds, for "when did this press begin" and "when was this put on screen"; for tests. Default: `Date.now`. */
+  readonly now?: () => number;
 }
 
 export interface CaregiverHandle {
@@ -234,6 +248,8 @@ const afterDamagedLine = (count: number): string => (count === 1
 const NAME_TAKEN = "Diesen Namen gibt es schon. Bitte wähle einen anderen";
 const PLEASE_WAIT = "Bitte kurz warten.";
 const DELETE_HOLD_HINT = `Zum Löschen ${DELETE_HOLD_MS / 1000} Sekunden gedrückt halten.`;
+const RELEASE_TO_DELETE = "Loslassen zum Löschen.";
+const DELETING = "Wird gelöscht …";
 const AFTER_NONE_ACTIVE = `${AFTER_CLOSE} Beispiele – es ist keine Tafel aktiv.`;
 const AFTER_ACTIVE_EMPTY = `${AFTER_CLOSE} Beispiele – die aktive Tafel hat noch keinen Begriff.`;
 const AFTER_ACTIVE_UNREADABLE = `${AFTER_CLOSE} Beispiele – die aktive Tafel kann gerade nicht gelesen werden.`;
@@ -278,6 +294,8 @@ interface UndoOffer {
 interface Built {
   readonly content: HTMLElement[];
   readonly afterClose: string;
+  /** True when the content is a delete confirmation, which is then all there is to press below the block. */
+  readonly confirming?: boolean;
 }
 
 function damagedLine(count: number): string {
@@ -310,6 +328,13 @@ function nameTakenLine(profiles: readonly ProfileV1[], name: string): string {
     if (!nameTaken(profiles, example, null)) return `${NAME_TAKEN}, zum Beispiel ${quoted(example)}.`;
   }
   return `${NAME_TAKEN}.`;
+}
+
+const isHoldKey = (key: string): boolean => key === "Enter" || key === " " || key === "Spacebar";
+
+/** A button that has to be held. `cancel` ends a hold that is running, or one that is complete and waits for the release. */
+interface HeldButton {
+  cancel(): void;
 }
 
 /** What "Entfernen" and "Rückgängig" each have: see `GUARD_MS`. */
@@ -479,8 +504,20 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * write is still under way.
    */
   let mode: Mode = null;
-  /** The hold on the "Endgültig löschen" that is drawn, if any. */
-  let confirmHold: Hold | null = null;
+  /** The held buttons of the body that is on screen. Only these can act; they are cancelled when the body is swapped. */
+  let bodyHolds: HeldButton[] = [];
+  /** What was typed into the create field, kept while a view without that field is shown. */
+  let createDraft = "";
+  /** True from a press that retires the message until the redraw for that press: the text keeps its place meanwhile. */
+  let statusStale = false;
+  const now = options.now ?? (() => Date.now());
+  /** When what is on screen was last put there or moved: a swap of the body, of the undo button, or a change of the status line. */
+  let swappedAt = Number.NEGATIVE_INFINITY;
+  const markSwap = (): void => {
+    swappedAt = now();
+  };
+  /** True for a press that began after what it lands on was on screen for the grace time. */
+  const aimed = (pressAt: number): boolean => pressAt >= swappedAt + SHIELD_GRACE_MS;
   /** Whether the message in the status line is an error: an error stays when the caregiver scrolls. */
   let statusIsError = false;
   let undoButton: HTMLElement | null = null;
@@ -508,9 +545,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
   const show = (text: string, error: boolean): void => {
     if (status === null) return;
+    // A message of another length moves what is below the block.
+    if (status.textContent !== text) markSwap();
     status.textContent = text;
     status.className = error ? "caregiver-status caregiver-status-error" : "caregiver-status";
     statusIsError = error;
+    statusStale = false;
   };
 
   /** A message of the running task. `error`: something was refused or failed. */
@@ -518,21 +558,130 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (acting === session) show(text, error);
   };
 
-  /** Takes an earlier message away when a button is pressed, whatever it said. The undo offer stays. */
+  /**
+   * Retires an earlier message when a button is pressed, whatever it said.
+   * The text stays where it is until the redraw for that press: taking it
+   * away at once would move the content under the finger.
+   */
   const clearStatus = (): void => {
-    if (isOpen && status !== null && status.textContent !== "") show("", false);
+    if (isOpen && status !== null && status.textContent !== "") statusStale = true;
   };
 
   /** Scrolling takes away what was only good to know. An error stays until the next press: it must not vanish unread. */
   const clearOnScroll = (): void => {
-    if (!statusIsError) clearStatus();
+    if (!statusIsError && isOpen && status !== null && status.textContent !== "") show("", false);
   };
 
-  /** Ends a hold on "Endgültig löschen" that may be running. */
+  /** Ends every hold of the body that may be running or waiting for its release. */
   const dropHold = (): void => {
-    const hold = confirmHold;
-    confirmHold = null;
-    hold?.cancel();
+    for (const held of bodyHolds) held.cancel();
+  };
+
+  /**
+   * Makes `control` a button that has to be held (`createHold`), with a
+   * pointer or with Enter or Space. The finger has to stay on it: the
+   * implicit pointer capture of a touch is released so that leaving is
+   * reported, and a move or a lift outside the button (beyond
+   * `HOLD_SLOP_PX`) ends the hold. With `onReady`, a completed hold only
+   * waits; `act` is called when the pointer or key is let go on the button.
+   */
+  const heldButton = (control: HTMLElement, held: {
+    readonly durationMs: number;
+    /** Asked when a press begins: false, and no hold starts. */
+    allowed(): boolean;
+    onProgress(elapsedMs: number, remainingSeconds: number): void;
+    /** A hold ended without acting. */
+    onIdle(reason: "released" | "cancelled"): void;
+    onReady?(): void;
+    act(): void;
+  }): HeldButton => {
+    let source: string | null = null;
+    let ready = false;
+    const hold = createHold({
+      setTimer,
+      durationMs: held.durationMs,
+      onProgress: held.onProgress,
+      onEnd: (reason) => {
+        if (reason !== "completed") {
+          source = null;
+          held.onIdle(reason);
+        } else if (held.onReady === undefined) {
+          source = null;
+          held.act();
+        } else {
+          ready = true;
+          held.onReady();
+        }
+      },
+    });
+    const start = (from: string): void => {
+      if (ready || hold.isHolding() || !held.allowed()) return;
+      source = from;
+      hold.press(from);
+    };
+    const abort = (): void => {
+      if (ready) {
+        ready = false;
+        source = null;
+        held.onIdle("cancelled");
+        return;
+      }
+      hold.cancel();
+    };
+    const finish = (from: string): void => {
+      if (!ready) {
+        hold.release(from);
+        return;
+      }
+      if (from !== source) return;
+      ready = false;
+      source = null;
+      held.act();
+    };
+    /** True when the pointer is not on the button any more. Unknown without geometry: then leaving has to be reported by the browser. */
+    const outside = (event: PointerEvent): boolean => {
+      try {
+        if (typeof control.getBoundingClientRect !== "function" || typeof event.clientX !== "number" || typeof event.clientY !== "number") return false;
+        const box = control.getBoundingClientRect();
+        return event.clientX < box.left - HOLD_SLOP_PX || event.clientX > box.right + HOLD_SLOP_PX
+          || event.clientY < box.top - HOLD_SLOP_PX || event.clientY > box.bottom + HOLD_SLOP_PX;
+      } catch {
+        return false;
+      }
+    };
+    control.addEventListener("pointerdown", (event) => {
+      // Only the main button of a mouse; touch and pen report 0 as well.
+      if (event.button > 0) return;
+      try {
+        // A touch is captured by the element it began on: without this, a finger that slides off is not reported as leaving.
+        control.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Not captured, or no such pointer: nothing to release.
+      }
+      start("pointer");
+    });
+    control.addEventListener("pointermove", (event) => {
+      if (source === "pointer" && outside(event)) abort();
+    });
+    control.addEventListener("pointerup", (event) => {
+      if (source === "pointer" && outside(event)) abort();
+      else finish("pointer");
+    });
+    control.addEventListener("pointerleave", abort);
+    control.addEventListener("pointercancel", abort);
+    control.addEventListener("blur", abort);
+    // A long press must not bring up the context menu instead of counting.
+    control.addEventListener("contextmenu", (event) => event.preventDefault());
+    control.addEventListener("keydown", (event) => {
+      if (!isHoldKey(event.key)) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      start(`key:${event.key}`);
+    });
+    control.addEventListener("keyup", (event) => {
+      if (isHoldKey(event.key)) finish(`key:${event.key}`);
+    });
+    return { cancel: abort };
   };
 
   /** What every press of a button starts with: the earlier message goes, and so does an open rename field or confirmation unless the press belongs to it. */
@@ -549,6 +698,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     let waiting = false;
     let turn = 0;
     let cancel = (): void => undefined;
+    /** The message that "Bitte kurz warten." took the place of. */
+    let replaced: { readonly text: string; readonly error: boolean } | null = null;
     const stop = (): void => {
       turn += 1;
       cancel();
@@ -564,6 +715,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         armed = true;
         waiting = false;
         mark(true);
+        // The wait is over: the line must not go on asking for it.
+        if (isOpen && status !== null && status.textContent === PLEASE_WAIT) show(replaced?.text ?? "", replaced?.error ?? false);
+        replaced = null;
       };
       try {
         cancel = setTimer(arm, GUARD_MS);
@@ -594,12 +748,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         // Steady tapping keeps being ignored; before the redraw there is no time running yet.
         if (waiting) wait();
         // Said where the eyes are, so that the grey buttons are explained.
-        if (isOpen) show(PLEASE_WAIT, false);
+        if (!isOpen || status === null) return;
+        if (status.textContent !== PLEASE_WAIT) replaced = statusStale ? null : { text: status.textContent ?? "", error: statusIsError };
+        show(PLEASE_WAIT, false);
       },
       reset() {
         stop();
         armed = true;
         waiting = false;
+        replaced = null;
+        mark(true);
       },
     };
   };
@@ -662,6 +820,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const next = undoStack[undoStack.length - 1];
     if (next === undefined) {
       undoButton = null;
+      if (!undoBar.hidden) markSwap();
       undoBar.replaceChildren();
       undoBar.hidden = true;
       return;
@@ -697,6 +856,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     undoButton = back;
     undoBar.replaceChildren(back);
     undoBar.hidden = false;
+    markSwap();
   };
 
   /** Takes offers off the undo stack. Only for the opening that asked: a task of an earlier opening leaves this one's stack alone. */
@@ -711,8 +871,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const mine = acting;
     if (!isOpen || mine !== session) return;
     // A name that is typed but not sent yet survives the redraw after another action.
-    const typed = options.draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? "";
+    const typed = options.draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? createDraft;
+    createDraft = typed;
     const nextFocusables = new Map<string, Focusable>();
+    const nextHolds: HeldButton[] = [];
     let built: Built;
     let failed = false;
     if (store === null) {
@@ -720,18 +882,26 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       built = { content: [element("p", "caregiver-notice", STORAGE_UNREACHABLE)], afterClose: AFTER_NO_STORAGE };
     } else {
       try {
-        built = await build(store, nextFocusables, typed);
+        built = await build(store, nextFocusables, nextHolds, typed);
       } catch {
         failed = true;
         nextFocusables.clear();
+        nextHolds.length = 0;
         built = { content: [element("p", "caregiver-notice", READ_FAILED)], afterClose: AFTER_READ_FAILED };
       }
     }
     if (!isOpen || mine !== session || body === null) return;
+    // A hold dies with its button: whatever was held on the content that goes now ends here, not when its successor was built.
+    dropHold();
     body.replaceChildren(...built.content);
+    bodyHolds = nextHolds;
+    markSwap();
+    // The message that the press for this redraw retired, if the action put nothing in its place.
+    if (statusStale) show("", false);
     if (afterClose !== null) afterClose.textContent = built.afterClose;
     // "Tafel neu laden" is the retry then, so it must not sit behind a closed summary.
     if (failed && help !== null) help.open = true;
+    if (help !== null) help.hidden = built.confirming === true;
     focusables = nextFocusables;
     // The rows were built while storage was read; what they show of the guard is set from its state now.
     for (const [key, control] of focusables) if (key.startsWith("remove:")) markButton(control, removeGuard.armed());
@@ -845,7 +1015,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     clearStatus();
     dropHold();
     mode = next;
-    run(() => draw([focus]));
+    // A confirmation is the whole body: it starts right under the block.
+    run(() => draw([focus], { toTop: next.kind === "delete" }));
   };
 
   /** Closes the open rename field or confirmation without a change; focus returns to the button that opened it. */
@@ -862,9 +1033,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   const renameProfile = (id: string, raw: string): void => {
     clearStatus();
     // The field stays open while the name is saved; it closes, or keeps what was typed, only if it is still this one then.
-    const mine = mode;
+    // A form that is no longer on screen has no field to close: whatever is open instead stays as it is.
+    const mine = mode !== null && mode.kind === "rename" && mode.id === id ? mode : null;
     const settle = (next: Mode): void => {
-      if (acting === session && mode === mine) mode = next;
+      if (acting === session && mine !== null && mode === mine) mode = next;
     };
     runWrite(async () => {
       if (store === null) return;
@@ -894,17 +1066,20 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
   };
 
-  const deleteProfile = (profile: ProfileV1, label: string): void => {
-    // Only while the confirmation for this profile is the one that is open: a hold that ends on a button that is
-    // still drawn after "Abbrechen", Escape or another action deletes nothing.
-    if (mode === null || mode.kind !== "delete" || mode.id !== profile.id) return;
-    begin(true);
+  /** Asks for the delete of the profile whose confirmation is open. False when nothing was asked for. */
+  const deleteProfile = (profile: ProfileV1, label: string): boolean => {
+    // Only while the confirmation for this profile is the one that is open.
     const mine = mode;
+    if (mine === null || mine.kind !== "delete" || mine.id !== profile.id) return false;
+    begin(true);
     runWrite(async () => {
       if (store === null) return;
       const leave = (): void => {
         if (acting === session && mode === mine) mode = null;
       };
+      // The delete may have waited behind a slow write. "Abbrechen" or Escape in that time takes it back, and a
+      // second hold on the confirmation that was still drawn finds it closed by the first: one delete, one message.
+      if (mode !== mine) return;
       try {
         const wasActive = (await store.getActive()) === profile.id;
         await store.remove(profile.id);
@@ -920,6 +1095,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         await draw([`delete:${profile.id}`, "profiles-heading"]);
       }
     });
+    return true;
   };
 
   /** Picture (if any), label and sentence of one row. */
@@ -986,6 +1162,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }, (succeeded) => {
         removeGuard.settle(succeeded);
         if (!succeeded || offer === null || acting !== session) return;
+        // A removal can be taken back at once, also when the guard of an earlier undo is still running.
+        undoGuard.reset();
         undoStack = [...undoStack, offer];
         renderUndo();
       });
@@ -1106,76 +1284,72 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return input;
   };
 
+  /**
+   * The delete confirmation. While it is open it is the whole body: no card,
+   * no editor and no form is on screen, so nothing else can be hit, and
+   * nothing can be drawn under a finger that rests on it.
+   */
+  const confirmView = (profile: ProfileV1, label: string, isActive: boolean, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-confirm");
+    view.append(element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
+    if (isActive) view.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("confirm-cancel", cancel);
+    register.set("anchor:confirm-cancel", view);
+    // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
+    const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
+    const holdProgress = element("progress", "caregiver-delete-progress");
+    holdProgress.max = DELETE_HOLD_MS;
+    holdProgress.value = 0;
+    holdProgress.hidden = true;
+    // The line below says the same in words.
+    holdProgress.setAttribute("aria-hidden", "true");
+    const holdHint = element("p", "caregiver-confirm-hint", DELETE_HOLD_HINT);
+    holdHint.id = "caregiver-delete-hint";
+    holdHint.setAttribute("role", "status");
+    holdHint.setAttribute("aria-live", "polite");
+    confirm.setAttribute("aria-describedby", holdHint.id);
+    const idle = (): void => {
+      holdProgress.hidden = true;
+      holdProgress.value = 0;
+      holdHint.textContent = DELETE_HOLD_HINT;
+    };
+    /** Only the button that is on screen acts: not one that was swapped out while a finger rested on it. */
+    const current = (): boolean => bodyHolds.includes(held) && (confirm as { isConnected?: boolean }).isConnected !== false;
+    const held: HeldButton = heldButton(confirm, {
+      durationMs: DELETE_HOLD_MS,
+      // A press on a button that has only just appeared is not a decision to delete.
+      allowed: () => current() && aimed(now()),
+      onProgress: (elapsedMs, remainingSeconds) => {
+        holdProgress.hidden = false;
+        holdProgress.value = elapsedMs;
+        const line = holdLine(remainingSeconds);
+        if (holdHint.textContent !== line) holdHint.textContent = line;
+      },
+      onIdle: idle,
+      // The delete waits for the finger to come up: what the redraw puts there must not be under a finger that is down.
+      onReady: () => {
+        holdProgress.value = DELETE_HOLD_MS;
+        holdHint.textContent = RELEASE_TO_DELETE;
+      },
+      act: () => {
+        idle();
+        if (current() && deleteProfile(profile, label)) holdHint.textContent = DELETING;
+      },
+    });
+    holds.push(held);
+    // "Abbrechen" first, and nothing below "Endgültig löschen" but its own bar and line.
+    const actions = element("div", "caregiver-profile-actions");
+    actions.append(cancel, confirm);
+    view.append(actions, holdProgress, holdHint);
+    return view;
+  };
+
   /** `label` is the name as the area shows it: the stored name, with "(2)" and so on for a second profile of the same name. */
   const profileCard = (profile: ProfileV1, label: string, activeId: string | null, register: Map<string, Focusable>): HTMLElement => {
     const isActive = profile.id === activeId;
     const open = mode !== null && mode.id === profile.id ? mode : null;
-    if (open?.kind === "delete") {
-      const item = element("li", "caregiver-profile caregiver-confirm");
-      item.append(element("p", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
-      if (isActive) item.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
-      const cancel = button(CANCEL);
-      cancel.addEventListener("click", leaveMode);
-      register.set("confirm-cancel", cancel);
-      // The whole confirmation is to be read, not only the button that has the focus.
-      register.set("anchor:confirm-cancel", item);
-      // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
-      const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
-      const holdProgress = element("progress", "caregiver-delete-progress");
-      holdProgress.max = DELETE_HOLD_MS;
-      holdProgress.value = 0;
-      holdProgress.hidden = true;
-      // The line below says the same in words.
-      holdProgress.setAttribute("aria-hidden", "true");
-      const holdHint = element("p", "caregiver-confirm-hint", DELETE_HOLD_HINT);
-      holdHint.id = "caregiver-delete-hint";
-      holdHint.setAttribute("role", "status");
-      holdHint.setAttribute("aria-live", "polite");
-      confirm.setAttribute("aria-describedby", holdHint.id);
-      // A hold on a confirmation that is drawn over does not go on on the new one.
-      dropHold();
-      const hold = createHold({
-        setTimer,
-        durationMs: DELETE_HOLD_MS,
-        onProgress: (elapsedMs, remainingSeconds) => {
-          holdProgress.hidden = false;
-          holdProgress.value = elapsedMs;
-          const line = holdLine(remainingSeconds);
-          if (holdHint.textContent !== line) holdHint.textContent = line;
-        },
-        onEnd: (reason) => {
-          holdProgress.hidden = true;
-          holdProgress.value = 0;
-          holdHint.textContent = DELETE_HOLD_HINT;
-          if (reason === "completed") deleteProfile(profile, label);
-        },
-      });
-      confirmHold = hold;
-      confirm.addEventListener("pointerdown", (event) => {
-        // Only the main button of a mouse; touch and pen report 0 as well.
-        if (event.button > 0) return;
-        hold.press("pointer");
-      });
-      confirm.addEventListener("pointerup", () => hold.release("pointer"));
-      confirm.addEventListener("pointerleave", () => hold.cancel());
-      confirm.addEventListener("pointercancel", () => hold.cancel());
-      confirm.addEventListener("blur", () => hold.cancel());
-      confirm.addEventListener("contextmenu", (event) => event.preventDefault());
-      confirm.addEventListener("keydown", (event) => {
-        if (!isHoldKey(event.key)) return;
-        event.preventDefault();
-        if (event.repeat) return;
-        hold.press(`key:${event.key}`);
-      });
-      confirm.addEventListener("keyup", (event) => {
-        if (isHoldKey(event.key)) hold.release(`key:${event.key}`);
-      });
-      // "Abbrechen" first: it is what a tap on the spot of "Löschen" is most likely to hit.
-      const actions = element("div", "caregiver-profile-actions");
-      actions.append(cancel, confirm);
-      item.append(actions, holdProgress, holdHint);
-      return item;
-    }
     const item = element("li", "caregiver-profile");
     const head = element("div", "caregiver-profile-head");
     if (open?.kind === "rename") {
@@ -1189,6 +1363,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       cancel.addEventListener("click", leaveMode);
       form.addEventListener("submit", (event) => {
         event.preventDefault();
+        // A form that has only just appeared is not sent by an Enter that was meant for something else.
+        if (!aimed(now())) return;
         renameProfile(profile.id, input.value);
       });
       register.set("rename-name", input);
@@ -1232,7 +1408,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
   };
 
-  const build = async (current: ProfileStore, register: Map<string, Focusable>, draftName: string): Promise<Built> => {
+  const build = async (current: ProfileStore, register: Map<string, Focusable>, holds: HeldButton[], draftName: string): Promise<Built> => {
     const listing = await current.list();
     // Null also when the active profile's record is unreadable; the damaged note below covers that.
     const activeId = await current.getActive();
@@ -1251,6 +1427,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       labels.set(profile.id, count === 1 ? profile.displayName : `${profile.displayName} (${count})`);
     }
     const labelOf = (profile: ProfileV1): string => labels.get(profile.id) ?? profile.displayName;
+    const header = await afterCloseLine(current, activeId, labels, listing.damaged.length);
+    // The confirmation takes over: see `confirmView`.
+    const confirming = mode !== null && mode.kind === "delete" ? profiles.find((profile) => profile.id === mode?.id) : undefined;
+    if (confirming !== undefined) {
+      return { content: [confirmView(confirming, labelOf(confirming), confirming.id === activeId, register, holds)], afterClose: header, confirming: true };
+    }
 
     const profileSection = element("section", "caregiver-section");
     const profilesHeading = element("h2", "", "Profile");
@@ -1279,6 +1461,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     submit.type = "submit";
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!aimed(now())) return;
       createProfile(nameInput.value);
     });
     const more = element("details", "caregiver-details");
@@ -1291,7 +1474,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const selected = profiles.find((profile) => profile.id === selectedId);
     if (selected !== undefined) content.push(await boardSection(current, selected, labelOf(selected), activeId, register));
     else if (profiles.length > 0) content.push(element("p", "caregiver-notice", SELECT_PROFILE));
-    return { content, afterClose: await afterCloseLine(current, activeId, labels, listing.damaged.length) };
+    return { content, afterClose: header };
   };
 
   const close = (): Promise<void> => {
@@ -1303,7 +1486,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     // The next opening edits the active profile again, whatever was picked this time.
     selectedId = null;
     mode = null;
+    createDraft = "";
     dropHold();
+    bodyHolds = [];
     closingNo += 1;
     const mine = closingNo;
     away = "waiting";
@@ -1314,6 +1499,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     line.setAttribute("role", "status");
     line.setAttribute("aria-live", "polite");
     caregiverRegion.replaceChildren(line);
+    markSwap();
     heading = null;
     topBlock = null;
     afterClose = null;
@@ -1360,6 +1546,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
             });
           });
           caregiverRegion.replaceChildren(line, retry);
+          markSwap();
           entry.hidden = false;
           retry.focus();
         }
@@ -1391,6 +1578,45 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
   };
   caregiverRegion.addEventListener("pointerdown", restartIdle);
+
+  // The press shield: a click counts only if its press began after what it lands on was on screen (`aimed`).
+  // The listeners are on the region, in the capture phase, so that they hear every press and decide before any button does.
+  const pointerPresses = new Map<number, number>();
+  let lastPointerPress: number | null = null;
+  let keyPress: { at: number; seenAt: number; upAt: number | null } | null = null;
+  caregiverRegion.addEventListener("pointerdown", (event) => {
+    const at = now();
+    if (pointerPresses.size > 32) pointerPresses.clear();
+    if (typeof event.pointerId === "number") pointerPresses.set(event.pointerId, at);
+    lastPointerPress = at;
+  }, true);
+  caregiverRegion.addEventListener("keydown", (event) => {
+    if (!isHoldKey(event.key)) return;
+    const at = now();
+    if (!event.repeat) keyPress = { at, seenAt: at, upAt: null };
+    else if (keyPress !== null) keyPress.seenAt = at;
+    // A repeat without a press seen here: the key went down somewhere else, before this content.
+    else keyPress = { at: Number.NEGATIVE_INFINITY, seenAt: at, upAt: null };
+  }, true);
+  caregiverRegion.addEventListener("keyup", (event) => {
+    if (isHoldKey(event.key) && keyPress !== null) keyPress.upAt = now();
+  }, true);
+  caregiverRegion.addEventListener("click", (event) => {
+    const at = now();
+    const id = (event as Partial<PointerEvent>).pointerId;
+    const byPointer = typeof id === "number" ? id >= 0 : event.detail > 0;
+    // A click without a press of its own (assistive technology, a script) begins when it arrives.
+    let pressAt = at;
+    if (byPointer) {
+      // A pointer whose press this region did not see went down on something that is gone.
+      pressAt = (typeof id === "number" ? pointerPresses.get(id) : lastPointerPress) ?? Number.NEGATIVE_INFINITY;
+    } else if (keyPress !== null && (keyPress.upAt === null ? at - keyPress.seenAt <= KEY_STALE_MS : at - keyPress.upAt <= KEY_CLICK_WINDOW_MS)) {
+      pressAt = keyPress.at;
+    }
+    if (aimed(pressAt)) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
   /** Events that Escape was already answered for: one that bubbles from the region reaches the document as well. */
   const answered = new WeakSet<object>();
   const onEscape = (event: KeyboardEvent): void => {
@@ -1475,11 +1701,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     // What an earlier visit removed is not offered again: the bar is new and the stack starts empty.
     undoStack = [];
     dropHold();
+    bodyHolds = [];
+    createDraft = "";
     statusIsError = false;
+    statusStale = false;
     undoButton = null;
     removeGuard.reset();
     undoGuard.reset();
     caregiverRegion.replaceChildren(top, body, help);
+    markSwap();
     caregiverRegion.hidden = false;
     heading.focus();
     restartIdle();
@@ -1498,45 +1728,21 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     progress.value = 0;
     hint.textContent = line;
   };
-  const hold = createHold({
-    setTimer,
+  const openerHold = heldButton(opener, {
+    durationMs: HOLD_DURATION_MS,
+    allowed: () => true,
     onProgress: (elapsedMs, remainingSeconds) => {
       progress.hidden = false;
       progress.value = elapsedMs;
       const line = holdLine(remainingSeconds);
       if (hint.textContent !== line) hint.textContent = line;
     },
-    onEnd: (reason) => {
-      if (reason === "released") showIdle(HOLD_HINT);
-      else if (reason === "cancelled") showIdle("");
-      else showIdle(open() ? "" : STILL_STARTING);
-    },
-  });
-
-  const isHoldKey = (key: string): boolean => key === "Enter" || key === " " || key === "Spacebar";
-  opener.addEventListener("pointerdown", (event) => {
-    // Only the main button of a mouse; touch and pen report 0 as well.
-    if (event.button > 0) return;
-    hold.press("pointer");
-  });
-  opener.addEventListener("pointerup", () => hold.release("pointer"));
-  opener.addEventListener("pointerleave", () => hold.cancel());
-  opener.addEventListener("pointercancel", () => hold.cancel());
-  opener.addEventListener("blur", () => hold.cancel());
-  // A long press must not bring up the context menu instead of counting.
-  opener.addEventListener("contextmenu", (event) => event.preventDefault());
-  opener.addEventListener("keydown", (event) => {
-    if (!isHoldKey(event.key)) return;
-    event.preventDefault();
-    if (event.repeat) return;
-    hold.press(`key:${event.key}`);
-  });
-  opener.addEventListener("keyup", (event) => {
-    if (isHoldKey(event.key)) hold.release(`key:${event.key}`);
+    onIdle: (reason) => showIdle(reason === "released" ? HOLD_HINT : ""),
+    act: () => showIdle(open() ? "" : STILL_STARTING),
   });
   // An open area must not be left behind on a device that is put away or handed to the child.
   (options.onPageHidden ?? defaultPageHidden)(() => {
-    hold.cancel();
+    openerHold.cancel();
     if (isOpen) void close();
   });
 
