@@ -1,11 +1,76 @@
 {
     "attention": null,
-    "candidate_revision": "0609c6d70d1aff9c66b70f90a829e8f6eee2561e",
+    "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-22T13:32:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:32:56+00:00",
+                "artifact_references": [],
+                "candidate_revision": "0609c6d70d1aff9c66b70f90a829e8f6eee2561e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "0609c6d70d1aff9c66b70f90a829e8f6eee2561e",
+                "context_id": "claude-main-ng28-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:da2bfe72",
+                "summary": "mountBoard replaces all of #app, loadStartupView drops its store, the board references catalogue wording by id and renders the display name; index.html has no static content",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:32:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:32:56+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "context_id": "claude-subagent-ng28-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:f2e85cff",
+                "summary": "App controller with one store and refreshBoard, board region, fallback board with a sentence per cause, wording copied on choose, no display name on the board, static index line, start-up branches covered; verify passes with 153 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
