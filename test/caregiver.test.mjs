@@ -4777,15 +4777,6 @@ for (const stage of ["under way", "complete and waits for the release"]) {
         await handle.settled();
         assert.deepEqual(await names(), ["Ben", "Mia"]);
       }
-      // The second finger's tap on "Abbrechen" is a tap like any other: it leaves the confirmation.
-      confirm.dispatch("pointerdown", { button: 0, pointerId: 1 });
-      clock.advance(DELETE_HOLD_MS);
-      cancel.dispatch("pointerdown", { button: 0, pointerId: 2 });
-      cancel.click({ pointerId: 2, detail: 1 });
-      confirm.dispatch("pointerup", { pointerId: 1 });
-      await handle.settled();
-      assert.equal(confirmation(), null);
-      assert.deepEqual(await names(), ["Ben", "Mia"]);
     });
   });
 }
@@ -4831,6 +4822,18 @@ test("shield: the two summaries are not shielded, a button next to them is", asy
     await handle.settled();
     assert.equal(refreshes.count, 0);
     assert.deepEqual(onBoard(), ["Trinken"]);
+    // Folding a section moves what is below it, so it counts as a swap: a press right after does nothing.
+    for (const details of tree(caregiverRegion).filter((element) => element.tagName === "details")) {
+      wall.t += 1000;
+      details.dispatch("toggle", {});
+      concept("Pause").add.click();
+      await handle.settled();
+      assert.deepEqual(onBoard(), ["Trinken"]);
+    }
+    wall.t += 1000;
+    concept("Pause").add.click();
+    await handle.settled();
+    assert.deepEqual(onBoard(), ["Trinken", "Pause"]);
   });
 });
 

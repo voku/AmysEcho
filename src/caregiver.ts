@@ -1468,6 +1468,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
     const more = element("details", "caregiver-details");
     more.append(element("summary", "", NAME_DETAILS), element("p", "caregiver-notice", NAME_NOTICE));
+    // Folding moves what is below it: what comes under the finger has only just appeared.
+    more.addEventListener("toggle", markSwap);
     form.append(nameLabel, nameInput, submit, nameShort, more);
     register.set("create-name", nameInput);
     profileSection.append(form);
@@ -1706,6 +1708,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       });
     });
     help.append(element("summary", "", HELP_SUMMARY), element("p", "caregiver-notice", RELOAD_HELP), reload, element("p", "caregiver-notice", VOICE_HELP));
+    help.addEventListener("toggle", markSwap);
 
     boardRegion.hidden = true;
     entry.hidden = true;

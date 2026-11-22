@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
     "contract_revision": 1,
-    "current_attempt": 5,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 6,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -348,6 +348,44 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:5:67d1d5a1",
                 "summary": "Fifth build: second finger ends a delete hold, summaries exempt from the shield, monotonic shield time, hint height reserved; 424 tests pass",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:03:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:03:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0f55ff5d51d02ce53fbf4a0f69b4393b83406b41b455ecc773f88dcdf9813781",
+                    "execution-evidence:sha256:83d098baa3d2297c668fd543b160ee55cbfbf6f4654c36e4a0ed75364eb588b5"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0f55ff5d51d02ce53fbf4a0f69b4393b83406b41b455ecc773f88dcdf9813781",
+                    "execution-evidence:sha256:83d098baa3d2297c668fd543b160ee55cbfbf6f4654c36e4a0ed75364eb588b5"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "context_id": "correctness-review-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:7c8d1237",
+                "summary": "docs/caregiver.md says a second finger's tap on Abbrechen leaves the confirmation; Chromium sends no click for it, and the backing test fakes the click. Folding a details section moves content without marking a swap.",
                 "task_id": "NG-31",
                 "validation_references": []
             }

@@ -157,7 +157,8 @@ at what was there before. Four rules keep such a press from acting on something 
   press the area did not see counts as "before". Every other click is swallowed in the capture
   phase on the region, before any button hears it. The same test decides whether a hold on
   "Endgültig löschen" may start and whether a form is sent. Not shielded: typing, Tab, Escape,
-  and the two `<details>` summaries (they only fold text). A swallowed press says nothing.
+  and the two `<details>` summaries. Folding or unfolding one counts as a swap, because it moves
+  what is below it. A swallowed press says nothing.
 - **B. A hold belongs to its button.** The held buttons of the body are registered with it. When
   the body is swapped, every hold on the content that goes ends at that moment. A button that is
   no longer the registered one can neither start a hold nor act.
@@ -269,8 +270,8 @@ later taps of someone tapping on one spot. So the button works like the opening 
 and held for `DELETE_HOLD_MS` (2 seconds), with a pointer or with Enter or Space. While holding,
 a progress bar fills and the line counts down ("Weiter halten … 2"). When the time is up the line
 says "Loslassen zum Löschen. Zum Abbrechen den Finger wegziehen." and nothing happens yet: the profile is deleted when the finger, or
-the key, is let go **on the button**. That way the redraw after the delete never happens under a
-finger that is down, and its lift cannot press what the redraw put there. A tap, in any number
+the key, is let go **on the button**. That way the redraw after the delete does not happen under the
+finger that held, and its lift cannot press what the redraw put there. A tap, in any number
 and rhythm, shows the line and deletes nothing.
 
 - Letting go early, the pointer leaving the button or straying from it (rule C), a pointer
@@ -281,7 +282,8 @@ and rhythm, shows the line and deletes nothing.
   closing (also by itself, on a hidden page) end it as well.
 - So does a second finger: any pointer that goes down in the area on something other than the
   held button ends the hold, also a completed one, and the first finger's lift then deletes
-  nothing. If that second finger taps "Abbrechen", the confirmation is left as by any tap.
+  nothing. The confirmation stays open: Chromium sends no click for a tap made while another
+  finger is down, so "Abbrechen" needs a tap of its own afterwards.
 - On a screen narrower than 640 px the line under the button keeps room for three lines, so the
   button does not move (and end the hold by rule C) when the countdown replaces the instruction.
 - A hold does not start while the confirmation has only just appeared (rule A).
