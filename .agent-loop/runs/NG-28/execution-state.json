@@ -1,8 +1,8 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+    "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
     "contract_revision": 1,
-    "current_attempt": 4,
+    "current_attempt": 5,
     "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
     "history": [
@@ -347,10 +347,80 @@
                 "task_id": "NG-28",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T13:59:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:59:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0b1a0a63c76c246d549d02c2ba66a67265de0bd674a5534430e884e9b91c602a",
+                    "execution-evidence:sha256:5e16ba4ee3a6cfe35670b2c446db19cfa9316aad5dfa28ceabf1787c702e1fd8"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0b1a0a63c76c246d549d02c2ba66a67265de0bd674a5534430e884e9b91c602a",
+                    "execution-evidence:sha256:5e16ba4ee3a6cfe35670b2c446db19cfa9316aad5dfa28ceabf1787c702e1fd8"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "context_id": "claude-subagent-ng28-correctness-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:1c115172",
+                "summary": "board-data.ts:353 requireConceptId runs before the on-board check, so an on-board id with a dot, underscore or over 40 characters still forces a drop, against docs/storage.md:246-248; docs/storage.md:225 and the JSDoc at board-data.ts:327-330 still state that every id needs a readable entry",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:00:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:00:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "context_id": "claude-main-ng28-build-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:74e5edcf",
+                "summary": "Fifth build: an on-board id that board data cannot address also stays in setBoardConcepts; function table and doc comment state the rule for newly chosen and for staying ids; verify passes with 163 tests; the new branch is mutation-checked",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": "attention:55a5bbd4aab6688e",
+    "last_attention_id": null,
     "recovery_history": [],
     "run_id": "run:NG-28:c91b439f3817329a",
     "schema_version": "1.0",
