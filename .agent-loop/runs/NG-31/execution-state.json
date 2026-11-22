@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
     "contract_revision": 1,
-    "current_attempt": 4,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 5,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -281,10 +281,48 @@
                 "task_id": "NG-31",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T20:40:50+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T20:40:50+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:52c60f0244f759b5981fd899747d0e5f6afe027282b2e8b9d9d9941d5667ff13",
+                    "execution-evidence:sha256:962c59884982c05fa9cd95a86a8a514654721fb5f3526d8a04d0024f0ebc4553"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:52c60f0244f759b5981fd899747d0e5f6afe027282b2e8b9d9d9941d5667ff13",
+                    "execution-evidence:sha256:962c59884982c05fa9cd95a86a8a514654721fb5f3526d8a04d0024f0ebc4553"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
+                "context_id": "correctness-review-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:7da4ae2a",
+                "summary": "Doc claims the details summaries are not shielded but the click shield swallows them; a second finger on Abbrechen does not end a completed delete hold and the lift deletes; shield time is wall-clock so a backward clock step locks out presses; hint line height change moves the delete button at 320px with enlarged text",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": "attention:a99965b8f2814c78",
+    "last_attention_id": null,
     "recovery_history": [],
     "run_id": "run:NG-31:e21389d8d0abe454",
     "schema_version": "1.0",
