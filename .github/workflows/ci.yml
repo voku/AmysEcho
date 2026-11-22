@@ -5,146 +5,38 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  app:
+    name: Build and test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node: ['22', '24']
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
-          node-version: 24.15.0
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
           cache: npm
-          cache-dependency-path: |
-            webapp/package-lock.json
-            server/package-lock.json
-            integration/package-lock.json
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.14'
-      - name: Cache pip downloads
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('server/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Run full check
-        env:
-          INTEGRATION_TEST_PROFILE: "fast"
-        run: NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh
-
-      - name: Coverage gate (webapp)
-        run: npm --prefix webapp run test:coverage -- --coverage.reporter=text-summary
-
-      - name: Security audit (webapp)
-        run: npm audit --prefix webapp --audit-level=high
-      - name: Security audit (server)
-        run: npm audit --prefix server --audit-level=high
-      - name: Security audit (integration)
-        run: npm audit --prefix integration --audit-level=high
-
-  integration-heavy-training:
-    permissions:
-      contents: read
-      pull-requests: read
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: dorny/paths-filter@v4
-        id: heavy_changes
-        with:
-          filters: |
-            heavy_integration_related:
-              - '.github/workflows/ci.yml'
-              - 'integration/run-tests.mjs'
-              - 'integration/test/training-flow.test.ts'
-              - 'integration/test/webapp-video-upload.test.ts'
-              - 'integration/test/multimodal-training-flow.test.ts'
-              - 'server/src/routes/training*.ts'
-              - 'server/src/services/training*.ts'
-              - 'server/src/amyserver_tools/train_mlp.py'
-              - 'server/src/amyserver_tools/train_mlp_fewshot.py'
-              - 'server/src/server.ts'
-      - uses: actions/setup-node@v6
-        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
-        with:
-          node-version: 24.15.0
-          cache: npm
-          cache-dependency-path: |
-            webapp/package-lock.json
-            server/package-lock.json
-            integration/package-lock.json
-      - uses: actions/setup-python@v6
-        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
-        with:
-          python-version: '3.14'
-      - name: Install dependencies for heavy integration profile
-        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r server/requirements.txt
-          npm ci --prefix webapp
-          npm ci --prefix server
-          npm ci --prefix integration
-      - name: Run heavy integration profile
-        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
-        run: npm run test:full --prefix integration
-      - name: Skip heavy integration profile when unrelated files changed
-        if: steps.heavy_changes.outputs.heavy_integration_related != 'true'
-        run: echo "No heavy training/integration related changes detected; heavy integration profile skipped."
-
-
-  server-training-readiness-gate:
-    permissions:
-      contents: read
-      pull-requests: read
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: dorny/paths-filter@v4
-        id: changes
-        with:
-          filters: |
-            training_related:
-              - '.github/workflows/ci.yml'
-              - 'server/test/test_training_pipeline_fixture.py'
-              - 'server/test/fixtures/training_integration_fixture.json'
-              - 'server/src/routes/latestMlpModelRoute.ts'
-              - 'server/src/**/training*.ts'
-              - 'server/src/**/*training*.ts'
-              - 'server/src/**/*manifest*.ts'
-              - 'server/src/routes/diagnosticsRoutes.ts'
-              - 'server/src/routes/training*.ts'
-              - 'server/src/services/training*.ts'
-              - 'server/src/services/*manifest*.ts'
-              - 'server/src/services/mlpModelArtifacts.ts'
-              - 'server/src/server.ts'
-              - 'server/src/amyserver_tools/train_mlp.py'
-              - 'server/src/amyserver_tools/train_mlp_fewshot.py'
-      - uses: actions/setup-node@v6
-        if: steps.changes.outputs.training_related == 'true'
-        with:
-          node-version: 24.15.0
-          cache: npm
-          cache-dependency-path: server/package-lock.json
-      - uses: actions/setup-python@v6
-        if: steps.changes.outputs.training_related == 'true'
-        with:
-          python-version: '3.14'
-      - name: Install server dependencies
-        if: steps.changes.outputs.training_related == 'true'
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r server/requirements.txt
-          npm ci --prefix server
-      - name: Run required training integration fixture test
-        if: steps.changes.outputs.training_related == 'true'
-        run: pytest server/test/test_training_pipeline_fixture.py -q
-      - name: Skip when unrelated files changed
-        if: steps.changes.outputs.training_related != 'true'
-        run: echo "No training/manifest/readiness/promotion server changes detected; gate test skipped."
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Type check
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+      - name: Verify local asset serving
+        run: npm run smoke:offline
+      - name: Audit dependencies
+        run: npm audit --audit-level=high

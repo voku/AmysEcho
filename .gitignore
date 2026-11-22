@@ -1,88 +1,10 @@
-# vendor stuff
-node_modules
-server/**/__pycache__/
-scripts/__pycache__/
-.venv
-venv/
-
-# build stuff
-dist
-server/public/
-.expo
-app/android/
-app/ios/
-
-# keys and environment files
-.openai-key
-.env
-!.env.example
-
-# db
-app/watermelon.db
-server/db.json
-server/db.sqlite
-server/db.sqlite-shm
-server/db.sqlite-wal
-server/data/db.sqlite
-server/data/db.sqlite-shm
-server/data/db.sqlite-wal
-server/data/training-orchestrator-jobs.json
-server/*.migrated.backup
-server/*.test_backup
-
-# ide
-.idea
-
-# json stuff
-**/jest-results.json
-server/analytics.json
-server/telemetry.json
-server/training-debug.log
-logs/
-*.log
-# Ignore trained/personalized models but allow baseline
-server/data/models/*/amy_model.npz
-!server/data/models/global/amy_model.npz
-data/amy_model.npz
-# Ignore test-generated data files
-server/data/uploads/
-server/data/dgs_samples.json
-server/data/datasets/training_manifest.json
-server/data/models/training_metadata.json
-# code coverage
-app/coverage/
-coverage/
-server/coverage/
-webapp/coverage/
-
-.gemini/
-gha-creds-*.json
-webapp/README.md.bak
-server/data/backups/
-server/data/profiles/profile_registry.json
-
-# Test artifacts from full-check
-server/data/datasets/ingestion_metrics.json
-server/data/datasets/training_quality_log.json
-server/data/training-snapshots/
-server/data/models/[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*/
-server/data/pretraining_report.json
-server/data/datasets/realistic_dgs_cycle_*/
-server/data/test-*.sqlite
-server/data/dgs_manifest.json
-server/data/dgs_video_examples/
-server/data/fixtures/
-server/data/users/
-# Integration test config files
-server/data/config/dgsVideoSources.integration.json
-**/dgsVideoSources.test.json
-
-# local Python coverage artifact in server package
-server/.coverage
-
-# local server script artifacts
-server/scripts/dev-artifacts/*.jpg
-server/scripts/dev-artifacts/*.png
-
-# Large local inventory exports (use --include-files for local deep analysis only)
-docs/analysis/repo-inventory-*.full.json
+/node_modules/
+/dist/
+/private/
+/local-data/
+*.recording.json
+*.landmarks.json
+*.webm
+*.mp4
+/vendor/
+/build/

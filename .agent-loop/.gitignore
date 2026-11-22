@@ -1,0 +1,7 @@
+/map/
+/recall/
+/sessions/
+/edit/
+/runs/*/*.lock
+/.init-language.lock
+/tool-inventory.json

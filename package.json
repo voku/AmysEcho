@@ -1,8 +1,18 @@
 {
+  "name": "amys-echo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build:single-domain": "./scripts/build-single-domain.sh"
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "build": "tsc --project tsconfig.json && node scripts/assemble.mjs",
+    "test": "node --test test/*.test.mjs",
+    "smoke:offline": "node scripts/offline-smoke.mjs"
   },
   "devDependencies": {
-    "tsx": "^4.21.0"
+    "typescript": "6.0.3"
   }
 }

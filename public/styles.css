@@ -1,0 +1,13 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #143146; background: #f4fafc; }
+body { margin: 0; }
+main { max-width: 900px; margin: 0 auto; padding: 1rem; }
+h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
+.concept-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .8rem; margin-block: 1.5rem; }
+.concept { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .65rem; min-height: 148px; padding: 1rem; border: 3px solid #215c76; border-radius: 1.2rem; background: white; color: #143146; font: 700 1.35rem system-ui, sans-serif; cursor: pointer; }
+.concept:focus-visible, .retry:focus-visible { outline: 5px solid #cf681e; outline-offset: 3px; }
+.concept:active { background: #dceff4; }
+.concept img { width: 64px; height: 64px; }
+.message { min-height: 3rem; padding: 1.2rem; background: #e0f2ec; border-radius: 1rem; font-size: clamp(1.5rem, 5vw, 2.4rem); font-weight: 700; overflow-wrap: anywhere; }
+.speech-status { min-height: 2.5rem; }
+.retry { padding: .8rem 1.2rem; min-height: 54px; border: 2px solid #215c76; border-radius: .7rem; background: white; color: #143146; font: 600 1rem system-ui, sans-serif; cursor: pointer; }
+[hidden] { display: none !important; }
