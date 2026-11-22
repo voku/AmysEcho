@@ -6,14 +6,14 @@
     "next_action_kind": "host_work",
     "references": {
         "approval": {
-            "approved_at": "2026-11-22T15:12:06+00:00",
+            "approved_at": "2026-11-22T15:58:27+00:00",
             "approved_by": "Lars Moelleken (delegated to Claude for this session)",
-            "contract_revision": 1,
+            "contract_revision": 2,
             "observation_mode": "checked",
             "owner": "agent-loop",
             "source": {
                 "path": ".agent-loop/contracts/NG-30/contract.json",
-                "sha256": "sha256:5d9cb4b8ef78b2cac37d1188512dc101456bc9b64b91f160428c762a3db67034"
+                "sha256": "sha256:2715d0a2f65c0aea1faccd7ca3dc032404f7d5676b9ee7297008694c6a6613d2"
             },
             "state": "current"
         },
@@ -51,11 +51,11 @@
             "rejected_at": null,
             "rejected_by": null,
             "rejection_reason": null,
-            "revision": 1,
-            "run_revision": 1,
+            "revision": 2,
+            "run_revision": 2,
             "source": {
                 "path": ".agent-loop/contracts/NG-30/contract.json",
-                "sha256": "sha256:5d9cb4b8ef78b2cac37d1188512dc101456bc9b64b91f160428c762a3db67034"
+                "sha256": "sha256:2715d0a2f65c0aea1faccd7ca3dc032404f7d5676b9ee7297008694c6a6613d2"
             },
             "state": "approved"
         },
@@ -65,10 +65,10 @@
             "state": "none"
         },
         "execution_contract": {
-            "contract_revision": 1,
+            "contract_revision": 2,
             "contract_source": {
                 "path": ".agent-loop/contracts/NG-30/contract.json",
-                "sha256": "sha256:5d9cb4b8ef78b2cac37d1188512dc101456bc9b64b91f160428c762a3db67034"
+                "sha256": "sha256:2715d0a2f65c0aea1faccd7ca3dc032404f7d5676b9ee7297008694c6a6613d2"
             },
             "observation_mode": "checked",
             "owner": "agent-loop",
@@ -79,35 +79,35 @@
             "observation_mode": "checked",
             "owner": "agent-learning",
             "review_observations": [],
-            "run_id": "run:NG-30:d7e2683bf2b2668e",
+            "run_id": "run:NG-30:c7005b152ab42c3f",
             "state": "missing"
         },
         "map": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/php-symbols.json",
-            "snapshot": "sha256:cce19478ba354e2586f4076059a2de3885ec77f5bb4e0a87220f6e954f5c3b4c",
+            "snapshot": "sha256:27f9bf07f414fc80aece10a633f39f07405b3ca00fac3158669c8129c50c97df",
             "source": {
                 "path": ".agent-loop/map/php-symbols.json",
-                "sha256": "sha256:be82b941ab59facc9f7825aae5a168f38160731a15d3ba22d525bde05e74ee4f"
+                "sha256": "sha256:cdca72b86add7816d2f6154d86ea2b54b0fb2c8dfa3643f8ea73e6c0d3da2f09"
             },
             "state": "ready"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "run_id": "run:NG-30:d7e2683bf2b2668e",
+            "run_id": "run:NG-30:c7005b152ab42c3f",
             "state": "run_bound"
         },
         "recall": {
-            "bundle_sha256": "9cfcc9ef752f30778efed079b832677cc56953f531a34316350e363f0a69ee17",
-            "compilation_id": "compilation.NG-30.2026-11-22-151207.9faa5e09",
+            "bundle_sha256": "0608fca7da5469b1b859178e89ff27bd6402fbce4c8cd8df62510beac9155a91",
+            "compilation_id": "compilation.NG-30.2026-11-22-155827.d9d99c19",
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "snapshot_sha256": "1f48ac0d3ece3328a4115857df03322f3deb1753ec9669d63b8e521e9a6a24f5",
+            "snapshot_sha256": "416c861159f8e97c80968791b24fdbdc8798c4d23b9a4dc7d1242740169eb310",
             "source": {
                 "path": ".agent-loop/recall/NG-30/meta.json",
-                "sha256": "sha256:d170e76d79a084e6a04d20d88aab20ca64b36786e6533fe8b608f73ee19aaa5e"
+                "sha256": "sha256:71185f239581cc046631b58807211698c4b4d04059e906c3a0cd86e74e3252dd"
             },
             "state": "compiled"
         },
@@ -128,10 +128,10 @@
             "ephemeral": false,
             "observation_mode": "checked",
             "owner": "agent-session",
-            "session_id": "2026-11-22-ng-30-r1-c651d4cf",
+            "session_id": "2026-11-22-ng-30-r2-2d852992",
             "source": {
-                "path": ".agent-loop/sessions/2026-11-22-ng-30-r1-c651d4cf/session.json",
-                "sha256": "sha256:6435db573cc97150f1042e8b2e1852ce033e6f25850d60f822eb81ae128c2801"
+                "path": ".agent-loop/sessions/2026-11-22-ng-30-r2-2d852992/session.json",
+                "sha256": "sha256:d21737f5574b2345c426cc857d20cf99cc88af044b6c1ae53b2f3660d5f8db5d"
             },
             "state": "active",
             "task_id": "NG-30"
@@ -148,11 +148,11 @@
                 "executable": "agent-loop",
                 "template": false
             },
-            "gate": "implementation",
-            "implementation_snapshot": null,
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:ccf6dca6c2f9fbd30bb5d014dfb5c5d2b1667171f8ec037375c5df168c7db462",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "Implementation snapshot scoped path does not exist yet: public/icons/sprechen.svg (a deleted path needs a Contract base_commit that tracks it)",
+            "reason": "independent review pipeline is incomplete at stage investigate",
             "recall_outcome_draft": null,
             "repair_action": null,
             "repair_invocation": null,
@@ -160,7 +160,7 @@
             "validation_failed": false
         }
     },
-    "run_id": "run:NG-30:d7e2683bf2b2668e",
+    "run_id": "run:NG-30:c7005b152ab42c3f",
     "schema_version": "1.0",
     "state": "incomplete",
     "task_id": "NG-30"

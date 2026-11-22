@@ -1,0 +1,53 @@
+{
+    "acceptance_criteria": [
+        "On a 390x844 and a 360x640 viewport with five tiles the sentence bar and all tiles are visible without scrolling",
+        "Tapping a tile shows its sentence in the bar at the top, marks the tile as selected and requests speech; tapping the bar repeats the speech of the selected tile",
+        "Speech status text appears only when no voice is available or speech failed",
+        "A board of examples still carries its class, badge and sentence, and a profile's own board carries none of them",
+        "Every module and asset the service worker pre-caches is served by the offline smoke check"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-22T15:12:06+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "23b0cf7b29189309f8d7ca066122af4abc8a128d",
+    "behavior_anchors": [],
+    "created_at": "2026-11-22T15:12:06+00:00",
+    "goal": "The child's screen is a board: a sentence bar at the top shows the last sentence and repeats it when tapped, the board fills the rest of the viewport with columns that follow the number of tiles and the orientation, a tapped tile shows it at once and stays marked, and speech status appears only when there is a problem.",
+    "kind": "task_contract",
+    "non_goals": [
+        "No change to what is stored, to src/profiles/, src/board-data.ts, src/app.ts or the start-up decisions",
+        "No change to the caregiver area beyond what a shared style or test helper requires",
+        "No new runtime dependency"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/board.ts",
+        "src/startup.ts",
+        "public/index.html",
+        "public/styles.css",
+        "public/sw.js",
+        "public/icons/sprechen.svg",
+        "scripts/offline-smoke.mjs",
+        "test/board.test.mjs",
+        "test/bootstrap.test.mjs",
+        "test/caregiver.test.mjs",
+        "docs/board.md",
+        "docs/storage.md",
+        "README.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-30",
+    "updated_at": "2026-11-22T15:12:06+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}
