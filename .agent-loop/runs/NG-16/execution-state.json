@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 1,
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
     "history": [
         {
@@ -136,6 +136,48 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:b064ad67",
                 "summary": "Record retitled as the decision, one adapter location, left/right convention written into docs/recognition.md, offline request claim matched to the retained result",
+                "task_id": "NG-16",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:33:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:33:16+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:853e7ec547a5ad27e77d0aaeb28fd895f5d02fda2c37edb805ca77dc6567ff58",
+                    "execution-evidence:sha256:7b3ba146d69e146c4bb0fcb876dd300fc2df19cd503112e31926fdb5fe3b527c"
+                ],
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "schema_version": "1.0",
+                "task_id": "NG-16",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:853e7ec547a5ad27e77d0aaeb28fd895f5d02fda2c37edb805ca77dc6567ff58",
+                    "execution-evidence:sha256:7b3ba146d69e146c4bb0fcb876dd300fc2df19cd503112e31926fdb5fe3b527c"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "context_id": "correctness-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "observations": [
+                    "docs/tracker-decision.md:4 and :131 keep spike-era wording (nothing changed in the repository; offline listed as verified without the one-request caveat); tidy with NG-3.",
+                    "Pose reported confident shoulders on camera frames where the still found no body; shoulder visibility is not a reliable filter (NG-3)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:32ee4ee3",
+                "summary": "Decision record passes: three fixes made and true, acceptance holds",
                 "task_id": "NG-16",
                 "validation_references": []
             }
