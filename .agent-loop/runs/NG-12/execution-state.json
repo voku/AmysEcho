@@ -1,11 +1,76 @@
 {
     "attention": null,
-    "candidate_revision": "f3b318a922658e98258747ca1dbc4f83245ce362",
+    "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:d78b26ce8b9c3b4de27c1faaa624790c33db8355",
     "contract_revision": 3,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:797654836440663264b62e9e3f08a63d6374950804b42eaf8f52ff938948e86a",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-22T13:11:02+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:11:02+00:00",
+                "artifact_references": [],
+                "candidate_revision": "f3b318a922658e98258747ca1dbc4f83245ce362",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:797654836440663264b62e9e3f08a63d6374950804b42eaf8f52ff938948e86a",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-12:7ebc40361d7c70b4",
+                "schema_version": "1.0",
+                "task_id": "NG-12",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "f3b318a922658e98258747ca1dbc4f83245ce362",
+                "context_id": "claude-main-ng12-investigate-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:797654836440663264b62e9e3f08a63d6374950804b42eaf8f52ff938948e86a",
+                "outcome": "completed",
+                "run_id": "run:NG-12:7ebc40361d7c70b4",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:5bb80aba",
+                "summary": "Contract revision 3 only removes the never-created scope path src/profiles/board-data.ts; investigation unchanged",
+                "task_id": "NG-12",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:11:02+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:11:02+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:d78b26ce8b9c3b4de27c1faaa624790c33db8355",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:797654836440663264b62e9e3f08a63d6374950804b42eaf8f52ff938948e86a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-12:7ebc40361d7c70b4",
+                "schema_version": "1.0",
+                "task_id": "NG-12",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:d78b26ce8b9c3b4de27c1faaa624790c33db8355",
+                "context_id": "claude-main-ng12-build-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:797654836440663264b62e9e3f08a63d6374950804b42eaf8f52ff938948e86a",
+                "outcome": "completed",
+                "run_id": "run:NG-12:7ebc40361d7c70b4",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:fbcf96ca",
+                "summary": "No new edits under revision 3; product tree is identical to commit 83652f9; verify passed with 141 tests",
+                "task_id": "NG-12",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
