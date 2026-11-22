@@ -15,11 +15,14 @@
  *
  * Every write that changes a profile's data updates its usage record in the
  * same atomic batch and is refused when the profile would no longer fit into
- * one export. So a profile that was written through this store can always be
- * backed up.
+ * one export. So, within one store instance, a profile that was written
+ * through the store can be backed up.
  *
  * Operations of one store instance run one after another. Two browser tabs
- * each have their own instance and are not coordinated with each other.
+ * each have their own instance and are not coordinated with each other. Two
+ * instances writing to the same profile at the same time can leave a usage
+ * record that is too low or too high, and data beyond the limits. `usage(id)`
+ * and `readProfile` (so every export) count again and correct the record.
  */
 import { cloneJson, cloneJsonRecord, ownValue } from "./backend.js";
 import type { KeyValueBackend } from "./backend.js";
@@ -105,7 +108,11 @@ export interface ProfileContents {
 /** Data of exactly one profile. Values are JSON values; reads return private copies. */
 export interface ProfileData {
   get(name: string): Promise<unknown | undefined>;
-  /** Rejects with `ProfileSizeError`, changing nothing, when the profile would outgrow one export. */
+  /**
+   * Rejects with `ProfileSizeError`, changing nothing, when the profile would
+   * outgrow one export. A write that adds neither a name nor bytes is always
+   * accepted, so a profile that is over the limit can be made smaller.
+   */
   set(name: string, value: unknown): Promise<void>;
   delete(name: string): Promise<void>;
   names(): Promise<string[]>;
@@ -143,11 +150,19 @@ export function utf8Length(text: string): number {
  * export document, which holds each entry as `"name":value,`.
  */
 function entryBytes(name: string, value: unknown): number {
-  return utf8Length(JSON.stringify(value)) + name.length + ENTRY_OVERHEAD;
+  let text: string;
+  try {
+    text = JSON.stringify(value);
+  } catch (error) {
+    // JSON text beyond the engine's string length limit.
+    if (error instanceof RangeError) throw new ProfileSizeError("a value is too large to be written as JSON", { cause: error });
+    throw error;
+  }
+  return utf8Length(text) + name.length + ENTRY_OVERHEAD;
 }
 
 /** Counted names and bytes of a validated name-to-value dictionary (see `cloneProfileData`). */
-export function measureProfileData(data: Readonly<Record<string, unknown>>): { names: number; bytes: number } {
+export function measureProfileData(data: Readonly<Record<string, unknown>>): Usage {
   let names = 0;
   let bytes = 0;
   for (const [name, value] of Object.entries(data)) {
@@ -170,12 +185,20 @@ export function resolveLimits(limits: ExportLimits | undefined): ResolvedLimits 
   return { maxDataNames, maxBytes };
 }
 
-/** Throws `ProfileSizeError` when data of this size does not fit into one export. */
-export function checkProfileSize(usage: { readonly names: number; readonly bytes: number }, limits: ExportLimits | undefined): void {
+type Usage = { readonly names: number; readonly bytes: number };
+
+/** Why data of this size does not fit into one export, or null when it fits. */
+function sizeProblem(usage: Usage, limits: ExportLimits | undefined): string | null {
   const { maxDataNames, maxBytes } = resolveLimits(limits);
-  if (usage.names > maxDataNames) throw new ProfileSizeError(`${usage.names} data names; the limit is ${maxDataNames}`);
+  if (usage.names > maxDataNames) return `${usage.names} data names; the limit is ${maxDataNames}`;
   const budget = maxBytes - EXPORT_ENVELOPE_RESERVE;
-  if (usage.bytes > budget) throw new ProfileSizeError(`${usage.bytes} bytes of data; the limit is ${budget}`);
+  return usage.bytes > budget ? `${usage.bytes} bytes of data; the limit is ${budget}` : null;
+}
+
+/** Throws `ProfileSizeError` when data of this size does not fit into one export. */
+export function checkProfileSize(usage: Usage, limits: ExportLimits | undefined): void {
+  const problem = sizeProblem(usage, limits);
+  if (problem !== null) throw new ProfileSizeError(problem);
 }
 
 function isUsage(value: unknown): value is { names: number; bytes: number } {
@@ -353,7 +376,11 @@ export class ProfileStore {
           names: before.names + (old === undefined ? 1 : 0),
           bytes: before.bytes - (old === undefined ? 0 : entryBytes(name, old)) + entryBytes(name, copy),
         };
-        checkProfileSize(after, this.#limits);
+        if (after.names > before.names || after.bytes > before.bytes) {
+          const already = sizeProblem(before, this.#limits);
+          if (already !== null) throw new ProfileSizeError(`the profile is already over the limit (${already}); delete entries before adding data`);
+          checkProfileSize(after, this.#limits);
+        }
         await this.#backend.write({ set: { [key]: copy, [`${prefix}usage`]: after } });
       }),
       delete: (name) => this.#exclusive(async () => {
@@ -373,22 +400,25 @@ export class ProfileStore {
 
   /**
    * How much data the profile holds and how much it may hold, so that a carer
-   * can be warned well before a write is refused. Reads the usage record; when
-   * that is missing or not trustworthy it is counted again from the data and
-   * written back.
+   * can be warned well before a write is refused. This is the authoritative
+   * and slow call: it reads all of the profile's data, counts it, and writes
+   * the usage record when the stored one differs. The result can be above the
+   * limits (see the note on two store instances at the top of this file).
    */
   usage(id: string): Promise<ProfileUsage> {
     return this.#exclusive(async () => {
       await this.#requireExisting(id);
-      const stored = await this.#backend.get(`${profilePrefix(id)}usage`);
-      const usage = await this.#readUsage(id);
-      if (!isUsage(stored)) await this.#backend.write({ set: { [`${profilePrefix(id)}usage`]: usage } });
+      const usage = await this.#correctUsage(id, await this.#countUsage(id));
       return { ...usage, maxNames: this.#limits.maxDataNames, maxBytes: this.#limits.maxBytes - EXPORT_ENVELOPE_RESERVE };
     });
   }
 
-  /** The profile record and all of its data, read as one step. Used by export. */
-  readProfile(id: string): Promise<ProfileContents> {
+  /**
+   * The profile record, all of its data and the counted size of that data,
+   * read as one step. Used by export. Writes the usage record when the stored
+   * one disagrees with the count.
+   */
+  readProfile(id: string): Promise<ProfileContents & { readonly usage: Usage }> {
     return this.#exclusive(async () => {
       const profile = await this.#readMeta(id);
       const dataPrefix = `${profilePrefix(id)}data/`;
@@ -397,7 +427,7 @@ export class ProfileStore {
         const value = await this.#backend.get(key);
         if (value !== undefined) Object.defineProperty(data, key.slice(dataPrefix.length), { value, enumerable: true, writable: true, configurable: true });
       }
-      return { profile, data };
+      return { profile, data, usage: await this.#correctUsage(id, measureProfileData(data)) };
     });
   }
 
@@ -445,11 +475,21 @@ export class ProfileStore {
    * The stored usage record, or a fresh count when it is missing or cannot be
    * right (data written before usage was recorded, or a damaged record).
    */
-  async #readUsage(id: string): Promise<{ names: number; bytes: number }> {
-    const prefix = profilePrefix(id);
-    const stored = await this.#backend.get(`${prefix}usage`);
-    if (isUsage(stored)) return { names: stored.names, bytes: stored.bytes };
-    const dataPrefix = `${prefix}data/`;
+  async #readUsage(id: string): Promise<Usage> {
+    const stored = await this.#backend.get(`${profilePrefix(id)}usage`);
+    return isUsage(stored) ? { names: stored.names, bytes: stored.bytes } : this.#countUsage(id);
+  }
+
+  /** Writes `counted` as the usage record unless exactly that is stored already. */
+  async #correctUsage(id: string, counted: Usage): Promise<Usage> {
+    const key = `${profilePrefix(id)}usage`;
+    const stored = await this.#backend.get(key);
+    if (!isUsage(stored) || stored.names !== counted.names || stored.bytes !== counted.bytes) await this.#backend.write({ set: { [key]: counted } });
+    return counted;
+  }
+
+  async #countUsage(id: string): Promise<Usage> {
+    const dataPrefix = `${profilePrefix(id)}data/`;
     let names = 0;
     let bytes = 0;
     for (const key of await this.#backend.keys(dataPrefix)) {

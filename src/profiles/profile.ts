@@ -101,7 +101,11 @@ export function makeProfile(id: string, displayName: unknown, conceptIds: unknow
 }
 
 /**
- * Strict reader for stored and imported records. Unknown fields and other
+ * Strict reader for stored and imported records. One thing is tolerated: a
+ * display name that is valid but not in NFC form (as earlier versions stored
+ * it) is returned normalised instead of being rejected.
+ *
+ * Strict otherwise. Unknown fields and other
  * versions are rejected, so a record written by a later app version is never
  * half-read. The result is a new frozen object.
  */
@@ -116,6 +120,6 @@ export function parseProfile(value: unknown): ProfileV1 {
   }
   if (!isProfileId(record["id"])) throw new ProfileFormatError("id is not a profile id");
   const profile = makeProfile(record["id"], record["displayName"], record["conceptIds"]);
-  if (profile.displayName !== record["displayName"]) throw new ProfileFormatError("displayName is not in stored form (NFC, no surrounding whitespace)");
+  if (profile.displayName !== (record["displayName"] as string).normalize("NFC")) throw new ProfileFormatError("displayName has surrounding whitespace");
   return profile;
 }

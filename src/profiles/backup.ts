@@ -63,29 +63,30 @@ function isUtcTimestamp(value: unknown): value is string {
   return !Number.isNaN(date.getTime()) && date.toISOString() === (value.length === 20 ? `${value.slice(0, 19)}.000Z` : value);
 }
 
-/** `data` must already be a validated copy: plain JSON values only. */
-function checkSize(data: Record<string, unknown>, limits: ExportLimits): void {
+/** Runs a size check and reports its `ProfileSizeError` as `ExportSizeError`. */
+function checkSize(check: () => void): void {
   try {
-    checkProfileSize(measureProfileData(data), limits);
+    check();
   } catch (error) {
     if (error instanceof ProfileSizeError) throw new ExportSizeError(`export is too large: ${error.message}`, { cause: error });
-    // JSON text beyond the engine's string length limit.
-    if (error instanceof RangeError) throw new ExportSizeError("export is too large", { cause: error });
     throw error;
   }
 }
 
 /**
  * Rejects with `ExportSizeError` instead of producing a document that
- * `importProfile` would refuse for its size. That can only happen to a profile
- * whose data was not written through `ProfileStore` with these limits.
+ * `importProfile` would refuse for its size. A profile written through one
+ * `ProfileStore` instance with these limits never gets there. It can happen
+ * when two instances (two tabs) wrote to the profile at the same time, or
+ * when data was put into storage another way. The usage record is corrected
+ * either way, and passing higher `options.limits` still produces the export.
  */
 export async function exportProfile(store: ProfileStore, id: string, options: ExportOptions = {}): Promise<ProfileExportV1> {
-  const { profile, data } = await store.readProfile(id);
+  const { profile, data, usage } = await store.readProfile(id);
   const date = (options.now ?? (() => new Date()))();
   const exportedAt = Number.isNaN(date.getTime()) ? "" : date.toISOString();
   if (!isUtcTimestamp(exportedAt)) throw new ExportFormatError("the clock did not give a date in the years 0000 to 9999");
-  checkSize(data, options.limits ?? store.limits);
+  checkSize(() => checkProfileSize(usage, options.limits ?? store.limits));
   return { format: EXPORT_FORMAT, version: EXPORT_VERSION, exportedAt, profile, data };
 }
 
@@ -127,7 +128,7 @@ export function parseProfileExport(document: unknown, limits: ExportLimits = {})
     }
     throw error;
   }
-  checkSize(parsed.data, limits);
+  checkSize(() => checkProfileSize(measureProfileData(parsed.data), limits));
   return parsed;
 }
 

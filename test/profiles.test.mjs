@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 import { JsonValueError, cloneJson } from "../dist/profiles/backend.js";
+import { ExportSizeError, exportProfile } from "../dist/profiles/backup.js";
 import { InjectedWriteError, MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileFormatError, newProfileId, normalizeDisplayName, parseProfile } from "../dist/profiles/profile.js";
 import {
@@ -403,7 +404,7 @@ test("cloneJson refuses getters, hidden properties, symbol keys and decorated ar
   assert.deepEqual(cloneJson(Object.assign(Object.create(null), { a: 1 })), { a: 1 });
 });
 
-test("display names are stored NFC-normalised and non-normalised stored names are rejected", async () => {
+test("display names are stored NFC-normalised and a stored name that is not NFC is read normalised", async () => {
   const decomposed = `Ren${chr(0x65, 0x301)}`;
   const composed = `Ren${chr(0xe9)}`;
   assert.notEqual(decomposed, composed);
@@ -419,13 +420,26 @@ test("display names are stored NFC-normalised and non-normalised stored names ar
   assert.equal(backend.snapshot()[`profile/${created.id}/meta`].displayName, composed);
   assert.equal((await store.rename(created.id, `${decomposed}e`)).displayName, `${composed}e`);
 
+  // A record as the first version of this module stored it: valid, but not NFC.
   assert.deepEqual(parseProfile(record({ displayName: composed })), record({ displayName: composed }));
-  assert.throws(() => parseProfile(record({ displayName: decomposed })), ProfileFormatError);
-  await backend.write({ set: { [`profile/${created.id}/meta`]: { ...created, displayName: decomposed } } });
-  const listing = await store.list();
-  assert.deepEqual(listing.profiles, []);
-  assert.deepEqual(listing.damaged.map((entry) => entry.id), [created.id]);
-  assert.equal(backend.snapshot()[`profile/${created.id}/meta`].displayName, decomposed, "stored data is not rewritten");
+  assert.deepEqual(parseProfile(record({ displayName: decomposed })), record({ displayName: composed }));
+  const key = `profile/${created.id}/meta`;
+  await backend.write({ set: { [key]: { ...created, displayName: decomposed } } });
+  const read = { ...created, displayName: composed };
+  assert.deepEqual(await store.list(), { profiles: [read], damaged: [] });
+  assert.deepEqual(await store.get(created.id), read);
+  await store.setActive(created.id);
+  assert.equal(await store.getActive(), created.id);
+  assert.equal(backend.snapshot()[key].displayName, decomposed, "reading does not rewrite stored data");
+  await store.setConceptIds(created.id, ["hilfe"]);
+  assert.equal(backend.snapshot()[key].displayName, composed, "the next write of the record stores the normal form");
+
+  // Only the normal form is tolerated; everything else about a name stays strict on read.
+  for (const displayName of [` ${decomposed}`, `${decomposed} `, `${decomposed}${chr(0x202e)}`, `${chr(0x200d)}${decomposed}`, chr(0x65, 0x301).repeat(41), ""]) {
+    assert.throws(() => parseProfile(record({ displayName })), ProfileFormatError, JSON.stringify(displayName));
+  }
+  await backend.write({ set: { [key]: { ...created, displayName: `${decomposed}${chr(0x202e)}` } } });
+  assert.deepEqual((await store.list()).damaged.map((entry) => [entry.id, entry.kind]), [[created.id, "unreadable"]]);
 });
 
 test("display names with bidirectional or other invisible format characters are rejected", async () => {
@@ -719,7 +733,7 @@ test("set refuses what would not fit into one export and changes nothing", async
   assert.deepEqual(backend.snapshot(), before);
   await set("a", "x".repeat(46)); // exactly 100
   assert.deepEqual(await store.usage(a.id), { names: 2, bytes: 100, maxNames: 3, maxBytes: 100 });
-  await set("a", ""); // overwriting with something smaller always works
+  await set("a", ""); // an overwrite that adds no bytes is always accepted (above the limit too: see the next tests)
   await set("c", 1);
   const full = backend.snapshot();
   await assert.rejects(set("d", 1), ProfileSizeError); // fourth name
@@ -798,4 +812,87 @@ test("a missing or impossible usage record is counted again from the data", asyn
   backend.failWrite();
   await assert.rejects(store.data(a.id).delete("two"), InjectedWriteError);
   assert.deepEqual(backend.snapshot(), before);
+});
+
+test("two stores on one backend can make the usage record drift; usage() and export correct it", async () => {
+  const backend = new MemoryBackend();
+  const limits = { maxDataNames: 10, maxBytes: EXPORT_ENVELOPE_RESERVE + 100 };
+  const first = await ProfileStore.open(backend, { limits });
+  const second = await ProfileStore.open(backend, { limits });
+  const a = await first.create("A", []);
+  const key = `profile/${a.id}/usage`;
+  // Both read "empty", each adds 65 bytes and records 65: 130 bytes stored, 65 recorded.
+  await Promise.all([first.data(a.id).set("a", "x".repeat(58)), second.data(a.id).set("b", "x".repeat(58))]);
+  assert.deepEqual(await backend.keys(`profile/${a.id}/data/`), [`profile/${a.id}/data/a`, `profile/${a.id}/data/b`]);
+  const counted = recount(backend.snapshot(), a.id);
+  assert.deepEqual(counted, { names: 2, bytes: 130 });
+  assert.deepEqual(backend.snapshot()[key], { names: 1, bytes: 65 }, "the record is plausible and too low");
+
+  // Export finds the truth: it refuses, and corrects the record while doing so.
+  await assert.rejects(exportProfile(first, a.id), ExportSizeError);
+  assert.deepEqual(backend.snapshot()[key], counted, "corrected by the export attempt");
+  // The data is not lost: with raised limits the export is still produced.
+  const rescued = await exportProfile(first, a.id, { limits: { maxBytes: EXPORT_ENVELOPE_RESERVE + 1000 } });
+  assert.deepEqual(Object.keys(rescued.data), ["a", "b"]);
+
+  // usage() alone corrects it as well, and reports the amount over the limit.
+  await backend.write({ set: { [key]: { names: 1, bytes: 65 } } });
+  assert.deepEqual(await second.usage(a.id), { names: 2, bytes: 130, maxNames: 10, maxBytes: 100 });
+  assert.deepEqual(backend.snapshot()[key], counted);
+  // A record that is too high is corrected the same way.
+  await backend.write({ set: { [key]: { names: 9, bytes: 99 } } });
+  assert.equal((await first.usage(a.id)).bytes, 130);
+  assert.deepEqual(backend.snapshot()[key], counted);
+  await backend.write({ set: { [key]: { names: 9, bytes: 99 } } });
+  assert.equal((await first.readProfile(a.id)).usage.bytes, 130);
+  assert.deepEqual(backend.snapshot()[key], counted);
+
+  // Once corrected, growth is refused, with a message that says what to do ...
+  const before = backend.snapshot();
+  await assert.rejects(first.data(a.id).set("c", 1), (error) => error instanceof ProfileSizeError && /already over the limit/.test(error.message) && /delete entries/.test(error.message));
+  await assert.rejects(first.data(a.id).set("a", "x".repeat(59)), /already over the limit/);
+  assert.deepEqual(backend.snapshot(), before);
+  // ... and anything that adds neither a name nor bytes is accepted, so the profile can be reduced.
+  await first.data(a.id).set("a", "y".repeat(58));
+  assert.deepEqual(backend.snapshot()[key], counted, "same size, still over the limit, accepted");
+  await first.data(a.id).set("a", "x".repeat(40));
+  assert.deepEqual(await first.usage(a.id), { names: 2, bytes: 112, maxNames: 10, maxBytes: 100 });
+  await assert.rejects(first.data(a.id).set("a", "x".repeat(41)), /already over the limit/);
+  await first.data(a.id).set("b", "x".repeat(40));
+  assert.deepEqual(await first.usage(a.id), { names: 2, bytes: 94, maxNames: 10, maxBytes: 100 });
+  await exportProfile(first, a.id);
+  await first.data(a.id).set("c", 1);
+  await assert.rejects(first.data(a.id).set("d", 1), (error) => error instanceof ProfileSizeError && !/already over/.test(error.message));
+
+  // Too many names: overwriting and deleting still work, adding does not.
+  const tight = await ProfileStore.open(backend, { limits: { maxDataNames: 2, maxBytes: EXPORT_ENVELOPE_RESERVE + 1000 } });
+  await assert.rejects(tight.data(a.id).set("e", 1), /already over the limit/);
+  await assert.rejects(tight.data(a.id).set("c", "longer than before"), /already over the limit/);
+  await tight.data(a.id).set("c", 2);
+  await tight.data(a.id).delete("c");
+  assert.equal((await tight.usage(a.id)).names, 2);
+  await assert.rejects(tight.data(a.id).set("c", 1), (error) => error instanceof ProfileSizeError && !/already over/.test(error.message));
+});
+
+test("a value whose JSON text the engine cannot build is refused as too large", async () => {
+  // Building a real text beyond the engine's string limit needs hundreds of megabytes,
+  // so the engine's refusal is simulated for one marked value.
+  const { backend, store } = await openStore();
+  const a = await store.create("A", []);
+  const before = backend.snapshot();
+  const original = JSON.stringify;
+  JSON.stringify = (value, ...rest) => {
+    if (value === "too long for one string" || value?.huge === "too long for one string") throw new RangeError("Invalid string length");
+    return original(value, ...rest);
+  };
+  try {
+    await assert.rejects(store.data(a.id).set("big", "too long for one string"), ProfileSizeError);
+    await assert.rejects(store.data(a.id).set("big", { huge: "too long for one string" }), ProfileSizeError);
+    await assert.rejects(store.restoreProfile({ profile: record(), data: { big: "too long for one string" } }), ProfileSizeError);
+    await assert.rejects(store.restoreProfile({ profile: a, data: { ok: 1, big: "too long for one string" } }, "replace"), ProfileSizeError);
+  } finally {
+    JSON.stringify = original;
+  }
+  assert.deepEqual(backend.snapshot(), before);
+  await store.data(a.id).set("big", "too long for one string");
 });

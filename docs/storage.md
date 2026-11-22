@@ -53,7 +53,13 @@ interface ProfileV1 {
 
 `displayName` is the only personal text. It lives inside `profile/<id>/meta` and nowhere else: not in
 keys, not in ids. It is stored in Unicode NFC form and trimmed, and the 1-40 character limit applies
-to that form. A stored or imported name that is not already in this form is rejected, not rewritten.
+to that form. A stored or imported name that is valid but not in NFC form (the first version of this
+module stored names as typed) is read as its NFC form; the stored record is left as it is until the
+next change to the profile writes it again. Surrounding whitespace in a stored name is rejected.
+
+The character rules below are stricter than in the first version of this module and are not
+backwards compatible: a record whose name contains a now-forbidden format character is listed as
+damaged (`unreadable`). Nothing in the app stores profiles yet, so no such record exists.
 
 Characters in a name:
 
@@ -145,8 +151,9 @@ are rejected.
 | Size of one export | 64 MiB, as UTF-8 bytes of the document written as compact JSON | `MAX_EXPORT_BYTES` |
 | Part of that size kept for everything except data | 34 KiB | `EXPORT_ENVELOPE_RESERVE` |
 
-The limits are enforced when data is written, not only when it is exported, so a profile cannot grow
-into something that can no longer be backed up:
+The limits are enforced when data is written, not only when it is exported. Within one store
+instance (one open tab) a profile therefore cannot grow into something that can no longer be backed
+up. Two instances writing at the same time are not coordinated; see "Two tabs" below.
 
 - Each profile has a usage record, `profile/<id>/usage` = `{ names, bytes }`. `bytes` is the sum,
   over all data entries, of the UTF-8 bytes of the value as compact JSON, plus the length of the
@@ -155,18 +162,38 @@ into something that can no longer be backed up:
   restore write it too. Overwriting a name counts the difference to the old value.
 - A write is refused with `ProfileSizeError`, and nothing changes, when it would give the profile
   more than 10,000 names or more than 64 MiB minus 34 KiB of counted bytes. Restore applies the same
-  rule; `importProfile` reports it as `ExportSizeError` before anything is written.
+  rule; `importProfile` reports it as `ExportSizeError` before anything is written. A value whose
+  JSON text is too long for the JavaScript engine to build is refused the same way.
+- A write that adds neither a name nor bytes is always accepted, also for a profile that is already
+  over a limit, so such a profile can be made smaller. A write that would add to a profile that is
+  already over a limit is refused with a message saying so and that entries must be deleted.
 - The count is conservative. The reserve of 34 KiB is more than the largest possible rest of an
   export document (fixed fields plus a profile record with a 40-character name and 500 concept ids
   of 64 characters: just under 34,000 bytes; a test builds it). So counted bytes plus the reserve
   are never less than the real size of the export, and usually a little more. A document that is
   within 64 MiB but leaves less than the reserve free is refused on import.
-- If the usage record is missing or cannot be right (data written before the record existed,
-  negative or non-integer numbers), it is counted again from the stored data and written back.
+- `set` and `delete` trust the stored record. If it is missing or cannot be right (data written
+  before the record existed, negative or non-integer numbers), they count again from the data.
 - `store.usage(id)` returns `{ names, bytes, maxNames, maxBytes }`, where `maxBytes` is the most
-  `bytes` may reach. Use it to warn a carer well before a write is refused (card NG-19).
-- `exportProfile` checks the same limits once more. That can only fail for data that was put into
-  storage without going through `ProfileStore` with these limits.
+  `bytes` may reach. Use it to warn a carer well before a write is refused (card NG-19). It is the
+  authoritative and slow call: it reads all of the profile's data, counts it, and writes the record
+  when the stored one differs. So this read can write. `bytes` or `names` can be above the maximum.
+- `exportProfile` reads all data anyway, so it counts too, corrects the record when it differs, and
+  checks the limits against the count. Within one store instance that check does not fail.
+
+#### Two tabs
+
+Two `ProfileStore` instances on the same storage (two open tabs) do not coordinate. If both write to
+the same profile at the same moment, each updates the usage record from the value it read, and one
+update is lost. The record can then be too low (two additions) or too high (two deletions), and a
+record that is too low lets the profile grow past the limits. Nothing notices this at once.
+
+- It heals when `usage(id)` or an export runs in any tab: the record is replaced by the count.
+- If the profile really is over a limit, `exportProfile` fails with `ExportSizeError`, further
+  growth is refused, and deleting or shrinking entries is accepted until it fits again.
+- The data is not lost in the meantime: `exportProfile(store, id, { limits })` with higher limits
+  still produces the document, and `importProfile` accepts it with the same higher limits.
+- A user interface should call `usage(id)` before it shows how full a profile is, not cache it.
 
 For scale: 300 gesture examples of 32 x 86 numbers are about 17 MB. A file saved with indentation is
 larger on disk than the counted size. The limits can be lowered per store
@@ -221,6 +248,8 @@ no permanence guarantee. The export file is the backup.
 - No stored gesture examples (card NG-19).
 - No real-browser test of the IndexedDB adapter (card NG-14).
 - No coordination between two open tabs. One `ProfileStore` runs its operations one after another;
-  two tabs can still interleave (for example one writes data while the other deletes the profile).
+  two tabs can still interleave (for example one writes data while the other deletes the profile,
+  which leaves data without a record, listed as damaged). The usage record can drift the same way;
+  "Two tabs" above says how far and how it heals.
 - No migration: there is one schema version and one export version. Other versions are rejected.
 - No sync and no network use of any kind.
