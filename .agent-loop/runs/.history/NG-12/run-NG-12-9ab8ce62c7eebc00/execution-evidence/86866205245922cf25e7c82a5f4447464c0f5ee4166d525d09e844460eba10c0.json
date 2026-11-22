@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:d78b26ce8b9c3b4de27c1faaa624790c33db8355",
+    "contract_revision": 2,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-22T13:09:56+00:00",
+    "reference": "execution-evidence:sha256:86866205245922cf25e7c82a5f4447464c0f5ee4166d525d09e844460eba10c0",
+    "run_id": "run:NG-12:9ab8ce62c7eebc00",
+    "schema_version": "1.0",
+    "source_digest": "sha256:c98c98ed89c5a2478f8c2a66fa56688926e18315b786a0e1069dd99d841a3a3b",
+    "source_reference": "workspace-file:README.md",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-12"
+}

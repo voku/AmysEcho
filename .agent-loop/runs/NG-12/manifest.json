@@ -1,0 +1,166 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T13:10:35+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 3,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-12/contract.json",
+                "sha256": "sha256:70216040bda6184f75588e32388f3c62e4fa2d80d3f31b4cda272bfa1e11f203"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-12",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "4f964cbbaa1d8e4ffa9b65dd3d1e6e3d05ee1e25c335dac9ada415a6dd231dcc",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-12.md",
+                "sha256": "sha256:4f964cbbaa1d8e4ffa9b65dd3d1e6e3d05ee1e25c335dac9ada415a6dd231dcc"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Two profiles with different concept sets never show each other's concepts or wording",
+                "The board works for a concept without a symbol",
+                "With no active profile and damaged entries present the board shows the damaged state, not the demo board and not a create-profile flow",
+                "When storage cannot be opened the demo board still works",
+                "User-facing text is German"
+            ],
+            "goal": "The board renders the active child profile: its own ordered set of concepts with per-profile German label and sentence, including custom concepts stored in that profile's data. Without a profile the labelled synthetic demo board is shown; damaged profile storage is shown as its own state. A typed API lets a later caregiver screen pick, order, reword and add concepts.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 3,
+            "run_revision": 3,
+            "source": {
+                "path": ".agent-loop/contracts/NG-12/contract.json",
+                "sha256": "sha256:70216040bda6184f75588e32388f3c62e4fa2d80d3f31b4cda272bfa1e11f203"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 3,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-12/contract.json",
+                "sha256": "sha256:70216040bda6184f75588e32388f3c62e4fa2d80d3f31b4cda272bfa1e11f203"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T13:16:55+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-12:7ebc40361d7c70b4",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/1b964f2633b6b47cd79a7f0471439eaf626b7419d480aaf046ef101e1629314a.json",
+                "sha256": "sha256:4123953b10369bcab85fce7789a1374f1d3817c926cfb479ed647474cc0357b5"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:2b5f7fa09e2396750d68cf6b120665d4c34cef59aa049bfaccd2d2e5f4acbd25",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:9a5f055105820b3dc4734c6198ab2a7dd02478645fe3d494c6fbb64259ec0c75"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-12:7ebc40361d7c70b4",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "a5e28b522ede77bd57f591a61f9944b7cc244943a81d3ddec951774a73e24265",
+            "compilation_id": "compilation.NG-12.2026-11-22-131035.6b7e0a21",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "b961dc6678415a24e0c9313e4a0cf27fa04d263fd264ea17640e8c747f0f9a05",
+            "source": {
+                "path": ".agent-loop/recall/NG-12/meta.json",
+                "sha256": "sha256:84af65bfc12a7017b5289a8a88192cd6f1fff8072720d4bcc16959c48ac575e4"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-12/reviews/NG-12.blindspots.json",
+                "sha256": "sha256:7a41fa067a6f85c0d04062e68b1d9ee61de391d8e9addc9c2c5f8d2d59fd57c4"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "f3b318a922658e98258747ca1dbc4f83245ce362",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-12-r3-8f883826",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-12-r3-8f883826/session.json",
+                "sha256": "sha256:99fb74b9a0fda0fc4c97e94dd9535c3482ca767b93daf2e674b0c0297923df40"
+            },
+            "state": "done",
+            "task_id": "NG-12"
+        },
+        "verification": {
+            "contract_revision": 3,
+            "implementation_snapshot": "sha256:d5d71a839db06bc31f26d177ee6bc2ee5cbe685fcf97d22b0afad0df6adde193",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-12:7ebc40361d7c70b4",
+            "source": {
+                "path": ".agent-loop/runs/NG-12/verification.json",
+                "sha256": "sha256:ff22a70ac7226888e1d8e0432704ab58df3333142d3133412fead8fc9b086ef5"
+            },
+            "source_session_id": "2026-11-22-ng-12-r3-8f883826",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-12:7ebc40361d7c70b4",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-12"
+}

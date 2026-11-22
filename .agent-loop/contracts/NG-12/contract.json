@@ -1,0 +1,52 @@
+{
+    "acceptance_criteria": [
+        "Two profiles with different concept sets never show each other's concepts or wording",
+        "The board works for a concept without a symbol",
+        "With no active profile and damaged entries present the board shows the damaged state, not the demo board and not a create-profile flow",
+        "When storage cannot be opened the demo board still works",
+        "User-facing text is German"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-22T13:10:35+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "f3b318a922658e98258747ca1dbc4f83245ce362",
+    "behavior_anchors": [],
+    "created_at": "2026-11-22T13:10:35+00:00",
+    "goal": "The board renders the active child profile: its own ordered set of concepts with per-profile German label and sentence, including custom concepts stored in that profile's data. Without a profile the labelled synthetic demo board is shown; damaged profile storage is shown as its own state. A typed API lets a later caregiver screen pick, order, reword and add concepts.",
+    "kind": "task_contract",
+    "non_goals": [
+        "No caregiver editing screens or gestures to reach them (NG-13)",
+        "No custom symbol images or photos and no export format change (NG-27)",
+        "No profile order or creation field (NG-27)",
+        "No change to src/profiles/"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 3,
+    "schema_version": "1.0",
+    "scope": [
+        "src/board.ts",
+        "src/main.ts",
+        "src/concepts.ts",
+        "src/startup.ts",
+        "src/board-data.ts",
+        "public/sw.js",
+        "public/styles.css",
+        "test/board.test.mjs",
+        "test/bootstrap.test.mjs",
+        "docs/storage.md",
+        "README.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-12",
+    "updated_at": "2026-11-22T13:10:35+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}
