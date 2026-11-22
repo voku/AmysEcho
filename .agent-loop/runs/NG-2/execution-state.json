@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "57785be2970ea53542c71b562a5a3feac54e5f9e",
+    "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
     "history": [
         {
@@ -33,6 +33,38 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:ef2132dd",
                 "summary": "No profile or storage code exists: src/ has board.ts, concepts.ts, main.ts, speech.ts, status.ts and src/recognition/. Concepts are a fixed frozen list in src/concepts.ts (ConceptV1 with id, labelDe, speechDe, symbolPath). Tests are Node test files against dist/. The product contract section 3 defines ProfileV1 { version, id, conceptIds } and section 6 the export, restore and delete rules. All nine scope files are new.",
+                "task_id": "NG-2",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:53:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:53:48+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "schema_version": "1.0",
+                "task_id": "NG-2",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:57785be2970ea53542c71b562a5a3feac54e5f9e:46c7a5a9a93fa972eebec0e44a8f4348ec410c91",
+                "context_id": "claude-subagent-ng2-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:65ed2758940f1378f49fda1b1250300c7ab56afd61ae69e6163faf5fae2efc2c",
+                "outcome": "completed",
+                "run_id": "run:NG-2:98bf0dfe244a52be",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:45a62df7",
+                "summary": "Implemented src/profiles: KeyValueBackend seam with atomic write, in-memory backend with failure injection, IndexedDB adapter (type-checked only, no automated test until NG-14), ProfileV1 with opaque random ids and strict parsing, ProfileStore with per-profile key prefixes, schema marker and serialised operations, and versioned export/import with reject, replace and copy conflict modes. 29 new tests; npm run verify passes with 68 tests. docs/storage.md documents layout, export format and limits.",
                 "task_id": "NG-2",
                 "validation_references": []
             }
