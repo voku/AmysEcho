@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ec7605a95cf4534f7cb667848ebb46454355b3ff",
+    "contract_revision": 2,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-22T16:22:15+00:00",
+    "reference": "execution-evidence:sha256:cd381f3365e1d2ef01992f692c216a89e8ea0323568e842154a6bd03f02caf4f",
+    "run_id": "run:NG-30:c7005b152ab42c3f",
+    "schema_version": "1.0",
+    "source_digest": "sha256:4fc234e8f7419254f7e8abd5cd2a47e52bdb36de3b01ea0d017bdaa47da20228",
+    "source_reference": "workspace-file:src/speech.ts",
+    "stage_id": "correctness-review",
+    "task_id": "NG-30"
+}

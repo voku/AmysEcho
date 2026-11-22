@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ec7605a95cf4534f7cb667848ebb46454355b3ff",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
     "history": [
         {
@@ -66,6 +66,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:5e08686e",
                 "summary": "Second build: utterance end tracked with an 8 s fallback, voice warm-up and voiceschanged, dimmed speaker and actionable lines, five examples fit 320x568 and 360x640 under every notice, overscroll and contextmenu guards, corrected docs; measured in Chromium at five sizes; verify passes with 283 tests",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T16:22:15+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:22:15+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:47e710ad3e65e9b6c08c0077672b8af200bc55e54a42c750b0355a002c872ad7",
+                    "execution-evidence:sha256:8ce057ac642f7972574611296288380bffd2233d09a149ad7229735220945a00",
+                    "execution-evidence:sha256:cd381f3365e1d2ef01992f692c216a89e8ea0323568e842154a6bd03f02caf4f"
+                ],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ec7605a95cf4534f7cb667848ebb46454355b3ff",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:47e710ad3e65e9b6c08c0077672b8af200bc55e54a42c750b0355a002c872ad7",
+                    "execution-evidence:sha256:8ce057ac642f7972574611296288380bffd2233d09a149ad7229735220945a00",
+                    "execution-evidence:sha256:cd381f3365e1d2ef01992f692c216a89e8ea0323568e842154a6bd03f02caf4f"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ec7605a95cf4534f7cb667848ebb46454355b3ff",
+                "context_id": "claude-subagent-ng30-correctness-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "outcome": "changes_required",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:763372a2",
+                "summary": "docs/board.md:151-153 says a repeat tap never restarts a running sentence however long it is; false beyond SPEECH_MAX_MS (board.ts:274); blind-spot: board.ts:33 'Bitte noch einmal tippen' is shown also when no German voice exists and tapping can never help (speech.ts:60-81 folds four cases into one result)",
                 "task_id": "NG-30",
                 "validation_references": []
             }
