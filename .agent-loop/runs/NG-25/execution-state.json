@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
     "contract_revision": 1,
-    "current_attempt": 5,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -413,6 +413,151 @@
                 "summary": "Fifth build: wording only in docs/storage.md and two doc comments; no behaviour change; verify passes with 92 tests",
                 "task_id": "NG-25",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:35:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:35:44+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e517470347816b736ce6a005a3c6c87e824399c71c43730e8315a3e5cb682893",
+                    "execution-evidence:sha256:8d7ee3cee9042325bbd663e088b0d5bc5c3e00cac82b3a9c7a2ca8d3cca9a20e",
+                    "execution-evidence:sha256:e011d74e96786ee2429c82419ed5a0b23e288fdeeaba857c934c6bbe4ed5123a",
+                    "execution-evidence:sha256:726cc47e7f7d6fb15de64df6b5f736f6f643411752ad95b434a54faa58d92e92",
+                    "execution-evidence:sha256:61788bc4aa2f7afb718feebc04b0a807a549a0ae086e6dbeb63b081ebce67eea",
+                    "execution-evidence:sha256:1869b5094efea42011eabb847fa537b2e716f859857d32c088393c8ccff667ac",
+                    "execution-evidence:sha256:a5aa43e9d13a3c4137470c0865028284f42085a0cc3ce648980e0a9ed653ae3b"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e517470347816b736ce6a005a3c6c87e824399c71c43730e8315a3e5cb682893",
+                    "execution-evidence:sha256:8d7ee3cee9042325bbd663e088b0d5bc5c3e00cac82b3a9c7a2ca8d3cca9a20e",
+                    "execution-evidence:sha256:e011d74e96786ee2429c82419ed5a0b23e288fdeeaba857c934c6bbe4ed5123a",
+                    "execution-evidence:sha256:726cc47e7f7d6fb15de64df6b5f736f6f643411752ad95b434a54faa58d92e92",
+                    "execution-evidence:sha256:61788bc4aa2f7afb718feebc04b0a807a549a0ae086e6dbeb63b081ebce67eea",
+                    "execution-evidence:sha256:1869b5094efea42011eabb847fa537b2e716f859857d32c088393c8ccff667ac",
+                    "execution-evidence:sha256:a5aa43e9d13a3c4137470c0865028284f42085a0cc3ce648980e0a9ed653ae3b"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "context_id": "claude-subagent-ng25-correctness-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "observations": [
+                    "docs/storage.md:168-170 and store.ts:114 'a refusal reads the whole profile' is exact only for data.set limit refusals",
+                    "store.ts:240 still says options.limits lowers the limits; docs now also describe raising them",
+                    "no test covers a failing correction write through a synchronously throwing backend"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:7fae105c",
+                "summary": "Pass: 771f466 changes comments and docs only; every changed statement checked against code and tests; verify passes with 92 tests. The reviewer's one finding (docs name card NG-22 for restoring raised-limit backups while the card did not say so) is resolved by recording that follow-up on the NG-22 card, as the reviewer offered.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:35:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:35:45+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:026fff4010bcc96ee4784650825f9095508fab9d7000922459056bf722a80689",
+                    "execution-evidence:sha256:c4c9838e01d2e8a85d2770787a56b6edf46535d11cfdc4f8ee9fa0dfc59b108c",
+                    "execution-evidence:sha256:af2c80d1a202a02ae31a46c1ea87069c8ccd134bc45246c4792acba2900dd2a0",
+                    "execution-evidence:sha256:af22d05b3f5d07db8a955140fb09a1ed2b542bdba68fc835f3478467c8a0e820",
+                    "execution-evidence:sha256:39cead93a0af9d714a6f0f9924be1ae323af7b70cc41e2eadc663b94186769c0",
+                    "execution-evidence:sha256:4693e30896d12bb6f4c189098eebcaeff292410884d8f6e4888525311052e88f",
+                    "execution-evidence:sha256:300ebcdfc037f6ec6d51221fba473548e6ca5adf9aa7a55872f2d5c8ac81b980"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:026fff4010bcc96ee4784650825f9095508fab9d7000922459056bf722a80689",
+                    "execution-evidence:sha256:c4c9838e01d2e8a85d2770787a56b6edf46535d11cfdc4f8ee9fa0dfc59b108c",
+                    "execution-evidence:sha256:af2c80d1a202a02ae31a46c1ea87069c8ccd134bc45246c4792acba2900dd2a0",
+                    "execution-evidence:sha256:af22d05b3f5d07db8a955140fb09a1ed2b542bdba68fc835f3478467c8a0e820",
+                    "execution-evidence:sha256:39cead93a0af9d714a6f0f9924be1ae323af7b70cc41e2eadc663b94186769c0",
+                    "execution-evidence:sha256:4693e30896d12bb6f4c189098eebcaeff292410884d8f6e4888525311052e88f",
+                    "execution-evidence:sha256:300ebcdfc037f6ec6d51221fba473548e6ca5adf9aa7a55872f2d5c8ac81b980"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "context_id": "claude-subagent-ng25-blindspot-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "observations": [
+                    "backup.ts:49 ImportOptions.limits can only tighten, never raise; comment is imprecise",
+                    "follow-ups carried to cards NG-12, NG-13, NG-14, NG-19, NG-22"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:2939689d",
+                "summary": "Pass: prior blocker resolved; no statement is stronger than code and tests support; raised-limit import, refusal wording and best-effort correction match store.ts and backup.ts.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:36:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:36:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:c5d887aea0d8b883f0c3c547199147cb24ecb8b33e194bcc9724a1efdefc4f10",
+                    "execution-evidence:sha256:04ebcd7f4c9d3518ab7b87c9037f13c08dd420376bd62c85d851498770d554d3"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "consistency_references": [
+                    "execution-evidence:sha256:c6d7f631413802e208a96c6ecc39425ec645632727cd63fc940ec39d657480e9"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:9afbc96f5a3d791de206c7dd3fffe0ff93906ae6c68b8643b308c53e39202355",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-25: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-25 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-25:947884823683544c binds active Session 2026-11-22-ng-25-r1-92b5c3c9 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-25 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-25",
+                "validation_references": [
+                    "execution-evidence:sha256:c5d887aea0d8b883f0c3c547199147cb24ecb8b33e194bcc9724a1efdefc4f10",
+                    "execution-evidence:sha256:04ebcd7f4c9d3518ab7b87c9037f13c08dd420376bd62c85d851498770d554d3"
+                ]
             }
         }
     ],
