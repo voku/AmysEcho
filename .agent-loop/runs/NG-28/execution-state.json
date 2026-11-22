@@ -1,0 +1,593 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T13:32:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:32:56+00:00",
+                "artifact_references": [],
+                "candidate_revision": "0609c6d70d1aff9c66b70f90a829e8f6eee2561e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "0609c6d70d1aff9c66b70f90a829e8f6eee2561e",
+                "context_id": "claude-main-ng28-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:da2bfe72",
+                "summary": "mountBoard replaces all of #app, loadStartupView drops its store, the board references catalogue wording by id and renders the display name; index.html has no static content",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:32:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:32:56+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "context_id": "claude-subagent-ng28-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:f2e85cff",
+                "summary": "App controller with one store and refreshBoard, board region, fallback board with a sentence per cause, wording copied on choose, no display name on the board, static index line, start-up branches covered; verify passes with 153 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:37:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:37:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4d02edebd242b06c28af12526a1df9ed26ad997fbdb00278d585f61679423228",
+                    "execution-evidence:sha256:7ac45d577ae6727f14569029591f6213b391e6fb6f0a09c45964a2955119f608",
+                    "execution-evidence:sha256:b16dd02d855253eef8190de359dfc02f6e09beffbc0d11aba608914e6f9a47f1"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4d02edebd242b06c28af12526a1df9ed26ad997fbdb00278d585f61679423228",
+                    "execution-evidence:sha256:7ac45d577ae6727f14569029591f6213b391e6fb6f0a09c45964a2955119f608",
+                    "execution-evidence:sha256:b16dd02d855253eef8190de359dfc02f6e09beffbc0d11aba608914e6f9a47f1"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "context_id": "claude-subagent-ng28-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:6b201a28",
+                "summary": "startup.ts:222-225 the in-place late-answer path never reports problems, so data-board-problems and the console trace are missing for a late unloadable or empty profile and docs/storage.md is false there; blind-spot: fallback examples are look-alikes of own tiles with other sentences and positions, and the reversal recipe for that decision is incomplete",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:44:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:44:07+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "context_id": "claude-subagent-ng28-build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:78a51197",
+                "summary": "Second build: late in-place answers trace problems, examples board has its own look and badge, catalogue copies are marked and refreshed on re-choosing, refreshBoard is time-bounded, tests pin what they name; verify passes with 161 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:48:58+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:48:58+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:78bd42ee0e5bbfb0efaf84c69f678a87b3e384e0a505c84a86bfd07cfb88cac3",
+                    "execution-evidence:sha256:abb0f2ce4301aa85ea0b91772b8731f1b8dcce95a1518ad629f6b4d34e0ef8df",
+                    "execution-evidence:sha256:7980ea5e402582a48a0547a5f207885baad8efacd8e37d1b3f00c6138f2798a9",
+                    "execution-evidence:sha256:94f782e42e7d484792bfa2264036fe934cd3d069d635e024ca48bbd2d0467dec",
+                    "execution-evidence:sha256:37c17d3bd0287190bd2279ba1d09f988349504b6646778b197f317d0a9540920",
+                    "execution-evidence:sha256:3be46df7e276dc527fb99ee5c0f4a297fc04106ebf72e8568127dd3c2b3be57b",
+                    "execution-evidence:sha256:7fcda09c8f6c75e8816530f5df8a79857230e1a2893879e1412b9e7a6255bb91",
+                    "execution-evidence:sha256:f3249e869c3518cd61dc48ec7267f77a466feb76afaffd0027467a4d774ad171",
+                    "execution-evidence:sha256:e1d44fe27762c67d3f6c75144b922aa119ed45348d0eaef8fa32629052f16d9d",
+                    "execution-evidence:sha256:92947ce82bcf2491808a46bff1e6631278e300d178b3cdd52db0b6b1c63ee483",
+                    "execution-evidence:sha256:f1bcd23dc35467872362733fa365eb31e9541e6d7d313b570fbef7e71e622a97",
+                    "execution-evidence:sha256:2c19bb0e387fc0105792267d1087eef2128c3a958e33d9f010afd7bf9fed1894"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:78bd42ee0e5bbfb0efaf84c69f678a87b3e384e0a505c84a86bfd07cfb88cac3",
+                    "execution-evidence:sha256:abb0f2ce4301aa85ea0b91772b8731f1b8dcce95a1518ad629f6b4d34e0ef8df",
+                    "execution-evidence:sha256:7980ea5e402582a48a0547a5f207885baad8efacd8e37d1b3f00c6138f2798a9",
+                    "execution-evidence:sha256:94f782e42e7d484792bfa2264036fe934cd3d069d635e024ca48bbd2d0467dec",
+                    "execution-evidence:sha256:37c17d3bd0287190bd2279ba1d09f988349504b6646778b197f317d0a9540920",
+                    "execution-evidence:sha256:3be46df7e276dc527fb99ee5c0f4a297fc04106ebf72e8568127dd3c2b3be57b",
+                    "execution-evidence:sha256:7fcda09c8f6c75e8816530f5df8a79857230e1a2893879e1412b9e7a6255bb91",
+                    "execution-evidence:sha256:f3249e869c3518cd61dc48ec7267f77a466feb76afaffd0027467a4d774ad171",
+                    "execution-evidence:sha256:e1d44fe27762c67d3f6c75144b922aa119ed45348d0eaef8fa32629052f16d9d",
+                    "execution-evidence:sha256:92947ce82bcf2491808a46bff1e6631278e300d178b3cdd52db0b6b1c63ee483",
+                    "execution-evidence:sha256:f1bcd23dc35467872362733fa365eb31e9541e6d7d313b570fbef7e71e622a97",
+                    "execution-evidence:sha256:2c19bb0e387fc0105792267d1087eef2128c3a958e33d9f010afd7bf9fed1894"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "context_id": "claude-subagent-ng28-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "observations": [
+                    "src/board-data.ts:348 choosing overwrites an unsupported-version entry with a v1 copy, also for a concept that stays on the board",
+                    "docs/storage.md:225 clearWording deletes an unreadable entry is not true for a catalogue concept on the board",
+                    "src/startup.ts:230 the kept path drops data-board-problems for a troubled own profile until the next mount",
+                    "src/board.ts:216 and src/app.ts:102 have untested branches"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:e7c65b93",
+                "summary": "Pass: six claims hold under probes; 20 of 22 mutations killed; verify passes with 161 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:48:58+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:48:58+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a04b187e7160e3023a21e66a32814f80d415c129711387cc6b19ab9074645d88",
+                    "execution-evidence:sha256:17faf7cd9c506a96998b692ebffbe090a984fb2a6ab8c998104d96284fffeeff"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a04b187e7160e3023a21e66a32814f80d415c129711387cc6b19ab9074645d88",
+                    "execution-evidence:sha256:17faf7cd9c506a96998b692ebffbe090a984fb2a6ab8c998104d96284fffeeff"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "context_id": "claude-subagent-ng28-blindspot-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:b64ddff9",
+                "summary": "board-data.ts:348 any setBoardConcepts call, including a pure reorder, overwrites an entry this version cannot read (also unsupported-version, possibly intact caregiver wording) and erases its problem trace, against the never-touched statements; docs/storage.md:471-472 reversal recipe for copy-on-choose would remove tiles of concepts the catalogue dropped",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:52:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:52:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:1a52e9c2e570b4f084a8ad18b541cfe3e50f37d1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:1a52e9c2e570b4f084a8ad18b541cfe3e50f37d1",
+                "context_id": "claude-subagent-ng28-build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:3cf943bd",
+                "summary": "Third build: setBoardConcepts no longer overwrites entries it cannot read except a plainly unreadable one of a newly chosen catalogue concept; newer-version entries are refused by setWording, clearWording and putCustomConcept; kept path traces problems; docs made exact; verify passes with 162 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:55:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:55:43+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e68deca280fa6afba051f9267f04dee8583d866db2a8e42598ccf6836983ba6a",
+                    "execution-evidence:sha256:785c77c22dcf72353a33e4845528a16bb68981cde1b9d26783c0c7d89ca0afda",
+                    "execution-evidence:sha256:515fda77adbaf640f29e738915437e9449011053e992e7780eedd0d2344113d3"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:1a52e9c2e570b4f084a8ad18b541cfe3e50f37d1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e68deca280fa6afba051f9267f04dee8583d866db2a8e42598ccf6836983ba6a",
+                    "execution-evidence:sha256:785c77c22dcf72353a33e4845528a16bb68981cde1b9d26783c0c7d89ca0afda",
+                    "execution-evidence:sha256:515fda77adbaf640f29e738915437e9449011053e992e7780eedd0d2344113d3"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:1a52e9c2e570b4f084a8ad18b541cfe3e50f37d1",
+                "context_id": "claude-subagent-ng28-correctness-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:44ac5e78",
+                "summary": "board.ts:33 the refresh-timeout sentence promises an own board that may not exist (no profile, damaged, just deleted); docs/storage.md:319-320 data-board-problems is no longer absent for every non-profile view; blind-spot: board-data.ts:355-356 an id already on the board with an entry this version cannot read under a non-catalogue id makes every reorder refuse, so a UI drops it and its trace",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:57:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:57:35+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "context_id": "claude-main-ng28-build-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:50d3f347",
+                "summary": "Fourth build: an id already on the board may stay in setBoardConcepts whatever its entry holds; refresh-timeout sentence promises no own board; docs corrected for the kept board's problem count and the full-conceptIds rule; verify passes with 163 tests; the new condition is mutation-checked",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:59:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:59:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0b1a0a63c76c246d549d02c2ba66a67265de0bd674a5534430e884e9b91c602a",
+                    "execution-evidence:sha256:5e16ba4ee3a6cfe35670b2c446db19cfa9316aad5dfa28ceabf1787c702e1fd8"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0b1a0a63c76c246d549d02c2ba66a67265de0bd674a5534430e884e9b91c602a",
+                    "execution-evidence:sha256:5e16ba4ee3a6cfe35670b2c446db19cfa9316aad5dfa28ceabf1787c702e1fd8"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "context_id": "claude-subagent-ng28-correctness-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:1c115172",
+                "summary": "board-data.ts:353 requireConceptId runs before the on-board check, so an on-board id with a dot, underscore or over 40 characters still forces a drop, against docs/storage.md:246-248; docs/storage.md:225 and the JSDoc at board-data.ts:327-330 still state that every id needs a readable entry",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:00:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:00:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "context_id": "claude-main-ng28-build-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:74e5edcf",
+                "summary": "Fifth build: an on-board id that board data cannot address also stays in setBoardConcepts; function table and doc comment state the rule for newly chosen and for staying ids; verify passes with 163 tests; the new branch is mutation-checked",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:03:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:03:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8b8bdfc989ce94122a56782d8165aa55e7f7298a56983dae7332da61aa6c3321",
+                    "execution-evidence:sha256:c2f0b57f3392727a34c859d947c5c294a1f81961176fa7dfbbbfea5f71535217",
+                    "execution-evidence:sha256:53506f16d5afc03b92436d52300932aada939d7dc8178ab77856eccf63e3d7f6",
+                    "execution-evidence:sha256:f3ab9dc73cf3b00f674a4ad6543c2ab7298e2c7eeed3e47a0fce6993141b46f0",
+                    "execution-evidence:sha256:480ec38582df810e913620d92e4ac204dd78f2498536d1b4163761119ce481e2",
+                    "execution-evidence:sha256:4c4df89a81426c9793d1746c8b19f3da00082afaaa23440b50898d6254f9acd0",
+                    "execution-evidence:sha256:e17ea69134f15d199ed555d9d7630773218642cb2329bc8d818de0b8fe68b437",
+                    "execution-evidence:sha256:e0454ac23824663c784b226be1f9231a83d12b0710b0913beca6b65f40236487",
+                    "execution-evidence:sha256:635a9c2bcb6a2dbe3cfec31715cb4fc7e67c7e53a143d14f902abeec6da854b6",
+                    "execution-evidence:sha256:9bf8cf4c0d44348f6f3221f0e0f8e0aa8392ba9982c053afa99f13f97d5147c8",
+                    "execution-evidence:sha256:a876a6500b481642e312d1d37f6f1ddbd0f1153b90536745466341e8860ffd81",
+                    "execution-evidence:sha256:e0ed526a46ef3f02aa9956b37d925a40a4f6303aa50d3a5dc2311861a818cd12"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8b8bdfc989ce94122a56782d8165aa55e7f7298a56983dae7332da61aa6c3321",
+                    "execution-evidence:sha256:c2f0b57f3392727a34c859d947c5c294a1f81961176fa7dfbbbfea5f71535217",
+                    "execution-evidence:sha256:53506f16d5afc03b92436d52300932aada939d7dc8178ab77856eccf63e3d7f6",
+                    "execution-evidence:sha256:f3ab9dc73cf3b00f674a4ad6543c2ab7298e2c7eeed3e47a0fce6993141b46f0",
+                    "execution-evidence:sha256:480ec38582df810e913620d92e4ac204dd78f2498536d1b4163761119ce481e2",
+                    "execution-evidence:sha256:4c4df89a81426c9793d1746c8b19f3da00082afaaa23440b50898d6254f9acd0",
+                    "execution-evidence:sha256:e17ea69134f15d199ed555d9d7630773218642cb2329bc8d818de0b8fe68b437",
+                    "execution-evidence:sha256:e0454ac23824663c784b226be1f9231a83d12b0710b0913beca6b65f40236487",
+                    "execution-evidence:sha256:635a9c2bcb6a2dbe3cfec31715cb4fc7e67c7e53a143d14f902abeec6da854b6",
+                    "execution-evidence:sha256:9bf8cf4c0d44348f6f3221f0e0f8e0aa8392ba9982c053afa99f13f97d5147c8",
+                    "execution-evidence:sha256:a876a6500b481642e312d1d37f6f1ddbd0f1153b90536745466341e8860ffd81",
+                    "execution-evidence:sha256:e0ed526a46ef3f02aa9956b37d925a40a4f6303aa50d3a5dc2311861a818cd12"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "context_id": "claude-subagent-ng28-correctness-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "observations": [
+                    "docs/storage.md:249 omits store.create as a way an un-addressable id reaches a board; the next bullet names it",
+                    "src/board-data.ts:369 newlyChosen duplicates !staying",
+                    "test/board.test.mjs:1696 does not cover the 64-character boundary or a duplicate odd id; both probed and pass"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:1a052be6",
+                "summary": "Pass: staying ids verified for un-addressable ids in every probed case with write counts and failure injection; the extended test fails without the new branch; changed doc passages match the code; verify passes with 163 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:03:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:03:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d260b19dcbe7d6c901a319e6e307424f03763f2fcfeba4500b0f85f9964a8374",
+                    "execution-evidence:sha256:a063a5b25f14e8c844e82d990a26b45d5e59495c4ac2d7d417c67e4a55e1186e",
+                    "execution-evidence:sha256:1521fb757f571b3ee4681b3f8781a3c6f0c4842347112c558026befad0ef30c9",
+                    "execution-evidence:sha256:059312ad794ff80606296637f1674b6a2f047dff713dc0a8481d2d04473b1323",
+                    "execution-evidence:sha256:503dc0fced0a1bf72168b3161e6772fc26f518788478ae9f71e8b3dd8d2eec88",
+                    "execution-evidence:sha256:cf94405a7127202c45d3f26ac749a1222997663ee64537395b68e91623a7c74b",
+                    "execution-evidence:sha256:6402d25ccb39a931d5d390705a79211ec41652b75fa9c21b97f5134d1b184718",
+                    "execution-evidence:sha256:bc99bcb0908b9637828645171fbcd09af8b82f925716913807a972559c0edc48",
+                    "execution-evidence:sha256:6c6fcd6097bf98392267ba3cb7350d1bc40d735dfa7365323a850afc20dc37f7",
+                    "execution-evidence:sha256:a370a5953f1196d66e077698793b5b7b652106767be03be2fce84f28a7c3ef9f",
+                    "execution-evidence:sha256:a58d2ef25c36e5a652ed35074c16fbf9e9831dce10ce982f3ba98356167bc2c7",
+                    "execution-evidence:sha256:4aeb2f0e1214039c6595b5e074ea1257668d230a6151ff574813be285f7be3b7"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d260b19dcbe7d6c901a319e6e307424f03763f2fcfeba4500b0f85f9964a8374",
+                    "execution-evidence:sha256:a063a5b25f14e8c844e82d990a26b45d5e59495c4ac2d7d417c67e4a55e1186e",
+                    "execution-evidence:sha256:1521fb757f571b3ee4681b3f8781a3c6f0c4842347112c558026befad0ef30c9",
+                    "execution-evidence:sha256:059312ad794ff80606296637f1674b6a2f047dff713dc0a8481d2d04473b1323",
+                    "execution-evidence:sha256:503dc0fced0a1bf72168b3161e6772fc26f518788478ae9f71e8b3dd8d2eec88",
+                    "execution-evidence:sha256:cf94405a7127202c45d3f26ac749a1222997663ee64537395b68e91623a7c74b",
+                    "execution-evidence:sha256:6402d25ccb39a931d5d390705a79211ec41652b75fa9c21b97f5134d1b184718",
+                    "execution-evidence:sha256:bc99bcb0908b9637828645171fbcd09af8b82f925716913807a972559c0edc48",
+                    "execution-evidence:sha256:6c6fcd6097bf98392267ba3cb7350d1bc40d735dfa7365323a850afc20dc37f7",
+                    "execution-evidence:sha256:a370a5953f1196d66e077698793b5b7b652106767be03be2fce84f28a7c3ef9f",
+                    "execution-evidence:sha256:a58d2ef25c36e5a652ed35074c16fbf9e9831dce10ce982f3ba98356167bc2c7",
+                    "execution-evidence:sha256:4aeb2f0e1214039c6595b5e074ea1257668d230a6151ff574813be285f7be3b7"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "context_id": "claude-subagent-ng28-blindspot-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "observations": [
+                    "docs/storage.md:250 says an un-addressable id reaches a board only through setConceptIds or an import; store.create does too; to be corrected with the next change to that file",
+                    "src/board-data.ts:367 a newly chosen un-addressable id that is in the passed catalogue is accepted with no copy stored; hypothetical, shipped catalogue ids are addressable"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:41ab762b",
+                "summary": "Pass: the three statements that blocked the last round are true against code and probe; nothing worse for a child or caregiver",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:03:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:03:16+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:f007b1a3ada9567c764253bc639d3addc760953fa48672c20b4091cac74aa728",
+                    "execution-evidence:sha256:f0e8f48e58f7938c67ed077d63037d7e6f6bb7de397bc53a4d4de288edba7619"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:2eaae633ca3f5c6db212c39b9122afa091a4bd7b",
+                "consistency_references": [
+                    "execution-evidence:sha256:d4dd6ff262097b593b0640c47e080527b12afe3bc2014415b3fecb2ea7f18c92"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "pass",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:d62f93661351b87bfd746245fd48e820d9d162fa911bb55482fcb2d04f43a934",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-28: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-28 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-28:c91b439f3817329a binds active Session 2026-11-22-ng-28-r1-873a5fc1 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-28 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-28",
+                "validation_references": [
+                    "execution-evidence:sha256:f007b1a3ada9567c764253bc639d3addc760953fa48672c20b4091cac74aa728",
+                    "execution-evidence:sha256:f0e8f48e58f7938c67ed077d63037d7e6f6bb7de397bc53a4d4de288edba7619"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-28:c91b439f3817329a",
+    "schema_version": "1.0",
+    "task_id": "NG-28"
+}

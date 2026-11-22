@@ -1,0 +1,197 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T13:22:42+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-28/contract.json",
+                "sha256": "sha256:aaed7a38e13845941fe12e2411479fa1509e821af553ac1cb476034c0ddd3d40"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-28",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "bee35d99001e0912555038262f292f2495b60121a9b9c4eac0cadb8634545473",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-28.md",
+                "sha256": "sha256:bee35d99001e0912555038262f292f2495b60121a9b9c4eac0cadb8634545473"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "In the damaged, no-active and empty-profile states and when no concept of a profile can be loaded, the example concepts are tappable and a German notice says they are examples and why",
+                "A profile board whose catalogue later changes or drops a chosen concept still shows and speaks the wording stored when it was chosen",
+                "The child's display name is not rendered on the board",
+                "After a profile change the controller re-mounts the board from the same store instance without reloading the page",
+                "A late start-up answer that equals the mounted view causes no re-mount"
+            ],
+            "goal": "Foundations for the caregiver area: the board has its own container, one app controller owns the single ProfileStore instance and can re-resolve and re-mount the board after a profile change; when a child's own board cannot be shown the labelled example concepts are shown with a clear German notice; choosing a catalogue concept copies its wording into the profile; the child's name is not on the child-facing board; index.html has a static line for failed script loading.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-28/contract.json",
+                "sha256": "sha256:aaed7a38e13845941fe12e2411479fa1509e821af553ac1cb476034c0ddd3d40"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-28/contract.json",
+                "sha256": "sha256:aaed7a38e13845941fe12e2411479fa1509e821af553ac1cb476034c0ddd3d40"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T14:03:53+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-28:c91b439f3817329a",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/9a1acab68bbb7dcdf0088436b587dce7be2c6a725b4d87c49063f3dd47044503.json",
+                "sha256": "sha256:5e2cdecd412384bb50a6f2cce2c8bba36975092ed48b4c1ba7ffd209688165cf"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:2b5f7fa09e2396750d68cf6b120665d4c34cef59aa049bfaccd2d2e5f4acbd25",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:9a5f055105820b3dc4734c6198ab2a7dd02478645fe3d494c6fbb64259ec0c75"
+            },
+            "stale_entries": [
+                {
+                    "path": "public/sw.js",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/board-data.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/board.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/main.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/startup.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/board.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 7,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-28:c91b439f3817329a",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "7854c806c50d9f4f19546375c128762a3a1f858e550185ddaa85ded147589e80",
+            "compilation_id": "compilation.NG-28.2026-11-22-132242.448bfd2c",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "0b9b4aa70149baba9c3d0074bc84d277ab1c7eb996aea63b00dd1367b2e710f8",
+            "source": {
+                "path": ".agent-loop/recall/NG-28/meta.json",
+                "sha256": "sha256:7ad6d681d97897430fb276b26a6fed9da9f862a725e5d73314802a454b224843"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-28/reviews/NG-28.blindspots.json",
+                "sha256": "sha256:a5515673b9d116fbd31dd4b5f7e93fe88c8c4f760495355edf80574002990864"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "0609c6d70d1aff9c66b70f90a829e8f6eee2561e",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-28-r1-873a5fc1",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-28-r1-873a5fc1/session.json",
+                "sha256": "sha256:1aab6a24da702095e908e6ee7b93a1c9073140a329f4683c3dd58d269bfc9eda"
+            },
+            "state": "done",
+            "task_id": "NG-28"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:0c697a32f609c1f758260da9191db781f0ba306963e6d97d2553694d75b34219",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-28:c91b439f3817329a",
+            "source": {
+                "path": ".agent-loop/runs/NG-28/verification.json",
+                "sha256": "sha256:cfe0875c8c51f73603bf24607c0fc29f080c82ec1beef7bb28b700994f8b9f21"
+            },
+            "source_session_id": "2026-11-22-ng-28-r1-873a5fc1",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-28:c91b439f3817329a",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-28"
+}

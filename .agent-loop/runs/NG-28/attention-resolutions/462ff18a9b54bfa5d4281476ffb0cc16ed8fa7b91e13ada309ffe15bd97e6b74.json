@@ -1,0 +1,14 @@
+{
+    "actor": "Lars Moelleken (delegated to Claude for this session)",
+    "attempt": 3,
+    "attention_id": "attention:55a5bbd4aab6688e",
+    "contract_revision": 1,
+    "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+    "kind": "execution_attention_resolution",
+    "resolved_at": "2026-11-22T13:55:55+00:00",
+    "response": "Continue: the remaining findings are three small, specific fixes (one condition, one sentence, two doc lines).",
+    "run_id": "run:NG-28:c91b439f3817329a",
+    "schema_version": "1.0",
+    "stage_id": "correctness-review",
+    "task_id": "NG-28"
+}

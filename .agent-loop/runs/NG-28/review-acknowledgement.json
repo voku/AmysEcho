@@ -1,0 +1,11 @@
+{
+    "acknowledged_at": "2026-11-22T14:03:53+00:00",
+    "acknowledged_by": "Lars Moelleken (delegated to Claude for this session)",
+    "contract_revision": 1,
+    "implementation_snapshot": "sha256:0c697a32f609c1f758260da9191db781f0ba306963e6d97d2553694d75b34219",
+    "kind": "review_acknowledgement",
+    "report_sha256": "sha256:a5515673b9d116fbd31dd4b5f7e93fe88c8c4f760495355edf80574002990864",
+    "run_id": "run:NG-28:c91b439f3817329a",
+    "schema_version": "1.0",
+    "task_id": "NG-28"
+}

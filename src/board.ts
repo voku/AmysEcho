@@ -1,7 +1,8 @@
 import { CONCEPTS } from "./concepts.js";
 import type { BoardEntry } from "./board-data.js";
 import { requestLocalGermanSpeech, type SpeechAttempt } from "./speech.js";
-import type { BoardHandle, StartupHost, StartupView } from "./startup.js";
+import { fallbackCause, isTroubled, showsExamples } from "./startup.js";
+import type { BoardHandle, BoardView, FallbackCause, StartupHost } from "./startup.js";
 
 function paragraph(className: string, text: string): HTMLElement {
   const element = document.createElement("p");
@@ -16,40 +17,25 @@ function demoEntries(): BoardEntry[] {
   }));
 }
 
-/** The lines above the board and the concepts to show, per view. */
-function describe(view: StartupView): { readonly notices: HTMLElement[]; readonly entries: readonly BoardEntry[] } {
-  switch (view.kind) {
-    case "demo": {
-      const notices = [paragraph("board-notice", "Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben.")];
-      if (view.storage === "unavailable") {
-        notices.push(paragraph("board-notice", "Der Speicher dieses Geräts ist gerade nicht erreichbar. Deshalb sind hier nur die Beispiele zu sehen."));
-      }
-      return { notices, entries: demoEntries() };
-    }
-    case "profile": {
-      const notices = [paragraph("board-owner", `Profil: ${view.displayName}`)];
-      // A custom concept under an id the catalogue uses too is shown as the profile stored it:
-      // worth a trace for the caregiver, but nothing is wrong on the board.
-      const troubled = view.problems.some((problem) => problem.kind !== "custom-shadows-catalogue");
-      if (view.entries.length === 0) {
-        notices.push(paragraph("board-notice", troubled
-          ? "Die Begriffe dieser Tafel konnten nicht geladen werden. Bitte gib einer Bezugsperson Bescheid."
-          : "Für dieses Profil sind noch keine Begriffe ausgewählt."));
-      } else if (troubled) {
-        notices.push(paragraph("board-notice", "Nicht alle Begriffe dieser Tafel konnten so geladen werden, wie sie gespeichert sind."));
-      }
-      return { notices, entries: view.entries };
-    }
-    case "damaged":
-      return {
-        notices: [paragraph("board-notice", view.count === 1
-          ? "Ein gespeichertes Profil kann gerade nicht gelesen werden. Es wurde nichts verändert. Bitte gib einer Bezugsperson Bescheid."
-          : `${view.count} gespeicherte Profile können gerade nicht gelesen werden. Es wurde nichts verändert. Bitte gib einer Bezugsperson Bescheid.`)],
-        entries: [],
-      };
-    case "no-active":
-      return { notices: [paragraph("board-notice", "Es ist noch kein Profil ausgewählt. Bitte gib einer Bezugsperson Bescheid.")], entries: [] };
-  }
+const EXAMPLES_LINE = "Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben.";
+
+/** One calm sentence per reason why the examples stand in for the child's own board. */
+const FALLBACK_LINES: Record<FallbackCause, string> = {
+  "storage-unavailable": "Der Speicher dieses Geräts ist gerade nicht erreichbar. Deshalb werden hier Beispiele gezeigt.",
+  "damaged": "Die eigene Tafel kann gerade nicht geladen werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  "no-active": "Es ist noch keine eigene Tafel ausgewählt. Bis dahin werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  "empty-profile": "Für die eigene Tafel sind noch keine Begriffe ausgewählt. Bis dahin werden Beispiele gezeigt.",
+  "unloadable-profile": "Die Begriffe der eigenen Tafel konnten nicht geladen werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  // Also shown on a device without any profile whose storage never answers, so it does not speak of an own board.
+  "timeout": "Das Laden dauert gerade länger. Deshalb werden Beispiele gezeigt.",
+  "timeout-kept": "Hier werden noch Beispiele gezeigt. Die eigene Tafel ist bereit und erscheint, wenn die Seite neu geladen wird.",
+  "render-failed": "Die eigene Tafel kann gerade nicht angezeigt werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  // Also shown when no own board exists (no profile, or one that was just removed), so it promises none.
+  "refresh-timeout": "Die Tafel konnte gerade nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Bitte lade die Seite neu oder gib einer Bezugsperson Bescheid.",
+};
+
+function fallbackLine(cause: FallbackCause | null): string {
+  return cause === null ? EXAMPLES_LINE : FALLBACK_LINES[cause];
 }
 
 function makeHeading(): HTMLElement {
@@ -68,18 +54,19 @@ function cancelRunningSpeech(): void {
 }
 
 /**
- * Leaves a trace of board problems for the caregiver: the count on the root
- * (`data-board-problems`, absent when the view is not a profile board) and one
+ * Leaves a trace of board problems for the caregiver: the count on the region
+ * (`data-board-problems`, absent when the view carries no problem list) and one
  * console line per problem with its kind and concept id. No wording and no
  * profile name is logged.
  */
-function reportProblems(root: HTMLElement, view: StartupView): void {
-  if (view.kind !== "profile") {
+function reportProblems(root: HTMLElement, view: BoardView): void {
+  const problems = view.kind === "profile" || view.kind === "fallback" ? view.problems : undefined;
+  if (problems === undefined) {
     delete root.dataset["boardProblems"];
     return;
   }
-  root.dataset["boardProblems"] = String(view.problems.length);
-  for (const problem of view.problems) {
+  root.dataset["boardProblems"] = String(problems.length);
+  for (const problem of problems) {
     console.warn(`Board problem: ${problem.kind} for concept "${problem.conceptId}"${problem.damage === undefined ? "" : ` (${problem.damage})`}`);
   }
 }
@@ -89,25 +76,59 @@ export function mountLoading(root: HTMLElement): void {
   root.replaceChildren(makeHeading(), paragraph("board-notice", "Die Tafel wird geladen."));
 }
 
+/** Last resort when no board can be drawn. It does not claim that anything is loading. */
+export function mountFailure(root: HTMLElement): void {
+  root.replaceChildren(makeHeading(), paragraph("board-notice", "Die Tafel kann gerade nicht angezeigt werden. Bitte lade die Seite neu oder gib einer Bezugsperson Bescheid."));
+  delete root.dataset["boardFallback"];
+  delete root.dataset["boardProblems"];
+}
+
 /**
- * Renders the view into `root`, replacing what was there, and stops running
- * speech first. A view without concepts shows its message only: no board, no
- * output line, no speech status.
+ * Renders the view into `root` (the board region), replacing what was there,
+ * and stops running speech first.
+ *
+ * There are always concepts to tap. A profile with at least one loadable
+ * concept shows its own board. Everything else shows the example concepts
+ * under one line that says so and why; the reason is also in
+ * `data-board-fallback` (absent when there is none).
+ *
+ * Nothing that identifies the child is rendered: no display name and no
+ * profile id, neither as text nor in an attribute.
  */
-export function mountBoard(root: HTMLElement, view: StartupView): BoardHandle {
+export function mountBoard(root: HTMLElement, view: BoardView): BoardHandle {
   const heading = makeHeading();
-  const { notices, entries } = describe(view);
-  if (entries.length === 0) {
-    cancelRunningSpeech();
-    root.replaceChildren(heading, ...notices);
-    reportProblems(root, view);
-    return { hasSelection: () => false };
+  const examples = showsExamples(view);
+  const entries: readonly BoardEntry[] = view.kind === "profile" && !examples ? view.entries : demoEntries();
+  let cause = fallbackCause(view);
+  const notices: HTMLElement[] = [];
+  let fallbackNotice: HTMLElement | null = null;
+  if (examples) {
+    fallbackNotice = paragraph(cause === null ? "board-notice" : "board-notice board-fallback", fallbackLine(cause));
+    notices.push(fallbackNotice);
+  } else if (view.kind === "profile" && isTroubled(view.problems)) {
+    notices.push(paragraph("board-notice", "Nicht alle Begriffe dieser Tafel konnten so geladen werden, wie sie gespeichert sind."));
   }
+  const showCause = (): void => {
+    if (cause === null) delete root.dataset["boardFallback"];
+    else root.dataset["boardFallback"] = cause;
+  };
 
   const board = document.createElement("div");
-  board.className = "concept-board";
-  board.setAttribute("aria-label", "Kommunikationsbegriffe");
   board.setAttribute("role", "group");
+  if (examples) {
+    // Examples must look different from a child's own board, not only read
+    // different: they can carry the same pictures as own tiles. The class
+    // gives the frame and tint, the badge sits on the board itself.
+    board.className = "concept-board concept-board-examples";
+    board.setAttribute("aria-label", "Kommunikationsbegriffe, Beispiele");
+    const badge = document.createElement("span");
+    badge.className = "examples-badge";
+    badge.textContent = "Beispiele";
+    board.append(badge);
+  } else {
+    board.className = "concept-board";
+    board.setAttribute("aria-label", "Kommunikationsbegriffe");
+  }
 
   const output = document.createElement("p");
   output.className = "message";
@@ -188,17 +209,31 @@ export function mountBoard(root: HTMLElement, view: StartupView): BoardHandle {
 
   cancelRunningSpeech();
   root.replaceChildren(heading, ...notices, board, output, speechStatus, retry);
+  showCause();
   reportProblems(root, view);
-  return { hasSelection: () => selection !== null };
+  return {
+    hasSelection: () => selection !== null,
+    restate: (next) => {
+      // Only while this board is the one on screen, and only from examples to examples.
+      if (fallbackNotice === null || root.children[1] !== fallbackNotice || !showsExamples(next)) return;
+      cause = fallbackCause(next);
+      fallbackNotice.textContent = fallbackLine(cause);
+      fallbackNotice.className = cause === null ? "board-notice" : "board-notice board-fallback";
+      showCause();
+      reportProblems(root, next);
+    },
+  };
 }
 
-/** The real page as a `StartupHost` for `runStartup`. */
+/** The real page as a `StartupHost`: everything goes into `root`, the board region. */
 export function createBoardHost(root: HTMLElement): StartupHost {
   return {
     showLoading: () => mountLoading(root),
     mount: (view) => mountBoard(root, view),
+    showFailure: () => mountFailure(root),
     setData: (name, value) => {
-      root.dataset[name] = value;
+      if (value === null) delete root.dataset[name];
+      else root.dataset[name] = value;
     },
     setTimer: (callback, milliseconds) => {
       const timer = setTimeout(callback, milliseconds);
