@@ -1,8 +1,8 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:ebf235e86aaa076fd7397fae31e17812ade18bc8",
+    "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:5488b9e4a9cde2d26560a50d8bf2da717e8cd188",
     "contract_revision": 2,
-    "current_attempt": 1,
+    "current_attempt": 2,
     "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
     "history": [
@@ -65,6 +65,76 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:42c38de6",
                 "summary": "Implemented the recognition core, synthetic generator, session-split evaluation, 26 new tests and docs. All five Contract validation commands pass locally (37 tests).",
+                "task_id": "NG-1",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T08:16:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:16:07+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:58851202faa739f982f6303c18d9d843d94ff56b064ce28863d23f619ac956aa",
+                    "execution-evidence:sha256:e09c6c45d59f14c0a220a1685cde899adf2778e2c3896f1c081350b7d5fe43c3"
+                ],
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:ebf235e86aaa076fd7397fae31e17812ade18bc8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:58851202faa739f982f6303c18d9d843d94ff56b064ce28863d23f619ac956aa",
+                    "execution-evidence:sha256:e09c6c45d59f14c0a220a1685cde899adf2778e2c3896f1c081350b7d5fe43c3"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:ebf235e86aaa076fd7397fae31e17812ade18bc8",
+                "context_id": "claude-subagent-correctness-review-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "outcome": "changes_required",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:30a530ac",
+                "summary": "Fresh-context review of src/recognition/matcher.ts and src/recognition/features.ts: earlier findings fixed. New defects: (1) matcher.ts calibrated lower bound 0.25 replaces the 0.75 fallback, so a second tidy example makes a concept reject real attempts; (2) matcher.ts one mislabelled example raises the limit to the cap because the maximum is used; (3) matcher.ts comment claims different gestures are at least 0.9 apart, measured 0.81; (4) features.ts near-zero shoulder width yields ok:true with non-finite values.",
+                "task_id": "NG-1",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T08:16:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:16:23+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:5488b9e4a9cde2d26560a50d8bf2da717e8cd188",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:5488b9e4a9cde2d26560a50d8bf2da717e8cd188",
+                "context_id": "claude-session_01Jpe7RDVp43iZAe1CvtiVuB-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "outcome": "completed",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:5a238e65",
+                "summary": "Fixed all four review defects: calibrated limits are floored at the single-example fallback and use the median nearest-sibling distance; the distance-scale comment no longer overstates; non-finite features return bad_landmarks. Added tests for each. 39 tests pass; docs table updated to the newly measured values.",
                 "task_id": "NG-1",
                 "validation_references": []
             }

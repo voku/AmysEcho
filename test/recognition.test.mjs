@@ -5,7 +5,7 @@ import {
 } from "../dist/recognition/features.js";
 import { dtwDistance } from "../dist/recognition/dtw.js";
 import {
-  calibrateMaxDistance, matchGesture, rankConcepts, MAX_CALIBRATED_MAX_DISTANCE, MIN_CALIBRATED_MAX_DISTANCE,
+  calibrateMaxDistance, matchGesture, rankConcepts, MAX_CALIBRATED_MAX_DISTANCE, FALLBACK_MAX_DISTANCE,
 } from "../dist/recognition/matcher.js";
 import { createGesture, createSession, renderGesture } from "../dist/recognition/synthetic.js";
 
@@ -144,11 +144,31 @@ test("a distance that is not a number is never accepted", () => {
   assert.equal(result.kind, "unknown");
 });
 
-test("calibrated limits stay within bounds for duplicate and for mislabelled examples", () => {
+test("more examples never make a concept stricter than a single example", () => {
   const sequence = attempt(1, 1);
-  assert.equal(calibrateMaxDistance([{ conceptId: "a", sequence }, { conceptId: "a", sequence }]).get("a"), MIN_CALIBRATED_MAX_DISTANCE);
-  const mislabelled = [{ conceptId: "a", sequence }, { conceptId: "a", sequence: attempt(9, 2) }];
-  assert.equal(calibrateMaxDistance(mislabelled).get("a"), MAX_CALIBRATED_MAX_DISTANCE);
+  assert.equal(calibrateMaxDistance([{ conceptId: "a", sequence }, { conceptId: "a", sequence }]).get("a"), FALLBACK_MAX_DISTANCE);
+  const attempts = Array.from({ length: 40 }, (_, i) => attempt(1 + (i % 8), 500 + i, 1));
+  const accepted = (examples) => attempts.filter((query) => {
+    const result = matchGesture(query, examples, { maxDistance: calibrateMaxDistance(examples), minMargin: 0.15 });
+    return result.kind === "match";
+  }).length;
+  const one = Array.from({ length: 8 }, (_, g) => ({ conceptId: `c${g}`, sequence: attempt(g + 1, g, 0) }));
+  const two = [...one, ...Array.from({ length: 8 }, (_, g) => ({ conceptId: `c${g}`, sequence: attempt(g + 1, 100 + g, 0) }))];
+  assert.ok(accepted(two) >= accepted(one), `${accepted(two)} accepted with two tidy examples, ${accepted(one)} with one`);
+});
+
+test("one mislabelled example among good ones does not open the concept", () => {
+  const good = [1, 2, 3].map((n) => ({ conceptId: "a", sequence: attempt(1, n, 0.5) }));
+  const withMislabelled = [...good, { conceptId: "a", sequence: attempt(9, 4) }];
+  assert.equal(calibrateMaxDistance(withMislabelled).get("a"), calibrateMaxDistance(good).get("a"));
+  // With nothing but inconsistent examples the limit stops at the upper bound.
+  const inconsistent = [{ conceptId: "a", sequence: attempt(1, 1) }, { conceptId: "a", sequence: attempt(9, 2) }];
+  assert.equal(calibrateMaxDistance(inconsistent).get("a"), MAX_CALIBRATED_MAX_DISTANCE);
+});
+
+test("degenerate shoulders are bad input, not a sequence of non-numbers", () => {
+  const frames = [0, 1, 2].map((tMs) => ({ tMs, left: null, right: hand(10, 10), shoulders: [[0, 0], [1e-320, 0]] }));
+  assert.deepEqual(buildFeatureSequence(frames), { ok: false, reason: "bad_landmarks" });
 });
 
 test("a single-example concept uses the fallback limit", () => {

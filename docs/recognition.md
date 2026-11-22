@@ -22,8 +22,8 @@ Code: `src/recognition/`. Board card: NG-1. Product slice: S3 in
    `unknown` has three causes: no examples, best match too far away, or two concepts about equally
    close.
 5. **Per-concept limits.** How far away an attempt may be is derived from how much that profile's
-   own examples of that concept differ, kept between a lower and an upper bound. A concept with a
-   single example uses a fixed fallback.
+   own examples of that concept typically differ. More examples can widen a concept up to an
+   upper bound but never make it stricter than the fixed limit a single example gets.
 
 There is no training step and no shared model. Adding an example changes the result immediately.
 
@@ -36,8 +36,8 @@ different camera placement, with sloppy repetitions. `npm test` prints these num
 | Unknown movements used | Top-1 | Top-3 | Wrong concept spoken | Unknown rejected |
 | --- | --- | --- | --- | --- |
 | Unrelated movements | 100% | 100% | 0% | 99.2% |
-| Look-alikes with two fingers held differently | 100% | 100% | 0% | 82.5% |
-| Look-alikes that end half a shoulder width away | 100% | 100% | 0% | 0% |
+| Look-alikes with two fingers held differently | 100% | 100% | 0% | 96.7% |
+| Look-alikes that end half a shoulder width away | 100% | 100% | 0% | 0.8% |
 
 150 known and 120 unknown attempts per row, 90 examples.
 
@@ -51,8 +51,9 @@ deterministic and tolerant of the distortions modelled in `synthetic.ts`.
   whole path, so a difference at the end is diluted below the normal variation between
   repetitions. Until this is solved, the UI must confirm before speaking.
 - **All limits and weights are provisional.** The shape/position balance, the fallback limit for a
-  single example (0.75) and the calibration bounds (0.25 to 1.5) were chosen on synthetic data and
+  single example (0.75) and the upper calibration bound (1.5) were chosen on synthetic data and
   have to be revisited with real recordings (card NG-5).
+- **Without shoulders, a tilted camera is not corrected**, and limits are untuned for that case.
 - **2D only.** Depth is ignored; gestures that differ only towards or away from the camera look
   the same.
 - **One hand lost for longer than 6 frames** is treated as the hand leaving. A hand missing at the

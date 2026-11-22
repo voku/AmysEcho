@@ -35,14 +35,14 @@ export type MatchResult =
 
 export const DEFAULT_MIN_MARGIN = 0.15;
 /**
- * Limit for a concept that has a single example. Like the two bounds below it
- * is provisional: chosen from synthetic gestures, where repetitions of one
- * gesture are 0.2 to 1.5 apart and different gestures at least 0.9.
+ * Limit for a concept that has a single example, and the lowest limit
+ * calibration can produce: more examples may widen a concept, never narrow it
+ * below this. Provisional, like the upper bound: chosen from synthetic
+ * gestures, where repetitions of one gesture are mostly 0.2 to 1.2 apart and
+ * different gestures mostly above 0.8.
  */
 export const FALLBACK_MAX_DISTANCE = 0.75;
-/** Identical or near-identical examples must not calibrate a limit that rejects every real attempt. */
-export const MIN_CALIBRATED_MAX_DISTANCE = 0.25;
-/** One mislabelled example must not open a concept to everything. */
+/** However inconsistent the examples are, a concept is never opened further than this. */
 export const MAX_CALIBRATED_MAX_DISTANCE = 1.5;
 const CALIBRATION_HEADROOM = 1.25;
 /** Two concepts closer together than this are never told apart, however close the best one is. */
@@ -93,16 +93,25 @@ export function matchGesture(
   return { kind: "match", conceptId: best.conceptId, ranked };
 }
 
+function median(values: number[]): number {
+  const sorted = [...values].sort((x, y) => x - y);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
 /**
  * Derives each concept's acceptance limit from how much the profile's own
  * examples of that concept differ from each other. Children vary a lot in how
  * consistently they repeat a gesture, and one child repeats some gestures more
  * consistently than others, so a single global limit would be wrong.
- * The result is kept between a lower and an upper bound. A concept with fewer
- * than two comparable examples gets no entry.
+ *
+ * The limit is the typical (median) distance from an example to its nearest
+ * sibling, with headroom, kept between the fallback and an upper bound. The
+ * median keeps one mislabelled example among several good ones from opening the
+ * concept. A concept with fewer than two comparable examples gets no entry.
  */
 export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<string, number> {
-  const limits = new Map<string, number>();
+  const nearestSibling = new Map<string, number[]>();
   for (const example of examples) {
     let nearest = Number.POSITIVE_INFINITY;
     for (const other of examples) {
@@ -111,9 +120,13 @@ export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<s
       }
     }
     if (Number.isFinite(nearest)) {
-      const limit = Math.min(Math.max(nearest * CALIBRATION_HEADROOM, MIN_CALIBRATED_MAX_DISTANCE), MAX_CALIBRATED_MAX_DISTANCE);
-      limits.set(example.conceptId, Math.max(limits.get(example.conceptId) ?? 0, limit));
+      nearestSibling.set(example.conceptId, [...(nearestSibling.get(example.conceptId) ?? []), nearest]);
     }
+  }
+  const limits = new Map<string, number>();
+  for (const [conceptId, distances] of nearestSibling) {
+    const limit = median(distances) * CALIBRATION_HEADROOM;
+    limits.set(conceptId, Math.min(Math.max(limit, FALLBACK_MAX_DISTANCE), MAX_CALIBRATED_MAX_DISTANCE));
   }
   return limits;
 }

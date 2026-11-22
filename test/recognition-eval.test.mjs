@@ -62,7 +62,7 @@ test("synthetic profile, look-alikes with two fingers held differently are rejec
   const report = simulate(1.5, "other-fingers");
   t.diagnostic(line("other-fingers", report));
   assert.ok(report.top1 >= 0.95, line("other-fingers", report));
-  assert.ok(report.unknownRecall >= 0.75, line("other-fingers", report));
+  assert.ok(report.unknownRecall >= 0.9, line("other-fingers", report));
 });
 
 test("synthetic profile, look-alikes that end elsewhere: known limit, measured and reported", (t) => {

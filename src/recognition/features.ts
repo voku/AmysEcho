@@ -235,6 +235,10 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
   });
   bridgeGaps(rows, 0);
   bridgeGaps(rows, HAND_VALUES);
+  // Landmarks that are finite but degenerate (for example both shoulders on one point) end up here.
+  if (!rows.every((row) => row.every(Number.isFinite))) {
+    return { ok: false, reason: "bad_landmarks" };
+  }
   return {
     ok: true,
     sequence: { schemaVersion: FEATURE_SCHEMA_VERSION, anchor: reference.anchor, steps: resample(rows, SEQUENCE_STEPS) },
