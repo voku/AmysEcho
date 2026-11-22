@@ -1,0 +1,151 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T08:25:57+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-9/contract.json",
+                "sha256": "sha256:e67dd0ed3a795bf393f06da5c5f286966e9d6a98551f25a308aa21b490f4f8c2"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-9",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "state": "not_linked"
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Surgical change applied within declared fast-path scope",
+                "Required verification passes"
+            ],
+            "goal": "Soften probe figures in docs/recognition.md that later reviews could not reproduce exactly",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-9/contract.json",
+                "sha256": "sha256:e67dd0ed3a795bf393f06da5c5f286966e9d6a98551f25a308aa21b490f4f8c2"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-9/contract.json",
+                "sha256": "sha256:e67dd0ed3a795bf393f06da5c5f286966e9d6a98551f25a308aa21b490f4f8c2"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T08:26:09+00:00",
+            "decided_by": "fast-path-auto-close",
+            "decision": "no_durable_learning",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-9:8939d305960bff37",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/0e44ab138862394900ef2b30e8c731ac2adbaa309ff1591078096881a4712f8d.json",
+                "sha256": "sha256:373f20608d9445a0f87f10e2a21e3f5412f508c5cb334fefdd6644ecf8d4f990"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "state": "missing"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-9:8939d305960bff37",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "c12e9acf9ccdf054ff8ab2231fa3e1bdf7f6ba556e8fd9c73aa9fefc34eb58f9",
+            "compilation_id": "compilation.NG-9.2026-11-22-082557.1caba64b",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "2e1dade202e0a4db23e54cd57311a64102102789e076772889e0185c4983aea9",
+            "source": {
+                "path": ".agent-loop/recall/NG-9/meta.json",
+                "sha256": "sha256:e099b03722321448eab093a79d701fab086c9cd4f8f6366fb121bdb1b336f34e"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-9/reviews/NG-9.blindspots.json",
+                "sha256": "sha256:fb7be6464a48ea35596c2d754369a3f0dafe1d54c9b8152faed2b230ec4b7625"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "50722784129495f92305dfd759f44b3efdfd803b",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-9-r1-1d0df714",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-9-r1-1d0df714/session.json",
+                "sha256": "sha256:5b7d94d94c115bf9451f9e157847474b5e34622ec7303576a63613434f5205b9"
+            },
+            "state": "done",
+            "task_id": "NG-9"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:2556384c4a56c74860ae239be5c0b8d76ca027352901a3fd63df2131883fda65",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-9:8939d305960bff37",
+            "source": {
+                "path": ".agent-loop/runs/NG-9/verification.json",
+                "sha256": "sha256:e4273488553f8d81146563ff3d4e61622831f53f8c549ebd284be46b05d52881"
+            },
+            "source_session_id": "2026-11-22-ng-9-r1-1d0df714",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-9:8939d305960bff37",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-9"
+}

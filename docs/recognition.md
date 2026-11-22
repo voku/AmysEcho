@@ -32,12 +32,14 @@ There is no training step and no shared model. Adding an example changes the res
 The code does not check these; the camera task (card NG-3) has to guarantee them.
 
 - **Coordinates must have the same scale on both axes**, for example pixels. MediaPipe's normalised
-  coordinates (0 to 1 on each axis) must first be multiplied by image width and height. In a probe,
-  stretching one axis by 16:9 on the attempts only dropped top-1 from 100% to 31%.
+  coordinates (0 to 1 on each axis) must first be multiplied by image width and height. In
+  reviewer probes, stretching one axis by 16:9 on the attempts only dropped top-1 from 100% to 31%
+  (vertical stretch) and to about 2% (horizontal stretch).
 - **`left` and `right` must mean the same thing in every capture of a profile.** Which convention is
   used (the child's own hands, or sides of the image) is not decided yet, and a front camera mirrors
-  the image. In a probe, mirrored attempts or swapped hand labels were rejected 100% of the time,
-  and labels flickering on 10% of frames 23% of the time. The synthetic data never varies this.
+  the image. In reviewer probes, mirrored attempts or swapped hand labels were rejected 100% of the
+  time, and labels flickering on 10% of frames between a quarter and two fifths of the time,
+  depending on how the flicker was simulated. The synthetic data never varies this.
 - **Examples and attempts need the same anchor.** If shoulders are visible in the examples but not
   in an attempt (or the other way round), nothing is comparable: the answer is `unknown` with the
   reason `no_examples` and an empty correction list.
@@ -83,7 +85,8 @@ distortions modelled in `synthetic.ts`, nothing more.
   after the movement becomes part of the gesture; in a probe with one second of rest on each side,
   16% of attempts were rejected. Real segmentation is not built.
 - **Two examples do not protect against a mislabelled one.** With one good and one wrong example the
-  concept opens up to the upper bound; the median only helps from three examples.
+  concept's limit grows with their distance, up to the upper bound; the median only helps from
+  three examples.
 - **All limits and weights are provisional.** The shape/position balance, the fallback limit for a
   single example (0.75) and the upper calibration bound (1.5) were chosen on synthetic data and
   have to be revisited with real recordings (card NG-5).
@@ -92,5 +95,5 @@ distortions modelled in `synthetic.ts`, nothing more.
   the same.
 - **One hand lost for longer than 6 frames** is treated as the hand leaving. A hand missing at the
   very start or end of a capture is not filled in.
-- **Cost is unmeasured on phones.** An informal run in Node on a desktop CPU took about 3.5 ms per
-  attempt against 90 examples; no test tracks this.
+- **Cost is unmeasured on phones.** Informal runs in Node on a desktop CPU took between 3 and 7 ms
+  per attempt against 90 examples; no test tracks this.
