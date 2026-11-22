@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-29 before calling agent-loop finish NG-29",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-22T14:08:48+00:00",
@@ -76,11 +76,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-22T15:05:42+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-29:da89ee8418a74855",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/827e38f870d7a04f4aca269351261b3f5c373299b4d64a2dc70b84ecd07aa51d.json",
+                "sha256": "sha256:8aa8b948ad13e4a9c8c720b0050aaecde3f315921662ea4e7f77fd13be4ec49c"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -91,7 +97,22 @@
                 "path": ".agent-loop/map/php-symbols.json",
                 "sha256": "sha256:f7e489d5c96503d37d338ccd3d4b9467357d6e6cab91e03042831eaf76458ea5"
             },
-            "state": "ready"
+            "stale_entries": [
+                {
+                    "path": "public/sw.js",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/main.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 3,
+            "state": "stale"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
@@ -114,14 +135,17 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-29/reviews/NG-29.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-29/reviews/NG-29.blindspots.json",
+                "sha256": "sha256:f1f423c254fcf4f9cd43024a1fe91d0c306cafd5d414867e6d35d98fcb5994ab"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/search.sqlite",
-            "state": "missing"
+            "state": "unavailable"
         },
         "session": {
             "base_commit": "05947ccd08be83869530506228ec0503ce7a6b51",
@@ -131,37 +155,27 @@
             "session_id": "2026-11-22-ng-29-r1-6c8464ab",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-22-ng-29-r1-6c8464ab/session.json",
-                "sha256": "sha256:06235fd602f99230fda4abd4862e38e1c2ae8606eca0cce6f37215941a8461da"
+                "sha256": "sha256:06cfc77b2aa9aa978df576b1eadd22b591ac1c671e9bc13122691f7dd824711d"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-29"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-29 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-29",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "implementation",
-            "implementation_snapshot": null,
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:0d36c853343a531be48a9685b4ba09a2a370dcde8ffa0d37fc2147e1fdf1d34f",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "Implementation snapshot scoped path does not exist yet: src/caregiver.ts (a deleted path needs a Contract base_commit that tracks it)",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-29:da89ee8418a74855",
+            "source": {
+                "path": ".agent-loop/runs/NG-29/verification.json",
+                "sha256": "sha256:18c4e702855794e4592022c05aa15030beb43313bec3472b91cb0c8199c9728e"
+            },
+            "source_session_id": "2026-11-22-ng-29-r1-6c8464ab",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-29:da89ee8418a74855",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-29"
 }

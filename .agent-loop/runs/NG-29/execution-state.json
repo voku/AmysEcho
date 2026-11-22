@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
     "contract_revision": 1,
-    "current_attempt": 4,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
     "history": [
         {
@@ -346,10 +346,168 @@
                 "task_id": "NG-29",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T15:04:58+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:04:58+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a1a991c2c0e8b9bd359d57e88118fd36eaccadf9be831ff19c76ced12d5f7569",
+                    "execution-evidence:sha256:34b93e8c025ef23699715c858e028abe74588a6bb5bfda1aecf810907ab9eb29",
+                    "execution-evidence:sha256:3a6f5a161490aa158b01c351e7d14f758045b95069cb4e5ef879bf2ac7012f3c",
+                    "execution-evidence:sha256:e72a477f89d1facc58676d1f660800ad200102b5293c91e768b13e3e5818f3ea",
+                    "execution-evidence:sha256:34757bb6de710b84b0c92400f31ee5feddaaf42a544bf9dc721288a095498b4a",
+                    "execution-evidence:sha256:d6a6e40fa5d7ad901a37cf07984127c7068810a71a101454d23cbe80265dc7e7",
+                    "execution-evidence:sha256:098c28567485ec9f8969520dc644430991600a4171b81367e99db513985fa3df",
+                    "execution-evidence:sha256:d13a1e1ee88c75c55c800de88685984bcb54d2f53a922a02e3ec1d013876cb00",
+                    "execution-evidence:sha256:2259b7e1ae7dd24407960e2bd8c89b1fa9832f6ef9fbe465083d549c9a64fc8f",
+                    "execution-evidence:sha256:74682fdcce3f739a16792ffadc838701f7148e84f737fb8f529f38b852f01567"
+                ],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a1a991c2c0e8b9bd359d57e88118fd36eaccadf9be831ff19c76ced12d5f7569",
+                    "execution-evidence:sha256:34b93e8c025ef23699715c858e028abe74588a6bb5bfda1aecf810907ab9eb29",
+                    "execution-evidence:sha256:3a6f5a161490aa158b01c351e7d14f758045b95069cb4e5ef879bf2ac7012f3c",
+                    "execution-evidence:sha256:e72a477f89d1facc58676d1f660800ad200102b5293c91e768b13e3e5818f3ea",
+                    "execution-evidence:sha256:34757bb6de710b84b0c92400f31ee5feddaaf42a544bf9dc721288a095498b4a",
+                    "execution-evidence:sha256:d6a6e40fa5d7ad901a37cf07984127c7068810a71a101454d23cbe80265dc7e7",
+                    "execution-evidence:sha256:098c28567485ec9f8969520dc644430991600a4171b81367e99db513985fa3df",
+                    "execution-evidence:sha256:d13a1e1ee88c75c55c800de88685984bcb54d2f53a922a02e3ec1d013876cb00",
+                    "execution-evidence:sha256:2259b7e1ae7dd24407960e2bd8c89b1fa9832f6ef9fbe465083d549c9a64fc8f",
+                    "execution-evidence:sha256:74682fdcce3f739a16792ffadc838701f7148e84f737fb8f529f38b852f01567"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "context_id": "claude-subagent-ng29-correctness-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "observations": [
+                    "docs/caregiver.md:238-239 one press of Tafel neu laden ends the no-board state on the examples (refresh-timeout) while a write hangs; the own board arrives when the write lands",
+                    "README.md:51 and docs/caregiver.md:58 'has never run in a browser' should read 'has not been verified in a browser'",
+                    "card NG-14 still says the adapter must not be wired to real data; the first-name decision does not explicitly lift that"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:58f8ce0c",
+                "summary": "Pass: db9c928 changes only the notice string and the cache name as executable code; each notice sentence true against the code; documented known gaps confirmed by probes on the real app; verify passes with 268 tests",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T15:04:58+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:04:58+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ce0f0136887d0a54d80ffa5841ff2ae24cffcfb6fec3554e67e3b793887ed235",
+                    "execution-evidence:sha256:f4005fc603e34cd4e751e6e2c40755db7c4828f65213c34cad6c0f7823050254",
+                    "execution-evidence:sha256:c6c2e79d0d2a047e9a2f5891a2e9013e59340c95014762bf9bfb6265f94a0254",
+                    "execution-evidence:sha256:bd9a2f916bd43de370e2cc63424a79dd8ef808727e71de68d5a1a8b98db99563",
+                    "execution-evidence:sha256:fc32f7b8c64a13b7d5aa656a8f817747433b270a57e4090bbd90fe66e6b98145",
+                    "execution-evidence:sha256:74a0e93d1e14065a22c2b9d238a28378a61faed26abfc7d59d2e0dbf103d14c2",
+                    "execution-evidence:sha256:46f243a0b43451a4610060a556a49d97816e5fd335fa0fbf9c84eaae821231ab",
+                    "execution-evidence:sha256:3044e6d3018f9f3324cd0b8b77e2b0f0e8dccaf29a18a521da30144e5a8b5aa2",
+                    "execution-evidence:sha256:b5db087f3fd7530889518ca3de6750f5f4ac433a9139794009f85c8b482122cf",
+                    "execution-evidence:sha256:39d7df466d943ce11f3972b3203001fabaac3a5fa3f63092af128a90a602ff8a"
+                ],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ce0f0136887d0a54d80ffa5841ff2ae24cffcfb6fec3554e67e3b793887ed235",
+                    "execution-evidence:sha256:f4005fc603e34cd4e751e6e2c40755db7c4828f65213c34cad6c0f7823050254",
+                    "execution-evidence:sha256:c6c2e79d0d2a047e9a2f5891a2e9013e59340c95014762bf9bfb6265f94a0254",
+                    "execution-evidence:sha256:bd9a2f916bd43de370e2cc63424a79dd8ef808727e71de68d5a1a8b98db99563",
+                    "execution-evidence:sha256:fc32f7b8c64a13b7d5aa656a8f817747433b270a57e4090bbd90fe66e6b98145",
+                    "execution-evidence:sha256:74a0e93d1e14065a22c2b9d238a28378a61faed26abfc7d59d2e0dbf103d14c2",
+                    "execution-evidence:sha256:46f243a0b43451a4610060a556a49d97816e5fd335fa0fbf9c84eaae821231ab",
+                    "execution-evidence:sha256:3044e6d3018f9f3324cd0b8b77e2b0f0e8dccaf29a18a521da30144e5a8b5aa2",
+                    "execution-evidence:sha256:b5db087f3fd7530889518ca3de6750f5f4ac433a9139794009f85c8b482122cf",
+                    "execution-evidence:sha256:39d7df466d943ce11f3972b3203001fabaac3a5fa3f63092af128a90a602ff8a"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "context_id": "claude-subagent-ng29-blindspot-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "observations": [
+                    "docs/caregiver.md:233 'the board that arrives is the correct one' is slightly too strong: a late refresh can itself time out into the examples",
+                    "docs/s0a-product-contract-v0.1.md:59 and docs/storage.md:687-690 do not mention the first-name decision; belongs to NG-7",
+                    "docs/caregiver.md:172 attributes the no-surname guidance to the owner decision; it is the implementer's addition"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:ad421158",
+                "summary": "Pass: notice, docs and README agree with each other and with the owner decision on NG-7; the four earlier non-blocking points are documented truthfully",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T15:05:12+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:05:12+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:4a6af3b0d79c44895a0958912afc97a8f9e243c372d3ad506d182dbfeda57626",
+                    "execution-evidence:sha256:442abaa322e9a34525d14a70ccbc436f2f206309362ca4fbe30d06a7a5c53ccf"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "consistency_references": [
+                    "execution-evidence:sha256:459dcb3a0b6e50a8665336fcedc4f96a4c8a0d482f48045adf5e83a415d928b2"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "pass",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:ae3c251eb75eb225cb57ed249ae01b51f2a024eab5b6c2a451185c16d2a571fd",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-29: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-29 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-29:da89ee8418a74855 binds active Session 2026-11-22-ng-29-r1-6c8464ab to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-29 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-29",
+                "validation_references": [
+                    "execution-evidence:sha256:4a6af3b0d79c44895a0958912afc97a8f9e243c372d3ad506d182dbfeda57626",
+                    "execution-evidence:sha256:442abaa322e9a34525d14a70ccbc436f2f206309362ca4fbe30d06a7a5c53ccf"
+                ]
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": "attention:a0828f63e0690285",
+    "last_attention_id": null,
     "recovery_history": [],
     "run_id": "run:NG-29:da89ee8418a74855",
     "schema_version": "1.0",
