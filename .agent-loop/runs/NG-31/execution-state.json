@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "blindspot-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -477,6 +477,104 @@
                 "summary": "Sixth build passes: doc sentences true of the code, toggle mark verified in Chromium for human-speed taps, no lock-out, 424 tests pass",
                 "task_id": "NG-31",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:12:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:12:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:5ff02d221c08347abc3157fed215c8ddb33b44744dd4a5cbad4cdd8947d3ccfd",
+                    "execution-evidence:sha256:887f748bcf752b36a7c6cfa3fcee94ed84a4fde27a3b6bffcf77ba309eca6199",
+                    "execution-evidence:sha256:8eb77a8acc7441ba515f7ecbea4df2700deb2d48948cf883ca58e20b02175042",
+                    "execution-evidence:sha256:7586f220df7bc54a1a2e7b4f74daec38c391363d79575403f52b19a944e8b041",
+                    "execution-evidence:sha256:a0f9db6bdbbaaa85f6161333619cc16572492984c9d00423f35ef8ed22087921",
+                    "execution-evidence:sha256:8e238470447347109083e59e3a9b1138f08ab9dfb85abc3c7a66a3ec0c2e8dc1",
+                    "execution-evidence:sha256:d6323180fffbbfeb2d2570a9c89f511641d24af0136b3acf44222c78f26c61ba",
+                    "execution-evidence:sha256:2059672d22b0ac63bf5382dfcd08dafa8f12ee41abf8b086451406026c185fdb",
+                    "execution-evidence:sha256:18c3eb50be2d756e3e5606cf623fd5b5b36795c1b3575f3f57eb24c43bef3da7"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:5ff02d221c08347abc3157fed215c8ddb33b44744dd4a5cbad4cdd8947d3ccfd",
+                    "execution-evidence:sha256:887f748bcf752b36a7c6cfa3fcee94ed84a4fde27a3b6bffcf77ba309eca6199",
+                    "execution-evidence:sha256:8eb77a8acc7441ba515f7ecbea4df2700deb2d48948cf883ca58e20b02175042",
+                    "execution-evidence:sha256:7586f220df7bc54a1a2e7b4f74daec38c391363d79575403f52b19a944e8b041",
+                    "execution-evidence:sha256:a0f9db6bdbbaaa85f6161333619cc16572492984c9d00423f35ef8ed22087921",
+                    "execution-evidence:sha256:8e238470447347109083e59e3a9b1138f08ab9dfb85abc3c7a66a3ec0c2e8dc1",
+                    "execution-evidence:sha256:d6323180fffbbfeb2d2570a9c89f511641d24af0136b3acf44222c78f26c61ba",
+                    "execution-evidence:sha256:2059672d22b0ac63bf5382dfcd08dafa8f12ee41abf8b086451406026c185fdb",
+                    "execution-evidence:sha256:18c3eb50be2d756e3e5606cf623fd5b5b36795c1b3575f3f57eb24c43bef3da7"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "context_id": "blindspot-review-6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "observations": [
+                    "A second tap later than 0.3 s after folding a help section acts on what moved under the finger (at 820x1180 it opened the board editor); inside the documented grace gap, worth naming in a caregiver trial (NG-6).",
+                    "A hold ended by a second contact says nothing; the caregiver must lift and press again (NG-13).",
+                    "Two fingers on the delete button: the first lift deletes while the other is still down (NG-14).",
+                    "With enlarged text the opening control jumps when its hold starts and the sticky block can fill the screen (NG-14)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:84c0a173",
+                "summary": "Blind-spot review passes: toggle mark arrives before a second touch at three sizes, no lock-out, changed doc sentences verified in Chromium, no wrong deletion",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:12:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:12:20+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:8d23613c01ad24ea6dfd682edff9cd10759e4b5f2644922c21d457babd15367d",
+                    "execution-evidence:sha256:a5902f88f2fe833700aefa737fa2f77cb8e94bd4d700f1a7d2d5adc609f563ca"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "consistency_references": [
+                    "execution-evidence:sha256:6b26ba0dc0b2bbc42b3a3ed96bad05f15aaebad5e752cdb5f9bcbda3aa026eea"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "pass",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:e9cebd02db57fa661393a1d30b150173897f88ccabd31660cfa5c22fbff45ce7",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-31: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-31 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-31:e21389d8d0abe454 binds active Session 2026-11-22-ng-31-r1-bc157638 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-31 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-31",
+                "validation_references": [
+                    "execution-evidence:sha256:8d23613c01ad24ea6dfd682edff9cd10759e4b5f2644922c21d457babd15367d",
+                    "execution-evidence:sha256:a5902f88f2fe833700aefa737fa2f77cb8e94bd4d700f1a7d2d5adc609f563ca"
+                ]
             }
         }
     ],
