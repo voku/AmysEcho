@@ -1,0 +1,16 @@
+{
+    "attempt": 2,
+    "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+    "contract_revision": 2,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-22T16:52:16+00:00",
+    "reference": "execution-evidence:sha256:32cb1c59e1f0dee48055d3142b9a1baff4218e3a60c88452039a9fb97adba1ac",
+    "run_id": "run:NG-30:c7005b152ab42c3f",
+    "schema_version": "1.0",
+    "source_digest": "sha256:828ad994664c7862039e8c215aaef90fad7731e5c0351311821d71cf1830d164",
+    "source_reference": "workspace-file:public/icons/sprechen.svg",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-30"
+}

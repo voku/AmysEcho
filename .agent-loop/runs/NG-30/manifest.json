@@ -1,0 +1,197 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T15:58:27+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-30/contract.json",
+                "sha256": "sha256:2715d0a2f65c0aea1faccd7ca3dc032404f7d5676b9ee7297008694c6a6613d2"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-30",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "dff2d966099ce5aaf06dc68248d7824a37eff759f44f63ec6500aa078bbaa782",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-30.md",
+                "sha256": "sha256:dff2d966099ce5aaf06dc68248d7824a37eff759f44f63ec6500aa078bbaa782"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "On a 390x844 and a 360x640 viewport with five tiles the sentence bar and all tiles are visible without scrolling",
+                "Tapping a tile shows its sentence in the bar at the top, marks the tile as selected and requests speech; tapping the bar repeats the speech of the selected tile",
+                "Speech status text appears only when no voice is available or speech failed",
+                "A board of examples still carries its class, badge and sentence, and a profile's own board carries none of them",
+                "Every module and asset the service worker pre-caches is served by the offline smoke check"
+            ],
+            "goal": "The child's screen is a board: a sentence bar at the top shows the last sentence and repeats it when tapped, the board fills the rest of the viewport with columns that follow the number of tiles and the orientation, a tapped tile shows it at once and stays marked, and speech status appears only when there is a problem.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-30/contract.json",
+                "sha256": "sha256:2715d0a2f65c0aea1faccd7ca3dc032404f7d5676b9ee7297008694c6a6613d2"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-30/contract.json",
+                "sha256": "sha256:2715d0a2f65c0aea1faccd7ca3dc032404f7d5676b9ee7297008694c6a6613d2"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T16:53:00+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-30:c7005b152ab42c3f",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/0b56ccd7791ae377e00ad936316d0e9e431070e35b7ae0bb2a21b064bcb13177.json",
+                "sha256": "sha256:3b592b4bdd02ed13272b0362534ef6b092a2fca1c97addc6fd1d855515fbdd96"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:27f9bf07f414fc80aece10a633f39f07405b3ca00fac3158669c8129c50c97df",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:cdca72b86add7816d2f6154d86ea2b54b0fb2c8dfa3643f8ea73e6c0d3da2f09"
+            },
+            "stale_entries": [
+                {
+                    "path": "public/sw.js",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/board.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/speech.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/startup.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/board.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/speech.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 7,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-30:c7005b152ab42c3f",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "0608fca7da5469b1b859178e89ff27bd6402fbce4c8cd8df62510beac9155a91",
+            "compilation_id": "compilation.NG-30.2026-11-22-155827.d9d99c19",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "416c861159f8e97c80968791b24fdbdc8798c4d23b9a4dc7d1242740169eb310",
+            "source": {
+                "path": ".agent-loop/recall/NG-30/meta.json",
+                "sha256": "sha256:71185f239581cc046631b58807211698c4b4d04059e906c3a0cd86e74e3252dd"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-30/reviews/NG-30.blindspots.json",
+                "sha256": "sha256:60460d632feeaa5351dda7e2bd9880cdc59d0313441be77b62155261bee4be4d"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "23b0cf7b29189309f8d7ca066122af4abc8a128d",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-30-r2-2d852992",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-30-r2-2d852992/session.json",
+                "sha256": "sha256:1703cda8c1ed8d2e2d20ee51c87b9d381b83174babeee551dd4fef8cbc54fc7a"
+            },
+            "state": "done",
+            "task_id": "NG-30"
+        },
+        "verification": {
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:86cf2fa951a33f7ddb44429f83fdfeec50e841d47f11c03a86a2f0e6c6071ee6",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-30:c7005b152ab42c3f",
+            "source": {
+                "path": ".agent-loop/runs/NG-30/verification.json",
+                "sha256": "sha256:b79c9046940773963a5b00ab32746600ff8f008996292923955165a0dc10631e"
+            },
+            "source_session_id": "2026-11-22-ng-30-r2-2d852992",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-30:c7005b152ab42c3f",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-30"
+}

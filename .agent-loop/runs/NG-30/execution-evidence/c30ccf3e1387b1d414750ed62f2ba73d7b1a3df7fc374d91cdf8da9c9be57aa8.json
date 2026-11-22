@@ -1,0 +1,16 @@
+{
+    "attempt": 2,
+    "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:31e331764c3e7b375980b1868b6158b083befb4b",
+    "contract_revision": 2,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-22T16:52:16+00:00",
+    "reference": "execution-evidence:sha256:c30ccf3e1387b1d414750ed62f2ba73d7b1a3df7fc374d91cdf8da9c9be57aa8",
+    "run_id": "run:NG-30:c7005b152ab42c3f",
+    "schema_version": "1.0",
+    "source_digest": "sha256:3628c0ce992ac7e231cfbe4e690ecd07eaf4522bb2030885a968c0d684fed290",
+    "source_reference": "workspace-file:scripts/offline-smoke.mjs",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-30"
+}

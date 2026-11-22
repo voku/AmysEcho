@@ -29,6 +29,10 @@ Early rebuild. What exists today:
   answers late) the examples stand in under a German sentence that says they are examples and why.
   Every board of examples has a dashed frame and a "Beispiele" badge. The board does not show the
   child's name;
+- a child's screen that is one screen high ([docs/board.md](docs/board.md)): a bar at the top shows
+  the last sentence and speaks it again when tapped, the tiles fill the rest and the tapped tile
+  stays marked. Looked at in headless Chromium at five window sizes; not tried on a device, with a
+  child or with a screen reader;
 - wording that is copied into the profile when concepts are chosen through `setBoardConcepts`, so
   such a board keeps its sentences when the catalogue changes. A board made another way, or
   restored from a backup without stored wording, follows the current catalogue;

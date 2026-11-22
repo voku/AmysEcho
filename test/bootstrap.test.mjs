@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
+import { precacheList, smoke } from "../scripts/offline-smoke.mjs";
 import { getBootstrapState } from "../dist/status.js";
 import { CONCEPTS, findConcept } from "../dist/concepts.js";
 
@@ -82,10 +86,10 @@ test("built UI starts in the board region only and remains usable without TTS/ne
     assert.deepEqual(documentEvents, ["visibilitychange"]);
     assert.deepEqual(Object.keys(root.dataset), ["bootstrap"]);
 
-    assert.match(region.children[1].textContent, /Speicher.*nicht erreichbar.*Beispiele/);
+    assert.match(part("board-notice").textContent, /Speicher.*nicht erreichbar.*Beispiele/);
     const board = part("concept-board");
-    const output = part("message");
-    const retry = part("retry");
+    const bar = part("sentence-bar");
+    const output = bar.children[0];
     const tiles = board.children.filter((child) => child.tagName === "button");
     assert.equal(board.className, "concept-board concept-board-examples");
     assert.equal(board.children[0].textContent, "Beispiele");
@@ -93,9 +97,11 @@ test("built UI starts in the board region only and remains usable without TTS/ne
     assert.equal(tiles[0].children[1].textContent, "Hilfe");
     tiles[0].click();
     assert.equal(output.textContent, "Ich brauche Hilfe.");
-    assert.match(part("speech-status").textContent, /keine lokale deutsche Stimme/i);
-    assert.equal(retry.hidden, false);
-    retry.click();
+    // Node has no speech engine: tapping again cannot help, and the line does not say it would.
+    assert.equal(part("speech-status").textContent, "Keine deutsche Stimme. Hol eine Bezugsperson.");
+    assert.equal(part("message").textContent, "Ich brauche Hilfe.");
+    assert.equal(part("retry"), undefined);
+    bar.click();
     assert.equal(output.textContent, "Ich brauche Hilfe.");
     tiles[4].click();
     assert.equal(output.textContent, "Ich bin fertig.");
@@ -117,8 +123,15 @@ test("index.html has the stable regions and a static German line for when script
   assert.match(html, /<\/main>\s*<footer id="caregiver-entry" class="caregiver-entry" hidden><\/footer>\s*<\/body>/);
   // A plain line that is visible until the script replaces it, and one for a browser without scripts.
   const plain = board.replace(/<noscript>[\s\S]*?<\/noscript>/, "");
-  assert.match(plain, /<p class="board-notice">Die Tafel ist noch nicht gestartet\.[^<]*<\/p>/);
-  assert.match(board, /<noscript><p class="board-notice">Diese Seite braucht JavaScript\.[^<]*<\/p><\/noscript>/);
+  assert.match(plain, /<p class="board-notice board-line">Die Tafel ist noch nicht gestartet\.[^<]*<\/p>/);
+  assert.match(board, /<noscript><p class="board-notice board-line">Diese Seite braucht JavaScript\.[^<]*<\/p><\/noscript>/);
+  // The app name is a heading for the document outline only, not a visible one.
+  assert.match(board, /^\s*<h1 class="visually-hidden">Amy's Echo NG<\/h1>/);
+  assert.match(html, /<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">/);
+  assert.match(html, /<meta name="theme-color" content="#174e6c">/);
+  // An installed app has no reload button: the line names something that can be done there.
+  assert.match(plain, /schließe die App und öffne sie wieder/);
+  assert.doesNotMatch(board, /lade[^<]*neu|neu laden/);
   // Without a running script nothing may claim that the board is loading.
   assert.doesNotMatch(board, /wird geladen|lädt/);
   // Still no inline script or style, and the same policy.
@@ -187,13 +200,50 @@ test("service-worker pre-cache includes the full local concept bundle", async ()
   for (const concept of CONCEPTS) {
     assert.ok(worker.includes(`"${concept.symbolPath}"`), `missing precache icon for ${concept.id}`);
   }
+  // Every shipped picture, also one no concept names (the speaker of the sentence bar, the app icon).
+  const listed = await precacheList(worker);
+  const icons = (await readdir(new URL("../dist/icons/", import.meta.url))).map((name) => `icons/${name}`);
+  assert.ok(icons.includes("icons/sprechen.svg"));
+  for (const icon of icons) assert.ok(listed.includes(icon), `missing precache icon ${icon}`);
+  // What the worker hands to the cache is what the text search above saw: the page itself, the modules, the rest.
+  for (const asset of ["", "index.html", ...modules, "styles.css", "manifest.webmanifest"]) {
+    assert.ok(listed.includes(asset), `pre-cache list lacks ./${asset}`);
+  }
+  assert.equal(new Set(listed).size, listed.length, "an entry is listed twice");
+});
+
+test("the offline smoke check fetches exactly the service worker's pre-cache list and fails for an entry that is not served", async () => {
+  const dist = new URL("../dist/", import.meta.url);
+  const listed = await precacheList(await readFile(new URL("sw.js", dist), "utf8"));
+  assert.deepEqual(await smoke(dist), ["sw.js", ...listed]);
+
+  const copy = await mkdtemp(join(tmpdir(), "amysecho-smoke-"));
+  try {
+    await cp(dist, copy, { recursive: true });
+    const copyUrl = pathToFileURL(`${copy}/`);
+    assert.deepEqual(await smoke(copyUrl), ["sw.js", ...listed]);
+    // A pre-cached file that is not shipped.
+    await rm(join(copy, "icons", "sprechen.svg"));
+    await assert.rejects(smoke(copyUrl), /missing locally bundled asset: \.\/icons\/sprechen\.svg/);
+    // An entry added to the worker alone is checked too: the smoke check has no list of its own.
+    await cp(new URL("icons/sprechen.svg", dist), join(copy, "icons", "sprechen.svg"));
+    const worker = await readFile(join(copy, "sw.js"), "utf8");
+    await writeFile(join(copy, "sw.js"), worker.replace('"./icons/app.svg"', '"./icons/app.svg", "./profiles/not-built.js"'));
+    await assert.rejects(smoke(copyUrl), /missing locally bundled asset: \.\/profiles\/not-built\.js/);
+    // An empty file is not a working asset.
+    await writeFile(join(copy, "sw.js"), worker);
+    await writeFile(join(copy, "styles.css"), "");
+    await assert.rejects(smoke(copyUrl), /empty locally bundled asset: \.\/styles\.css/);
+  } finally {
+    await rm(copy, { recursive: true, force: true });
+  }
 });
 
 test("service-worker install fetches the pre-cache list past the HTTP cache, under a new cache name", async () => {
   const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
   // Names already shipped; a changed asset list or install step needs a name that is none of them.
-  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3"].includes(name), `cache name ${name}`);
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3", "caregiver-s1-v4", "board-ux-v1", "board-ux-v2", "board-ux-v3"].includes(name), `cache name ${name}`);
 
   // Run the worker with a fake scope and look at what install hands to the cache.
   const listeners = {};
@@ -216,4 +266,5 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
     assert.ok(request.url.startsWith("https://app.example/echo/"), request.url);
   }
   assert.ok(added.some((request) => request.url === "https://app.example/echo/board-data.js"));
+  assert.ok(added.some((request) => request.url === "https://app.example/echo/icons/sprechen.svg"));
 });

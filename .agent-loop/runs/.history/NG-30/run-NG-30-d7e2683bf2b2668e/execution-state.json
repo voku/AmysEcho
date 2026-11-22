@@ -1,0 +1,120 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ef19851f1ee81d6e1066b6eea11561424b0d2064",
+    "contract_revision": 1,
+    "current_attempt": 2,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:5fbe17d5cec7a94679b739d1c612fbaa6cb8f8dfbdaa251beb128c1be0456340",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T15:50:05+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:50:05+00:00",
+                "artifact_references": [],
+                "candidate_revision": "23b0cf7b29189309f8d7ca066122af4abc8a128d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe17d5cec7a94679b739d1c612fbaa6cb8f8dfbdaa251beb128c1be0456340",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:d7e2683bf2b2668e",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "23b0cf7b29189309f8d7ca066122af4abc8a128d",
+                "context_id": "claude-main-ng30-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe17d5cec7a94679b739d1c612fbaa6cb8f8dfbdaa251beb128c1be0456340",
+                "outcome": "completed",
+                "run_id": "run:NG-30:d7e2683bf2b2668e",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:3b24166a",
+                "summary": "First Chromium run at 390x844: page 1078 px tall with the sentence below the fold, no tap feedback, technical speech status and retry button dominate; offline-smoke route list is stale",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T15:50:05+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:50:05+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ef19851f1ee81d6e1066b6eea11561424b0d2064",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe17d5cec7a94679b739d1c612fbaa6cb8f8dfbdaa251beb128c1be0456340",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:d7e2683bf2b2668e",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ef19851f1ee81d6e1066b6eea11561424b0d2064",
+                "context_id": "claude-subagent-ng30-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe17d5cec7a94679b739d1c612fbaa6cb8f8dfbdaa251beb128c1be0456340",
+                "outcome": "completed",
+                "run_id": "run:NG-30:d7e2683bf2b2668e",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:4d960ced",
+                "summary": "Sentence bar with repeat, viewport-filling grid with column table by count and orientation, pressed and selected state, calm speech line, touch behaviour and repeat window, smoke check from the pre-cache list; measured in Chromium at four sizes; verify passes with 277 tests",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T15:58:27+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:58:27+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e9fa0888f8f5f1962df47aaaa52341ee5a729ad7bd69e6089c2dbfaca98ea8a7",
+                    "execution-evidence:sha256:e4d98dba0603ae26286754da7fd24db8297ccac375a8b9182f2a3ffa1881a684",
+                    "execution-evidence:sha256:834081f86996f5df313c5a8c1a7dbbb52a14cf51529f9ca3b176b7b7348346ac"
+                ],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ef19851f1ee81d6e1066b6eea11561424b0d2064",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe17d5cec7a94679b739d1c612fbaa6cb8f8dfbdaa251beb128c1be0456340",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:d7e2683bf2b2668e",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e9fa0888f8f5f1962df47aaaa52341ee5a729ad7bd69e6089c2dbfaca98ea8a7",
+                    "execution-evidence:sha256:e4d98dba0603ae26286754da7fd24db8297ccac375a8b9182f2a3ffa1881a684",
+                    "execution-evidence:sha256:834081f86996f5df313c5a8c1a7dbbb52a14cf51529f9ca3b176b7b7348346ac"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ef19851f1ee81d6e1066b6eea11561424b0d2064",
+                "context_id": "claude-subagent-ng30-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe17d5cec7a94679b739d1c612fbaa6cb8f8dfbdaa251beb128c1be0456340",
+                "outcome": "changes_required",
+                "run_id": "run:NG-30:d7e2683bf2b2668e",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:abaed629",
+                "summary": "board.ts:81 with styles.css:17-22 at 360x640 the five examples do not fit under the four-line refresh-timeout notice; docs/board.md:169 wrong number, :39-40 sticky claim does not hold, board.ts:48-49 comment still says 700 px; blind-spot: the repeat window never ends while taps continue because the end of an utterance is not tracked, voices that load late leave 'keine Stimme' on the first tap, weak no-voice feedback, stray gestures",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-30:d7e2683bf2b2668e",
+    "schema_version": "1.0",
+    "task_id": "NG-30"
+}
