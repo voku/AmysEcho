@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da8c56ccc6bcb694a03fc770feee55a0481ffd88",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -33,6 +33,38 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:584a0a49",
                 "summary": "Located in the merged NG-2 code: backup.ts line 72 and store.ts line 226 clone the whole data dictionary (one nesting level more than the per-value clone in store.ts line 183), reproduced as depth 64 exporting but not importing; EXPORTED_AT_PATTERN plus Date.parse accepts 2026-02-31; cloneJson in backend.ts uses Object.entries; profile.ts validates display names without normalisation.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:07:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:07:46+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da8c56ccc6bcb694a03fc770feee55a0481ffd88",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da8c56ccc6bcb694a03fc770feee55a0481ffd88",
+                "context_id": "claude-subagent-ng2-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:d80bffba",
+                "summary": "All seven hardening items implemented with tests: per-value depth limit in set, import and restore; exportedAt must be a real UTC timestamp; cloneJson rejects accessors, hidden properties, symbol keys and decorated arrays; restoreProfile validates its data, getActive returns null for unreadable records, removeDamaged removes a damaged entry by exact segment; display names NFC-normalised with format characters rejected; import and export size limits; docs updated. npm run verify passes with 78 tests.",
                 "task_id": "NG-25",
                 "validation_references": []
             }
