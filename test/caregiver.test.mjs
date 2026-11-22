@@ -4940,7 +4940,7 @@ test("reword: 'Text ändern' is on every row of the board and on no row of 'Weit
     const open = rewording();
     assert.deepEqual(open.texts, [
       "Text für „Trinken“ auf der Tafel von „Mia“", "Wort auf der Taste", "Gesprochener Satz",
-      "Text der App: „Trinken“ – „Ich möchte etwas trinken.“", "Speichern", "Abbrechen",
+      "Text der App: „Trinken“ – „Ich möchte etwas trinken.“", "Das Bild bleibt gleich.", "Speichern", "Abbrechen",
     ]);
     assert.equal(open.label.value, "Trinken");
     assert.equal(open.speech.value, "Ich möchte etwas trinken.");
@@ -4948,8 +4948,10 @@ test("reword: 'Text ändern' is on every row of the board and on no row of 'Weit
     assert.equal(focused.current, open.label);
     for (const field of [open.label, open.speech]) {
       assert.equal(tree(open.view).find((element) => element.tagName === "label" && element.htmlFor === field.id) !== undefined, true);
-      assert.deepEqual([field.autocomplete, field.spellcheck, field.autocapitalize, field.autocorrect], ["off", false, "off", "off"]);
+      // No spelling service sees the text; capitals are left to the keyboard (German nouns, the start of a sentence).
+      assert.deepEqual([field.autocomplete, field.spellcheck, field.autocapitalize, field.autocorrect], ["off", false, undefined, "off"]);
     }
+    assert.equal(open.label.enterkeyhint, "next");
     // The whole body: no card, no list, no help; and no reset where the wording is the app's.
     assert.deepEqual(byClass(caregiverRegion, "caregiver-body").children, [open.view]);
     assert.deepEqual(profiles(), []);
@@ -5037,8 +5039,8 @@ const REWORD_REFUSALS = [
   ["a word of 41 characters", "x".repeat(41), "Satz.", "label", "Das Wort ist zu lang. Es darf höchstens 40 Zeichen haben."],
   ["a sentence of 201 characters", "Saft", "x".repeat(201), "speech", "Der Satz ist zu lang. Er darf höchstens 200 Zeichen haben."],
   ["a word of only invisible characters", `${chr(0x200b)}${chr(0xad)}`, "Satz.", "label", "Bitte gib ein Wort für die Taste ein."],
-  ["a control character in the word", "Sa\u0007ft", "Satz.", "label", "Das Wort enthält Zeichen, die nicht erlaubt sind (unsichtbare Zeichen oder Steuerzeichen). Bitte tippe den Text neu ein."],
-  ["a right-to-left override in the sentence", "Saft", `${chr(0x202e)}Satz.`, "speech", "Der Satz enthält Zeichen, die nicht erlaubt sind (unsichtbare Zeichen oder Steuerzeichen). Bitte tippe den Text neu ein."],
+  ["a control character in the word", "Sa\u0007ft", "Satz.", "label", "Das Wort enthält unsichtbare Zeichen oder Steuerzeichen. Bitte tippe den Text neu ein."],
+  ["a right-to-left override in the sentence", "Saft", `${chr(0x202e)}Satz.`, "speech", "Der Satz enthält unsichtbare Zeichen oder Steuerzeichen. Bitte tippe den Text neu ein."],
 ];
 for (const [what, label, speech, field, sentence] of REWORD_REFUSALS) {
   test(`reword: ${what} is refused in German, as an error; the fields stay open with what was typed, and the focus is in the field`, async () => {
@@ -5353,5 +5355,206 @@ test("reword: the fields are brought to just under the block at the top, also wh
     await act(() => concept("Pause").reword.click());
     assert.equal(focused.current, rewording().label);
     assert.equal(caregiverRegion.scrollTop, 400 - UNDER_BLOCK);
+  });
+});
+
+// --- Rewording, second build ---
+
+/** The area on seedThree with writes the test can hold back. */
+async function withHeldWording(callback) {
+  const inner = new MemoryBackend();
+  const writes = { held: false, waiting: [] };
+  const backend = {
+    get: (key) => inner.get(key),
+    keys: (prefix) => inner.keys(prefix),
+    async write(batch) {
+      if (writes.held) await new Promise((resolve) => { writes.waiting.push(resolve); });
+      return inner.write(batch);
+    },
+  };
+  writes.release = async () => {
+    writes.held = false;
+    while (writes.waiting.length > 0) {
+      writes.waiting.shift()();
+      await turn();
+    }
+  };
+  const store = await ProfileStore.open(backend);
+  const mia = await seedThree(store);
+  const app = { store: async () => store, refreshBoard: async () => undefined };
+  await withArea({ backend, app }, (area) => callback({ ...area, writes, mia, entry: () => inner.snapshot()[`profile/${mia.id}/data/concept.trinken`] }));
+}
+
+test("reword: a save or reset that is left before its write began is dropped, and the buttons work afterwards", async () => {
+  await withHeldWording(async ({ holdOpen, reword, act, concept, rewording, key, handle, entry, status }) => {
+    await holdOpen();
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    const worded = entry();
+    // Reset, and Escape in the same breath: the queued reset has not begun.
+    await act(() => concept("Saft").reword.click());
+    await act(() => rewording().reset.click());
+    rewording().confirmReset.click();
+    key("Escape");
+    await handle.settled();
+    assert.deepEqual(entry(), worded);
+    assert.equal(status(), "");
+    assert.notEqual(rewording().form, null, "back at the fields");
+    // Save, and "Abbrechen" in the same breath.
+    rewording().label.value = "Wasser";
+    rewording().form.dispatch("submit");
+    rewording().cancel.click();
+    await handle.settled();
+    assert.deepEqual(entry(), worded);
+    assert.equal(rewording(), null);
+    // Nothing is left dead: a save and a reset go through.
+    await reword("Saft", "Wasser", "Wasser, bitte.");
+    assert.equal(entry().labelDe, "Wasser");
+    await act(() => concept("Wasser").reword.click());
+    await act(() => rewording().reset.click());
+    await act(() => rewording().confirmReset.click());
+    assert.equal(entry().copied, true);
+  });
+});
+
+for (const [what, leave] of [["Escape", (area) => area.key("Escape")], ["'Abbrechen'", (area) => area.rewording().cancel.click()]]) {
+  test(`reword: a save whose write has begun is carried out although ${what} follows, and the status line says that it was saved`, async () => {
+    await withHeldWording(async (area) => {
+      const { holdOpen, act, concept, rewording, handle, entry, status, writes, onBoard } = area;
+      await holdOpen();
+      await act(() => concept("Trinken").reword.click());
+      rewording().label.value = "Saft";
+      writes.held = true;
+      rewording().form.dispatch("submit");
+      for (let round = 0; round < 10; round += 1) await turn();
+      assert.equal(writes.waiting.length, 1, "the write is under way");
+      leave(area);
+      await writes.release();
+      await handle.settled();
+      assert.equal(entry().labelDe, "Saft");
+      assert.equal(status(), "Gespeichert: neuer Text für „Saft“.");
+      assert.equal(rewording(), null);
+      assert.deepEqual(onBoard(), ["Hilfe", "Saft", "Pause"]);
+    });
+  });
+}
+
+test("reword: while a save is under way the reset step does not open, and a reset whose write has begun is said to have happened", async () => {
+  await withHeldWording(async ({ holdOpen, reword, act, concept, rewording, handle, entry, status, writes, key }) => {
+    await holdOpen();
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    await act(() => concept("Saft").reword.click());
+    rewording().label.value = "Wasser";
+    writes.held = true;
+    rewording().form.dispatch("submit");
+    for (let round = 0; round < 10; round += 1) await turn();
+    rewording().reset.click();
+    await turn();
+    assert.equal(rewording().confirmReset, null);
+    await writes.release();
+    await handle.settled();
+    assert.equal(entry().labelDe, "Wasser");
+    assert.equal(rewording(), null);
+    // A reset that has begun, then Escape: it is carried out, the fields do not come back, and "Speichern" is not dead next time.
+    await act(() => concept("Wasser").reword.click());
+    await act(() => rewording().reset.click());
+    writes.held = true;
+    rewording().confirmReset.click();
+    for (let round = 0; round < 10; round += 1) await turn();
+    key("Escape");
+    await writes.release();
+    await handle.settled();
+    assert.equal(entry().copied, true);
+    assert.equal(status(), "„Trinken“ hat wieder den Text der App.");
+    assert.equal(rewording(), null);
+    await reword("Trinken", "Tee", "Tee, bitte.");
+    assert.equal(entry().labelDe, "Tee");
+  });
+});
+
+test("reword: a custom concept whose entry turns out to be a newer app's at saving keeps the fields open with the text", async () => {
+  await withArea({ seed: seedMixedBoard }, async ({ holdOpen, act, concept, rewording, status, store, seeded, backend, focused, opener }) => {
+    await holdOpen();
+    await act(() => concept("Ball").reword.click());
+    const newer = { version: 2, labelDe: "Ball", speechDe: "Ball.", custom: true, colour: "rot" };
+    await (await store()).data(seeded.id).set("concept.ball", newer);
+    rewording().label.value = "Fußball";
+    rewording().speech.value = "Fußball, bitte.";
+    await act(() => rewording().form.dispatch("submit"));
+    assert.equal(status(), `${NEWER_ENTRY} Der Text wurde nicht geändert.`);
+    assert.deepEqual(entryOf(backend, seeded, "ball"), newer);
+    assert.deepEqual([rewording().label.value, rewording().speech.value], ["Fußball", "Fußball, bitte."]);
+    assert.ok(rewording().texts.includes("Text für „Ball“ auf der Tafel von „Mia“"));
+    assert.equal(focused.current, rewording().label);
+    assert.notEqual(focused.current, opener);
+  });
+});
+
+test("reword: Enter in the first field goes on to the second and sends nothing; only 'Speichern' saves", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, act, concept, rewording, focused, backend, handle }) => {
+    await holdOpen();
+    await act(() => concept("Trinken").reword.click());
+    const before = JSON.stringify(backend.snapshot());
+    const fields = rewording();
+    fields.label.value = "Saft";
+    let prevented = 0;
+    fields.label.dispatch("keydown", { key: "Enter", preventDefault() { prevented += 1; } });
+    await handle.settled();
+    assert.equal(prevented, 1, "the browser must not send the form");
+    assert.equal(focused.current, fields.speech);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    // Another key is left alone, and so is Enter while an input method composes.
+    fields.label.dispatch("keydown", { key: "a", preventDefault() { prevented += 1; } });
+    fields.label.dispatch("keydown", { key: "Enter", isComposing: true, preventDefault() { prevented += 1; } });
+    assert.equal(prevented, 1);
+    // In the sentence Enter is not taken over.
+    assert.equal(fields.speech.handlers.keydown, undefined);
+  });
+});
+
+test("reword: the line about the picture is there for a concept with a picture only", async () => {
+  await withArea({ seed: seedMixedBoard }, async ({ holdOpen, act, concept, rewording }) => {
+    await holdOpen();
+    await act(() => concept("Trinken").reword.click());
+    assert.ok(rewording().texts.includes("Das Bild bleibt gleich."));
+    await act(() => rewording().cancel.click());
+    await act(() => concept("Ball").reword.click());
+    assert.ok(!rewording().texts.includes("Das Bild bleibt gleich."));
+  });
+});
+
+test("reword: every kind of line break becomes a space, and the length is counted on the text as it is stored", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, backend, seeded, concept }) => {
+    await holdOpen();
+    await reword("Trinken", "Saft", `A${chr(0x2028)}B${chr(0x2029)}C\vD\fE`);
+    assert.equal(entryOf(backend, seeded, "trinken").speechDe, "A B C D E");
+    // Forty letters typed as letter plus combining accent are forty characters once composed.
+    await reword("Saft", `e${chr(0x301)}`.repeat(40), "Satz.");
+    assert.equal(entryOf(backend, seeded, "trinken").labelDe, "é".repeat(40));
+    assert.equal(concept("é".repeat(40)).sentence, "Satz.");
+  });
+});
+
+test("reword: the app's text typed back by hand is the app's text again, stored as a copy", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, act, concept, rewording, backend, seeded, status }) => {
+    await holdOpen();
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    await reword("Saft", "Trinken ", "Ich möchte etwas trinken.");
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), { version: 1, labelDe: "Trinken", speechDe: "Ich möchte etwas trinken.", copied: true });
+    assert.equal(status(), "„Trinken“ hat wieder den Text der App.");
+    await act(() => concept("Trinken").reword.click());
+    assert.equal(rewording().reset, null);
+  });
+});
+
+test("leaving: Escape does nothing while an input method composes a character", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, act, concept, rewording, caregiverRegion, handle }) => {
+    await holdOpen();
+    await act(() => concept("Trinken").reword.click());
+    let prevented = 0;
+    caregiverRegion.dispatch("keydown", { key: "Escape", isComposing: true, target: rewording().label, preventDefault() { prevented += 1; } });
+    await handle.settled();
+    assert.equal(prevented, 0);
+    assert.notEqual(rewording(), null);
+    assert.equal(handle.isOpen(), true);
   });
 });

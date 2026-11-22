@@ -450,18 +450,28 @@ back on the board by other means, its restore writes nothing and it leaves the s
 "Text ändern" (not the rows of "Weitere Begriffe"). It opens fields that take over the body, as the
 delete confirmation does: a heading that names the concept and the profile, "Wort auf der Taste",
 "Gesprochener Satz" (a text area), for a catalogue concept the line "Text der App: „…“ – „…“",
-"Speichern" and "Abbrechen". The fields start from the stored wording. What is typed lives in the
-open mode and survives a redraw. "Abbrechen" and Escape leave without a change and drop what was
-typed (rule 18).
+for a concept with a picture "Das Bild bleibt gleich.", "Speichern" and "Abbrechen". The fields
+start from the stored wording. What is typed lives in the open mode and survives a redraw.
+"Abbrechen" and Escape leave without a change and drop what was typed (rule 18); Escape is left
+alone while an input method composes a character. Enter in "Wort auf der Taste" moves on to the
+sentence and sends nothing (`enterkeyhint="next"`): only "Speichern" saves. Spell checking and
+correction are off as for a name; capitals are left to the keyboard.
 
 - **Saving** is one queued write through `setWording`. Before that the text is cleaned: soft
   hyphens, zero-width spaces, word joiners and byte order marks are taken out, a zero-width
-  (non-)joiner stays only between two visible characters, line breaks and tabs become one space,
-  and the ends are trimmed. Then it is checked, and board data has the last word. Afterwards the
+  (non-)joiner stays only between two visible characters, line breaks of every kind (also the
+  Unicode line and paragraph separators, vertical tab and form feed) and tabs become one space,
+  the ends are trimmed, and the length is counted on that text in NFC, as the store counts it.
+  Text that equals the app's wording of a catalogue concept is not stored as an own wording: it
+  goes through `clearWording`, as a reset does, and the status line says so. Then it is checked, and board data has the last word. Afterwards the
   area is drawn from the store, the editor is back with focus on that row's "Text ändern", and
   the status line says "Gespeichert: neuer Text für „<label>“." Text that equals what is stored
   is not written, and nothing is said. A second press on "Speichern" while the first is under way
   is not a second write.
+- **Leaving while a save or reset is queued.** "Abbrechen", Escape or another action before the
+  write has begun drops it: nothing is written. A write that has begun cannot be taken back: it
+  is carried out, the editor is shown, and the status line says what was saved or reset. The
+  second step of a reset does not open while a save is under way.
 - **Refusals** are errors in German, the fields stay open with the text as typed, and focus goes
   to the field concerned: no word, no sentence, too long (40 characters for the word, 200 for the
   sentence, counted as characters), characters that are not allowed; a full profile ("… Entferne
@@ -476,7 +486,8 @@ typed (rule 18).
   gets no "Text ändern", and its row says "Diese Taste wurde mit einer neueren Version
   gespeichert. Bitte die App aktualisieren." If that only shows when saving (`setWording` refuses
   with `unsupported-entry`), the same sentence and "Der Text wurde nicht geändert." are shown and
-  the fields stay open with the text.
+  the fields stay open with the text, for as long as the id is on the board; that holds for a
+  custom or retired concept as well, which the board then no longer shows.
 - No id changes its place, no other entry is written, and the profile's name stays inside the
   caregiver region.
 
@@ -607,6 +618,14 @@ countdown. None of this was checked with assistive technology.
   so it is when the area closes by itself.
 - Two profiles of one name can still come into being through two tabs, and exist in older data;
   the area tells them apart by a suffix only.
+- A rewording that is half typed is dropped when the area closes by itself or the page is hidden.
+- A long sentence makes the sentence bar on the child's board tall and moves the tiles when it is
+  tapped; the fields give no hint and no counter (a follow-up for the board).
+- A save can write an own wording for a concept that another tab has taken off the board
+  meanwhile.
+- "Text der App wiederherstellen" is also offered for a copy of an earlier text of the app, when
+  the catalogue has changed since.
+- How the fields behave with a real on-screen keyboard is untested (card NG-14).
 - A concept in "Weitere Begriffe" shows the catalogue wording although adding it brings back a
   caregiver's own wording, if the profile holds one.
 - A refresh started while the page is in the background (the close on a hidden page) may run into
