@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-24 before calling agent-loop finish NG-24",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-22T12:38:28+00:00",
@@ -74,11 +74,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-22T12:45:04+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-24:be3db0ed42f98fe6",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/6b664d0da3ae11917615bdfa2b98faa99f7a7cf20b675945ad0e171b564125ae.json",
+                "sha256": "sha256:ab0fe53ad33f7b1d4153b0f4e3d9db17b7d571c0734e2e301fb69ccf540d887e"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -112,8 +118,11 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-24/reviews/NG-24.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-24/reviews/NG-24.blindspots.json",
+                "sha256": "sha256:d04e78378779acc59bf4713c14c28a14c29f00e278ae06451aeee2538a166086"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
@@ -129,37 +138,27 @@
             "session_id": "2026-11-22-ng-24-r1-7bd48a6b",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-22-ng-24-r1-7bd48a6b/session.json",
-                "sha256": "sha256:193ba9c4f758929bc0c4a7fbe74620b38747af8033937c7e5a3bdd51d5c2eca3"
+                "sha256": "sha256:135b758dec2eed1043f165da8cc009e5a536a21af8fbfbc9ed7c32ace0061d10"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-24"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-24 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-24",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "implementation",
-            "implementation_snapshot": null,
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:71f7e774d91f55378f144c4b6376097f938909b37c25ffa418e24e44dee3ed30",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "Implementation snapshot scoped path does not exist yet: scripts/run-tests.mjs (a deleted path needs a Contract base_commit that tracks it)",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-24:be3db0ed42f98fe6",
+            "source": {
+                "path": ".agent-loop/runs/NG-24/verification.json",
+                "sha256": "sha256:5738ad9f811be42c7377565f193b9d63157b8fe2d3836db57b201006f1e08cf3"
+            },
+            "source_session_id": "2026-11-22-ng-24-r1-7bd48a6b",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-24:be3db0ed42f98fe6",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-24"
 }
