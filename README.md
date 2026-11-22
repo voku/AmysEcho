@@ -42,7 +42,8 @@ Early rebuild. What exists today:
   for three seconds: a profile can be created, renamed, deleted, made the active board and given
   catalogue concepts in a chosen order, in the app, and the board shows the result without a
   reload. A header that stays says which board the child gets after closing, and concepts removed
-  during a visit can be put back. The hold is a hurdle for a small child, not security.
+  during a visit can be put back while the same board stays in the editor. Deleting a profile
+  needs a two-second hold. The hold is a hurdle for a small child, not security.
 
 Still missing in the caregiver area: rewording a concept, custom concepts, export and import, and
 help with damaged entries; those exist as library code only or not at all. Also not built:

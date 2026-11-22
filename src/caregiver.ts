@@ -43,12 +43,17 @@ export const IDLE_CLOSE_MS = 2 * 60 * 1000;
 export const BOARD_COMFORT_MAX = 12;
 
 /**
- * How long a button that takes something away ignores a press after it has
- * appeared under the finger: "Endgültig löschen" after its confirmation was
- * drawn, and every "Entfernen" after a removal redrew the list. A second tap
- * of a double tap lands on the same spot within this time. A guess.
+ * How long "Entfernen" and "Rückgängig" ignore presses after the list was
+ * redrawn by one of them: another row, or the next undo, is then where the
+ * finger was, and the second tap of a double tap lands there. A press that
+ * is ignored starts the time again. A guess.
  */
 export const GUARD_MS = 800;
+/**
+ * How long "Endgültig löschen" has to be held. Deleting cannot be taken back,
+ * so no number of taps may do it: a tap cannot be told from a child's.
+ */
+export const DELETE_HOLD_MS = 2000;
 /** Room between the block at the top and an element that is brought out from under it. */
 const REVEAL_GAP_PX = 8;
 
@@ -223,8 +228,12 @@ const SAVE = "Speichern";
 const DELETE_LOSS = "Alle ausgewählten Begriffe dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
 const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel aktiv ist.";
 const AFTER_CLOSE = "Nach dem Schließen:";
-const AFTER_DAMAGED = `${AFTER_CLOSE} Beispiele – ein gespeichertes Profil kann gerade nicht gelesen werden.`;
-const NAME_TAKEN = "Diesen Namen gibt es schon. Bitte wähle einen anderen.";
+const afterDamagedLine = (count: number): string => (count === 1
+  ? `${AFTER_CLOSE} Beispiele – ein gespeichertes Profil kann in dieser Version nicht gelesen werden.`
+  : `${AFTER_CLOSE} Beispiele – ${count} gespeicherte Profile können in dieser Version nicht gelesen werden.`);
+const NAME_TAKEN = "Diesen Namen gibt es schon. Bitte wähle einen anderen";
+const PLEASE_WAIT = "Bitte kurz warten.";
+const DELETE_HOLD_HINT = `Zum Löschen ${DELETE_HOLD_MS / 1000} Sekunden gedrückt halten.`;
 const AFTER_NONE_ACTIVE = `${AFTER_CLOSE} Beispiele – es ist keine Tafel aktiv.`;
 const AFTER_ACTIVE_EMPTY = `${AFTER_CLOSE} Beispiele – die aktive Tafel hat noch keinen Begriff.`;
 const AFTER_ACTIVE_UNREADABLE = `${AFTER_CLOSE} Beispiele – die aktive Tafel kann gerade nicht gelesen werden.`;
@@ -290,6 +299,30 @@ function nameKey(name: string): string {
 function nameTaken(profiles: readonly ProfileV1[], name: string, exceptId: string | null): boolean {
   const key = nameKey(name);
   return key !== "" && profiles.some((profile) => profile.id !== exceptId && nameKey(profile.displayName) === key);
+}
+
+/** The refusal of a taken name, with a way out that does not ask for a surname: the typed name and the first free number. */
+function nameTakenLine(profiles: readonly ProfileV1[], name: string): string {
+  const typed = name.normalize("NFC").trim();
+  for (let number = 2; number < 100; number += 1) {
+    const example = `${typed} ${number}`;
+    if ([...example].length > MAX_DISPLAY_NAME_LENGTH) break;
+    if (!nameTaken(profiles, example, null)) return `${NAME_TAKEN}, zum Beispiel ${quoted(example)}.`;
+  }
+  return `${NAME_TAKEN}.`;
+}
+
+/** What "Entfernen" and "Rückgängig" each have: see `GUARD_MS`. */
+interface TapGuard {
+  /** True when a press counts. */
+  armed(): boolean;
+  /** A press was taken: from now on presses are ignored. */
+  take(): void;
+  /** The list was redrawn for that press. `changed`: the guard time starts now; otherwise presses count again at once. */
+  settle(changed: boolean): void;
+  /** A press was ignored. While the guard time runs, it starts again. */
+  swallow(): void;
+  reset(): void;
 }
 
 /**
@@ -446,11 +479,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * write is still under way.
    */
   let mode: Mode = null;
-  /** False from the press on "Löschen" until `GUARD_MS` after the confirmation was drawn: "Endgültig löschen" does nothing then. */
-  let confirmArmed = false;
-  /** False from a press on "Entfernen" until `GUARD_MS` after the list was drawn without that row: no "Entfernen" does anything then. */
-  let removeArmed = true;
-  let removeGuardNo = 0;
+  /** The hold on the "Endgültig löschen" that is drawn, if any. */
+  let confirmHold: Hold | null = null;
+  /** Whether the message in the status line is an error: an error stays when the caregiver scrolls. */
+  let statusIsError = false;
+  let undoButton: HTMLElement | null = null;
   /** The removals of this visit for the edited profile that can still be taken back, latest last. */
   let undoStack: UndoOffer[] = [];
   let heading: HTMLElement | null = null;
@@ -473,48 +506,108 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   hint.setAttribute("role", "status");
   hint.setAttribute("aria-live", "polite");
 
-  const say = (text: string): void => {
-    if (status !== null && acting === session) status.textContent = text;
+  const show = (text: string, error: boolean): void => {
+    if (status === null) return;
+    status.textContent = text;
+    status.className = error ? "caregiver-status caregiver-status-error" : "caregiver-status";
+    statusIsError = error;
   };
 
-  /** Takes an earlier message away: when a button is pressed, and when the caregiver scrolls. The undo offer stays. */
+  /** A message of the running task. `error`: something was refused or failed. */
+  const say = (text: string, error = false): void => {
+    if (acting === session) show(text, error);
+  };
+
+  /** Takes an earlier message away when a button is pressed, whatever it said. The undo offer stays. */
   const clearStatus = (): void => {
-    if (isOpen && status !== null && status.textContent !== "") status.textContent = "";
+    if (isOpen && status !== null && status.textContent !== "") show("", false);
+  };
+
+  /** Scrolling takes away what was only good to know. An error stays until the next press: it must not vanish unread. */
+  const clearOnScroll = (): void => {
+    if (!statusIsError) clearStatus();
+  };
+
+  /** Ends a hold on "Endgültig löschen" that may be running. */
+  const dropHold = (): void => {
+    const hold = confirmHold;
+    confirmHold = null;
+    hold?.cancel();
   };
 
   /** What every press of a button starts with: the earlier message goes, and so does an open rename field or confirmation unless the press belongs to it. */
   const begin = (keepMode = false): void => {
     clearStatus();
-    if (!keepMode) mode = null;
+    if (keepMode) return;
+    mode = null;
+    dropHold();
   };
 
-  /** Calls `onEnd` once the guard time has passed; at once where there is no timer. */
-  const afterGuard = (onEnd: () => void): void => {
-    try {
-      setTimer(onEnd, GUARD_MS);
-    } catch {
-      onEnd();
-    }
-  };
-
-  /** Shows on every drawn "Entfernen" whether a press counts right now. */
-  const markRemoveButtons = (): void => {
-    for (const [key, control] of focusables) if (key.startsWith("remove:")) control.setAttribute("aria-disabled", removeArmed ? "false" : "true");
-  };
-
-  /** Lets "Entfernen" count again: at once after a removal that did not happen, after the guard time otherwise. */
-  const rearmRemove = (wait: boolean): void => {
-    removeGuardNo += 1;
-    const mine = removeGuardNo;
-    const arm = (): void => {
-      // A timer whose cancellation came too late belongs to an earlier guard.
-      if (mine !== removeGuardNo) return;
-      removeArmed = true;
-      markRemoveButtons();
+  /** `mark` shows on the guarded buttons that are drawn whether a press counts. */
+  const tapGuard = (mark: (armed: boolean) => void): TapGuard => {
+    let armed = true;
+    let waiting = false;
+    let turn = 0;
+    let cancel = (): void => undefined;
+    const stop = (): void => {
+      turn += 1;
+      cancel();
+      cancel = () => undefined;
     };
-    if (wait) afterGuard(arm);
-    else arm();
+    const wait = (): void => {
+      stop();
+      const mine = turn;
+      waiting = true;
+      const arm = (): void => {
+        // A timer whose cancellation came too late belongs to an earlier guard.
+        if (mine !== turn) return;
+        armed = true;
+        waiting = false;
+        mark(true);
+      };
+      try {
+        cancel = setTimer(arm, GUARD_MS);
+      } catch {
+        arm();
+      }
+    };
+    return {
+      armed: () => armed,
+      take() {
+        stop();
+        armed = false;
+        waiting = false;
+        mark(false);
+      },
+      settle(changed) {
+        if (changed) {
+          mark(false);
+          wait();
+          return;
+        }
+        stop();
+        armed = true;
+        waiting = false;
+        mark(true);
+      },
+      swallow() {
+        // Steady tapping keeps being ignored; before the redraw there is no time running yet.
+        if (waiting) wait();
+        // Said where the eyes are, so that the grey buttons are explained.
+        if (isOpen) show(PLEASE_WAIT, false);
+      },
+      reset() {
+        stop();
+        armed = true;
+        waiting = false;
+      },
+    };
   };
+  const markButton = (control: HTMLElement | null | undefined, armed: boolean): void => control?.setAttribute("aria-disabled", armed ? "false" : "true");
+  const removeGuard = tapGuard((armed) => {
+    for (const [key, control] of focusables) if (key.startsWith("remove:")) markButton(control, armed);
+  });
+  const undoGuard = tapGuard((armed) => markButton(undoButton, armed));
 
   /** Carries tasks out one after another, in the order they were asked for, across closing and reopening. */
   const run = (task: () => Promise<void>): void => {
@@ -524,7 +617,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       return task();
     }).catch(() => {
       // A task that failed outside its own handling: the area keeps what it shows.
-      say(WRITE_FAILED);
+      say(WRITE_FAILED, true);
     });
   };
 
@@ -568,13 +661,24 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (undoBar === null) return;
     const next = undoStack[undoStack.length - 1];
     if (next === undefined) {
+      undoButton = null;
       undoBar.replaceChildren();
       undoBar.hidden = true;
       return;
     }
-    const back = button(`${UNDO}: ${quoted(next.label)}`);
-    back.setAttribute("aria-label", `${UNDO}: ${next.label} wieder auf die Tafel setzen`);
+    // More than one: said on the button, because the next one appears in the same place.
+    const more = undoStack.length - 1;
+    const rest = more === 0 ? "" : ` (noch ${more} ${more === 1 ? "weiterer" : "weitere"})`;
+    const back = button(`${UNDO}: ${quoted(next.label)}${rest}`);
+    back.setAttribute("aria-label", `${UNDO}: ${next.label} wieder auf die Tafel setzen${rest}`);
+    markButton(back, undoGuard.armed());
     back.addEventListener("click", () => {
+      // The next removal to take back appears under the finger: a second tap must not take that one back too.
+      if (!undoGuard.armed()) {
+        undoGuard.swallow();
+        return;
+      }
+      undoGuard.take();
       begin();
       // Back to where it was: before the id that followed it then, if that one is still on the board.
       changeBoard(next.profileId, [`remove:${next.id}`], null, `${quoted(next.label)} ist wieder auf der Tafel.`, (ids) => {
@@ -587,8 +691,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         return at < 0 ? [...ids, next.id] : [...ids.slice(0, at), next.id, ...ids.slice(at)];
       }, (succeeded) => {
         if (succeeded) dropUndo((offer) => offer === next);
+        undoGuard.settle(succeeded);
       });
     });
+    undoButton = back;
     undoBar.replaceChildren(back);
     undoBar.hidden = false;
   };
@@ -627,6 +733,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     // "Tafel neu laden" is the retry then, so it must not sit behind a closed summary.
     if (failed && help !== null) help.open = true;
     focusables = nextFocusables;
+    // The rows were built while storage was read; what they show of the guard is set from its state now.
+    for (const [key, control] of focusables) if (key.startsWith("remove:")) markButton(control, removeGuard.armed());
     // Removals are taken back on the board they were made on; with another profile in the editor the offers go.
     dropUndo((offer) => offer.profileId !== selectedId);
     if (focus === null) return;
@@ -643,7 +751,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * `setBoardConcepts`. `change` returns null when there is nothing to do.
    * Focus goes to `focus` after a change that was saved and to `focusElse`
    * otherwise (null: it stays where it is), so that a second press after a
-   * failure acts on the same concept. `after` hears whether it was saved.
+   * failure acts on the same concept. `after` hears whether it was saved,
+   * once the area has been drawn again: a guard counts from what is on
+   * screen, not from the end of the write.
    */
   const changeBoard = (
     profileId: string, focus: readonly string[], focusElse: readonly string[] | null, done: string,
@@ -662,12 +772,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         say(done);
       }
     } catch (error) {
-      say(boardErrorLine(error));
+      say(boardErrorLine(error), true);
     }
     try {
-      after(succeeded);
-    } finally {
       await draw(succeeded ? focus : focusElse);
+    } finally {
+      after(succeeded);
     }
   });
 
@@ -678,26 +788,28 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       if (store === null) return;
       try {
         const before = await store.list();
-        if (nameTaken(before.profiles, raw, null)) throw new Refusal(NAME_TAKEN);
+        if (nameTaken(before.profiles, raw, null)) throw new Refusal(nameTakenLine(before.profiles, raw));
         const first = before.profiles.length === 0 && before.damaged.length === 0;
         const profile = await store.create(raw, []);
         writes += 1;
         selectedId = profile.id;
         let line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist noch nicht die aktive Tafel.`;
+        let partly = false;
         if (first) {
           try {
             await store.setActive(profile.id);
             line = `Das Profil ${quoted(profile.displayName)} ist angelegt und jetzt die aktive Tafel. Füge unten Begriffe hinzu.`;
           } catch {
             line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es konnte aber nicht als aktive Tafel gespeichert werden.`;
+            partly = true;
           }
         }
-        say(line);
+        say(line, partly);
         // The first profile: straight on to its board. A further one: its card, where "Als aktive Tafel verwenden" is.
         if (first) await draw(["editor-heading"], { draftName: "", toTop: true });
         else await draw([`activate:${profile.id}`, `edit:${profile.id}`], { draftName: "" });
       } catch (error) {
-        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw));
+        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw), true);
         await draw(["create-name"], { draftName: raw });
       }
     });
@@ -712,7 +824,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         writes += 1;
         say(`${quoted(label)} ist jetzt die aktive Tafel.`);
       } catch (error) {
-        say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED);
+        say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED, true);
       }
       await draw([`edit:${profile.id}`]);
     });
@@ -731,18 +843,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /** Opens the rename field or the delete confirmation of one profile; whatever was open before is closed. */
   const openMode = (next: Exclude<Mode, null>, focus: string): void => {
     clearStatus();
+    dropHold();
     mode = next;
-    if (next.kind === "delete") confirmArmed = false;
-    run(async () => {
-      await draw([focus]);
-      // The guard counts from the moment the confirmation is on screen.
-      if (next.kind !== "delete" || mode !== next) return;
-      afterGuard(() => {
-        if (mode !== next) return;
-        confirmArmed = true;
-        focusables.get("confirm-delete")?.setAttribute("aria-disabled", "false");
-      });
-    });
+    run(() => draw([focus]));
   };
 
   /** Closes the open rename field or confirmation without a change; focus returns to the button that opened it. */
@@ -750,6 +853,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const was = mode;
     if (was === null) return;
     clearStatus();
+    dropHold();
     mode = null;
     run(() => draw([`${was.kind}:${was.id}`]));
   };
@@ -765,7 +869,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     runWrite(async () => {
       if (store === null) return;
       try {
-        if (nameTaken((await store.list()).profiles, raw, id)) throw new Refusal(NAME_TAKEN);
+        const others = (await store.list()).profiles;
+        if (nameTaken(others, raw, id)) throw new Refusal(nameTakenLine(others, raw));
         const profile = await store.rename(id, raw);
         writes += 1;
         settle(null);
@@ -777,22 +882,22 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           || (error instanceof ProfileFormatError && await store.get(id).then(() => false, () => true));
         if (gone) {
           settle(null);
-          say(PROFILE_GONE);
+          say(PROFILE_GONE, true);
           await draw(["profiles-heading"]);
           return;
         }
         // Refused or not written: the field stays open with what was typed.
         settle({ kind: "rename", id, draft: raw });
-        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw));
+        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw), true);
         await draw(["rename-name"]);
       }
     });
   };
 
   const deleteProfile = (profile: ProfileV1, label: string): void => {
-    // A press during the guard time is the second tap of a double tap on "Löschen", not a decision; and one press is one delete.
-    if (!confirmArmed) return;
-    confirmArmed = false;
+    // Only while the confirmation for this profile is the one that is open: a hold that ends on a button that is
+    // still drawn after "Abbrechen", Escape or another action deletes nothing.
+    if (mode === null || mode.kind !== "delete" || mode.id !== profile.id) return;
     begin(true);
     const mine = mode;
     runWrite(async () => {
@@ -811,7 +916,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         await draw(["profiles-heading"]);
       } catch (error) {
         leave();
-        say(error instanceof UnknownProfileError ? PROFILE_GONE : WRITE_FAILED);
+        say(error instanceof UnknownProfileError ? PROFILE_GONE : WRITE_FAILED, true);
         await draw([`delete:${profile.id}`, "profiles-heading"]);
       }
     });
@@ -862,12 +967,13 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     };
     const remove = button(REMOVE);
     remove.setAttribute("aria-label", `${REMOVE}: ${entry.labelDe}`);
-    remove.setAttribute("aria-disabled", removeArmed ? "false" : "true");
     remove.addEventListener("click", () => {
       // After a removal another row is where this one was: a second tap on the same spot must not take that one off too.
-      if (!removeArmed) return;
-      removeArmed = false;
-      markRemoveButtons();
+      if (!removeGuard.armed()) {
+        removeGuard.swallow();
+        return;
+      }
+      removeGuard.take();
       begin();
       const focus = [editableOrder[place + 1], editableOrder[place - 1]].filter((other) => other !== undefined).map((other) => `remove:${other}`);
       let offer: UndoOffer | null = null;
@@ -878,7 +984,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         offer = { profileId, id, label: entry.labelDe, before: ids[at + 1] ?? null };
         return ids.filter((other) => other !== id);
       }, (succeeded) => {
-        rearmRemove(succeeded);
+        removeGuard.settle(succeeded);
         if (!succeeded || offer === null || acting !== session) return;
         undoStack = [...undoStack, offer];
         renderUndo();
@@ -1013,15 +1119,61 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       register.set("confirm-cancel", cancel);
       // The whole confirmation is to be read, not only the button that has the focus.
       register.set("anchor:confirm-cancel", item);
-      const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger");
-      // Not `disabled`: the button keeps its place in the tab order, and says why a press does nothing yet.
-      confirm.setAttribute("aria-disabled", confirmArmed ? "false" : "true");
-      confirm.addEventListener("click", () => deleteProfile(profile, label));
-      register.set("confirm-delete", confirm);
-      // "Abbrechen" first: it is what a second tap on the spot of "Löschen" is most likely to hit.
+      // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
+      const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
+      const holdProgress = element("progress", "caregiver-delete-progress");
+      holdProgress.max = DELETE_HOLD_MS;
+      holdProgress.value = 0;
+      holdProgress.hidden = true;
+      // The line below says the same in words.
+      holdProgress.setAttribute("aria-hidden", "true");
+      const holdHint = element("p", "caregiver-confirm-hint", DELETE_HOLD_HINT);
+      holdHint.id = "caregiver-delete-hint";
+      holdHint.setAttribute("role", "status");
+      holdHint.setAttribute("aria-live", "polite");
+      confirm.setAttribute("aria-describedby", holdHint.id);
+      // A hold on a confirmation that is drawn over does not go on on the new one.
+      dropHold();
+      const hold = createHold({
+        setTimer,
+        durationMs: DELETE_HOLD_MS,
+        onProgress: (elapsedMs, remainingSeconds) => {
+          holdProgress.hidden = false;
+          holdProgress.value = elapsedMs;
+          const line = holdLine(remainingSeconds);
+          if (holdHint.textContent !== line) holdHint.textContent = line;
+        },
+        onEnd: (reason) => {
+          holdProgress.hidden = true;
+          holdProgress.value = 0;
+          holdHint.textContent = DELETE_HOLD_HINT;
+          if (reason === "completed") deleteProfile(profile, label);
+        },
+      });
+      confirmHold = hold;
+      confirm.addEventListener("pointerdown", (event) => {
+        // Only the main button of a mouse; touch and pen report 0 as well.
+        if (event.button > 0) return;
+        hold.press("pointer");
+      });
+      confirm.addEventListener("pointerup", () => hold.release("pointer"));
+      confirm.addEventListener("pointerleave", () => hold.cancel());
+      confirm.addEventListener("pointercancel", () => hold.cancel());
+      confirm.addEventListener("blur", () => hold.cancel());
+      confirm.addEventListener("contextmenu", (event) => event.preventDefault());
+      confirm.addEventListener("keydown", (event) => {
+        if (!isHoldKey(event.key)) return;
+        event.preventDefault();
+        if (event.repeat) return;
+        hold.press(`key:${event.key}`);
+      });
+      confirm.addEventListener("keyup", (event) => {
+        if (isHoldKey(event.key)) hold.release(`key:${event.key}`);
+      });
+      // "Abbrechen" first: it is what a tap on the spot of "Löschen" is most likely to hit.
       const actions = element("div", "caregiver-profile-actions");
       actions.append(cancel, confirm);
-      item.append(actions);
+      item.append(actions, holdProgress, holdHint);
       return item;
     }
     const item = element("li", "caregiver-profile");
@@ -1071,7 +1223,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /** What the child's screen shows once the area is closed, read off the store the way start-up reads it. */
   const afterCloseLine = async (current: ProfileStore, activeId: string | null, labels: ReadonlyMap<string, string>, damaged: number): Promise<string> => {
     // Without a readable active profile, damaged entries decide (as at start-up); one of them may be the active one.
-    if (activeId === null) return damaged > 0 ? AFTER_DAMAGED : AFTER_NONE_ACTIVE;
+    if (activeId === null) return damaged > 0 ? afterDamagedLine(damaged) : AFTER_NONE_ACTIVE;
     try {
       const board = await resolveBoard(current, activeId, catalogue);
       return board.entries.length === 0 ? AFTER_ACTIVE_EMPTY : `${AFTER_CLOSE} Tafel von ${quoted(labels.get(activeId) ?? board.profile.displayName)}`;
@@ -1151,6 +1303,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     // The next opening edits the active profile again, whatever was picked this time.
     selectedId = null;
     mode = null;
+    dropHold();
     closingNo += 1;
     const mine = closingNo;
     away = "waiting";
@@ -1238,9 +1391,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
   };
   caregiverRegion.addEventListener("pointerdown", restartIdle);
-  caregiverRegion.addEventListener("keydown", (event) => {
-    restartIdle();
-    if (event.key !== "Escape" || !isOpen) return;
+  /** Events that Escape was already answered for: one that bubbles from the region reaches the document as well. */
+  const answered = new WeakSet<object>();
+  const onEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || !isOpen || answered.has(event)) return;
+    answered.add(event);
     event.preventDefault();
     // Escape leaves the innermost thing: an open rename field or confirmation first.
     if (mode !== null) {
@@ -1254,10 +1409,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       return;
     }
     void close();
+  };
+  caregiverRegion.addEventListener("keydown", (event) => {
+    restartIdle();
+    onEscape(event);
   });
+  // Also with the focus on nothing inside the area (after a tap on text, say). While the area is closed this does nothing.
+  if (typeof document.addEventListener === "function") document.addEventListener("keydown", onEscape);
   // A message must not keep the block at the top tall while the caregiver reads on. Wheel and touch only: the area scrolls by itself after a focus move.
-  caregiverRegion.addEventListener("wheel", clearStatus, { passive: true });
-  caregiverRegion.addEventListener("touchmove", clearStatus, { passive: true });
+  caregiverRegion.addEventListener("wheel", clearOnScroll, { passive: true });
+  caregiverRegion.addEventListener("touchmove", clearOnScroll, { passive: true });
   caregiverRegion.addEventListener("input", restartIdle);
 
   const open = (): boolean => {
@@ -1298,9 +1459,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         // The board answers a failed refresh with the examples; that is not "reloaded".
         const startup = boardRegion.dataset["startup"];
         const fallback = boardRegion.dataset["boardFallback"];
-        if (answer === TIMED_OUT || startup === "refresh-timeout") say(RELOAD_FAILED);
-        else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE);
-        else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN);
+        if (answer === TIMED_OUT || startup === "refresh-timeout") say(RELOAD_FAILED, true);
+        else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE, true);
+        else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN, true);
         else say(RELOADED);
         // Also after a read that failed earlier: the area shows what the store holds now.
         await draw(null);
@@ -1313,9 +1474,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     mode = null;
     // What an earlier visit removed is not offered again: the bar is new and the stack starts empty.
     undoStack = [];
-    confirmArmed = false;
-    removeArmed = true;
-    removeGuardNo += 1;
+    dropHold();
+    statusIsError = false;
+    undoButton = null;
+    removeGuard.reset();
+    undoGuard.reset();
     caregiverRegion.replaceChildren(top, body, help);
     caregiverRegion.hidden = false;
     heading.focus();

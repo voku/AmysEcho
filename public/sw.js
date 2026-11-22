@@ -2,7 +2,7 @@
  * A successful cache install is NOT proof of target-device offline TTS.
  */
 const CACHE_PREFIX = "amysecho-ng-";
-const CACHE_NAME = CACHE_PREFIX + "caregiver-ux-v2";
+const CACHE_NAME = CACHE_PREFIX + "caregiver-ux-v3";
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest", "./styles.css",
   "./main.js", "./status.js", "./board.js", "./concepts.js", "./speech.js",

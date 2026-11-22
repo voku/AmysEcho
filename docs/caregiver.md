@@ -17,12 +17,15 @@ Status: second slice (cards NG-29 and NG-31). Code in `src/caregiver.ts`, styles
     shows the result, and still shows it after a page reload; Escape cancels a confirmation and
     then closes;
   - no console error and no Content-Security-Policy violation during that walk;
-  - with emulated touch, also at 667 x 375 and with names of 40 characters: two taps on one spot
-    of "Löschen" and of "Entfernen" (150, 400 and 700 ms apart) and Enter twice on "Entfernen";
-    where the editor heading, a rename field, a moved row's button and a confirmation come to
-    rest after they get the focus; Escape with text in the create field.
+  - with emulated touch, also at 344, 667 x 375 and with names of 40 characters: taps on one
+    spot of "Löschen", "Endgültig löschen", "Entfernen" and "Rückgängig" in several rhythms (two
+    and three taps, and steady tapping for five seconds); a hold on "Endgültig löschen" that is
+    let go early and one that is kept; where the editor heading, a rename field, a moved row's
+    button and a confirmation come to rest after they get the focus; Escape with text in the
+    create field and with the focus on nothing.
 - **Not** tested: a real phone or tablet, a real touch screen and a finger (the scripts use a
-  mouse and emulated taps), an on-screen keyboard, a screen reader or switch access, text enlarged by the user, an installed app, and
+  mouse and emulated taps), an on-screen keyboard, a screen reader or switch access, text
+  enlarged by the user, an installed app, and
   whether a caregiver finds their way (no caregiver trial). The focus behaviour is what the code
   asks for and what the script saw in Chromium, not what assistive technology announces
   (card NG-14).
@@ -107,9 +110,10 @@ body (profiles, create form, board editor), and a help section at the bottom.
   start-up reads it and written again after every action:
   - "Nach dem Schließen: Tafel von „<name>“" when a profile is active and its board has at least
     one concept that can be shown;
-  - otherwise "Nach dem Schließen: Beispiele – …" with the reason: no board is active; a stored
-    profile cannot be read (no readable profile is active and `list()` reports damaged entries,
-    which is when start-up shows examples for that reason); the active board has no concept yet;
+  - otherwise "Nach dem Schließen: Beispiele – …" with the reason: no board is active; one or
+    several stored profiles cannot be read in this version, in the words of the note in the body
+    (no readable profile is active and `list()` reports damaged entries, which is when start-up
+    shows examples for that reason); the active board has no concept yet;
     the active board cannot be read; the profiles cannot be read; storage is not reachable.
 
   The line is what the store holds, not what the board region shows. It does not know about a
@@ -121,9 +125,12 @@ body (profiles, create form, board editor), and a help section at the bottom.
   taken back.
 
 **The status line does not linger.** A message is taken away when any button of the area is
-pressed (the answer to that press replaces it), when a rename field or confirmation is opened or
-left, and when the caregiver scrolls the area by wheel or touch. The undo button stays. The area
-scrolling by itself after a focus move does not count.
+pressed (the answer to that press replaces it) and when a rename field or confirmation is opened
+or left. Messages have a kind. What is only good to know (saved, removed, renamed, "Bitte kurz
+warten.") also goes when the caregiver scrolls the area by wheel or touch. An error (a refusal, a
+write or reload that failed, a profile that is gone) stays through scrolling until the next press,
+and is drawn in the colour of the warnings. The undo button stays. The area scrolling by itself
+after a focus move does not count.
 
 **Nothing that gets the focus stays under the block.** After every focus move the area measures
 the focused element (`getBoundingClientRect`) and scrolls the region so that its top edge is
@@ -136,7 +143,9 @@ done.
 while a rename field or a delete confirmation is open it closes that, and the area stays open;
 with the focus in a text field that holds text it moves the focus to the title, keeps the text
 and closes nothing; only the next Escape closes. A rename field or confirmation counts as open
-from the press on its button, also while an earlier write is still under way. Closing empties the
+from the press on its button, also while an earlier write is still under way. Escape is heard on
+the document as well, so it works with the focus on nothing inside the area (after a tap on
+text); while the area is closed that listener does nothing and leaves the key alone. Closing empties the
 area and calls `app.refreshBoard()`, after any write that is still under
 way. Until that refresh has settled, the board region and the opening control stay hidden and the
 caregiver region shows only "Die Tafel wird geladen.": the board region may still hold the board
@@ -214,31 +223,59 @@ and write nothing. The field has the same attributes as the create field.
 **Deleting.** Two steps, inside the card, without a dialog element. "Löschen" turns the card into a
 confirmation: "Profil „<name>“ löschen?", "Alle ausgewählten Begriffe dieses Profils gehen
 verloren. Eine Sicherung gibt es noch nicht.", for the active profile also "Das Kind sieht danach
-Beispiele, bis eine andere Tafel aktiv ist.", and the buttons "Abbrechen" and "Endgültig löschen",
-in that order. Focus goes to "Abbrechen". Only "Endgültig löschen" calls `store.remove`, which deletes the
-profile with everything stored for it and clears the active pointer when it named this profile.
-The area makes no other profile active in its place. After a write that failed the card is back,
-the status line has the error, and the profile is still stored. Deleting counts as a write for
-the rule "At the bound" above.
+Beispiele, bis eine andere Tafel aktiv ist.", the buttons "Abbrechen" and "Endgültig löschen", in
+that order, and the line "Zum Löschen 2 Sekunden gedrückt halten." Focus goes to "Abbrechen".
 
-**Guard against a second tap** (`GUARD_MS`, 800 ms, a guess; timed by the injected timer). A
-button that takes something away must not act on the second tap of a double tap, which lands on
-the same spot after the screen has changed under the finger:
+**"Endgültig löschen" is a hold, not a tap.** Deleting cannot be taken back and there is no
+backup, and a tap by a caregiver cannot be told from a tap by a child or from the later taps of
+someone tapping on one spot: a time guard only moves the moment at which such a tap deletes. So
+the button works like the opening control (`createHold`, the injected timer): it has no `click`
+handler and has to be pressed and held for `DELETE_HOLD_MS` (2 seconds), with a pointer or with
+Enter or Space. While holding, a progress bar fills and the line counts down ("Weiter halten …
+2"). A tap, in any number and rhythm, shows the line and deletes nothing.
 
-- "Endgültig löschen" ignores every press, by pointer or key, until the guard time after its
-  confirmation was drawn has passed, and looks inactive meanwhile (`aria-disabled="true"`, not
-  `disabled`, so it keeps its place in the tab order). After that one press is one delete. The
-  order of the two buttons is the second safeguard: what a second tap is likely to hit is
-  "Abbrechen" or text, and then the confirmation closes or nothing happens.
-- Every "Entfernen" ignores presses from a press on one of them until the guard time after the
-  list was drawn without that row, and looks inactive meanwhile. If nothing was removed (a write
-  that failed), they count again at once, so that a retry is not swallowed.
+- Letting go early, the pointer leaving the button, a pointer cancel and the button losing focus
+  end the hold; the next one starts from zero. Key repeat neither restarts nor shortens it.
+- "Abbrechen", Escape, any other action and the area closing (also by itself, on a hidden page)
+  end it as well.
+- When a hold completes, the profile is deleted only if the confirmation for that profile is
+  still the one that is open. A hold on a button that is still drawn after "Abbrechen" or Escape
+  deletes nothing.
 
-"Hinzufügen" and the move buttons have no guard: pressed twice they add two concepts or move two
-places, and both can be taken back by hand.
+Only a completed hold calls `store.remove`, which deletes the profile with everything stored for
+it and clears the active pointer when it named this profile. The area makes no other profile
+active in its place. After a write that failed the card is back, the status line has the error,
+and the profile is still stored. Deleting counts as a write for the rule "At the bound" above.
+As with the opening control, assistive technology that activates a button with a synthetic click
+only cannot delete; not tested.
+
+**Guard against a second tap** (`GUARD_MS`, 800 ms, a guess; timed by the injected timer), for
+"Entfernen" and "Rückgängig". Both can be put right (a removal by "Rückgängig", a restore by
+"Entfernen"), so a time guard is enough here. After one of them the list is drawn again and
+another row, or the next undo, is where the finger was:
+
+- From a press on an "Entfernen" every "Entfernen" ignores presses, and looks inactive
+  (`aria-disabled="true"`, not `disabled`, so it keeps its place in the tab order), until the
+  guard time has passed **after the list was redrawn** without that row. The time does not start
+  when the write ends: on a slow device the old list can still be on screen then.
+- A press that is ignored while the time runs starts it again, so steady tapping on one spot
+  keeps being ignored and takes one concept off. The status line then says "Bitte kurz warten.",
+  which explains the grey buttons.
+- If nothing was removed (a write that failed), they count again at once, so that a retry is not
+  swallowed.
+- The buttons show the state of the guard as it is when they are put on screen, and are updated
+  when it ends.
+- "Rückgängig" has a guard of its own with the same rules. The two do not hold each other back: a
+  removal can be taken back at once.
+
+"Hinzufügen", the move buttons and the buttons of a profile card have no guard: pressed twice they
+add two concepts, move two places, or open something that "Abbrechen" closes, and all of that can
+be put right by hand.
 
 **Names.** The area refuses a second profile of the same name, on creating and on renaming:
-"Diesen Namen gibt es schon. Bitte wähle einen anderen." Names are compared in NFC, trimmed,
+"Diesen Namen gibt es schon. Bitte wähle einen anderen, zum Beispiel „Amy 2“." The example is the
+typed name with the first number from 2 that is free; it shows a way out that is not a surname,
+and is left out when it would be longer than a name may be. Names are compared in NFC, trimmed,
 without regard to case (`toLocaleLowerCase("de")`), against the readable profiles the store holds
 at that moment; a profile may keep its own name in another spelling. The store itself does not
 enforce this, so data from before this rule, or written by another tab at the same moment, can
@@ -338,7 +375,9 @@ press acts on the same concept.
 **Undo.** After "Entfernen" the status line says "„<label>“ wurde von der Tafel genommen." and the
 button "Rückgängig: „<label>“" appears under it. The area keeps a stack of the removals made on
 the edited profile during this visit. The button names and restores the latest one and stays
-while the stack is not empty, so several removals can be taken back one after another. Each
+while the stack is not empty, so several removals can be taken back one after another; while
+more than one is stacked it says so ("Rückgängig: „Pause“ (noch 2 weitere)"). It has the guard
+described above. Each
 restore goes through the same queued `setBoardConcepts` path, built from the stored list at that
 moment: before the id that followed the concept when it was removed, if that id is still on the
 board, else at the end. Board data keeps a caregiver's own wording when a concept leaves the
@@ -391,15 +430,16 @@ English message and no stack reaches the screen.
 from 640 px width a concept row has its buttons at the right. Buttons, fields and the two
 summaries are at least 44 px high by the style sheet, and neighbouring buttons are 0.6 rem apart.
 "Fertig" and "Speichern" are filled dark blue; "Endgültig löschen" is filled red and "Löschen" has
-a red outline; a button in its guard time is grey like a disabled one. The block at the top has
+a red outline; "Entfernen" and "Rückgängig" in their guard time are grey like a disabled button. The block at the top has
 safe-area padding. Names, labels and sentences wrap.
 
 **Accessibility as built.** `#caregiver-region` is a labelled region with an `h1`; sections have
 `h2` and the two lists `h3`; controls are buttons and labelled text fields; messages go to a
 `role="status"` live region; focus is placed after every action (above), and the title, which
 gets the focus on opening, shows a focus outline. The header line is not a live region. A button
-in its guard time says so only through `aria-disabled`. None of this was checked with assistive
-technology.
+in its guard time says so through `aria-disabled`, and through the status line once a press was
+ignored. The line under "Endgültig löschen" is its description and a live region for the
+countdown. None of this was checked with assistive technology.
 
 ## Deliberately missing
 
@@ -433,11 +473,14 @@ technology.
 - The block at the top takes room, most in a phone held sideways. The status line is held to
   three lines; the header line is not, and a name of 40 characters makes it three lines on a
   narrow phone. A long message is cut after three lines on screen.
-- The guard time is a guess and was tried with emulated taps only. A deliberate press on
-  "Endgültig löschen" or on a second "Entfernen" within that time does nothing and has to be
-  repeated; the button looks inactive meanwhile, and nothing else says why.
-- A second tap on the spot of "Löschen" often hits "Abbrechen", so a double tap can open and
-  close the confirmation at once.
+- The guard time and the hold time are guesses and were tried with emulated taps only. A
+  deliberate second removal, or a second undo, within the guard time is ignored and starts the
+  time again: the caregiver has to wait until the buttons are no longer grey.
+- A tap on the spot of "Löschen" often hits "Abbrechen" next, so tapping there opens and closes
+  the confirmation.
+- A caregiver who cannot hold a button for two seconds, or whose assistive technology only
+  clicks, cannot delete a profile. Clearing the site data of the browser removes all of them.
+- While removals are stacked, the undo row makes the block at the top one row taller.
 - Scrolling by keyboard or by dragging a scroll bar does not clear the status line.
 - Not tried on a touch screen with a finger, and not with a caregiver.
 - At 320 to 390 px width the three buttons of a board row do not fit one line; "Entfernen" wraps
@@ -492,13 +535,16 @@ technology.
    change them in the same change that adds export, a backup or anything that sends data.
 10. Do not re-sort a list by a state the caregiver has just changed under the finger. Where an
     action lets another row or button take the place of the pressed one, a second press on that
-    spot must not take anything away: guard it (`GUARD_MS`) from the press on, or put something
-    harmless there.
+    spot must not take anything away: guard it (`tapGuard`) from the press on, count the time
+    from the redraw, let an ignored press start it again and say "Bitte kurz warten."; or put
+    something harmless there.
 11. After an action that was saved, put the focus on a control that still exists, chosen so that
     a second press does the natural next thing, and not on a button that deletes for good. After
     one that was not saved, leave it on the control that was pressed.
-12. Deleting stays two steps with "Abbrechen" first and focused, a guard time on "Endgültig
-    löschen", names what is lost, and makes no other profile active by itself.
+12. Deleting stays two steps with "Abbrechen" first and focused, names what is lost, and makes no
+    other profile active by itself. What cannot be taken back is not reachable by tapping: it
+    needs a hold (`createHold`), and it is carried out only if its confirmation is still the open
+    one. A time guard is for what can be put right.
 13. An undo is built from the stored list at the moment it is pressed, not from a remembered
     list, and goes through `setBoardConcepts`. Whatever is taken off a board through this area
     goes onto the undo stack, and the status line names it.
@@ -510,4 +556,8 @@ technology.
     message for the status line has to make sense in three lines.
 17. A board is named by its profile's name, in the header, the editor and the confirmation: keep
     names unique in the area, and use the label with the suffix wherever a name is shown.
-18. Escape leaves the innermost thing and does not throw away typed text at the first press.
+18. Escape leaves the innermost thing and does not throw away typed text at the first press, with
+    one exception: in a rename field it cancels the rename, and what was typed there is dropped
+    (the stored name is unchanged, and "Abbrechen" does the same).
+19. A message for the status line has a kind. A refusal or failure is an error and stays through
+    scrolling; do not report one as plain information.
