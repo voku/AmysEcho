@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "4915794fdd5f6baa4e0e51f956fc68384072536a",
+    "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
     "history": [
         {
@@ -34,6 +34,38 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:9c982d3a",
                 "summary": "setWording and clearWording in src/board-data.ts cover the storage side with one write each; refusals arrive as BoardDataError kinds (invalid-text, unsupported-entry, unknown-concept, retired-concept, custom-concept) and need German lines like nameErrorLine; own wording is detectable by comparing the resolved entry with the catalogue; the rename mode in src/caregiver.ts is the pattern for a form that keeps drafts through redraws.",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:30:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:30:48+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "completed",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:a03f157a",
+                "summary": "Rewording built: takeover view with label and sentence, reset in two steps, German refusals, no control for newer-app entries; 447 tests pass; Chromium probes at four sizes",
                 "task_id": "NG-33",
                 "validation_references": []
             }
