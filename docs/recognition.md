@@ -3,6 +3,9 @@
 Code: `src/recognition/`. Board card: NG-1. Product slice: S3 in
 [#1176](https://github.com/voku/AmysEcho/issues/1176) (matcher only; no camera, UI or storage yet).
 
+The hand-tracker decision, with what was measured and what only the phone can answer, is in
+[tracker-decision.md](tracker-decision.md) (card NG-16).
+
 ## How it works
 
 1. **Landmark frames in.** A capture is a list of frames with up to two hands (21 points each, in

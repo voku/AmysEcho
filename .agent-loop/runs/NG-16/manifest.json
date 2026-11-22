@@ -1,0 +1,165 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-16 before calling agent-loop finish NG-16",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T22:29:59+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-16/contract.json",
+                "sha256": "sha256:5dcb551293124b03fec5ff0c16e2e3cdf96dcaba13516603b8651386a4e9ab8e"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-16",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "48e0d8345181dcf917479768462fb9315d8a31a54a7901856b44a298461b3b27",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-16.md",
+                "sha256": "sha256:48e0d8345181dcf917479768462fb9315d8a31a54a7901856b44a298461b3b27"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The record names tracker, pinned version and the reason for the pin, models, licence, sizes and the CSP change",
+                "It separates what was measured in headless Chromium from what is unverified on the phone",
+                "It lists the matcher gaps for one- and two-hand gestures with file references and an ordered build plan"
+            ],
+            "goal": "Record the hand-tracker decision with its evidence: which tracker and version, how it is bundled offline, licence and size, security-policy change, left/right convention, what is measured and what only the phone can answer, and the matcher gaps for one- and two-hand gestures.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-16/contract.json",
+                "sha256": "sha256:5dcb551293124b03fec5ff0c16e2e3cdf96dcaba13516603b8651386a4e9ab8e"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-16/contract.json",
+                "sha256": "sha256:5dcb551293124b03fec5ff0c16e2e3cdf96dcaba13516603b8651386a4e9ab8e"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-16:9802dc61311a68f0",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:0625f2c87d965734f141b1f6a5cc26b10d5fec8af411337e1e6b401bbdfc7fed",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:b1eeb355f53f131016e93ccd01aa289147f6ca1de8637e020009acf5abbbc90b"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-16:9802dc61311a68f0",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "51479c7fb69f14bb798a24b3dadbb83580777dc6b0217b097ef702c0004b62a7",
+            "compilation_id": "compilation.NG-16.2026-11-22-222959.2ae56924",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "1b69386743104a40cda835a503a65c4bb2282bd2cfbd0e40858ca5574877add3",
+            "source": {
+                "path": ".agent-loop/recall/NG-16/meta.json",
+                "sha256": "sha256:ee420568b55f6d2d4dcac2b5cbcb928ca34882753812b6932915293ef6604fe0"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-16/reviews/NG-16.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "6cbffb1b03dd05843d3c12c5617b2121d2acf615",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-16-r1-2694209e",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-16-r1-2694209e/session.json",
+                "sha256": "sha256:2ee1cbfc9332cf8bbd986b815bb727c1006779508a142d1f248ff329f1da6e3a"
+            },
+            "state": "active",
+            "task_id": "NG-16"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-16 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-16",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:52909c869bef4e11b16a4d8661cc9ef119283d3f0102c62fcaba4a5f13c73b6c",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-16:9802dc61311a68f0",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-16"
+}
