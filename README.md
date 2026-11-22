@@ -48,13 +48,22 @@ single steps are `npm run typecheck`, `npm run build`, `npm test` and `npm run s
 
 Serve `dist/` from a local HTTP origin (`localhost` works) and open it in a browser.
 
-The repository is developed with the governed [`voku/agent-loop`](https://github.com/voku/agent-loop)
-workflow. That tooling is PHP and is installed with `composer install`; the product itself has no
-PHP. See [AGENTS.md](AGENTS.md).
+`npm test` fails when it finds no test file or when no test passes.
 
-Run `npm ci --ignore-scripts` before `vendor/bin/agent-loop enter`: for a task that touches
-TypeScript or JavaScript files the workflow builds a symbol map and needs
-`node_modules/typescript` for it.
+The repository is developed with the governed [`voku/agent-loop`](https://github.com/voku/agent-loop)
+workflow. That tooling is PHP (8.3 or newer) and is installed with Composer; the product itself
+has no PHP. See [AGENTS.md](AGENTS.md). Set up in this order:
+
+```sh
+composer install
+npm ci --ignore-scripts
+vendor/bin/agent-loop enter <task-id>
+```
+
+`npm ci --ignore-scripts` has to come before `enter`: for a task that touches TypeScript or
+JavaScript files the workflow builds a symbol map and needs `node_modules/typescript` for it. The
+map is built from the files of the task's scope that already exist, so a task that names only new
+files gets no map.
 
 ## The previous version
 
