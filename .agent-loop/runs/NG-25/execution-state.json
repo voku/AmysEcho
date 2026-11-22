@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -139,6 +139,48 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:722950c6",
                 "summary": "Second build: usage record enforces export limits at write, joiner rule for names, damaged kind, boundary hardening; npm run verify passes with 88 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:23:05+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:23:05+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:998072288fb181961d938f0ed2d8998e27aa88378b20855a7336e68173f81c4f",
+                    "execution-evidence:sha256:b605065276b03482caa9d80240ca83a4d150c68f7e457ac4b79300e4576a804f",
+                    "execution-evidence:sha256:76352eec9f0fb3d73f8ea57ec767f6b1db57f0086bfa7313d9b70683b54ba47e",
+                    "execution-evidence:sha256:5db3681f8bae297c4054d2b61ba798c43f2642293cde5d42b13a103f175bb012"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:998072288fb181961d938f0ed2d8998e27aa88378b20855a7336e68173f81c4f",
+                    "execution-evidence:sha256:b605065276b03482caa9d80240ca83a4d150c68f7e457ac4b79300e4576a804f",
+                    "execution-evidence:sha256:76352eec9f0fb3d73f8ea57ec767f6b1db57f0086bfa7313d9b70683b54ba47e",
+                    "execution-evidence:sha256:5db3681f8bae297c4054d2b61ba798c43f2642293cde5d42b13a103f175bb012"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
+                "context_id": "claude-subagent-ng25-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "changes_required",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:ea45d168",
+                "summary": "Usage record can drift with two stores on one backend (store.ts:346-358) and is trusted forever; docs and comments claim export can always succeed. Also untyped RangeError in set, no shrinking overwrite when over limit.",
                 "task_id": "NG-25",
                 "validation_references": []
             }
