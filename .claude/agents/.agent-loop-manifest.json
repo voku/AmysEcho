@@ -1,0 +1,60 @@
+{
+    "version": 3,
+    "kind": "subagents",
+    "agent": "claude",
+    "required_capabilities": [
+        "subagent-projection"
+    ],
+    "entries": [
+        {
+            "target": "agent-loop-blindspot-reviewer.md",
+            "source_id": "voku/agent-loop:subagent:agent-loop-blindspot-reviewer",
+            "semantic_owner": "voku/agent-loop",
+            "source_path": null,
+            "source_reference": "resources/subagents/agent-loop-blindspot-reviewer.md",
+            "source_sha256": "sha256:19b57c37e1d28c1a4c3895e394098696e9504baba6e08170b421bc6e2f175400",
+            "representation_sha256": "sha256:74a4e7535df1cbcbd2ac0255391f6cfb206c5b4f8ace70acbf15f7e9c7c5ee1e",
+            "adopted": false
+        },
+        {
+            "target": "agent-loop-code-reviewer.md",
+            "source_id": "voku/agent-loop:subagent:agent-loop-code-reviewer",
+            "semantic_owner": "voku/agent-loop",
+            "source_path": null,
+            "source_reference": "resources/subagents/agent-loop-code-reviewer.md",
+            "source_sha256": "sha256:9acf31749f236468d79b5842051ed29ea7ac6c49a31014e9560b060e79fe0896",
+            "representation_sha256": "sha256:e6614743885eb4bdd9bbe74d05eca5f3d0dd950534aa3c9b008ceffecc160d35",
+            "adopted": false
+        },
+        {
+            "target": "agent-loop-investigator.md",
+            "source_id": "voku/agent-loop:subagent:agent-loop-investigator",
+            "semantic_owner": "voku/agent-loop",
+            "source_path": null,
+            "source_reference": "resources/subagents/agent-loop-investigator.md",
+            "source_sha256": "sha256:fe725e1db876b3712eba476fcb912294dddea541860931e2665a50e21405345c",
+            "representation_sha256": "sha256:0f3b1d6cdf72188af705ac8d95b998fe8e5a16b99180f08336e61b907715b1e5",
+            "adopted": false
+        },
+        {
+            "target": "agent-loop-solution-triager.md",
+            "source_id": "voku/agent-loop:subagent:agent-loop-solution-triager",
+            "semantic_owner": "voku/agent-loop",
+            "source_path": null,
+            "source_reference": "resources/subagents/agent-loop-solution-triager.md",
+            "source_sha256": "sha256:f8cf89810b2e25356ecda922cd034fc5718ba43831f7eed5e3045b75b12db618",
+            "representation_sha256": "sha256:dc668f5e5ff8dc6c9a79dc2848d9b0b822224a22aaf506a912f03791a5aa9429",
+            "adopted": false
+        },
+        {
+            "target": "agent-loop-surgical-builder.md",
+            "source_id": "voku/agent-loop:subagent:agent-loop-surgical-builder",
+            "semantic_owner": "voku/agent-loop",
+            "source_path": null,
+            "source_reference": "resources/subagents/agent-loop-surgical-builder.md",
+            "source_sha256": "sha256:a15a41b9a6cc2c4d97f8c1dd69b067cc29e4eeb8b277eecf8136ecc461bd2afb",
+            "representation_sha256": "sha256:57ff854e385573707b95e6ab201dfa83a23743595249af70d2535131a7474ce3",
+            "adopted": false
+        }
+    ]
+}

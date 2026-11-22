@@ -1,0 +1,18 @@
+{
+  "name": "Amy's Echo NG (Test)",
+  "short_name": "Amy's Echo NG",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4fafc",
+  "theme_color": "#174e6c",
+  "icons": [
+    {
+      "src": "./icons/app.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,122 +1,65 @@
-# Amy's Echo
+# Amy's Echo NG
 
-[![Open Source – MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**This repository contains the development work for my little girl — to help her be understood, to help her learn, and to help others understand her world.**
+A local-first communication aid (AAC) for children with special needs. A child picks a
+**communication concept** on a board, or makes a **personal gesture** that a caregiver has taught
+the app, and the device shows and speaks the German message. It started for Amy, who has 22q11
+deletion syndrome and communicates with signs based on Deutsche Gebärdensprache (DGS); it is built
+so that every child profile uses its own gestures.
 
-Amy is four years old. She was born with **22q11 Deletion Syndrome** and communicates using **Deutsche Gebärdensprache (DGS)** — German Sign Language. Her gestures are expressive, her intent is clear — but most people around her don't understand what she's trying to say.
+Product plan and gates: [#1176](https://github.com/voku/AmysEcho/issues/1176).
+Product, device and privacy contract (draft): [docs/s0a-product-contract-v0.1.md](docs/s0a-product-contract-v0.1.md).
 
-This project turns those gestures into speech and symbols so she can be heard anywhere. Each child profile receives personalized gesture recognition trained from their own samples, making the system effective for 22q11 workflows in group settings like kindergartens.
+## Status
 
-All app UI text and error messages are written in German to match Amy's language environment.
+Early rebuild. What exists today:
 
-## Current Focus
+- an offline concept board with five **synthetic, not caregiver-approved** example concepts,
+  German text, bundled placeholder symbols and speech through a local German voice when the
+  browser offers one;
+- a service worker that pre-caches the local bundle.
 
-The project is being maintained in a **supported-core** mode.
+Not built yet: child profiles, export/restore/delete, camera input and gesture recognition.
+Nothing here has been verified on a physical device or with a child.
 
-Current first-class scope:
+## Principles
 
-- caregiver auth and child profiles
-- live gesture recognition
-- low-confidence correction flow
-- training capture/upload and profile-aware model updates
-- symbol board fallback
-- the minimum settings/help/admin needed to keep those flows usable
+- **The board always works.** Camera, recognition and network are optional.
+- **Per-child gestures.** Recognition compares against examples recorded for that child; there is
+  no shared "sign language model".
+- **Measured, not assumed.** Recognition changes must report numbers from held-out recordings,
+  split by recording session. Synthetic fixtures prove the pipeline, not real-world accuracy.
+- **Private by default.** No raw video is stored. No child recordings, landmarks or session data
+  belong in this repository, in CI logs or in artifacts.
+- **No backend** until a product requirement proves one is needed.
 
-De-emphasized for now:
+## Development
 
-- analytics and progress dashboards
-- tutorial/about/showcase pages
-- reference-video surfaces
-- pretraining and benchmark-heavy operator workflows as the main line of progress
+Node 22 or newer.
 
----
-
-## Quick Start
-
-```bash
-# Install
-npm ci --prefix webapp && npm ci --prefix server
-pip install -r server/requirements.txt
-
-# Test
-npm test --prefix webapp && npm test --prefix server
-
-# Run
-npm run build --prefix server && ./scripts/server-start.sh  # Terminal A
-npm run dev --prefix webapp  # Terminal B → http://localhost:5173
+```sh
+npm ci --ignore-scripts
+npm run typecheck
+npm run build
+npm test
+npm run smoke:offline
 ```
 
+Serve `dist/` from a local HTTP origin (`localhost` works) and open it in a browser.
 
-### NPM Proxy Warning Cleanup
+The repository is developed with the governed [`voku/agent-loop`](https://github.com/voku/agent-loop)
+workflow. That tooling is PHP and is installed with `composer install`; the product itself has no
+PHP. See [AGENTS.md](AGENTS.md).
 
-If your environment injects `npm_config_http_proxy` / `npm_config_https_proxy`, npm can print `Unknown env config "http-proxy"` warnings.
-Use these shell helpers for clean output during checks:
+## The previous version
 
-```bash
-./scripts/run-webapp-type-check-clean.sh
-./scripts/run-webapp-lint-clean.sh
-./scripts/run-webapp-build-clean.sh
-./scripts/run-server-type-check-clean.sh
-```
-
----
-
-## Supported Core
-
-The canonical scope document is [Supported Core](docs/architecture/supported-core.md).
-
-## Key Entry Points
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| Webapp | `webapp/src/App.tsx` | Main React app, routing |
-| Gesture Detection | `webapp/src/gesture/core/GestureDetector.ts` | MediaPipe integration |
-| Recognition | `webapp/src/gesture/core/GestureRecognitionOrchestrator.ts` | MLP classification |
-| Training | `webapp/src/training/trainingBundle.ts` | Sample bundling for upload |
-| Server | `server/src/server.ts` | Express API, routes |
-| MLP Trainer | `server/src/amyserver_tools/train_mlp.py` | Model training pipeline |
-
----
-
-## Documentation
-
-| Document | Contents |
-|----------|----------|
-| [Project Overview](docs/project-overview.md) | Purpose, tech stack, platform support |
-| [Architecture](docs/architecture.md) | System design, component map, data flow |
-| [Supported Core](docs/architecture/supported-core.md) | Current supported product boundary |
-| [Build System](docs/build-system.md) | Build commands, configurations |
-| [Testing](docs/testing.md) | Test structure, commands, patterns |
-| [Development](docs/development.md) | Code style, workflows, patterns |
-| [Deployment](docs/deployment.md) | Server/webapp deployment, Docker |
-| [TODO](docs/planning/todo.md) | Current priorities, roadmap |
-
-### Detailed Guides
-
-- [Caregiver Guide](docs/guides/caregiver-guide.md) — For parents and caregivers
-- [Developer Quick Start + DB Init](docs/guides/developer-quick-start-and-db-init.md) — Local setup, verification, SQLite re-init
-- [Training Workflow](docs/training/video-recording-and-training-workflow.md) — Recording and training gestures
-- [Testing Strategy](docs/testing/testing-strategy.md) — Core test approach
-
----
-
-## Tech Stack
-
-- **Webapp**: React + Vite + TypeScript
-- **Server**: Node/Express + Python (training)
-- **ML**: MediaPipe landmarks + Custom MLP classifier
-- **Database**: SQLite (server), IndexedDB (client)
-- **UI Language**: German (user-facing), English (developer)
-
----
-
-## Contributing
-
-See [agents.md](agents.md) for development guidelines. German for user-facing text, tests colocated with source (webapp) or in `test/` (server).
-
----
+The first Amy's Echo (React, Express, Python training) is kept unchanged on the
+[`main_old`](https://github.com/voku/AmysEcho/tree/main_old) branch as reference, including the
+public DGS demo videos. It is not maintained. See
+[docs/legacy-lessons.md](docs/legacy-lessons.md) for why it was restarted.
 
 ## License
 
-[MIT](LICENSE) — If you use this to help another child, let me know. That's why it's public.
+[MIT](LICENSE) for the source code. Symbols and other assets carry their own licence records.
+If you use this to help another child, let me know. That's why it's public.
