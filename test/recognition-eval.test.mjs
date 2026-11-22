@@ -10,38 +10,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildFeatureSequence } from "../dist/recognition/features.js";
-import { evaluateBySession } from "../dist/recognition/evaluate.js";
-import { createGesture, createLookAlike, createSession, renderGesture } from "../dist/recognition/synthetic.js";
+import { evaluateBySession, simulateProfile } from "../dist/recognition/evaluate.js";
+import { createGesture, createSession, renderGesture } from "../dist/recognition/synthetic.js";
 
 const GESTURES = 15;
-const EXAMPLE_SESSIONS = ["teach-1", "teach-2"];
-const TEST_SESSIONS = ["use-1", "use-2"];
-
-function simulate(sloppiness, unknownKind) {
-  const attempts = [];
-  let seed = 1;
-  const add = (gesture, conceptId, sessionId, placement) => {
-    const result = buildFeatureSequence(renderGesture(gesture, { seed: seed += 1, session: placement, sloppiness }));
-    assert.equal(result.ok, true);
-    attempts.push({ conceptId, sessionId, sequence: result.sequence });
-  };
-  [...EXAMPLE_SESSIONS, ...TEST_SESSIONS].forEach((sessionId, index) => {
-    const placement = createSession(100 + index);
-    const teaching = EXAMPLE_SESSIONS.includes(sessionId);
-    for (let g = 0; g < GESTURES; g += 1) {
-      for (let repeat = 0; repeat < (teaching ? 3 : 5); repeat += 1) add(createGesture(g + 1), `concept-${g}`, sessionId, placement);
-      if (!teaching) {
-        for (let other = 0; other < 4; other += 1) {
-          const unknown = unknownKind === "unrelated"
-            ? createGesture(5000 + (seed += 1))
-            : createLookAlike(createGesture(g + 1), seed += 1, unknownKind);
-          add(unknown, null, sessionId, placement);
-        }
-      }
-    }
-  });
-  return evaluateBySession(attempts, EXAMPLE_SESSIONS);
-}
+/** The profile of the first cards: right-hand gestures, some with the left hand as well; examples recorded without a rest. */
+const simulate = (sloppiness, unknownKind) => simulateProfile({ hands: "default", gestures: GESTURES, sloppiness, unknownKind, examples: {} });
 
 const percent = (value) => `${(value * 100).toFixed(1)}%`;
 const line = (name, report) => `${name}: top1 ${percent(report.top1)}, top3 ${percent(report.top3)}, `
@@ -88,4 +62,58 @@ test("attempts are never scored against examples from their own session", () => 
   assert.equal(report.examples, 2);
   assert.equal(report.knownAttempts, 1);
   assert.equal(report.unknownAttempts, 0);
+});
+
+// --- One hand, two hands and what a real capture adds (card NG-18) ---
+
+const CONDITIONS = [
+  ["no disturbance", {}],
+  ["second hand passes for 100 ms", { strayHandMs: 100 }],
+  ["second hand passes for 250 ms", { strayHandMs: 250 }],
+  ["second hand passes for 450 ms", { strayHandMs: 450 }],
+  ["second hand passes for 700 ms", { strayHandMs: 700 }],
+  ["other hand rests in view throughout", { otherHandRests: true }],
+  ["a hand lost for 150 ms", { dropoutMs: 150 }],
+  ["a hand lost for 300 ms", { dropoutMs: 300 }],
+  ["a hand lost for 450 ms", { dropoutMs: 450 }],
+  ["a hand lost for 600 ms", { dropoutMs: 600 }],
+  ["hands rest 0.5 s before and after", { restBeforeMs: 500, restAfterMs: 500 }],
+  ["hands rest 1 s before and after", { restBeforeMs: 1000, restAfterMs: 1000 }],
+  ["hands rest 2 s before and after", { restBeforeMs: 2000, restAfterMs: 2000 }],
+  ["15 frames per second", { frameMs: 67 }],
+  ["7 frames per second", { frameMs: 143 }],
+  ["7 to 15 frames per second, unsteady", { frameMs: 100, frameJitter: 0.45 }],
+];
+const PROFILES = ["right", "left", "both", "mixed"];
+
+test("one-hand, two-hand and mixed profiles under the disturbances of a real capture: measured and reported", (t) => {
+  const cell = (report) => `${percent(report.top1)} / ${percent(report.top3)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)}`;
+  t.diagnostic(`per profile: top-1 / top-3 / spoken as a wrong concept / answered "unknown" (12 gestures, 72 examples, 120 attempts each)`);
+  let worstWrong = 0;
+  for (const [name, attempts] of CONDITIONS) {
+    const reports = PROFILES.map((hands) => simulateProfile({ hands, gestures: 12, sloppiness: 1.5, unknownKind: "unrelated", attempts }));
+    t.diagnostic(`${name}: ${PROFILES.map((hands, index) => `${hands} ${cell(reports[index])}`).join(" | ")}`);
+    for (const [index, report] of reports.entries()) {
+      worstWrong = Math.max(worstWrong, report.wrongAccept);
+      // The number that matters most: whatever the disturbance, a known gesture is not spoken as another concept.
+      assert.ok(report.wrongAccept <= 0.02, `${name}, ${PROFILES[index]}: ${line(name, report)}`);
+      assert.ok(report.falseAccept <= 0.05, `${name}, ${PROFILES[index]}: ${line(name, report)}`);
+      if (name === "no disturbance") assert.ok(report.top1 >= 0.95, `${PROFILES[index]}: ${line(name, report)}`);
+    }
+  }
+  t.diagnostic(`worst "spoken as a wrong concept" over all rows: ${percent(worstWrong)}`);
+});
+
+test("a capture from which no sequence can be built counts as an 'unknown' answer, not as a hit or a miss left out", () => {
+  const sequence = buildFeatureSequence(renderGesture(createGesture(1, "right"), { seed: 1, session: createSession(1), sloppiness: 0 })).sequence;
+  const report = evaluateBySession([
+    { conceptId: "a", sessionId: "teach", sequence },
+    { conceptId: "a", sessionId: "teach", sequence: null },
+    { conceptId: "a", sessionId: "use", sequence },
+    { conceptId: "a", sessionId: "use", sequence: null },
+    { conceptId: null, sessionId: "use", sequence: null },
+  ], ["teach"]);
+  assert.equal(report.examples, 1);
+  assert.deepEqual([report.knownAttempts, report.top1, report.top3, report.falseReject, report.wrongAccept], [2, 0.5, 0.5, 0.5, 0]);
+  assert.deepEqual([report.unknownAttempts, report.unknownRecall], [1, 1]);
 });

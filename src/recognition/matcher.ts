@@ -1,10 +1,10 @@
 import { dtwDistance } from "./dtw.js";
-import type { FeatureSequenceV1 } from "./features.js";
+import type { FeatureSequence } from "./features.js";
 
 /** One recorded attempt of a gesture that a caregiver assigned to a concept. */
 export interface GestureExample {
   readonly conceptId: string;
-  readonly sequence: FeatureSequenceV1;
+  readonly sequence: FeatureSequence;
 }
 
 export interface RankedConcept {
@@ -27,7 +27,16 @@ export interface MatchOptions {
   readonly minMargin: number;
 }
 
-export type UnknownReason = "no_examples" | "too_far" | "ambiguous";
+/**
+ * - "no_examples": the profile has no examples at all.
+ * - "other_anchor": it has examples, but none with the attempt's anchor
+ *   (shoulders seen in one and not in the other).
+ * - "other_hands": it has examples with that anchor, but none made with the
+ *   same hands (left, right, both). The correction list is empty then.
+ * - "too_far": the closest concept is beyond its limit.
+ * - "ambiguous": two concepts are about equally close.
+ */
+export type UnknownReason = "no_examples" | "other_anchor" | "other_hands" | "too_far" | "ambiguous";
 
 export type MatchResult =
   | { readonly kind: "match"; readonly conceptId: string; readonly ranked: readonly RankedConcept[] }
@@ -49,11 +58,16 @@ const CALIBRATION_HEADROOM = 1.25;
 const MIN_ABSOLUTE_MARGIN = 0.01;
 const RANKED_CONCEPTS = 3;
 
-/** Concepts ordered by their closest example. Examples with another anchor are not comparable and are skipped. */
-export function rankConcepts(query: FeatureSequenceV1, examples: readonly GestureExample[]): RankedConcept[] {
+/** True when two sequences can be compared: the same anchor and the same hands. */
+export function comparable(a: FeatureSequence, b: FeatureSequence): boolean {
+  return a.anchor === b.anchor && a.hands === b.hands;
+}
+
+/** Concepts ordered by their closest example. Examples with another anchor or made with other hands are not comparable and are skipped. */
+export function rankConcepts(query: FeatureSequence, examples: readonly GestureExample[]): RankedConcept[] {
   const closest = new Map<string, number>();
   for (const example of examples) {
-    if (example.sequence.anchor !== query.anchor) {
+    if (!comparable(example.sequence, query)) {
       continue;
     }
     const distance = dtwDistance(query, example.sequence);
@@ -72,14 +86,16 @@ export function rankConcepts(query: FeatureSequenceV1, examples: readonly Gestur
  * the caller should then offer the ranked concepts or the board, not guess.
  */
 export function matchGesture(
-  query: FeatureSequenceV1,
+  query: FeatureSequence,
   examples: readonly GestureExample[],
   options: MatchOptions,
 ): MatchResult {
   const ranked = rankConcepts(query, examples).slice(0, RANKED_CONCEPTS);
   const best = ranked[0];
   if (best === undefined) {
-    return { kind: "unknown", reason: "no_examples", ranked };
+    const sameAnchor = examples.filter((example) => example.sequence.anchor === query.anchor);
+    const reason = examples.length === 0 ? "no_examples" : sameAnchor.length === 0 ? "other_anchor" : "other_hands";
+    return { kind: "unknown", reason, ranked };
   }
   // Written so that a distance that is not a number is rejected, not accepted.
   if (!(best.distance <= (options.maxDistance.get(best.conceptId) ?? FALLBACK_MAX_DISTANCE))) {
@@ -115,7 +131,7 @@ export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<s
   for (const example of examples) {
     let nearest = Number.POSITIVE_INFINITY;
     for (const other of examples) {
-      if (other !== example && other.conceptId === example.conceptId && other.sequence.anchor === example.sequence.anchor) {
+      if (other !== example && other.conceptId === example.conceptId && comparable(other.sequence, example.sequence)) {
         nearest = Math.min(nearest, dtwDistance(example.sequence, other.sequence));
       }
     }
