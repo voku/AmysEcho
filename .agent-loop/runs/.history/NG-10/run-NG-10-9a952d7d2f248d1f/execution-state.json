@@ -1,0 +1,79 @@
+{
+    "attention": null,
+    "candidate_revision": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "correctness-review",
+    "execution_plan_digest": "sha256:e3cf81a08c30e1326e5bd222b47ee068438878d0279510d3c9a7eaff99c12d09",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T11:38:30+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:38:30+00:00",
+                "artifact_references": [],
+                "candidate_revision": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e3cf81a08c30e1326e5bd222b47ee068438878d0279510d3c9a7eaff99c12d09",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:9a952d7d2f248d1f",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e3cf81a08c30e1326e5bd222b47ee068438878d0279510d3c9a7eaff99c12d09",
+                "outcome": "completed",
+                "run_id": "run:NG-10:9a952d7d2f248d1f",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:0d107b2f",
+                "summary": "composer.json requires voku/agent-loop ^0.20.104 as a dev dependency and the lock holds agent-map 0.24.2; .agent-loop/init.json is {version: 1} with no map settings; AGENTS.md has a managed router block plus repository rules; projected host assets live in .claude/ with manifests.",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:39:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:39:10+00:00",
+                "artifact_references": [],
+                "candidate_revision": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e3cf81a08c30e1326e5bd222b47ee068438878d0279510d3c9a7eaff99c12d09",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:9a952d7d2f248d1f",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+                "context_id": "claude-session_01Jpe7RDVp43iZAe1CvtiVuB-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e3cf81a08c30e1326e5bd222b47ee068438878d0279510d3c9a7eaff99c12d09",
+                "outcome": "completed",
+                "run_id": "run:NG-10:9a952d7d2f248d1f",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:98652326",
+                "summary": "Upgraded voku/agent-loop to 0.20.105 (agent-map 0.25.1, agent-edit 0.8.2, agent-recall-compiler 0.29.11 in the lock); declared map.languages typescript in .agent-loop/init.json; documented it in AGENTS.md. After the upgrade init host-status reports none, agent-loop map build wrote 14 files and 89 relations and map query matchGesture returns src/recognition/matcher.ts. composer validate --strict and npm run verify pass (39 tests).",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-10:9a952d7d2f248d1f",
+    "schema_version": "1.0",
+    "task_id": "NG-10"
+}

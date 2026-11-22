@@ -3,6 +3,6 @@
     "description": "Amy's Echo NG: local-first AAC with personalised gesture input (workflow tooling only; the product is TypeScript)",
     "license": "MIT",
     "require-dev": {
-        "voku/agent-loop": "^0.20.104"
+        "voku/agent-loop": "^0.20.105"
     }
 }

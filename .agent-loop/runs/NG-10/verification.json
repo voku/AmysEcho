@@ -1,0 +1,38 @@
+{
+    "contract_revision": 2,
+    "contract_sha256": "sha256:3aa6a14378e6713a87dbddaecd84e76c9059917643fb7b8e2e82d63f48e75718",
+    "implementation_snapshot": "sha256:b29a34fd4ee43f358c43bc9cc0b14e0a43a1c654e6521e5de7c8593972c94c32",
+    "kind": "run_verification_receipt",
+    "obligations": [
+        {
+            "command": "composer validate --strict",
+            "duration_ms": 142,
+            "executed_at": "2026-11-22T11:43:22+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        },
+        {
+            "command": "npm ci --ignore-scripts",
+            "duration_ms": 514,
+            "executed_at": "2026-11-22T11:43:23+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        },
+        {
+            "command": "npm run verify",
+            "duration_ms": 12275,
+            "executed_at": "2026-11-22T11:43:35+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        }
+    ],
+    "run_id": "run:NG-10:c023d1d261ce0c90",
+    "schema_version": "1.1",
+    "source_session_id": "2026-11-22-ng-10-r2-ea01e984",
+    "task_id": "NG-10",
+    "verdict": "satisfied",
+    "verified_at": "2026-11-22T11:43:45+00:00"
+}

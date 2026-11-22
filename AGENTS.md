@@ -36,6 +36,11 @@ Keep this section outside the managed router markers above.
 - Recognition work reports measured numbers from the evaluation harness. Do not lower a threshold
   to make a gate pass.
 - The pre-NG code is on `main_old` and is reference only. Do not import or port it wholesale.
+- Code facts for governed tasks come from a TypeScript map: `.agent-loop/init.json` declares
+  `map.languages: ["typescript"]`, and `agent-loop enter` builds the map when a Contract names
+  `.ts`, `.mjs` or other JavaScript files. This needs Node and `node_modules/typescript`, so run
+  `npm ci --ignore-scripts` before `enter`; without them `enter` stops and says why. The map holds
+  declarations only: no call relations, and no deterministic `agent-loop edit` for TypeScript.
 
 ## Validation
 
