@@ -1,11 +1,76 @@
 {
     "attention": null,
-    "candidate_revision": "05947ccd08be83869530506228ec0503ce7a6b51",
+    "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:b4784f5bb007d0af2e69cc53ab79e9ba54875707",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-22T14:24:24+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:24:24+00:00",
+                "artifact_references": [],
+                "candidate_revision": "05947ccd08be83869530506228ec0503ce7a6b51",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "05947ccd08be83869530506228ec0503ce7a6b51",
+                "context_id": "claude-main-ng29-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "completed",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:301c1c72",
+                "summary": "app.ts exports the controller with store() and refreshBoard(); #caregiver-region exists hidden and empty; boards must be written through setBoardConcepts with the full conceptIds; ProfileFormatError carries no kind",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:24:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:24:25+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:b4784f5bb007d0af2e69cc53ab79e9ba54875707",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:b4784f5bb007d0af2e69cc53ab79e9ba54875707",
+                "context_id": "claude-subagent-ng29-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "completed",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:dec20c64",
+                "summary": "Caregiver area first slice: hold-to-open with countdown, profile list, create, activate, choose and order concepts with locked rows preserved, board hidden after close until refreshed; verify passes with 214 tests",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
