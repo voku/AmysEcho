@@ -1692,6 +1692,29 @@ test("an id that is already on the board may stay in a reorder whatever its entr
   assert.deepEqual(after.entries.map((entry) => entry.id), ["trinken", "hilfe", "mehr"]);
   assert.deepEqual(after.problems, [problems[2], problems[1], problems[0]]);
 
+  // An id the store accepts but board data cannot address stays too, and is still reported.
+  const odd = ["mein.ball", "a_b", "x".repeat(41)];
+  await store.setConceptIds(mia.id, ["trinken", ...odd, "ball", "hilfe"]);
+  const writesBefore = JSON.stringify(backend.snapshot());
+  await setBoardConcepts(store, mia.id, ["hilfe", odd[2], "ball", odd[0], "trinken", odd[1]], CONCEPTS);
+  assert.deepEqual((await store.get(mia.id)).conceptIds, ["hilfe", odd[2], "ball", odd[0], "trinken", odd[1]]);
+  assert.deepEqual(
+    Object.keys(backend.snapshot()).filter((key) => key.includes("/data/")),
+    Object.keys(JSON.parse(writesBefore)).filter((key) => key.includes("/data/")),
+  );
+  assert.deepEqual(
+    (await resolveBoard(store, mia.id, CONCEPTS)).problems.map((problem) => problem.conceptId),
+    [odd[2], "ball", odd[0], odd[1]],
+  );
+  // Newly chosen, such an id is refused as before.
+  await setBoardConcepts(store, mia.id, ["hilfe", "trinken"], CONCEPTS);
+  for (const id of odd) {
+    await assert.rejects(
+      setBoardConcepts(store, mia.id, ["hilfe", "trinken", id], CONCEPTS),
+      (error) => error instanceof BoardDataError && error.kind === "invalid-concept-id",
+    );
+  }
+
   // Taking such an id off and choosing it again is choosing: refused, nothing changes.
   await setBoardConcepts(store, mia.id, ["trinken", "hilfe", "mehr"], CONCEPTS);
   const snapshot = JSON.stringify(backend.snapshot());

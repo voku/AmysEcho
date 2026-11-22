@@ -222,7 +222,7 @@ All writes validate first and store nothing when they refuse. A refusal by this 
 
 | Function | Does | Store writes |
 | --- | --- | --- |
-| `setBoardConcepts(store, id, ids, catalogue)` | Sets the board and its order, and stores a copy of the catalogue wording where one is due (below). Every id must be a catalogue concept or have a readable entry in this profile (custom or retired); no duplicates. | one per wording to store, then 1 |
+| `setBoardConcepts(store, id, ids, catalogue)` | Sets the board and its order, and stores a copy of the catalogue wording where one is due (below). Every newly chosen id must be a catalogue concept or have a readable entry in this profile (custom or retired); an id that is already on the board may stay whatever it is and whatever its entry holds; no duplicates. | one per wording to store, then 1 |
 | `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept, a custom concept (it stays custom) or a retired concept. The result is a caregiver's wording, without `copied`. Replaces an unreadable entry under a catalogue id. Refuses an entry written by a newer app version (`unsupported-entry`). | 1 |
 | `clearWording(store, id, conceptId, catalogue)` | For a catalogue concept on the board: stores the current catalogue wording again, as a copy, whether the entry was readable or unreadable. For a catalogue concept that is not on the board: deletes the entry, readable or unreadable. Under an id the catalogue does not have: deletes an unreadable entry. Refuses a custom concept (`custom-concept`), a readable retired one (`retired-concept`) and an entry written by a newer app version (`unsupported-entry`). | 1 |
 | `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. Refuses to replace an entry written by a newer app version (`unsupported-entry`). | 1 |
@@ -246,7 +246,9 @@ the list of this call and not on the board when the call starts.
   Reordering, or adding another concept, changes no stored sentence and removes no problem report,
   as long as the caller passes the full `conceptIds` of the profile. An id that is already on the
   board may stay in the list whatever state its entry is in, also an id that `resolveBoard` leaves
-  off; a caller that builds the new order from `resolveBoard().entries` drops such an id and its
+  off and an id that board data cannot address at all (with `.` or `_`, or longer than 40
+  characters; such an id can only be newly put on a board through `store.setConceptIds` or an
+  import, and it leaves a board by being left out of the list); a caller that builds the new order from `resolveBoard().entries` drops such an id and its
   problem report with it. A newly chosen id outside the catalogue still needs a readable entry.
 - The one case in which a concept on the board gets an entry is the first row: a board from before
   wording was copied (or made with `store.create` / `store.setConceptIds`) has none, and the first

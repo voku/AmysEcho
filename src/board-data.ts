@@ -326,10 +326,13 @@ export async function listCustomConcepts(store: ProfileStore, profileId: string)
  * cannot be read. So a call that only reorders a board whose concepts all
  * have an entry writes `conceptIds` and nothing else.
  *
- * Every id must be a catalogue concept or have a readable entry in this
- * profile (a custom concept, or the stored wording of a concept the catalogue
- * has dropped); duplicates are refused. Everything is checked before the
- * first write.
+ * Every newly chosen id must be a catalogue concept or have a readable entry
+ * in this profile (a custom concept, or the stored wording of a concept the
+ * catalogue has dropped). An id that is already on the board may stay
+ * whatever it is and whatever its entry holds: staying is not choosing, and
+ * a caller that passes the profile's full `conceptIds` never has to drop a
+ * tile this version cannot show. Duplicates are refused. Everything is
+ * checked before the first write.
  *
  * Store writes: one per wording to store, then one for `conceptIds`, in that
  * order. The store's public API has no write that covers a data entry and the
@@ -350,13 +353,17 @@ export async function setBoardConcepts(store: ProfileStore, profileId: string, i
     if (seen.has(id)) throw new BoardDataError("duplicate-concept", `concept "${id}" is listed twice`);
     seen.add(id);
     const known = inCatalogue(catalogue, id);
+    const staying = onBoard.includes(id);
+    // An id the store accepts but board data cannot address (`.`, `_`, over
+    // 40 characters) has no entry to read or write. On the board it stays.
+    if (known === null && staying && !isBoardConceptId(id)) continue;
     if (known === null) requireConceptId(id);
     const stored = await readStored(store, profileId, id);
     if (known === null) {
       // Staying is not choosing: an id that is already on the board may stay
       // whatever state its entry is in, so a reorder never forces a caller
       // to drop a tile (and its problem report) that a newer app can read.
-      if (stored.state !== "ok" && !onBoard.includes(id)) throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
+      if (stored.state !== "ok" && !staying) throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
     } else if (isBoardConceptId(id)) {
       const wording = normalizeWording(known);
       const newlyChosen = !onBoard.includes(id);
