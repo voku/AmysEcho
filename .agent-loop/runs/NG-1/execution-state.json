@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:5488b9e4a9cde2d26560a50d8bf2da717e8cd188",
     "contract_revision": 2,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 1,
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
     "history": [
         {
@@ -135,6 +135,61 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:5a238e65",
                 "summary": "Fixed all four review defects: calibrated limits are floored at the single-example fallback and use the median nearest-sibling distance; the distance-scale comment no longer overstates; non-finite features return bad_landmarks. Added tests for each. 39 tests pass; docs table updated to the newly measured values.",
+                "task_id": "NG-1",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T08:18:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:18:31+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6c65856322fe945f70b69533771c7037e19fdb9c024444e5d69e46ffa0392091",
+                    "execution-evidence:sha256:7609021218c5b6fc1750d2841a15e8c693120099db7547c85dd4e70c416a421d",
+                    "execution-evidence:sha256:52eec2d7347acea4c6388b0473487fc2ebe8b02502330160e2ddf53e40f3a285",
+                    "execution-evidence:sha256:4000ad4615920f0e02483e76167f1e0cb968b920dda25ee77a2c551545b8f0c5",
+                    "execution-evidence:sha256:b909e35ac13d6d7ca21ddd6ac29f6659dbfb64cb07f446f9f2759bda1e4295bc",
+                    "execution-evidence:sha256:16b0ba88545f0cb25830d1a1bf784aae1d9fec155624feb155f0415589812acf",
+                    "execution-evidence:sha256:38845f0203b686e70b2c72210e3cc2b6e4dfce49c6fe25570e8893da7f91ffca",
+                    "execution-evidence:sha256:a0c69488a46cf75fb3281eb7197409864cca208e138b488ac9497c202c5b4afb"
+                ],
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:5488b9e4a9cde2d26560a50d8bf2da717e8cd188",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6c65856322fe945f70b69533771c7037e19fdb9c024444e5d69e46ffa0392091",
+                    "execution-evidence:sha256:7609021218c5b6fc1750d2841a15e8c693120099db7547c85dd4e70c416a421d",
+                    "execution-evidence:sha256:52eec2d7347acea4c6388b0473487fc2ebe8b02502330160e2ddf53e40f3a285",
+                    "execution-evidence:sha256:4000ad4615920f0e02483e76167f1e0cb968b920dda25ee77a2c551545b8f0c5",
+                    "execution-evidence:sha256:b909e35ac13d6d7ca21ddd6ac29f6659dbfb64cb07f446f9f2759bda1e4295bc",
+                    "execution-evidence:sha256:16b0ba88545f0cb25830d1a1bf784aae1d9fec155624feb155f0415589812acf",
+                    "execution-evidence:sha256:38845f0203b686e70b2c72210e3cc2b6e4dfce49c6fe25570e8893da7f91ffca",
+                    "execution-evidence:sha256:a0c69488a46cf75fb3281eb7197409864cca208e138b488ac9497c202c5b4afb"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:5488b9e4a9cde2d26560a50d8bf2da717e8cd188",
+                "context_id": "claude-subagent-correctness-review-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "observations": [
+                    "features.ts comment near the non-finite check gives a wrong example: shoulders on exactly one point fall back to the hands anchor, they are not bad_landmarks.",
+                    "A shoulder width around 1e-300 still returns ok:true with huge values; the matcher fails closed, but the caller is not told the capture was bad. A minimum-scale check would close it.",
+                    "No test covers a calibrated median above the fallback floor."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:b7a89c95",
+                "summary": "Fresh-context re-review of all eight candidate files (docs/recognition.md, src/recognition/dtw.ts, evaluate.ts, features.ts, matcher.ts, synthetic.ts, test/recognition-eval.test.mjs, test/recognition.test.mjs): all four attempt-1 defects fixed and behaviourally tested; 39 of 39 tests pass; docs numbers match npm test output; no regressions found.",
                 "task_id": "NG-1",
                 "validation_references": []
             }
