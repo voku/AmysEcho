@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
+    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
     "history": [
         {
@@ -34,6 +34,38 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:d5fdfe14",
                 "summary": "The tracker spike located the gaps: features.ts:28 and :163-181 bridge dropouts of up to 6 frames only, features.ts:218-224 lets any visible hand start or end the gesture, matcher.ts:53-68 separates one-hand from two-hand by distance only, and features.ts:111-126 with matcher.ts:56 gives no_examples when shoulders differ between examples and attempt.",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T23:12:32+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T23:12:32+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "outcome": "completed",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:9aac3c61",
+                "summary": "Gesture cut by movement, hand kind by presence and movement, gaps bridged up to 500 ms, like compared with like, schema 2; evaluation with one-hand, two-hand and mixed profiles; wrong-concept rate 0 in every cell; 467 tests pass",
                 "task_id": "NG-18",
                 "validation_references": []
             }
