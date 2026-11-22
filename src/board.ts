@@ -34,6 +34,8 @@ const NO_VOICE_LINE = "Keine Stimme. Bitte noch einmal tippen.";
 /** For when tapping again cannot help: no German voice on the device, or still none at the second tap in a row. */
 const NO_GERMAN_VOICE_LINE = "Keine deutsche Stimme. Hol eine Bezugsperson.";
 const SPEECH_FAILED_LINE = "Vorlesen ging nicht. Bitte noch einmal tippen.";
+/** For a second failure in a row: tapping again did not help. */
+const SPEECH_FAILS_LINE = "Vorlesen geht nicht. Hol eine Bezugsperson.";
 
 /**
  * How long a sentence counts as still being spoken when the engine reports
@@ -263,6 +265,12 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
   let stopWatchingVoices = (): void => undefined;
   /** How many requests in a row found an empty voice list. */
   let emptyLists = 0;
+  // Failures in a row; a sentence that reached its end starts the count again.
+  let failures = 0;
+  const failedLine = (): string => {
+    failures += 1;
+    return failures > 1 ? SPEECH_FAILS_LINE : SPEECH_FAILED_LINE;
+  };
 
   /** The speech line, and with it the look of the speaker: dimmed while there is a problem. */
   const showStatus = (line: string): void => {
@@ -295,9 +303,11 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
     const attempt: SpeechAttempt = requestLocalGermanSpeech(concept.speechDe, () => {
       if (thisAttempt !== currentAttempt) return;
       spokenSince = null;
-      showStatus(SPEECH_FAILED_LINE);
+      showStatus(failedLine());
     }, () => {
-      if (thisAttempt === currentAttempt) spokenSince = null;
+      if (thisAttempt !== currentAttempt) return;
+      spokenSince = null;
+      failures = 0;
     });
     spokenSince = attempt === "requested" ? now() : null;
     emptyLists = attempt === "unavailable" ? emptyLists + 1 : 0;
@@ -307,9 +317,9 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
       "requested": "",
       "unavailable": emptyLists > 1 ? NO_GERMAN_VOICE_LINE : NO_VOICE_LINE,
       "no-voice": NO_GERMAN_VOICE_LINE,
-      "failed": SPEECH_FAILED_LINE,
+      "failed": "",
     };
-    showStatus(lines[attempt]);
+    showStatus(attempt === "failed" ? failedLine() : lines[attempt]);
     if (attempt === "unavailable" || attempt === "no-voice") watchVoices();
     else stopWatchingVoices();
   };

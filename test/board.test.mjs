@@ -1644,6 +1644,7 @@ const boardOf = (count) => ({
 const NO_VOICE = "Keine Stimme. Bitte noch einmal tippen.";
 const NO_GERMAN_VOICE = "Keine deutsche Stimme. Hol eine Bezugsperson.";
 const SPEECH_FAILED = "Vorlesen ging nicht. Bitte noch einmal tippen.";
+const SPEECH_FAILS = "Vorlesen geht nicht. Hol eine Bezugsperson.";
 
 test("screen: the sentence bar is the first thing shown; it holds a prompt, then the tapped sentence, which is announced once", () => {
   for (const view of [boardOf(3), { kind: "demo", storage: "empty" }]) {
@@ -1826,18 +1827,32 @@ test("screen: the speech line is empty for a normal request, says what to do for
     assert.equal(speechStatus.textContent, "");
     assert.equal(bar.className, "sentence-bar");
 
-    // The engine reports an error later, for the request that is the current one.
+    // The engine reports an error later, for the request that is the current one. No sentence
+    // reached its end since the failure before, so "tap again" is not said a second time.
     speech.utterances.at(-1).onerror();
-    assert.equal(speechStatus.textContent, SPEECH_FAILED);
+    assert.equal(speechStatus.textContent, SPEECH_FAILS);
     assert.equal(bar.className, "sentence-bar sentence-bar-mute");
     // The sentence was not spoken, so the same tile may be tried again without waiting.
     const before = spoken.length;
     buttons[2].click();
     assert.equal(spoken.length, before + 1);
     assert.equal(speechStatus.textContent, "");
+    // A request that was taken does not prove speech: a third failure in a row still sends for a caregiver.
+    speech.utterances.at(-1).onerror();
+    assert.equal(speechStatus.textContent, SPEECH_FAILS);
+    // A sentence that reached its end starts the count again: the next failure says "tap again" once more.
+    buttons[2].click();
+    speech.end();
+    engine.speak = () => { throw new Error("engine broke"); };
+    buttons[2].click();
+    assert.equal(speechStatus.textContent, SPEECH_FAILED);
+    buttons[2].click();
+    assert.equal(speechStatus.textContent, SPEECH_FAILS);
+    engine.speak = speakNormally;
     assert.doesNotMatch(NO_GERMAN_VOICE, /tippen/, "no advice that cannot help");
     for (const line of [NO_VOICE, SPEECH_FAILED]) assert.match(line, /Bitte noch einmal tippen\.$/);
-    for (const line of [NO_VOICE, NO_GERMAN_VOICE, SPEECH_FAILED]) {
+    assert.doesNotMatch(SPEECH_FAILS, /tippen/);
+    for (const line of [NO_VOICE, NO_GERMAN_VOICE, SPEECH_FAILED, SPEECH_FAILS]) {
       assert.ok(line.length <= 48, "one line inside the bar on a small phone");
       assert.doesNotMatch(line, /lokal|Sprachausgabe|TTS|Fehler|error/i);
     }

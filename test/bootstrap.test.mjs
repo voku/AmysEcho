@@ -243,7 +243,7 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
   const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
   // Names already shipped; a changed asset list or install step needs a name that is none of them.
-  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3", "caregiver-s1-v4", "board-ux-v1", "board-ux-v2"].includes(name), `cache name ${name}`);
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3", "caregiver-s1-v4", "board-ux-v1", "board-ux-v2", "board-ux-v3"].includes(name), `cache name ${name}`);
 
   // Run the worker with a fake scope and look at what install hands to the cache.
   const listeners = {};

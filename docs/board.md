@@ -40,8 +40,8 @@ The app name is still an `h1`, for the document outline, but it is not visible
 (`.visually-hidden`). The waiting line, the last-resort line and the static line of `index.html`
 (`.board-line`) are drawn as a box where the sentence bar will be.
 
-No text on the child's screen asks to "reload the page": an installed app has no browser button
-for that, and pull-to-refresh is switched off (below).
+No text on the child's screen asks to "reload the page" without offering a button for it: an
+installed app has no browser button for that, and pull-to-refresh is switched off (below).
 
 - The last-resort line ("Die Tafel kann gerade nicht angezeigt werden. Bitte tippe auf „Seite neu
   laden“ oder hol eine Bezugsperson.") comes with a real button "Seite neu laden" that calls
@@ -137,10 +137,14 @@ No text while speech was asked for normally. One small line appears only when th
 | Voices are there, none is a German voice on the device (also when a German voice exists that needs the network) | `"no-voice"` | "Keine deutsche Stimme. Hol eine Bezugsperson." |
 | No speech engine, or the browser cannot make an utterance | `"no-voice"` | "Keine deutsche Stimme. Hol eine Bezugsperson." |
 | The engine threw, or reported an error for the latest request | `"failed"`, or `onFailure` later | "Vorlesen ging nicht. Bitte noch einmal tippen." |
+| That happens again before any sentence reached its end | the same | "Vorlesen geht nicht. Hol eine Bezugsperson." |
 
-"Tap again" is only said where tapping again can help. An empty voice list cannot be told apart
-from one that has not loaded yet, so the first such tap gets the benefit of the doubt and the
-second does not. Any other result, and a voice that arrives, starts that count again. The line is
+"Tap again" is said once where tapping again may help, and not a second time in a row. An empty
+voice list cannot be told apart from one that has not loaded yet, so the first such tap gets the
+benefit of the doubt and the second does not; that count has no time in it, so a quick double tap
+uses it up. A failure is treated the same way: the first says to tap again, a second one before
+any sentence reached its end says to fetch a caregiver, and a sentence that ends (also one the app
+interrupted) starts that count again. Any other result, and a voice that arrives, starts that count again. The line is
 cleared by the next request that the engine accepts. It is a polite live region.
 
 An utterance that was stopped is not a failure: when the engine reports the error `interrupted`
@@ -339,6 +343,11 @@ Also looked at:
 
 ## Known limits
 
+- On an engine that reports neither `speaking` nor `pending` for longer than `SPEECH_GRACE_MS`
+  (300 ms) after it took a sentence, or that never reports them truthfully, a second tap on the
+  same field after that time restarts the sentence: the protection against a double tap shrinks to
+  300 ms there. This is the price for not leaving a field dead for 8 s on a silent engine; which
+  engines behave like this is untested.
 - Tiles are allowed down to 88 px high in a window at most 600 px high and down to 80 px in one at
   most 480 px high, below the 112 px used elsewhere: with 112 px five examples would not fit the
   smallest phones, and five examples or nine own tiles would not fit a phone held sideways,

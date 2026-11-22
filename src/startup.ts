@@ -125,7 +125,7 @@ export interface StartupHost {
   showLoading(): void;
   /** Replaces what is shown with the board for this view. */
   mount(view: BoardView): BoardHandle;
-  /** Last resort when no board can be drawn: a plain line, nothing to tap. */
+  /** Last resort when no board can be drawn: a plain line and a button that reloads the page. */
   showFailure(): void;
   /** Sets `data-<name>` on the board region; null removes it. */
   setData(name: "startup" | "startupLate", value: string | null): void;
