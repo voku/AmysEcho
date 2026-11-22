@@ -15,7 +15,7 @@
  * Operations of one store instance run one after another. Two browser tabs
  * each have their own instance and are not coordinated with each other.
  */
-import { cloneJson } from "./backend.js";
+import { cloneJson, cloneJsonRecord } from "./backend.js";
 import type { KeyValueBackend } from "./backend.js";
 import { ProfileFormatError, isProfileId, makeProfile, newProfileId, parseProfile } from "./profile.js";
 import type { ProfileV1 } from "./profile.js";
@@ -33,11 +33,13 @@ export class StorageSchemaError extends Error {}
 export class DataNameError extends Error {}
 /** A profile with the same id already exists and the caller asked not to touch it. */
 export class ProfileConflictError extends Error {}
+/** `removeDamaged` was asked to delete an entry that is readable; use `remove` for those. */
+export class NotDamagedError extends Error {}
 
 export type ConflictMode = "reject" | "replace" | "copy";
 
 export interface DamagedProfile {
-  /** The id segment of the storage key; not guaranteed to be a well-formed id. */
+  /** The id segment of the storage key; not guaranteed to be a well-formed id. Pass it to `removeDamaged` unchanged. */
   readonly id: string;
   readonly reason: string;
 }
@@ -63,6 +65,18 @@ export interface ProfileData {
 
 export function isDataName(value: unknown): value is string {
   return typeof value === "string" && DATA_NAME_PATTERN.test(value);
+}
+
+/**
+ * Private copy of a name-to-value dictionary of profile data. Throws
+ * `JsonValueError` when it is not a plain object of JSON values and
+ * `DataNameError` for a bad name. Each value has the same limits as in
+ * `data(id).set`, so whatever was stored can be exported and restored.
+ */
+export function cloneProfileData(data: unknown): Record<string, unknown> {
+  const copy = cloneJsonRecord(data, "data");
+  for (const name of Object.keys(copy)) dataKey("", name);
+  return copy;
 }
 
 function profilePrefix(id: string): string {
@@ -152,18 +166,41 @@ export class ProfileStore {
     });
   }
 
-  /** The active profile id, or null when none is set or it no longer names a stored profile. */
-  getActive(): Promise<string | null> {
+  /**
+   * Deletes a stored entry that `list()` reported as damaged, including one
+   * whose id segment is not a well-formed id. `segment` is the reported `id`,
+   * unchanged; only `profile/<segment>` and keys below `profile/<segment>/`
+   * are deleted. A segment containing "/" is refused, and so is a readable
+   * profile (`NotDamagedError`).
+   */
+  removeDamaged(segment: string): Promise<void> {
     return this.#exclusive(async () => {
-      const id = await this.#backend.get(ACTIVE_KEY);
-      return isProfileId(id) && (await this.#exists(id)) ? id : null;
+      if (typeof segment !== "string" || segment.includes("/")) throw new UnknownProfileError("not a storage id segment");
+      const entry = `${PROFILE_ROOT}${segment}`;
+      const owned = (await this.#backend.keys(entry)).filter((key) => key === entry || key.startsWith(`${entry}/`));
+      if (owned.length === 0) throw new UnknownProfileError("no such stored entry");
+      if (isProfileId(segment) && (await this.#readable(segment))) throw new NotDamagedError("this profile is readable; use remove");
+      const wasActive = (await this.#backend.get(ACTIVE_KEY)) === segment;
+      await this.#backend.write({ delete: wasActive ? [...owned, ACTIVE_KEY] : owned });
     });
   }
 
+  /**
+   * The active profile id, or null when none is set or it does not name a
+   * readable stored profile. A damaged record is reported by `list()`, not here.
+   */
+  getActive(): Promise<string | null> {
+    return this.#exclusive(async () => {
+      const id = await this.#backend.get(ACTIVE_KEY);
+      return isProfileId(id) && (await this.#readable(id)) ? id : null;
+    });
+  }
+
+  /** Rejects with `UnknownProfileError`, or `ProfileFormatError` when the stored record is damaged. */
   setActive(id: string | null): Promise<void> {
     return this.#exclusive(async () => {
       if (id === null) return this.#backend.write({ delete: [ACTIVE_KEY] });
-      await this.#requireExisting(id);
+      await this.#readMeta(id);
       return this.#backend.write({ set: { [ACTIVE_KEY]: id } });
     });
   }
@@ -213,7 +250,8 @@ export class ProfileStore {
   /**
    * Writes a whole profile (record plus data) in one atomic batch. Used by
    * import. Everything is checked before the write, so a rejected call changes
-   * nothing. When a profile with the same id exists: "reject" throws
+   * nothing: `ProfileFormatError` for the record, `JsonValueError` or
+   * `DataNameError` for the data. When a profile with the same id exists: "reject" throws
    * `ProfileConflictError`; "replace" removes all of its keys in the same
    * batch; "copy" stores the incoming profile under a new random id.
    */
@@ -221,9 +259,8 @@ export class ProfileStore {
     return this.#exclusive(async () => {
       if (onConflict !== "reject" && onConflict !== "replace" && onConflict !== "copy") throw new TypeError("unknown conflict mode");
       let profile = parseProfile(contents.profile);
-      const names = Object.keys(contents.data);
-      for (const name of names) dataKey("", name);
-      const data = cloneJson(contents.data) as Record<string, unknown>;
+      const data = cloneProfileData(contents.data);
+      const names = Object.keys(data);
       let stale = await this.#backend.keys(profilePrefix(profile.id));
       if (stale.length > 0 && onConflict === "reject") throw new ProfileConflictError("a profile with this id already exists");
       if (stale.length > 0 && onConflict === "copy") {
@@ -256,6 +293,16 @@ export class ProfileStore {
 
   async #exists(id: string): Promise<boolean> {
     return (await this.#backend.get(`${profilePrefix(id)}meta`)) !== undefined;
+  }
+
+  async #readable(id: string): Promise<boolean> {
+    try {
+      await this.#readMeta(id);
+      return true;
+    } catch (error) {
+      if (error instanceof ProfileFormatError || error instanceof UnknownProfileError) return false;
+      throw error;
+    }
   }
 
   async #requireExisting(id: string): Promise<void> {

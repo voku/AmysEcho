@@ -50,12 +50,31 @@ interface ProfileV1 {
 ```
 
 `displayName` is the only personal text. It lives inside `profile/<id>/meta` and nowhere else: not in
-keys, not in ids. Everything else a profile owns is stored through `store.data(id)` under
-`profile/<id>/data/`. Values must be plain JSON (no `Date`, `Map`, typed arrays, `undefined`, `NaN`).
+keys, not in ids. It is stored in Unicode NFC form and trimmed, and the 1-40 character limit applies
+to that form. Names with control characters or invisible format characters (Unicode category Cf:
+bidirectional overrides and isolates, zero-width characters, byte order mark, soft hyphen) are
+rejected. This also rejects emoji that are joined with a zero-width joiner; single emoji are fine. A
+stored or imported name that is not already in this form is rejected, not rewritten.
+
+Everything else a profile owns is stored through `store.data(id)` under `profile/<id>/data/`. Each
+value must be plain JSON, nested at most 64 levels. Rejected, never altered: `undefined`, `NaN`,
+infinite numbers, `Date`, `Map`, typed arrays, class instances, objects with getters or setters,
+non-enumerable properties or symbol keys, and arrays with holes or extra properties. The one
+alteration is that negative zero is stored as zero. The same per-value rules apply in `set`, in
+import and in restore, so anything `set` accepted can be exported and restored unchanged.
 
 `list()` returns `{ profiles, damaged }`. A stored record that cannot be read (wrong version, unknown
 fields, missing record, id mismatch) is listed under `damaged` with a reason and is never dropped
-silently. A damaged profile with a well-formed id can still be removed with `remove(id)`.
+silently. `getActive()` returns `null` while the active profile's record is unreadable; the damage
+itself is reported by `list()` only.
+
+Removing damaged entries:
+
+- A damaged profile with a well-formed id can be removed with `remove(id)`.
+- Any damaged entry, including one whose key has a malformed id segment (`profile/ab/meta`,
+  `profile//x`), can be removed with `removeDamaged(segment)`, where `segment` is exactly the `id`
+  that `list()` reported. It deletes only `profile/<segment>` and keys below `profile/<segment>/`,
+  refuses a segment containing `/`, and refuses a profile that is readable (`NotDamagedError`).
 
 ## Export format
 
@@ -82,6 +101,23 @@ the record and all data written in one atomic batch. A malformed, cut-off or oth
 is rejected with `ExportFormatError` and the store stays as it was; a storage failure during the
 write leaves no partial profile. The caller turns file text into a value with `JSON.parse`; text
 that is not JSON fails there and never reaches the store.
+
+`exportedAt` must be a real UTC calendar timestamp in the form `exportProfile` writes
+(`YYYY-MM-DDTHH:MM:SS.sssZ`; the milliseconds may be left out). Dates such as 31 February or hour 24
+are rejected.
+
+### Size limits
+
+| Limit | Value | Constant |
+| --- | --- | --- |
+| Data names in one export | 10,000 | `MAX_EXPORT_DATA_NAMES` |
+| Size of one export | 64 MiB, counted as UTF-8 bytes of the document written as compact JSON | `MAX_EXPORT_BYTES` |
+
+An import over either limit is rejected with `ExportSizeError` before anything is written.
+`exportProfile` applies the same limits and fails with the same error instead of producing a file
+that could not be restored. `data(id).set` does not enforce them, so a profile can grow past what
+can be exported; nothing warns about that yet. For scale: 300 gesture examples of 32 x 86 numbers are
+about 17 MB. A file saved with indentation is larger on disk than the counted size.
 
 The export contains the display name and all profile data in readable form. It is not encrypted.
 
@@ -118,6 +154,14 @@ no permanence guarantee. The export file is the backup.
 
 ## Not done here
 
+- `ProfileV1` here has a caregiver-chosen `displayName`. The `ProfileV1` shape in section 3 of
+  `docs/s0a-product-contract-v0.1.md` has no such field. The two differ until the contract is
+  updated or the field is removed here. That is an owner decision and is not made in this module.
+- Section 6 of the product contract says an authorised caregiver and a retention policy must be
+  decided before personal data is stored (board card NG-7). That decision is pending. Nothing in the
+  app uses this module yet, so no personal data is stored today.
+- Deletion is logical. After `remove`, the keys are gone for the app, but the browser may keep
+  remnants in its on-disk database files until it compacts them. No secure erase is attempted.
 - No encryption at rest and no export password (human decision pending; card NG-22).
 - No `navigator.storage.persist()` request and no quota handling.
 - No user interface: profile selection, export, restore and delete controls come with card NG-13.

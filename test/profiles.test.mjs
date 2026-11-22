@@ -5,8 +5,10 @@ import { JsonValueError, cloneJson } from "../dist/profiles/backend.js";
 import { InjectedWriteError, MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileFormatError, newProfileId, normalizeDisplayName, parseProfile } from "../dist/profiles/profile.js";
 import {
-  DataNameError, ProfileStore, StorageSchemaError, UnknownProfileError,
+  DataNameError, NotDamagedError, ProfileStore, StorageSchemaError, UnknownProfileError,
 } from "../dist/profiles/store.js";
+
+const chr = (...codePoints) => String.fromCodePoint(...codePoints);
 
 const ID = "0123456789abcdef0123456789abcdef";
 const record = (overrides = {}) => ({ version: 1, id: ID, displayName: "Mia", conceptIds: ["hilfe", "mehr"], ...overrides });
@@ -49,7 +51,7 @@ test("display names are trimmed and limited to 1-40 characters without control c
   assert.equal(normalizeDisplayName("  Mia \n"), "Mia");
   assert.equal(normalizeDisplayName("x".repeat(40)), "x".repeat(40));
   assert.equal(normalizeDisplayName("🦊".repeat(40)), "🦊".repeat(40));
-  for (const bad of ["", "   ", "x".repeat(41), "Mi\u0000a", "Mi\na", "Mi\u007fa", "Mi a", 7, null, undefined]) {
+  for (const bad of ["", "   ", "x".repeat(41), "Mi\u0000a", "Mi\na", "Mi\u007fa", `Mi${String.fromCodePoint(0x2028)}a`, 7, null, undefined]) {
     assert.throws(() => normalizeDisplayName(bad), ProfileFormatError, JSON.stringify(bad));
   }
 });
@@ -343,4 +345,190 @@ test("src/profiles uses no network API and imports only its own files", async ()
     for (const specifier of specifiers) assert.match(specifier, /^\.\/[a-z-]+\.js$/, `${name} imports ${specifier}`);
     if (name !== "backend.ts" && name !== "profile.ts") assert.ok(specifiers.length > 0, `${name}: import scan found nothing`);
   }
+});
+
+test("cloneJson refuses getters, hidden properties, symbol keys and decorated arrays without calling anything", async () => {
+  let calls = 0;
+  const count = () => {
+    calls += 1;
+    return 1;
+  };
+  const withGetter = { plain: 1 };
+  Object.defineProperty(withGetter, "computed", { get: count, enumerable: true });
+  const withHiddenGetter = {};
+  Object.defineProperty(withHiddenGetter, "computed", { get: count, enumerable: false });
+  const withSetter = {};
+  Object.defineProperty(withSetter, "sink", { set: count, enumerable: true });
+  const withHidden = { plain: 1 };
+  Object.defineProperty(withHidden, "hidden", { value: "dropped by JSON", enumerable: false });
+  const withSymbol = { plain: 1, [Symbol("s")]: 1 };
+  const decorated = [1, 2];
+  decorated.note = "dropped by JSON";
+  const hiddenlyDecorated = [1, 2];
+  Object.defineProperty(hiddenlyDecorated, "note", { value: 1, enumerable: false });
+  const symbolDecorated = [1];
+  symbolDecorated[Symbol("s")] = 1;
+  const getterElement = [1, 2];
+  Object.defineProperty(getterElement, 1, { get: count, enumerable: true });
+  const hiddenElement = [1, 2];
+  Object.defineProperty(hiddenElement, 0, { value: 1, enumerable: false });
+  const holeAndExtra = [1, , 3];
+  holeAndExtra.note = 1;
+  const cases = [
+    [withGetter, /value\.computed is a getter/], [withHiddenGetter, /value\.computed is a getter/], [withSetter, /value\.sink is a getter or setter/],
+    [withHidden, /value\.hidden/], [withSymbol, /symbol/],
+    [decorated, /extra properties/], [hiddenlyDecorated, /extra properties/], [symbolDecorated, /extra properties/],
+    [getterElement, /value\[1\] is a getter/], [hiddenElement, /value\[0\]/], [holeAndExtra, /value\[1\]/],
+    [{ a: [{ b: withGetter }] }, /value\.a\[0\]\.b\.computed is a getter/], [[[decorated]], /value\[0\]\[0\]/],
+  ];
+  const { backend, store } = await openStore();
+  const a = await store.create("A", []);
+  const before = backend.snapshot();
+  for (const [value, path] of cases) {
+    assert.throws(() => cloneJson(value), (error) => error instanceof JsonValueError && path.test(error.message), String(path));
+    await assert.rejects(store.data(a.id).set("x", value), JsonValueError, String(path));
+    await assert.rejects(backend.write({ set: { x: value } }), JsonValueError, String(path));
+  }
+  assert.equal(calls, 0);
+  assert.deepEqual(backend.snapshot(), before);
+
+  // Whatever JSON.parse produces is accepted and copied faithfully.
+  const text = '{"__proto__":{"x":1},"constructor":null,"":[],"length":3,"list":[0,-0,1e300,[[]],{"0":"a"}],"toJSON":"text"}';
+  const copy = cloneJson(JSON.parse(text));
+  assert.equal(JSON.stringify(copy), '{"__proto__":{"x":1},"constructor":null,"":[],"length":3,"list":[0,0,1e+300,[[]],{"0":"a"}],"toJSON":"text"}');
+  assert.equal(Object.getPrototypeOf(copy), Object.prototype);
+  assert.ok(Object.isFrozen(cloneJson(Object.freeze([1]))) === false);
+  assert.deepEqual(cloneJson(Object.freeze({ a: Object.freeze([1, 2]) })), { a: [1, 2] });
+  assert.deepEqual(cloneJson(Object.assign(Object.create(null), { a: 1 })), { a: 1 });
+});
+
+test("display names are stored NFC-normalised and non-normalised stored names are rejected", async () => {
+  const decomposed = `Ren${chr(0x65, 0x301)}`;
+  const composed = `Ren${chr(0xe9)}`;
+  assert.notEqual(decomposed, composed);
+  assert.equal(normalizeDisplayName(decomposed), composed);
+  assert.equal(normalizeDisplayName(` ${decomposed} `), composed);
+  // 40 characters once composed, 80 code points as typed.
+  assert.equal(normalizeDisplayName(chr(0x65, 0x301).repeat(40)), chr(0xe9).repeat(40));
+  assert.throws(() => normalizeDisplayName(chr(0x65, 0x301).repeat(41)), ProfileFormatError);
+
+  const { backend, store } = await openStore();
+  const created = await store.create(decomposed, []);
+  assert.equal(created.displayName, composed);
+  assert.equal(backend.snapshot()[`profile/${created.id}/meta`].displayName, composed);
+  assert.equal((await store.rename(created.id, `${decomposed}e`)).displayName, `${composed}e`);
+
+  assert.deepEqual(parseProfile(record({ displayName: composed })), record({ displayName: composed }));
+  assert.throws(() => parseProfile(record({ displayName: decomposed })), ProfileFormatError);
+  await backend.write({ set: { [`profile/${created.id}/meta`]: { ...created, displayName: decomposed } } });
+  const listing = await store.list();
+  assert.deepEqual(listing.profiles, []);
+  assert.deepEqual(listing.damaged.map((entry) => entry.id), [created.id]);
+  assert.equal(backend.snapshot()[`profile/${created.id}/meta`].displayName, decomposed, "stored data is not rewritten");
+});
+
+test("display names with bidirectional or other invisible format characters are rejected", async () => {
+  const { backend, store } = await openStore();
+  const before = backend.snapshot();
+  for (const codePoint of [0x202e, 0x202d, 0x202a, 0x200b, 0x200d, 0x200e, 0x200f, 0x2066, 0x2067, 0x2068, 0x2069, 0xfeff, 0xad, 0x61c, 0x2060, 0xe0001]) {
+    const label = `U+${codePoint.toString(16)}`;
+    for (const name of [`Mi${chr(codePoint)}a`, `${chr(codePoint)}Mia`, `Mia${chr(codePoint)}`]) {
+      assert.throws(() => normalizeDisplayName(name), ProfileFormatError, label);
+      assert.throws(() => parseProfile(record({ displayName: name })), ProfileFormatError, label);
+      await assert.rejects(store.create(name, []), ProfileFormatError, label);
+    }
+  }
+  assert.deepEqual(backend.snapshot(), before);
+  for (const fine of [`Zo${chr(0xeb)}`, chr(0x1f98a), `${chr(0x645, 0x631, 0x64a, 0x645)}`, "Mia-Sophie 2", "O'Neil"]) {
+    assert.equal(normalizeDisplayName(fine), fine);
+  }
+});
+
+test("getActive does not name a profile whose stored record is unreadable", async () => {
+  const { backend, store } = await openStore();
+  const a = await store.create("A", []);
+  const b = await store.create("B", []);
+  await store.setActive(a.id);
+  await backend.write({ set: { [`profile/${a.id}/meta`]: { ...a, version: 2 } } });
+  assert.equal(await store.getActive(), null);
+  assert.deepEqual((await store.list()).damaged.map((entry) => entry.id), [a.id]);
+  await assert.rejects(store.setActive(a.id), ProfileFormatError);
+  // The pointer itself was not touched; once the record is readable again it applies again.
+  await backend.write({ set: { [`profile/${a.id}/meta`]: a } });
+  assert.equal(await store.getActive(), a.id);
+  await backend.write({ set: { [`profile/${a.id}/meta`]: { ...a, id: b.id } } });
+  assert.equal(await store.getActive(), null);
+  await store.setActive(b.id);
+  assert.equal(await store.getActive(), b.id);
+});
+
+test("a damaged entry is removable by the exact id segment list reported, and nothing else is", async () => {
+  const { backend, store } = await openStore();
+  const good = await store.create("Good", ["hilfe"]);
+  await store.data(good.id).set("settings", { volume: 1 });
+  const future = "a".repeat(32);
+  const planted = {
+    "profile/ab/meta": { version: 1 },
+    "profile/ab/data/settings": 1,
+    "profile/abc/meta": { version: 1 },
+    "profile//x": 1,
+    "profile/bare": 1,
+    [`profile/${future}/meta`]: { version: 2 },
+    [`profile/${future}/data/settings`]: 2,
+    "app/active-profile": future,
+  };
+  await backend.write({ set: planted });
+  const kept = { "app/schema": 1, [`profile/${good.id}/meta`]: good, [`profile/${good.id}/data/settings`]: { volume: 1 } };
+  const reported = (await store.list()).damaged.map((entry) => entry.id).sort();
+  assert.deepEqual(reported, ["", "ab", "abc", "bare", future].sort());
+
+  const before = backend.snapshot();
+  for (const segment of ["a", "zz", "f".repeat(32), "ab/", "/ab", "ab/data", `ab/../${good.id}`, `../profile/${good.id}`, "/", "..", ".", 5, null, undefined]) {
+    await assert.rejects(store.removeDamaged(segment), UnknownProfileError, JSON.stringify(segment));
+  }
+  await assert.rejects(store.removeDamaged(good.id), NotDamagedError);
+  assert.deepEqual(backend.snapshot(), before);
+
+  await store.removeDamaged("ab");
+  assert.deepEqual(backend.snapshot(), { ...before, "profile/ab/meta": undefined, "profile/ab/data/settings": undefined, __drop: undefined } && Object.fromEntries(Object.entries(before).filter(([key]) => !key.startsWith("profile/ab/"))));
+  assert.ok("profile/abc/meta" in backend.snapshot());
+  await store.removeDamaged("");
+  assert.ok(!("profile//x" in backend.snapshot()));
+  assert.ok("profile/bare" in backend.snapshot());
+  await store.removeDamaged("bare");
+  await store.removeDamaged("abc");
+  await store.removeDamaged(future);
+  assert.deepEqual(backend.snapshot(), kept);
+  assert.deepEqual(await store.list(), { profiles: [good], damaged: [] });
+  await assert.rejects(store.removeDamaged("ab"), UnknownProfileError);
+
+  await backend.write({ set: { "profile/ab/meta": 1, "profile/ab/data/x": 2 } });
+  backend.failWrite();
+  await assert.rejects(store.removeDamaged("ab"), InjectedWriteError);
+  assert.deepEqual(backend.snapshot(), { ...kept, "profile/ab/meta": 1, "profile/ab/data/x": 2 });
+});
+
+test("restoreProfile checks its data argument itself", async () => {
+  const { backend, store } = await openStore();
+  const existing = await store.create("A", []);
+  const before = backend.snapshot();
+  const profile = record();
+  const hidden = {};
+  Object.defineProperty(hidden, "settings", { value: 1, enumerable: false });
+  for (const data of [[], ["x"], [{ a: 1 }], null, undefined, "settings", 5, true, new Map([["settings", 1]]), hidden]) {
+    for (const onConflict of ["reject", "replace", "copy"]) {
+      await assert.rejects(store.restoreProfile({ profile, data }, onConflict), JsonValueError, JSON.stringify(data));
+      await assert.rejects(store.restoreProfile({ profile: existing, data }, onConflict), JsonValueError, JSON.stringify(data));
+    }
+  }
+  for (const data of [{ "a/b": 1 }, { UPPER: 1 }, { "": 1 }, { ok: 1, "../meta": 2 }, { 0: "x", "-1": "y" }]) {
+    await assert.rejects(store.restoreProfile({ profile, data }), DataNameError, JSON.stringify(data));
+  }
+  await assert.rejects(store.restoreProfile({ profile, data: { ok: undefined } }), JsonValueError);
+  await assert.rejects(store.restoreProfile({ profile: record({ version: 2 }), data: {} }), ProfileFormatError);
+  assert.deepEqual(backend.snapshot(), before);
+  for (const key of Object.keys(backend.snapshot())) assert.doesNotMatch(key, /data\/(0|-1)$/);
+
+  assert.deepEqual(await store.restoreProfile({ profile, data: { 0: "digit names are valid", settings: [] } }), profile);
+  assert.deepEqual(await store.data(ID).names(), ["0", "settings"]);
 });

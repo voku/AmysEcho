@@ -22,7 +22,13 @@ export const MAX_CONCEPT_IDS = 500;
 const PROFILE_ID_PATTERN = /^[0-9a-f]{32}$/;
 const CONCEPT_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 /** Control characters plus the line and paragraph separators. */
-const FORBIDDEN_NAME_CHARACTERS = /[\p{Cc}\p{Zl}\p{Zp}]/u;
+const CONTROL_CHARACTERS = /[\p{Cc}\p{Zl}\p{Zp}]/u;
+/**
+ * Format characters: the invisible ones that reorder or hide text
+ * (bidirectional overrides and isolates, zero-width characters, byte order
+ * mark). A name must look on screen like what is stored.
+ */
+const FORMAT_CHARACTERS = /\p{Cf}/u;
 
 /** 16 random bytes as 32 lowercase hex characters; no timestamp, nothing derived from the name. */
 export function newProfileId(): string {
@@ -34,15 +40,21 @@ export function isProfileId(value: unknown): value is string {
   return typeof value === "string" && PROFILE_ID_PATTERN.test(value);
 }
 
-/** Trims caregiver input and checks it; the length counts characters, not UTF-16 units. */
+/**
+ * Brings caregiver input into the stored form (Unicode NFC, trimmed) and checks
+ * it. The length is counted after that, in characters, not UTF-16 units.
+ */
 export function normalizeDisplayName(input: unknown): string {
   if (typeof input !== "string") throw new ProfileFormatError("displayName must be a string");
-  const name = input.trim();
+  const normalized = input.normalize("NFC");
+  // Checked before trimming: trim() would quietly drop a leading byte order mark.
+  if (FORMAT_CHARACTERS.test(normalized)) throw new ProfileFormatError("displayName must not contain control or invisible format characters");
+  const name = normalized.trim();
   const length = [...name].length;
   if (length < 1 || length > MAX_DISPLAY_NAME_LENGTH) {
     throw new ProfileFormatError(`displayName must have 1 to ${MAX_DISPLAY_NAME_LENGTH} characters`);
   }
-  if (FORBIDDEN_NAME_CHARACTERS.test(name)) throw new ProfileFormatError("displayName must not contain control characters");
+  if (CONTROL_CHARACTERS.test(name)) throw new ProfileFormatError("displayName must not contain control or invisible format characters");
   return name;
 }
 
@@ -85,6 +97,6 @@ export function parseProfile(value: unknown): ProfileV1 {
   }
   if (!isProfileId(record["id"])) throw new ProfileFormatError("id is not a profile id");
   const profile = makeProfile(record["id"], record["displayName"], record["conceptIds"]);
-  if (profile.displayName !== record["displayName"]) throw new ProfileFormatError("displayName has surrounding whitespace");
+  if (profile.displayName !== record["displayName"]) throw new ProfileFormatError("displayName is not in stored form (NFC, no surrounding whitespace)");
   return profile;
 }
