@@ -1,0 +1,79 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:ebf235e86aaa076fd7397fae31e17812ade18bc8",
+    "contract_revision": 2,
+    "current_attempt": 1,
+    "current_stage_id": "correctness-review",
+    "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T08:12:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:12:56+00:00",
+                "artifact_references": [],
+                "candidate_revision": "db13293dc4f9418d02e53437573baaedc16eb61c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "db13293dc4f9418d02e53437573baaedc16eb61c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "outcome": "completed",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:ded4667b",
+                "summary": "Scope located: new pure-TypeScript modules under src/recognition (features, dtw, matcher, synthetic, evaluate), tests against dist/ in test/, and docs/recognition.md. No existing recognition code on main; the board, speech and service worker modules are untouched and do not import recognition.",
+                "task_id": "NG-1",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T08:13:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:13:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:ebf235e86aaa076fd7397fae31e17812ade18bc8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:ebf235e86aaa076fd7397fae31e17812ade18bc8",
+                "context_id": "claude-session_01Jpe7RDVp43iZAe1CvtiVuB-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "outcome": "completed",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:42c38de6",
+                "summary": "Implemented the recognition core, synthetic generator, session-split evaluation, 26 new tests and docs. All five Contract validation commands pass locally (37 tests).",
+                "task_id": "NG-1",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-1:9d8873459ffe28cf",
+    "schema_version": "1.0",
+    "task_id": "NG-1"
+}

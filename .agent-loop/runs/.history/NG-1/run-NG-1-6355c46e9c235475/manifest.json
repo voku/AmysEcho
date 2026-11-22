@@ -1,0 +1,161 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-1 before calling agent-loop finish NG-1",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T08:01:26+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-1/contract.json",
+                "sha256": "sha256:a3d484b288375a3da0572c1f2aafb50759529dacafc2545986cb3e79403a3873"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-1",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "7e1a7659e15dc39d683c6cdfcfef34e66cebc400dfa9f8fb6784f4b1f59874fd",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-1.md",
+                "sha256": "sha256:7e1a7659e15dc39d683c6cdfcfef34e66cebc400dfa9f8fb6784f4b1f59874fd"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A sequence close to a stored example of gesture A is recognised as A; a sequence unlike any example returns unknown",
+                "Evaluation trains on some simulated sessions and tests on others, and npm test prints top-1, top-3, unknown recall and false-accept rate",
+                "Incompatible feature schema versions and malformed sequences are rejected, not guessed",
+                "No runtime dependency is added and no network or DOM API is used by src/recognition"
+            ],
+            "goal": "Per-profile gesture matching core in pure TypeScript: versioned landmark feature sequences, DTW nearest-example matcher with a first-class unknown result, and a seeded synthetic evaluation that reports top-1, top-3 and false-accept rate split by simulated recording session",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-1/contract.json",
+                "sha256": "sha256:a3d484b288375a3da0572c1f2aafb50759529dacafc2545986cb3e79403a3873"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-1/contract.json",
+                "sha256": "sha256:a3d484b288375a3da0572c1f2aafb50759529dacafc2545986cb3e79403a3873"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-1:6355c46e9c235475",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "state": "missing"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-1:6355c46e9c235475",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "0e035a518ff522e299589b8455092b49ca2e7356f54fbd114259bb7987d02b86",
+            "compilation_id": "compilation.NG-1.2026-11-22-080126.c8ab9ef4",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "8967da32ea06c76bce7305caaeb169c7fd20450b370aa8e2a56cfa55cd5eb0da",
+            "source": {
+                "path": ".agent-loop/recall/NG-1/meta.json",
+                "sha256": "sha256:0ac4ffedcc8fac372459bb64e816af050ea7f55dad16e7a3e7192c212e571ab6"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-1/reviews/NG-1.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "db13293dc4f9418d02e53437573baaedc16eb61c",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-1-r1-b4720cc4",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-1-r1-b4720cc4/session.json",
+                "sha256": "sha256:d353e0393b1e1a265d552f481669529951c5681bf498b91083405883d5cb2964"
+            },
+            "state": "active",
+            "task_id": "NG-1"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-1 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-1",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "implementation",
+            "implementation_snapshot": null,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Implementation snapshot scoped path does not exist yet: src/recognition/features.ts (a deleted path needs a Contract base_commit that tracks it)",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-1:6355c46e9c235475",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-1"
+}
