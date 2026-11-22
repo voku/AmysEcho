@@ -1,8 +1,8 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:1a52e9c2e570b4f084a8ad18b541cfe3e50f37d1",
+    "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
     "contract_revision": 1,
-    "current_attempt": 3,
+    "current_attempt": 4,
     "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
     "history": [
@@ -275,10 +275,82 @@
                 "task_id": "NG-28",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T13:55:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:55:43+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e68deca280fa6afba051f9267f04dee8583d866db2a8e42598ccf6836983ba6a",
+                    "execution-evidence:sha256:785c77c22dcf72353a33e4845528a16bb68981cde1b9d26783c0c7d89ca0afda",
+                    "execution-evidence:sha256:515fda77adbaf640f29e738915437e9449011053e992e7780eedd0d2344113d3"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:1a52e9c2e570b4f084a8ad18b541cfe3e50f37d1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e68deca280fa6afba051f9267f04dee8583d866db2a8e42598ccf6836983ba6a",
+                    "execution-evidence:sha256:785c77c22dcf72353a33e4845528a16bb68981cde1b9d26783c0c7d89ca0afda",
+                    "execution-evidence:sha256:515fda77adbaf640f29e738915437e9449011053e992e7780eedd0d2344113d3"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:1a52e9c2e570b4f084a8ad18b541cfe3e50f37d1",
+                "context_id": "claude-subagent-ng28-correctness-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:44ac5e78",
+                "summary": "board.ts:33 the refresh-timeout sentence promises an own board that may not exist (no profile, damaged, just deleted); docs/storage.md:319-320 data-board-problems is no longer absent for every non-profile view; blind-spot: board-data.ts:355-356 an id already on the board with an entry this version cannot read under a non-catalogue id makes every reorder refuse, so a UI drops it and its trace",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:57:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:57:35+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:57e26d1d346251134db5a684b6e91ad4736ae171",
+                "context_id": "claude-main-ng28-build-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "completed",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:50d3f347",
+                "summary": "Fourth build: an id already on the board may stay in setBoardConcepts whatever its entry holds; refresh-timeout sentence promises no own board; docs corrected for the kept board's problem count and the full-conceptIds rule; verify passes with 163 tests; the new condition is mutation-checked",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": null,
+    "last_attention_id": "attention:55a5bbd4aab6688e",
     "recovery_history": [],
     "run_id": "run:NG-28:c91b439f3817329a",
     "schema_version": "1.0",
