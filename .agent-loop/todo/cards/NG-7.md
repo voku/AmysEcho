@@ -2,12 +2,15 @@
 
 - **Ticket:** NG-7
 - **Lane:** BLOCKED
+- **Domain:** human
 - **Created:** 2026-11-22T08:00:52+00:00
-- **Updated:** 2026-11-22T08:00:52+00:00
+- **Updated:** 2026-11-22T09:47:50+00:00
 - **Summary:** Human decisions from the product contract that cannot be invented.
 - **Next:** Human task. Record decisions in docs/s0a-product-contract-v0.1.md without personal data.
 - **Validation:** Review of docs/s0a-product-contract-v0.1.md
+- **Priority:** 0
+- **Wave:** Wave 1 - board (S1)
 - **Format version:** 1
 
 ## Agent Task Brief
-Goal: close the pending human decisions in the product contract sections 2, 4 and 6. Issue #1178.
+Goal: close the pending human decisions in the product contract: the real concept set for a child (section 2), supported devices and browsers (section 4), who the authorised caregiver is, retention, backup and diagnostics consent (section 6). Human task. Record decisions in docs/s0a-product-contract-v0.1.md without personal data. Issue 1178.
