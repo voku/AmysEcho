@@ -40,7 +40,9 @@ Keep this section outside the managed router markers above.
   `map.languages: ["typescript"]`, and `agent-loop enter` builds the map when a Contract names
   `.ts`, `.mjs` or other JavaScript files. This needs Node and `node_modules/typescript`, so run
   `npm ci --ignore-scripts` before `enter`; without them `enter` stops and says why. The map holds
-  declarations only: no call relations, and no deterministic `agent-loop edit` for TypeScript.
+  declarations only: no call relations, and no deterministic `agent-loop edit` for TypeScript. It
+  is built from scoped files that already exist, so a Contract that names only new files gets no
+  map; add an existing neighbour file to the scope when the task needs code facts.
 
 ## Validation
 
@@ -50,6 +52,10 @@ npm run verify
 ```
 
 `npm run verify` runs the type check, the build, the tests and the offline asset smoke check, in
-that order, and is what CI runs. Every Contract, including a `quick` task, lists exactly these two
-commands as validation. Validation runs in an exported copy without `node_modules`, so
-`npm ci --ignore-scripts` has to come first.
+that order, and is what CI runs. Every Contract, including a `quick` task, lists at least these two
+commands as validation, in this order; a task may add more. Validation runs in an exported copy
+without `node_modules`, so `npm ci --ignore-scripts` has to come first.
+
+`npm test` fails when it finds no test file or when no test passes, and a test checks that every
+board card with a Validation field names both commands; cards of the `human` domain are validated
+by hand and are exempt.

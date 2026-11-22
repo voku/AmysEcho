@@ -1,0 +1,218 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T12:40:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:40:07+00:00",
+                "artifact_references": [],
+                "candidate_revision": "80594e7d97e9933850aa91f875f95e15602472ec",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "schema_version": "1.0",
+                "task_id": "NG-24",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "80594e7d97e9933850aa91f875f95e15602472ec",
+                "context_id": "claude-main-ng24-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "outcome": "completed",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:97a8eeed",
+                "summary": "node --test exits 0 when the glob matches nothing; cards NG-6 and NG-7 are human-domain cards with manual validation; AGENTS.md managed block is lines 1-18",
+                "task_id": "NG-24",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:40:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:40:07+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "schema_version": "1.0",
+                "task_id": "NG-24",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "context_id": "claude-main-ng24-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "outcome": "completed",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:8af64e8a",
+                "summary": "scripts/run-tests.mjs replaces the bare glob and fails on zero files or zero passing tests; test/validation-gate.test.mjs covers the runner and the card rule; README and AGENTS.md updated; verify passes with 99 tests",
+                "task_id": "NG-24",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:44:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:44:28+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d28bd00adcb21cca10f2d26e9f89bd6ec9a7f51b463ee0c3516878b2424a9974",
+                    "execution-evidence:sha256:e39e35c2d8a622b58fab4b64a759ff67cdda868611583138b744a8d3b5a0879f",
+                    "execution-evidence:sha256:62f63b0e0c343a21a5a38f0679a63f8b55da93651799116a50955a1f001cc84a",
+                    "execution-evidence:sha256:2783eb41a9c391721198f473059d3bf21e5270e04d8dc9fd15eb73d7680c936a",
+                    "execution-evidence:sha256:fd11d933234155e3c1c8e3a27b35ec2e73ad18df28bc9a158e765e1523b22692"
+                ],
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "schema_version": "1.0",
+                "task_id": "NG-24",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d28bd00adcb21cca10f2d26e9f89bd6ec9a7f51b463ee0c3516878b2424a9974",
+                    "execution-evidence:sha256:e39e35c2d8a622b58fab4b64a759ff67cdda868611583138b744a8d3b5a0879f",
+                    "execution-evidence:sha256:62f63b0e0c343a21a5a38f0679a63f8b55da93651799116a50955a1f001cc84a",
+                    "execution-evidence:sha256:2783eb41a9c391721198f473059d3bf21e5270e04d8dc9fd15eb73d7680c936a",
+                    "execution-evidence:sha256:fd11d933234155e3c1c8e3a27b35ec2e73ad18df28bc9a158e765e1523b22692"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "context_id": "claude-subagent-ng24-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "observations": [
+                    "scripts/run-tests.mjs:39 a failing todo test now fails npm test; node --test exits 0",
+                    "test/validation-gate.test.mjs:76 field regex is narrower than agent-kanban's grammar; unusual spellings are skipped unchecked",
+                    "test/validation-gate.test.mjs:88 command check is a substring match",
+                    "scripts/run-tests.mjs:35 no timeout; a never-resolving test hangs on Node 24 as before"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:458d8ac4",
+                "summary": "Pass: in 23 probed cases on Node 22 and 24 the runner never exits 0 where node --test exits non-zero; counting, card rule, docs and unchanged router block verified; verify passes with 99 tests",
+                "task_id": "NG-24",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:44:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:44:28+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ef9a8bce5766967ed0206d6b37d61b1b480032be151b6b9f9aa258c4b460effe",
+                    "execution-evidence:sha256:72743416291cf00befcaaf9d4c25bccaaf41fecc31f01ef38235c683a5efbbbd",
+                    "execution-evidence:sha256:5bf76ec42721656e41109867dd7a528100d7f20add727e615fe5fe23e85dab58",
+                    "execution-evidence:sha256:4628260a1206c899d1c825ee255eccc168e3e8503306afeb95493f5a10da9a01",
+                    "execution-evidence:sha256:15a892b971af8a4ff7320b212162b0bf7f83fcb99697555f04e68cd47ff31012"
+                ],
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "schema_version": "1.0",
+                "task_id": "NG-24",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ef9a8bce5766967ed0206d6b37d61b1b480032be151b6b9f9aa258c4b460effe",
+                    "execution-evidence:sha256:72743416291cf00befcaaf9d4c25bccaaf41fecc31f01ef38235c683a5efbbbd",
+                    "execution-evidence:sha256:5bf76ec42721656e41109867dd7a528100d7f20add727e615fe5fe23e85dab58",
+                    "execution-evidence:sha256:4628260a1206c899d1c825ee255eccc168e3e8503306afeb95493f5a10da9a01",
+                    "execution-evidence:sha256:15a892b971af8a4ff7320b212162b0bf7f83fcb99697555f04e68cd47ff31012"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "context_id": "claude-subagent-ng24-blindspot-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "observations": [
+                    "test/validation-gate.test.mjs:111-121 a board with no automated card or no cards directory fails verify without a code change; follow-up card NG-26",
+                    "Contracts are not checked, only cards; npm test -- <args> reads the first argument as a directory"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:b3439e28",
+                "summary": "Pass: cards directory is present in CI checkout, git archive and the workflow validation copy; runner is never weaker than node --test on Node 22 and 24",
+                "task_id": "NG-24",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:44:41+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:44:41+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "schema_version": "1.0",
+                "task_id": "NG-24",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:bc4ceaa9fc96a33edfc369977d028cd66e097c32983e6f0307fc59dc4c0d5f7b",
+                    "execution-evidence:sha256:23c63f00744c247cc7f9c5ff6289bbbd80894b59c76469783ceec72b221aa97f"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "consistency_references": [
+                    "execution-evidence:sha256:192f78aee3005e38237c7d440b06d7f872fd5c499bcb35dd864fbd07e3e43e90"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "outcome": "pass",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:813532f689392410a25d948cd6ebe6c01eb8d547aa6717e8893ad5c2f2473eea",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-24: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-24 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-24:be3db0ed42f98fe6 binds active Session 2026-11-22-ng-24-r1-7bd48a6b to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-24 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-24",
+                "validation_references": [
+                    "execution-evidence:sha256:bc4ceaa9fc96a33edfc369977d028cd66e097c32983e6f0307fc59dc4c0d5f7b",
+                    "execution-evidence:sha256:23c63f00744c247cc7f9c5ff6289bbbd80894b59c76469783ceec72b221aa97f"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-24:be3db0ed42f98fe6",
+    "schema_version": "1.0",
+    "task_id": "NG-24"
+}

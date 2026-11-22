@@ -1,0 +1,164 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T12:38:28+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-24/contract.json",
+                "sha256": "sha256:6447d1dfcb2acbed536eb6c943879443248688e46331cc47c77aff29aff92944"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-24",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "bd6d4d18aff97e15aaf511066d3e0b5d861597ea3690fb9650894e21f356c4ef",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-24.md",
+                "sha256": "sha256:bd6d4d18aff97e15aaf511066d3e0b5d861597ea3690fb9650894e21f356c4ef"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "npm test exits non-zero when the test glob matches no file or zero tests run",
+                "a test fails when an active board card has a Validation field without npm run verify",
+                "AGENTS.md managed router block is unchanged"
+            ],
+            "goal": "Harden the single validation command: a test run that finds no tests fails, a board card whose Validation field does not name npm run verify fails a test, and README/AGENTS.md state the setup order, the PHP version of the workflow tooling, that Contracts list at least the two validation commands, and that the map covers only scoped files that already exist.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-24/contract.json",
+                "sha256": "sha256:6447d1dfcb2acbed536eb6c943879443248688e46331cc47c77aff29aff92944"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-24/contract.json",
+                "sha256": "sha256:6447d1dfcb2acbed536eb6c943879443248688e46331cc47c77aff29aff92944"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T12:45:04+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-24:be3db0ed42f98fe6",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/6b664d0da3ae11917615bdfa2b98faa99f7a7cf20b675945ad0e171b564125ae.json",
+                "sha256": "sha256:ab0fe53ad33f7b1d4153b0f4e3d9db17b7d571c0734e2e301fb69ccf540d887e"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:00b1515bdf6cf7da65cbee6425f21f39c049505d908bd47ea19668f6c05d3ecf",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:1cb664fc4516f5bbeb13fea68e3dce31f7ad8689ae453fb575c93657774dc355"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-24:be3db0ed42f98fe6",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "bad33233eadfa343b3a12ecfd3f33fb6864c6732618f62f88140b52c1fdccda2",
+            "compilation_id": "compilation.NG-24.2026-11-22-123828.297a7fa3",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "3cf6d6f34242a0b11d1f2b148d5a512ef9f8284fe582e44e3c6cf11ffd63735f",
+            "source": {
+                "path": ".agent-loop/recall/NG-24/meta.json",
+                "sha256": "sha256:46d9a9c34323b8966e8291f92a77a417b22656b31acb8b6f415952a7d5291930"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-24/reviews/NG-24.blindspots.json",
+                "sha256": "sha256:d04e78378779acc59bf4713c14c28a14c29f00e278ae06451aeee2538a166086"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "80594e7d97e9933850aa91f875f95e15602472ec",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-24-r1-7bd48a6b",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-24-r1-7bd48a6b/session.json",
+                "sha256": "sha256:135b758dec2eed1043f165da8cc009e5a536a21af8fbfbc9ed7c32ace0061d10"
+            },
+            "state": "done",
+            "task_id": "NG-24"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:71f7e774d91f55378f144c4b6376097f938909b37c25ffa418e24e44dee3ed30",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-24:be3db0ed42f98fe6",
+            "source": {
+                "path": ".agent-loop/runs/NG-24/verification.json",
+                "sha256": "sha256:5738ad9f811be42c7377565f193b9d63157b8fe2d3836db57b201006f1e08cf3"
+            },
+            "source_session_id": "2026-11-22-ng-24-r1-7bd48a6b",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-24:be3db0ed42f98fe6",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-24"
+}
