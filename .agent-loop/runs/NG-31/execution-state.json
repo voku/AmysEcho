@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:36cde3c6519297609291c59ff0f264a3ad3c960f",
+    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
     "contract_revision": 1,
     "current_attempt": 5,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -316,6 +316,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:4:7da4ae2a",
                 "summary": "Doc claims the details summaries are not shielded but the click shield swallows them; a second finger on Abbrechen does not end a completed delete hold and the lift deletes; shield time is wall-clock so a backward clock step locks out presses; hint line height change moves the delete button at 320px with enlarged text",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T20:50:13+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T20:50:13+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+                "context_id": "build-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:67d1d5a1",
+                "summary": "Fifth build: second finger ends a delete hold, summaries exempt from the shield, monotonic shield time, hint height reserved; 424 tests pass",
                 "task_id": "NG-31",
                 "validation_references": []
             }
