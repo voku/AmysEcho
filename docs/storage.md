@@ -469,7 +469,9 @@ other row they are the synthetic examples, which no caregiver has approved for t
 Mounting a board stops running speech first. A speech error is shown only for the latest request to
 speak on the board that is on screen, whether a tile or the sentence bar asked; an error for an
 earlier request, also for the same concept, or for a board that was replaced, is ignored. No line
-is shown for a request that went to the engine normally ([board.md](board.md)).
+is shown for a request that went to the engine normally. The same holds for the end of an
+utterance, which the board uses to know that a sentence is no longer being spoken
+([board.md](board.md)).
 
 ### Decisions applied, owner may reverse
 

@@ -31,7 +31,7 @@ Early rebuild. What exists today:
   child's name;
 - a child's screen that is one screen high ([docs/board.md](docs/board.md)): a bar at the top shows
   the last sentence and speaks it again when tapped, the tiles fill the rest and the tapped tile
-  stays marked. Looked at in headless Chromium at four window sizes; not tried on a device, with a
+  stays marked. Looked at in headless Chromium at five window sizes; not tried on a device, with a
   child or with a screen reader;
 - wording that is copied into the profile when concepts are chosen through `setBoardConcepts`, so
   such a board keeps its sentences when the catalogue changes. A board made another way, or

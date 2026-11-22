@@ -1,7 +1,7 @@
 /* The child's screen (docs/board.md): one screen high, a column of sentence bar, notice lines, board and the caregiver control. One rule per line; tests read rules by their first line. */
 :root { color-scheme: light; font-family: system-ui, sans-serif; color: #143146; background: #f4fafc; --tile-min: 112px; --gap: .5rem; --bar-min: clamp(5.5rem, 11vh, 6.5rem); --status-room: 1.15rem; }
-html { height: 100%; }
-body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; margin: 0; }
+html { height: 100%; overscroll-behavior: none; }
+body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; margin: 0; overscroll-behavior: none; }
 main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
 h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
@@ -12,6 +12,7 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .sentence { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .sentence-speaker { flex: none; width: clamp(2.25rem, 9vmin, 3.25rem); height: auto; pointer-events: none; }
 .sentence-bar-idle .sentence-speaker { opacity: .35; }
+.sentence-bar-mute .sentence-speaker { opacity: .3; filter: grayscale(1); }
 .speech-status { flex: none; margin: .4rem 0 0; padding: 0 .4rem; color: #2f4757; font-size: clamp(.7rem, 3.4vw, .8rem); line-height: 1.2; }
 .speech-status:empty { margin: 0; }
 .board-notice { flex: none; margin: .4rem 0 0; padding: 0 .4rem; color: #3d5666; font-size: .85rem; line-height: 1.35; }
@@ -74,16 +75,22 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 /* The speech problem line sits in the lower part of the sentence bar, so the tiles do not move when it appears. */
 @supports selector(:has(*)) {
   .sentence-bar:has(+ .message + .speech-status:not(:empty)) .sentence { padding-bottom: var(--status-room); }
-  .speech-status:not(:empty) { position: relative; z-index: 2; box-sizing: border-box; height: var(--status-room); margin: calc(-1 * var(--status-room) - .5rem) 0 .5rem; padding: 0 calc(clamp(2.25rem, 9vmin, 3.25rem) + 1.9rem) 0 1rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
+  .speech-status:not(:empty) { position: relative; z-index: 2; box-sizing: border-box; height: var(--status-room); margin: calc(-1 * var(--status-room) - .5rem) 0 .5rem; padding: 0 1rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
+}
+@media (max-height: 600px) {
+  :root { --tile-min: 88px; --gap: .4rem; }
+  .board-notice { margin-top: .25rem; font-size: .8rem; line-height: 1.3; }
+  .board-fallback { padding: .2rem .5rem; }
+  .board-line { margin-top: 0; font-size: 1.1rem; line-height: 1.4; }
+  .concept-board-examples { padding: .25rem; border-width: 3px; }
+  .examples-badge { padding: 0 .6rem; font-size: .8rem; }
 }
 @media (max-height: 480px) {
   :root { --tile-min: 80px; --gap: .4rem; --bar-min: 3.9rem; }
   .sentence-bar { padding-top: .2rem; padding-bottom: .2rem; font-size: 1.5rem; }
-  .speech-status:not(:empty) { margin-top: calc(-1 * var(--status-room) - .3rem); margin-bottom: .3rem; }
-  .concept-board-examples { padding: .25rem; border-width: 3px; }
+  .speech-status:not(:empty) { margin-top: calc(-1 * var(--status-room) - .3rem); margin-bottom: .3rem; padding-right: calc(clamp(2.25rem, 9vmin, 3.25rem) + 1.9rem); }
   .board-region { padding-top: .35rem; padding-top: max(.35rem, env(safe-area-inset-top)); }
-  .speech-status, .board-notice { margin-top: .25rem; }
-  .board-line { margin-top: 0; }
+  .speech-status { margin-top: .25rem; }
   .caregiver-entry { padding-top: .2rem; padding-bottom: .2rem; padding-bottom: max(.2rem, env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: no-preference) {
