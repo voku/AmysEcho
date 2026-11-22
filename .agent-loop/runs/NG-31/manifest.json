@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-31 before calling agent-loop finish NG-31",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T16:57:30+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-31/contract.json",
+                "sha256": "sha256:cfac9bf3c6a69df842ed1594f8760ded822e5a4c29b89784f490ff69d5704f1f"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-31",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "2fe48b04729ee4e642558310f39e8d17d7f883957544187365ed58af055aa2ed",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-31.md",
+                "sha256": "sha256:2fe48b04729ee4e642558310f39e8d17d7f883957544187365ed58af055aa2ed"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The close button and the line naming the board the child will see are visible without scrolling at 360x640 while the area is scrolled to any position",
+                "Adding, removing or moving a concept changes the position of no other editable row in its list, and a removed concept can be put back at its former position with one action",
+                "A profile can be renamed and deleted; deleting asks again, says what is lost, and deleting the active profile leaves the child with the examples and says so",
+                "Ids this version cannot edit keep their exact place through every action, including undo",
+                "User-facing text is German and no profile name appears outside the caregiver region"
+            ],
+            "goal": "A caregiver sets up and maintains a child's board quickly and without surprises: a header that stays with a close button and the board the child will see, profile cards with rename and delete, a board editor of two lists in which only the acted-on row moves and the last removal can be undone, and a short notice with the details one tap away.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-31/contract.json",
+                "sha256": "sha256:cfac9bf3c6a69df842ed1594f8760ded822e5a4c29b89784f490ff69d5704f1f"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-31/contract.json",
+                "sha256": "sha256:cfac9bf3c6a69df842ed1594f8760ded822e5a4c29b89784f490ff69d5704f1f"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-31:e21389d8d0abe454",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:814548fe52579e515fb7e0ab2c17302dbad17252c8f99d6c0c193fdd1d583070",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:6eaeb56c65079792124eef0d7f4005e11162eccb67a15823f4ff21cf2d9e296a"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-31:e21389d8d0abe454",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "dfeba7c9275d6500596e22453c44e9cdab839333407b9811abe61e95f8aab4a4",
+            "compilation_id": "compilation.NG-31.2026-11-22-165731.50760537",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "91737f85c4c714cda42756aa7717ddd18897fde15c58ab57f665f7216b4b8db3",
+            "source": {
+                "path": ".agent-loop/recall/NG-31/meta.json",
+                "sha256": "sha256:d468447eee56093d3bc1cd30d8691dbcda889d91c6ce23ccae1462b9a4ff7600"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-31/reviews/NG-31.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "2634ee38c05443cd971db3cb441c0b8419938885",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-31-r1-bc157638",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-31-r1-bc157638/session.json",
+                "sha256": "sha256:f5e0cf92ed70ac568ea70f65c8ad875895bbd8be1b5b2f205a1b06767cb72a3d"
+            },
+            "state": "active",
+            "task_id": "NG-31"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-31 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-31",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:1b7fac33cfdca308dfe00c62e93a37e57793552faa146e2a8aa67723f0a07c5b",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-31:e21389d8d0abe454",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-31"
+}
