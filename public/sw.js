@@ -2,7 +2,7 @@
  * A successful cache install is NOT proof of target-device offline TTS.
  */
 const CACHE_PREFIX = "amysecho-ng-";
-const CACHE_NAME = CACHE_PREFIX + "board-s1b-v1";
+const CACHE_NAME = CACHE_PREFIX + "board-s1b-v2";
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest", "./styles.css",
   "./main.js", "./status.js", "./board.js", "./concepts.js", "./speech.js",
@@ -15,7 +15,10 @@ const ASSETS = [
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(ASSETS.map((asset) => new URL(asset, self.registration.scope).href));
+    // "reload" goes past the HTTP cache: an update must not pin a mix of old
+    // and new modules because some of them were still cached by the browser.
+    await cache.addAll(ASSETS.map((asset) =>
+      new Request(new URL(asset, self.registration.scope).href, { cache: "reload" })));
     await self.skipWaiting();
   })());
 });

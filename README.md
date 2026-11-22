@@ -22,7 +22,10 @@ Early rebuild. What exists today:
 - child profiles with export, restore and delete, and a board per profile (its own concepts, order,
   German wording and text-only custom concepts), as library code tested in Node against an
   in-memory store ([docs/storage.md](docs/storage.md));
-- a board that shows the active profile when one is stored, and the example concepts otherwise.
+- a board that waits for local storage at start (up to 1.5 s, an unmeasured value) and then shows
+  the active profile's concepts. The example concepts appear only when no profile is stored, when
+  storage cannot be opened, or when it does not answer in time. Unreadable profiles, no active
+  profile, and a profile without loadable concepts show a message and no buttons.
 
 Not built yet: a caregiver screen. Nothing in the app can create, choose or edit a profile, so in
 practice the board still shows the examples. Also not built: symbols for custom concepts, camera

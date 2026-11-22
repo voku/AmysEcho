@@ -12,11 +12,19 @@ Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
   the file is only type-checked. Card NG-14 adds a real-browser test. Until then nothing here shows
   that data survives in a real browser, and the adapter must be treated as unverified.
 - The board data (`src/board-data.ts`) and the start-up decision (`src/startup.ts`) are tested in
-  Node against the in-memory backend, and the rendering against a minimal fake document
-  (`test/board.test.mjs`). The one untested line is in `src/main.ts`, which hands
-  `openIndexedDbBackend` to `loadStartupView`. So "the board shows the active profile in a real
-  browser" is unverified until card NG-14. In Node, where there is no IndexedDB, the tested result
-  is the example board with a notice.
+  Node against the in-memory backend. The rendering and the start-up sequence (`runStartup`) are
+  tested against a minimal fake document, a fake speech engine and a timer fired by hand
+  (`test/board.test.mjs`).
+- Not tested after card NG-12:
+  - `src/main.ts` with working storage. The test that loads `main.js` runs in Node, where there is
+    no IndexedDB, so it covers only "waiting line, then the example board with a notice". That the
+    board shows the active profile in a real browser is unverified until card NG-14.
+  - The real timer in `createBoardHost` (`src/board.ts`) and the value of `STARTUP_WAIT_MS`
+    (1500 ms). The value is a guess; no device has been measured.
+  - Real layout, real speech and real `SpeechSynthesis` error events. The fake document has no
+    layout and the fake engine reports errors only when a test calls them.
+  - The service worker in a browser. A test runs its install step with a fake cache and checks the
+    requests; it does not show that an update replaces every module on a device.
 
 ## Layers
 
@@ -159,17 +167,23 @@ profile/<id>/data/concept.<conceptId>    wording for that concept, or a custom c
 | `labelDe` | 1-40 code points | `MAX_LABEL_LENGTH` |
 | `speechDe` | 1-200 code points | `MAX_SPEECH_LENGTH` |
 
-- Text is stored in Unicode NFC form and trimmed; the limits count that form. Control characters,
-  line and paragraph separators, unpaired surrogates and invisible format characters are rejected,
-  with the same exception as for display names (a zero-width joiner or non-joiner between two
-  visible characters).
+- Text is stored in Unicode NFC form and trimmed; the limits count that form. Whitespace at the
+  ends, including line breaks and line or paragraph separators, is trimmed away. Inside the text,
+  control characters (so also line breaks and tabs) and line and paragraph separators are rejected,
+  as are unpaired surrogates and invisible format characters, with the same exception as for
+  display names (a zero-width joiner or non-joiner between two visible characters).
+- A stored label or sentence longer than twice its limit in UTF-16 units is reported as unreadable
+  from its length alone, before it is normalised.
 - The id rule is narrower than what `conceptIds` accepts (64 characters, also `.` and `_`), so that
   `concept.<id>` is always a valid data name. A custom id must not be a catalogue id.
 - The store's limits apply on top: at most 500 ids in `conceptIds`, and the profile's size limits.
 
 ### Writing
 
-All writes validate first and store nothing when they refuse (`BoardDataError` with a `kind`).
+All writes validate first and store nothing when they refuse. A refusal by this module is a
+`BoardDataError` with a `kind`. Refusals by the store pass through unchanged: `UnknownProfileError`,
+`ProfileFormatError` (a damaged profile record, or more than 500 concept ids), `ProfileSizeError`
+(the profile would outgrow one export), and storage errors.
 
 | Function | Does | Store writes |
 | --- | --- | --- |
@@ -177,8 +191,17 @@ All writes validate first and store nothing when they refuse (`BoardDataError` w
 | `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept or an existing custom concept. | 1 |
 | `clearWording(store, id, conceptId)` | Removes the wording, so the catalogue wording shows again. Refuses a custom concept. | 1 |
 | `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. | 1 |
-| `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom concept off the board and deletes it. | 2 |
+| `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom concept off the board and deletes it. Also clears an unreadable or missing entry, but only under an id that is not in the catalogue. | 2 |
 | `listCustomConcepts(store, id)` | Read only: the profile's custom concepts, and the ids of unreadable entries. | 0 |
+
+Cleaning up unreadable entries:
+
+- Under a catalogue id: `clearWording`. `removeCustomConcept` refuses such an id
+  (`catalogue-concept`) unless the entry is a readable custom concept.
+- Under an id that is not in the catalogue: `removeCustomConcept`.
+- An entry whose name is `concept.` followed by something that is not a valid concept id (listed in
+  `unreadableIds`) cannot be addressed by this module. Only `store.data(id).delete(name)` removes it.
+- `removeCustomConcept` deletes `concept.<id>` and nothing else. See "Open decisions".
 
 What is atomic and what is not:
 
@@ -191,8 +214,10 @@ What is atomic and what is not:
   `setBoardConcepts`). After a failure in between the concept exists and is not on the board.
 - The checks read before they write, and that is not one step with the write. Two of these calls at
   the same time for one profile, or two tabs, can interleave: for example a board can be set to
-  name a custom concept that is being removed. Reading then reports it (see below); nothing is
-  shown wrongly.
+  name a custom concept that is being removed. Reading then reports the id as `unknown-concept` and
+  leaves it off, so the board is short of a concept the caregiver chose until it is set again. No
+  id is shown as another concept. A board that is already on screen is not updated by a write; it
+  shows what was stored when the app started.
 
 ### Reading
 
@@ -208,8 +233,20 @@ concept entry becomes a problem with a `kind`:
 | `custom-shadows-catalogue` | A custom concept whose id the catalogue uses too (a later catalogue could add it). | The profile's own concept, as text. |
 
 The two damaged kinds carry `damage`: `unsupported-version` (a `version` greater than 1; a newer app
-wrote it) or `unreadable`. An id is never shown as some other concept. The board shows one plain
-line when a board has problems; telling the caregiver which, and offering repair, is card NG-13.
+wrote it) or `unreadable`. An id is never shown as some other concept.
+
+What the board does with problems:
+
+- It sets `data-board-problems` on the board root to the number of problems (`0` for a profile
+  board without any; the attribute is absent when no profile board is shown).
+- It writes one `console.warn` line per problem with the kind, the concept id and, where there is
+  one, the damage. No label, no sentence and no profile name is logged. A custom concept id is
+  caregiver-chosen text and does appear.
+- It shows one plain line when a concept is missing or shown with other wording than stored. When
+  no concept could be loaded at all, the line says that the concepts could not be loaded, not that
+  none were chosen. `custom-shadows-catalogue` alone shows no line: the child sees the concept as
+  stored.
+- Telling the caregiver which concepts are affected, and offering repair, is card NG-13.
 
 An entry is read strictly: exactly the fields above, version 1, text already in stored form.
 
@@ -235,9 +272,42 @@ An entry is read strictly: exactly the fields above, version 1, text already in 
 | `demo`, `storage: "unavailable"` | From `loadStartupView` only: storage could not be opened or read, including an unknown storage layout. | The examples, with a notice. |
 
 `damaged` wins over `no-active` when both apply. With a readable active profile, damaged entries
-elsewhere are not looked for at start. `src/main.ts` mounts the example board first, without
-storage, and replaces it once the view is known. Opening the store on an empty device writes
-`app/schema` and nothing else.
+elsewhere are not looked for at start. Opening the store on an empty device writes `app/schema` and
+nothing else.
+
+The sequence (`runStartup` in `src/startup.ts`, called from `src/main.ts`):
+
+1. A waiting line ("Die Tafel wird geladen.") with nothing to tap; `data-startup="pending"` on the
+   board root. No example concept can be tapped before it is known whose board this is.
+2. If storage answers within `STARTUP_WAIT_MS` (1500 ms; unmeasured until card NG-14), exactly one
+   board is mounted: the view from the table. `data-startup` is `demo-empty`, `demo-unavailable`,
+   `profile`, `damaged` or `no-active`.
+3. If it does not, the example board with the storage notice is mounted
+   (`data-startup="demo-timeout"`). If storage never answers, that board stays.
+4. If storage answers after that: when no concept has been chosen yet, the board is replaced by the
+   view (`data-startup-late="replaced"`, `data-startup` follows the view). When one has, the board
+   stays as it is (`data-startup-late="kept"`) and the stored board shows at the next start. So a
+   child with a profile on a slow device can be left on the example board for that session.
+5. If a view cannot be rendered, the example board with the storage notice is shown
+   (`data-startup="failed"`).
+
+What this does and does not promise: a storage failure or a storage that never answers ends on a
+working example board. It does not mean there are always buttons. Until storage answers or the
+bound passes there are none, and the `damaged` and `no-active` views and a profile without loadable
+concepts show a message only.
+
+Mounting a board stops running speech first. A speech error is shown only for the latest request to
+speak on the board that is on screen; an error for an earlier request, also for the same concept,
+or for a board that was replaced, is ignored.
+
+### Open decisions
+
+- In the `damaged` and `no-active` states the child has no buttons at all. Whether to show the
+  labelled examples with a notice instead is a caregiver decision, recorded on card NG-13.
+- Removing a custom concept deletes only `concept.<id>`. Data stored per concept later (gesture
+  examples) is not known here. Either it is purged together with the concept, or a concept id is
+  never used again, so that a new concept cannot inherit old examples. That is a decision for the
+  gesture cards.
 
 ## Export format
 

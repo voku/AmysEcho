@@ -43,10 +43,11 @@ test("built UI displays synthetic concepts and remains usable without TTS/networ
     assert.equal(root.dataset.bootstrap, "ready");
     assert.equal(root.dataset.startup, "demo-unavailable");
     assert.equal(warnings.length, 1);
-    // Mounted twice: the plain example board first, without waiting for storage, then the same board with the storage notice.
+    // Mounted twice: a waiting line with nothing to tap, then one board. No timer is left running.
     assert.equal(mounts.length, 2);
-    assert.deepEqual(mounts[0].map((child) => child.className), ["", "board-notice", "concept-board", "message", "speech-status", "retry"]);
-    assert.equal(mounts[0][2].children.length, 5);
+    assert.deepEqual(mounts[0].map((child) => child.tagName), ["h1", "p"]);
+    assert.equal(mounts[0][1].textContent, "Die Tafel wird geladen.");
+    assert.equal("startupLate" in root.dataset, false);
     assert.match(root.children[1].textContent, /Testoberfläche/);
     assert.match(root.children[2].textContent, /Speicher.*nicht erreichbar/);
     const board = part("concept-board");
@@ -131,4 +132,33 @@ test("service-worker pre-cache includes the full local concept bundle", async ()
   for (const concept of CONCEPTS) {
     assert.ok(worker.includes(`"${concept.symbolPath}"`), `missing precache icon for ${concept.id}`);
   }
+});
+
+test("service-worker install fetches the pre-cache list past the HTTP cache, under a new cache name", async () => {
+  const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
+  const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
+  // Names already shipped; a changed asset list or install step needs a name that is none of them.
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1"].includes(name), `cache name ${name}`);
+
+  // Run the worker with a fake scope and look at what install hands to the cache.
+  const listeners = {};
+  const added = [];
+  const self = {
+    registration: { scope: "https://app.example/echo/" },
+    location: { origin: "https://app.example" },
+    addEventListener(type, listener) { listeners[type] = listener; },
+    skipWaiting: async () => undefined,
+  };
+  const caches = { open: async (cacheName) => ({ name: cacheName, addAll: async (requests) => { added.push(...requests); } }) };
+  new Function("self", "caches", source)(self, caches);
+  let installed;
+  listeners.install({ waitUntil(promise) { installed = promise; } });
+  await installed;
+  assert.ok(added.length >= 15);
+  for (const request of added) {
+    assert.ok(request instanceof Request, `pre-cache entry is not a Request: ${request}`);
+    assert.equal(request.cache, "reload", request.url);
+    assert.ok(request.url.startsWith("https://app.example/echo/"), request.url);
+  }
+  assert.ok(added.some((request) => request.url === "https://app.example/echo/board-data.js"));
 });

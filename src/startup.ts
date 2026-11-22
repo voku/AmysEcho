@@ -64,3 +64,90 @@ export async function loadStartupView(
     return { kind: "demo", storage: "unavailable" };
   }
 }
+
+/**
+ * How long the start waits for storage before it shows the example board
+ * instead. A guess: no device has been measured yet (card NG-14).
+ */
+export const STARTUP_WAIT_MS = 1500;
+
+export interface BoardHandle {
+  /** True once a concept has been chosen on this board. */
+  hasSelection(): boolean;
+}
+
+/** What `runStartup` needs from the page; `createBoardHost` in board.ts is the real one. */
+export interface StartupHost {
+  /** Shows the waiting state: nothing that can be tapped. */
+  showLoading(): void;
+  /** Replaces what is shown with the board for this view. */
+  mount(view: StartupView): BoardHandle;
+  /** Sets `data-<name>` on the board root. */
+  setData(name: "startup" | "startupLate", value: string): void;
+  /** Calls `callback` once after `milliseconds`; the returned function cancels that. */
+  setTimer(callback: () => void, milliseconds: number): () => void;
+}
+
+const UNAVAILABLE: StartupView = { kind: "demo", storage: "unavailable" };
+
+function stateOf(view: StartupView): string {
+  return view.kind === "demo" ? `demo-${view.storage}` : view.kind;
+}
+
+/**
+ * Brings the page from "waiting" to exactly one board.
+ *
+ * 1. Shows the waiting state (`data-startup="pending"`). No concept can be
+ *    tapped before it is known whose board this is.
+ * 2. When `view` settles within `waitMs`: mounts that view, once.
+ *    `data-startup` becomes "demo-empty", "demo-unavailable", "profile",
+ *    "damaged" or "no-active".
+ * 3. When it does not: mounts the example board with the storage notice
+ *    (`data-startup="demo-timeout"`), so there is a board even if storage
+ *    never answers.
+ * 4. When `view` settles after that: the board is replaced only if nothing
+ *    has been chosen on it yet (`data-startup-late="replaced"`, and
+ *    `data-startup` follows the view). A board in use stays
+ *    (`data-startup-late="kept"`); the stored board shows at the next start.
+ *
+ * A rejected `view` counts as unavailable storage. If a view cannot be
+ * rendered, the example board with the storage notice is shown instead
+ * (`data-startup="failed"`). The returned promise resolves when `view` has
+ * been dealt with; it never rejects.
+ */
+export function runStartup(view: Promise<StartupView>, host: StartupHost, waitMs: number = STARTUP_WAIT_MS): Promise<void> {
+  let fallback: BoardHandle | null = null;
+  let answered = false;
+
+  const mountOrFallBack = (resolved: StartupView): void => {
+    try {
+      host.mount(resolved);
+      host.setData("startup", stateOf(resolved));
+    } catch {
+      host.mount(UNAVAILABLE);
+      host.setData("startup", "failed");
+    }
+  };
+
+  host.showLoading();
+  host.setData("startup", "pending");
+  const cancelTimer = host.setTimer(() => {
+    if (answered || fallback !== null) return;
+    fallback = host.mount(UNAVAILABLE);
+    host.setData("startup", "demo-timeout");
+  }, waitMs);
+
+  return view.catch((): StartupView => UNAVAILABLE).then((resolved) => {
+    answered = true;
+    cancelTimer();
+    if (fallback === null) {
+      mountOrFallBack(resolved);
+    } else if (fallback.hasSelection()) {
+      // Never swap a board under a child who is using it.
+      host.setData("startupLate", "kept");
+    } else {
+      mountOrFallBack(resolved);
+      host.setData("startupLate", "replaced");
+    }
+  }).catch(() => undefined);
+}

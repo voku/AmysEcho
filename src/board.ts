@@ -1,7 +1,7 @@
 import { CONCEPTS } from "./concepts.js";
 import type { BoardEntry } from "./board-data.js";
 import { requestLocalGermanSpeech, type SpeechAttempt } from "./speech.js";
-import type { StartupView } from "./startup.js";
+import type { BoardHandle, StartupHost, StartupView } from "./startup.js";
 
 function paragraph(className: string, text: string): HTMLElement {
   const element = document.createElement("p");
@@ -28,8 +28,16 @@ function describe(view: StartupView): { readonly notices: HTMLElement[]; readonl
     }
     case "profile": {
       const notices = [paragraph("board-owner", `Profil: ${view.displayName}`)];
-      if (view.entries.length === 0) notices.push(paragraph("board-notice", "Für dieses Profil sind noch keine Begriffe ausgewählt."));
-      if (view.problems.length > 0) notices.push(paragraph("board-notice", "Nicht alle Begriffe dieser Tafel konnten so geladen werden, wie sie gespeichert sind."));
+      // A custom concept under an id the catalogue uses too is shown as the profile stored it:
+      // worth a trace for the caregiver, but nothing is wrong on the board.
+      const troubled = view.problems.some((problem) => problem.kind !== "custom-shadows-catalogue");
+      if (view.entries.length === 0) {
+        notices.push(paragraph("board-notice", troubled
+          ? "Die Begriffe dieser Tafel konnten nicht geladen werden. Bitte gib einer Bezugsperson Bescheid."
+          : "Für dieses Profil sind noch keine Begriffe ausgewählt."));
+      } else if (troubled) {
+        notices.push(paragraph("board-notice", "Nicht alle Begriffe dieser Tafel konnten so geladen werden, wie sie gespeichert sind."));
+      }
       return { notices, entries: view.entries };
     }
     case "damaged":
@@ -44,18 +52,56 @@ function describe(view: StartupView): { readonly notices: HTMLElement[]; readonl
   }
 }
 
-/**
- * Renders the view into `root`, replacing what was there. A view without
- * concepts shows its message only: no board, no output line, no speech status.
- */
-export function mountBoard(root: HTMLElement, view: StartupView): void {
+function makeHeading(): HTMLElement {
   const heading = document.createElement("h1");
   heading.textContent = "Amy's Echo NG";
+  return heading;
+}
 
+/** Stops whatever is being spoken. A sentence of a board that is no longer shown must not go on. */
+function cancelRunningSpeech(): void {
+  try {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+  } catch {
+    // Speech is optional; a failing engine must not stop the board from being shown.
+  }
+}
+
+/**
+ * Leaves a trace of board problems for the caregiver: the count on the root
+ * (`data-board-problems`, absent when the view is not a profile board) and one
+ * console line per problem with its kind and concept id. No wording and no
+ * profile name is logged.
+ */
+function reportProblems(root: HTMLElement, view: StartupView): void {
+  if (view.kind !== "profile") {
+    delete root.dataset["boardProblems"];
+    return;
+  }
+  root.dataset["boardProblems"] = String(view.problems.length);
+  for (const problem of view.problems) {
+    console.warn(`Board problem: ${problem.kind} for concept "${problem.conceptId}"${problem.damage === undefined ? "" : ` (${problem.damage})`}`);
+  }
+}
+
+/** The state before storage has answered: nothing to tap, so nothing wrong can be said. */
+export function mountLoading(root: HTMLElement): void {
+  root.replaceChildren(makeHeading(), paragraph("board-notice", "Die Tafel wird geladen."));
+}
+
+/**
+ * Renders the view into `root`, replacing what was there, and stops running
+ * speech first. A view without concepts shows its message only: no board, no
+ * output line, no speech status.
+ */
+export function mountBoard(root: HTMLElement, view: StartupView): BoardHandle {
+  const heading = makeHeading();
   const { notices, entries } = describe(view);
   if (entries.length === 0) {
+    cancelRunningSpeech();
     root.replaceChildren(heading, ...notices);
-    return;
+    reportProblems(root, view);
+    return { hasSelection: () => false };
   }
 
   const board = document.createElement("div");
@@ -82,10 +128,16 @@ export function mountBoard(root: HTMLElement, view: StartupView): void {
   retry.hidden = true;
 
   let selection: BoardEntry | null = null;
+  // Each request to speak gets a number. An error reported for an earlier
+  // request (the engine reports one when a newer request cancels it, also for
+  // the same concept) must not overwrite the status of the current one.
+  let currentAttempt = 0;
 
   const speak = (concept: BoardEntry): void => {
+    currentAttempt += 1;
+    const thisAttempt = currentAttempt;
     const attempt: SpeechAttempt = requestLocalGermanSpeech(concept.speechDe, () => {
-      if (selection?.id === concept.id) {
+      if (thisAttempt === currentAttempt) {
         speechStatus.textContent = "Sprachausgabe fehlgeschlagen. Der Text bleibt sichtbar.";
       }
     });
@@ -134,5 +186,23 @@ export function mountBoard(root: HTMLElement, view: StartupView): void {
     }
   });
 
+  cancelRunningSpeech();
   root.replaceChildren(heading, ...notices, board, output, speechStatus, retry);
+  reportProblems(root, view);
+  return { hasSelection: () => selection !== null };
+}
+
+/** The real page as a `StartupHost` for `runStartup`. */
+export function createBoardHost(root: HTMLElement): StartupHost {
+  return {
+    showLoading: () => mountLoading(root),
+    mount: (view) => mountBoard(root, view),
+    setData: (name, value) => {
+      root.dataset[name] = value;
+    },
+    setTimer: (callback, milliseconds) => {
+      const timer = setTimeout(callback, milliseconds);
+      return () => clearTimeout(timer);
+    },
+  };
 }

@@ -192,6 +192,11 @@ function readEntry(value: unknown): StoredEntry {
   const expected = custom ? ["custom", "labelDe", "speechDe", "version"] : ["labelDe", "speechDe", "version"];
   const actual = Object.keys(record).sort();
   if (actual.length !== expected.length || actual.some((key, i) => key !== expected[i])) return unreadable;
+  // Stored text is in its final form, so it has at most two UTF-16 units per
+  // counted character. Anything longer is refused here, before the costly
+  // normalisation looks at every character of it.
+  const tooLong = (text: unknown, maxLength: number): boolean => typeof text === "string" && text.length > 2 * maxLength;
+  if (tooLong(record["labelDe"], MAX_LABEL_LENGTH) || tooLong(record["speechDe"], MAX_SPEECH_LENGTH)) return unreadable;
   try {
     const wording = normalizeWording({ labelDe: record["labelDe"], speechDe: record["speechDe"] });
     if (wording.labelDe !== record["labelDe"] || wording.speechDe !== record["speechDe"]) return unreadable;

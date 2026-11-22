@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mountBoard } from "../dist/board.js";
+import { createBoardHost, mountBoard, mountLoading } from "../dist/board.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import {
   BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, isBoardConceptId, listCustomConcepts, normalizeWording,
@@ -8,7 +8,7 @@ import {
 } from "../dist/board-data.js";
 import { InjectedWriteError, MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileStore, UnknownProfileError } from "../dist/profiles/store.js";
-import { loadStartupView, resolveStartupView } from "../dist/startup.js";
+import { STARTUP_WAIT_MS, loadStartupView, resolveStartupView, runStartup } from "../dist/startup.js";
 
 const chr = (...codePoints) => String.fromCodePoint(...codePoints);
 
@@ -43,38 +43,107 @@ class FakeUtterance {
   constructor(text) { this.text = text; this.lang = ""; this.voice = null; this.onerror = null; }
 }
 
-/** Mounts the view into a fake root, with a fake local German voice, and hands the parts to `callback`. */
-function withMountedBoard(view, callback) {
-  const previous = { document: globalThis.document, window: globalThis.window, utterance: globalThis.SpeechSynthesisUtterance };
-  const spoken = [];
+/**
+ * Puts a fake document, a fake local German voice and a console.warn recorder
+ * in place. Returns what the fakes recorded and a function that restores the globals.
+ */
+function installFakes() {
+  const previous = { document: globalThis.document, window: globalThis.window, SpeechSynthesisUtterance: globalThis.SpeechSynthesisUtterance };
+  const previousWarn = console.warn;
+  const speech = { cancelled: 0, utterances: [], spoken: [] };
+  const warnings = [];
   globalThis.document = { createElement: fakeElement };
   globalThis.window = {
-    speechSynthesis: { cancel() {}, getVoices: () => [{ lang: "de-DE", localService: true }], speak(utterance) { spoken.push(utterance.text); } },
+    speechSynthesis: {
+      cancel() { speech.cancelled += 1; },
+      getVoices: () => [{ lang: "de-DE", localService: true }],
+      speak(utterance) { speech.utterances.push(utterance); speech.spoken.push(utterance.text); },
+    },
   };
   globalThis.SpeechSynthesisUtterance = FakeUtterance;
+  console.warn = (...parts) => { warnings.push(parts.join(" ")); };
+  return {
+    speech, warnings,
+    restore() {
+      console.warn = previousWarn;
+      for (const [name, value] of Object.entries(previous)) {
+        if (value === undefined) delete globalThis[name];
+        else globalThis[name] = value;
+      }
+    },
+  };
+}
+
+/** The parts of whatever is mounted in `root` right now. */
+function parts(root) {
+  const byClass = (name) => root.children.filter((child) => child.className.split(" ").includes(name));
+  const board = byClass("concept-board")[0] ?? null;
+  return {
+    board,
+    buttons: board === null ? [] : board.children,
+    labels: board === null ? [] : board.children.map((button) => button.children.at(-1).textContent),
+    notices: byClass("board-notice").map((notice) => notice.textContent),
+    owner: byClass("board-owner")[0]?.textContent ?? null,
+    output: byClass("message")[0] ?? null,
+    speechStatus: byClass("speech-status")[0] ?? null,
+    retry: byClass("retry")[0] ?? null,
+    text: root.children.map((child) => child.textContent).join("\n"),
+  };
+}
+
+/** Mounts the view into a fake root, with a fake local German voice, and hands the parts to `callback`. */
+function withMountedBoard(view, callback) {
+  const fakes = installFakes();
   try {
     const root = fakeElement("main");
-    mountBoard(root, view);
-    const byClass = (name) => root.children.filter((child) => child.className.split(" ").includes(name));
-    const board = byClass("concept-board")[0] ?? null;
+    const handle = mountBoard(root, view);
     callback({
-      root, spoken, board,
-      buttons: board === null ? [] : board.children,
-      labels: board === null ? [] : board.children.map((button) => button.children.at(-1).textContent),
-      notices: byClass("board-notice").map((notice) => notice.textContent),
-      owner: byClass("board-owner")[0]?.textContent ?? null,
-      output: byClass("message")[0] ?? null,
-      speechStatus: byClass("speech-status")[0] ?? null,
-      retry: byClass("retry")[0] ?? null,
-      text: root.children.map((child) => child.textContent).join("\n"),
+      root, handle, speech: fakes.speech, warnings: fakes.warnings, spoken: fakes.speech.spoken,
+      ...parts(root),
     });
   } finally {
-    for (const [name, key] of [["document", "document"], ["window", "window"], ["SpeechSynthesisUtterance", "utterance"]]) {
-      if (previous[key] === undefined) delete globalThis[name];
-      else globalThis[name] = previous[key];
-    }
+    fakes.restore();
   }
 }
+
+/**
+ * A fake page for `runStartup`: the real board host on a fake root, with a
+ * timer the test fires by hand. `mounts` holds what was shown, in order.
+ */
+async function withStartup(callback) {
+  const fakes = installFakes();
+  try {
+    const root = fakeElement("main");
+    const mounts = [];
+    root.replaceChildren = (...nodes) => { root.children = nodes; mounts.push(parts(root)); };
+    const timers = [];
+    const host = {
+      ...createBoardHost(root),
+      setTimer(callback, milliseconds) {
+        const timer = { callback, milliseconds, cancelled: false };
+        timers.push(timer);
+        return () => { timer.cancelled = true; };
+      },
+    };
+    let answer;
+    let fail;
+    const view = new Promise((resolve, reject) => { answer = resolve; fail = reject; });
+    await callback({
+      root, host, mounts, timers, view, answer, fail, speech: fakes.speech,
+      /** What a real timer would do: run the callback unless it was cancelled. */
+      fireTimer() { for (const timer of timers) if (!timer.cancelled) timer.callback(); },
+      now: () => parts(root),
+    });
+  } finally {
+    fakes.restore();
+  }
+}
+
+const MIA_VIEW = {
+  kind: "profile", profileId: "0".repeat(32), displayName: "Mia", problems: [],
+  entries: [{ id: "ball", labelDe: "Ball", speechDe: "Ich möchte mit dem Ball spielen.", symbolPath: null, source: "custom" }],
+};
+const EXAMPLE_LABELS = CONCEPTS.map((concept) => concept.labelDe);
 
 // --- Board data ---
 
@@ -560,4 +629,261 @@ test("render: mounting again replaces the earlier board completely", () => {
     mountBoard(root, { kind: "damaged", count: 1 });
     assert.deepEqual(root.children.map((child) => child.tagName), ["h1", "p"]);
   });
+});
+
+test("render: a profile board on which no concept could be loaded says that, not that none was chosen", async () => {
+  const { store } = await openStore();
+  const mia = await store.create("Mia", ["einhorn", "drache"]);
+  await store.setActive(mia.id);
+  withMountedBoard(await resolveStartupView(store, CONCEPTS), ({ board, notices, owner, text }) => {
+    assert.equal(owner, "Profil: Mia");
+    assert.deepEqual(notices, ["Die Begriffe dieser Tafel konnten nicht geladen werden. Bitte gib einer Bezugsperson Bescheid."]);
+    assert.equal(board, null);
+    assert.doesNotMatch(text, /noch keine Begriffe ausgewählt|Nicht alle Begriffe/);
+  });
+});
+
+test("render: board problems leave a trace (count on the root, one console line each) without wording or names", async () => {
+  const { store } = await openStore();
+  const mia = await store.create("Geheimname", ["hilfe", "einhorn", "ball"]);
+  await store.data(mia.id).set("concept.hilfe", { version: 2, labelDe: "Geheimwort", speechDe: "Geheimsatz." });
+  await store.data(mia.id).set("concept.ball", { version: 1, labelDe: "", speechDe: "Geheimsatz.", custom: true });
+  await store.setActive(mia.id);
+  withMountedBoard(await resolveStartupView(store, CONCEPTS), ({ root, warnings, notices, labels }) => {
+    assert.deepEqual(labels, ["Hilfe"]);
+    assert.equal(root.dataset.boardProblems, "3");
+    assert.deepEqual(warnings, [
+      'Board problem: damaged-wording for concept "hilfe" (unsupported-version)',
+      'Board problem: unknown-concept for concept "einhorn"',
+      'Board problem: damaged-custom-concept for concept "ball" (unreadable)',
+    ]);
+    assert.doesNotMatch(warnings.join("\n"), /Geheim/);
+    assert.equal(notices.length, 1);
+    // A later board without problems, or one that is not a profile board, does not keep the old count.
+    mountBoard(root, MIA_VIEW);
+    assert.equal(root.dataset.boardProblems, "0");
+    mountBoard(root, { kind: "damaged", count: 1 });
+    assert.equal("boardProblems" in root.dataset, false);
+    assert.equal(warnings.length, 3);
+  });
+});
+
+test("render: a custom concept under a catalogue id is traced but shows no notice to the child", async () => {
+  const { store } = await openStore();
+  const mia = await store.create("Mia", []);
+  await putCustomConcept(store, mia.id, "ball", BALL, CONCEPTS);
+  await setBoardConcepts(store, mia.id, ["ball"], CONCEPTS);
+  await store.setActive(mia.id);
+  const grown = [...CONCEPTS, { id: "ball", labelDe: "Fussball", speechDe: "Fussball spielen.", symbolPath: "./icons/ball.svg" }];
+  withMountedBoard(await resolveStartupView(store, grown), ({ root, warnings, notices, labels }) => {
+    assert.deepEqual(labels, ["Ball"]);
+    assert.deepEqual(notices, []);
+    assert.equal(root.dataset.boardProblems, "1");
+    assert.deepEqual(warnings, ['Board problem: custom-shadows-catalogue for concept "ball"']);
+  });
+});
+
+test("render: mounting a board stops running speech first", () => {
+  withMountedBoard({ kind: "demo", storage: "empty" }, ({ root, speech, buttons }) => {
+    buttons[0].click();
+    const before = speech.cancelled;
+    mountBoard(root, MIA_VIEW);
+    assert.equal(speech.cancelled, before + 1);
+    mountBoard(root, { kind: "damaged", count: 1 });
+    assert.equal(speech.cancelled, before + 2);
+    // The waiting line is shown before any board and has nothing to stop.
+    mountLoading(root);
+    assert.equal(speech.cancelled, before + 2);
+  });
+});
+
+test("render: a speech engine that throws on cancel does not stop a board from being mounted", () => {
+  withMountedBoard({ kind: "demo", storage: "empty" }, ({ root }) => {
+    globalThis.window.speechSynthesis.cancel = () => { throw new Error("engine broke"); };
+    mountBoard(root, MIA_VIEW);
+    assert.deepEqual(parts(root).labels, ["Ball"]);
+  });
+});
+
+test("render: a speech error from an earlier attempt or an earlier board does not touch the current status line", () => {
+  withMountedBoard(MIA_VIEW, ({ root, speech, buttons, speechStatus, handle }) => {
+    assert.equal(handle.hasSelection(), false);
+    buttons[0].click();
+    buttons[0].click(); // the same concept again: the engine reports an error for the first utterance
+    assert.equal(handle.hasSelection(), true);
+    const [first, second] = speech.utterances;
+    first.onerror();
+    assert.match(speechStatus.textContent, /Lokale deutsche Stimme angefordert/);
+    second.onerror();
+    assert.match(speechStatus.textContent, /Sprachausgabe fehlgeschlagen/);
+
+    // A new board: an error for an utterance of the old board changes nothing on it.
+    mountBoard(root, { kind: "demo", storage: "empty" });
+    const fresh = parts(root);
+    fresh.buttons[0].click();
+    second.onerror();
+    first.onerror();
+    assert.match(fresh.speechStatus.textContent, /Lokale deutsche Stimme angefordert/);
+    assert.equal(fresh.output.textContent, "Ich brauche Hilfe.");
+  });
+});
+
+// --- Start-up sequence ---
+
+test("start: storage answers in time: a waiting line without buttons, then exactly one board, never the examples", async () => {
+  await withStartup(async ({ root, host, mounts, timers, view, answer, fireTimer, now }) => {
+    const done = runStartup(view, host);
+    assert.equal(root.dataset.startup, "pending");
+    assert.deepEqual(now().notices, ["Die Tafel wird geladen."]);
+    assert.equal(now().board, null);
+    assert.deepEqual(root.children.map((child) => child.tagName), ["h1", "p"]);
+    assert.deepEqual(timers.map((timer) => timer.milliseconds), [STARTUP_WAIT_MS]);
+    assert.ok(STARTUP_WAIT_MS >= 500 && STARTUP_WAIT_MS <= 3000);
+
+    answer(MIA_VIEW);
+    await done;
+    assert.equal(root.dataset.startup, "profile");
+    assert.equal("startupLate" in root.dataset, false);
+    assert.deepEqual(now().labels, ["Ball"]);
+    assert.equal(timers[0].cancelled, true);
+    fireTimer();
+    assert.equal(mounts.length, 2);
+    assert.deepEqual(mounts.map((mount) => mount.labels), [[], ["Ball"]]);
+  });
+});
+
+test("start: every resolved view is mounted once and named in data-startup", async () => {
+  for (const [resolved, state] of [
+    [{ kind: "demo", storage: "empty" }, "demo-empty"],
+    [{ kind: "demo", storage: "unavailable" }, "demo-unavailable"],
+    [{ kind: "damaged", count: 1 }, "damaged"],
+    [{ kind: "no-active", profiles: [] }, "no-active"],
+  ]) {
+    await withStartup(async ({ root, host, mounts, view, answer }) => {
+      const done = runStartup(view, host);
+      answer(resolved);
+      await done;
+      assert.equal(root.dataset.startup, state);
+      assert.equal(mounts.length, 2);
+    });
+  }
+});
+
+test("start: storage is slow: after the bound the examples are shown with the storage notice and work", async () => {
+  await withStartup(async ({ root, host, mounts, fireTimer, view, now }) => {
+    void runStartup(view, host);
+    assert.equal(now().board, null);
+    fireTimer();
+    assert.equal(root.dataset.startup, "demo-timeout");
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    assert.match(now().notices[0], /noch nicht freigegeben/);
+    assert.match(now().notices[1], /Speicher.*nicht erreichbar/);
+    now().buttons[0].click();
+    assert.equal(now().output.textContent, "Ich brauche Hilfe.");
+    assert.equal(mounts.length, 2);
+  });
+});
+
+test("start: storage never answers: the examples stay and the timer does not mount twice", async () => {
+  await withStartup(async ({ root, host, mounts, fireTimer, view, now }) => {
+    let settled = false;
+    void runStartup(view, host).then(() => { settled = true; });
+    fireTimer();
+    fireTimer();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(settled, false);
+    assert.equal(mounts.length, 2);
+    assert.equal(root.dataset.startup, "demo-timeout");
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    now().buttons[4].click();
+    assert.equal(now().output.textContent, "Ich bin fertig.");
+  });
+});
+
+test("start: a late answer replaces the fallback board when nothing was selected on it", async () => {
+  await withStartup(async ({ root, host, mounts, fireTimer, view, answer, now }) => {
+    const done = runStartup(view, host);
+    fireTimer();
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    answer(MIA_VIEW);
+    await done;
+    assert.deepEqual(now().labels, ["Ball"]);
+    assert.equal(now().owner, "Profil: Mia");
+    assert.equal(root.dataset.startup, "profile");
+    assert.equal(root.dataset.startupLate, "replaced");
+    assert.equal(mounts.length, 3);
+  });
+});
+
+test("start: a late answer never replaces a board the child has already used", async () => {
+  await withStartup(async ({ root, host, mounts, fireTimer, view, answer, now, speech }) => {
+    const done = runStartup(view, host);
+    fireTimer();
+    now().buttons[0].click();
+    const cancelled = speech.cancelled;
+    answer(MIA_VIEW);
+    await done;
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    assert.equal(now().output.textContent, "Ich brauche Hilfe.");
+    assert.equal(now().owner, null);
+    assert.equal(root.dataset.startup, "demo-timeout");
+    assert.equal(root.dataset.startupLate, "kept");
+    assert.equal(mounts.length, 2);
+    // The sentence that is being spoken is not cut off either.
+    assert.equal(speech.cancelled, cancelled);
+  });
+});
+
+test("start: a failing view promise or a view that cannot be rendered ends on the examples with the notice", async () => {
+  await withStartup(async ({ root, host, view, fail, now }) => {
+    const done = runStartup(view, host);
+    fail(new Error("storage broke"));
+    await done;
+    assert.equal(root.dataset.startup, "demo-unavailable");
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+  });
+  await withStartup(async ({ root, host, view, answer, now }) => {
+    const done = runStartup(view, host);
+    answer({ kind: "profile", profileId: "0".repeat(32), displayName: "Mia", problems: [], entries: [null] });
+    await done;
+    assert.equal(root.dataset.startup, "failed");
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    assert.equal(now().notices.length, 2);
+  });
+});
+
+test("an over-long stored label or sentence is refused by length, before any normalisation", async () => {
+  const { store } = await openStore();
+  const profile = await store.create("Mia", ["hilfe", "mehr", "ball", "pause"]);
+  const data = store.data(profile.id);
+  const long = "x".repeat(50_000);
+  await data.set("concept.hilfe", { version: 1, labelDe: long, speechDe: "Kurz." });
+  await data.set("concept.mehr", { version: 1, labelDe: "Mehr", speechDe: long });
+  await data.set("concept.ball", { version: 1, labelDe: long, speechDe: long, custom: true });
+  // The longest text that can be valid: two UTF-16 units per counted character.
+  await data.set("concept.pause", { version: 1, labelDe: "🦊".repeat(MAX_LABEL_LENGTH), speechDe: "🦊".repeat(MAX_SPEECH_LENGTH) });
+
+  const original = String.prototype.normalize;
+  const normalized = [];
+  String.prototype.normalize = function normalize(...forms) {
+    normalized.push(this.length);
+    return original.apply(this, forms);
+  };
+  let board;
+  let listing;
+  try {
+    board = await resolveBoard(store, profile.id, CONCEPTS);
+    listing = await listCustomConcepts(store, profile.id);
+  } finally {
+    String.prototype.normalize = original;
+  }
+  assert.deepEqual(board.problems, [
+    { kind: "damaged-wording", conceptId: "hilfe", damage: "unreadable" },
+    { kind: "damaged-wording", conceptId: "mehr", damage: "unreadable" },
+    { kind: "damaged-custom-concept", conceptId: "ball", damage: "unreadable" },
+  ]);
+  assert.equal(board.entries.at(-1).labelDe, "🦊".repeat(MAX_LABEL_LENGTH));
+  assert.deepEqual(listing.unreadableIds, ["ball", "hilfe", "mehr"]);
+  assert.ok(normalized.length > 0, "the valid entry was normalised");
+  assert.ok(Math.max(...normalized) <= 2 * MAX_SPEECH_LENGTH, `normalize saw a string of ${Math.max(...normalized)} units`);
 });
