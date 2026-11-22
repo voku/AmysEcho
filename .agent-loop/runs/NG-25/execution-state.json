@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
     "contract_revision": 1,
-    "current_attempt": 4,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 1,
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -288,10 +288,64 @@
                 "task_id": "NG-25",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T12:32:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:32:59+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6c27ec0e4e417d07d83f418dd59a91311672eea793b3036661c7c80abd2d18de",
+                    "execution-evidence:sha256:8e53f438fbd33dfd24049c498045de522a54ea39b159c5d90694a4defe9bc59a",
+                    "execution-evidence:sha256:a1fe939ad0deba3672e66ad632bf4a5e908d4b3a587a66e9918ac9f95362bcde",
+                    "execution-evidence:sha256:a375f864794bbdcfd9e7e973b50ec20829e81c13d33fa12754dee9e15399a60b",
+                    "execution-evidence:sha256:c60e19ac91a4ca21a37e031628990f6b3deaedf25da9b9f5c77fb77a2e1972c7",
+                    "execution-evidence:sha256:43be5b89bafc0d71f307d36ad4dcaba3e08deb0b891c0969962a24b60a993cfb",
+                    "execution-evidence:sha256:1efc09d6cb21ac2f79df3b4321012c7b4af838ed026ebc6c64abb784403ad2ae"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6c27ec0e4e417d07d83f418dd59a91311672eea793b3036661c7c80abd2d18de",
+                    "execution-evidence:sha256:8e53f438fbd33dfd24049c498045de522a54ea39b159c5d90694a4defe9bc59a",
+                    "execution-evidence:sha256:a1fe939ad0deba3672e66ad632bf4a5e908d4b3a587a66e9918ac9f95362bcde",
+                    "execution-evidence:sha256:a375f864794bbdcfd9e7e973b50ec20829e81c13d33fa12754dee9e15399a60b",
+                    "execution-evidence:sha256:c60e19ac91a4ca21a37e031628990f6b3deaedf25da9b9f5c77fb77a2e1972c7",
+                    "execution-evidence:sha256:43be5b89bafc0d71f307d36ad4dcaba3e08deb0b891c0969962a24b60a993cfb",
+                    "execution-evidence:sha256:1efc09d6cb21ac2f79df3b4321012c7b4af838ed026ebc6c64abb784403ad2ae"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "context_id": "claude-subagent-ng25-correctness-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "observations": [
+                    "backup.ts:82 and store.ts:25 say the usage record is corrected; it is only attempted",
+                    "docs/storage.md:165 and store.ts:112 'nothing changes' on a size refusal holds for data only; the usage record may be corrected",
+                    "store.ts:496 .catch does not cover a backend whose write throws synchronously; no shipped backend does",
+                    "test/profiles.test.mjs:1000 asserts a stale snapshot; no test asserts the accepted set path does no extra reads"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:a34d5e94",
+                "summary": "Pass: best-effort correction and recount-before-refusal verified by probes and a 300-round fuzz against an independent model; verify passes with 92 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": "attention:34651a5b2cc7c1ec",
+    "last_attention_id": null,
     "recovery_history": [],
     "run_id": "run:NG-25:947884823683544c",
     "schema_version": "1.0",
