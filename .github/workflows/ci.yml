@@ -34,3 +34,27 @@ jobs:
         run: npm run verify
       - name: Audit dependencies
         run: npm audit --audit-level=high
+
+  agent-workflow:
+    name: Installed agent-loop consumer (PHP 8.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+      - name: Validate Composer manifest and lock
+        run: composer validate --strict
+      - name: Install exact locked workflow tooling
+        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts
+      - name: Exercise installed agent-loop CLI
+        run: php vendor/bin/agent-loop workflow help
+      - name: Verify Composer inputs are unchanged
+        run: git diff --exit-code -- composer.json composer.lock
