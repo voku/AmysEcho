@@ -139,7 +139,8 @@ No text while speech was asked for normally. One small line appears only when th
 | The engine threw, or reported an error for the latest request | `"failed"`, or `onFailure` later | "Vorlesen ging nicht. Bitte noch einmal tippen." |
 | That happens again before any sentence reached its end | the same | "Vorlesen geht nicht. Hol eine Bezugsperson." |
 
-"Tap again" is said once where tapping again may help, and not a second time in a row. An empty
+"Tap again" is said once where tapping again may help, and not a second time in a row for the
+same kind of problem. An empty
 voice list cannot be told apart from one that has not loaded yet, so the first such tap gets the
 benefit of the doubt and the second does not; that count has no time in it, so a quick double tap
 uses it up. Any other result, and a voice that arrives, starts the empty-list count again.
@@ -197,8 +198,9 @@ room the bar has anyway, so the tiles do not move when it appears: a tile that m
 finger is a wrong word. That holds for a sentence of one line, and of two lines on a phone held
 upright; a longer sentence makes the bar grow by one small line. In a browser without `:has()`
 the line stands under the bar and the board gets that much lower. The line is one line
-(`white-space: nowrap`); all four texts fit a 320 px wide window at the normal text size
-(measured, below). With larger text the end is cut off with an ellipsis.
+(`white-space: nowrap`); all four texts fit a 320 px wide window that is higher than 480 px at
+the normal text size (measured, below). In a window of 480 px height or less, or with larger
+text, the end is cut off with an ellipsis.
 
 ## A sentence that is still being spoken
 
@@ -322,7 +324,8 @@ The four speech lines on their one line, text width / room in px: "Keine Stimme.
 einmal tippen." 209 / 272 at 320 px and 229 / 312 at 360 px; "Keine deutsche Stimme. Hol eine
 Bezugsperson." 256 / 272 and 280 / 312; "Vorlesen ging nicht. Bitte noch einmal tippen."
 239 / 272 and 261 / 312; "Vorlesen geht nicht. Hol eine Bezugsperson." 235 / 272 and 256 / 312.
-None is cut off there. In a 320x480 window the room is 222 px and the lines end in an ellipsis.
+None is cut off there. In a 320x480 window the room is 222 px: the first line fits, the other
+three end in an ellipsis.
 
 Also looked at:
 
