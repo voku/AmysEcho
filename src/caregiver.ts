@@ -42,6 +42,16 @@ export const IDLE_CLOSE_MS = 2 * 60 * 1000;
 /** A board with more showable tiles than this gets a line that says the tiles become small on a phone. */
 export const BOARD_COMFORT_MAX = 12;
 
+/**
+ * How long a button that takes something away ignores a press after it has
+ * appeared under the finger: "Endgültig löschen" after its confirmation was
+ * drawn, and every "Entfernen" after a removal redrew the list. A second tap
+ * of a double tap lands on the same spot within this time. A guess.
+ */
+export const GUARD_MS = 800;
+/** Room between the block at the top and an element that is brought out from under it. */
+const REVEAL_GAP_PX = 8;
+
 /** Calls `callback` once after `milliseconds`; the returned function cancels that. */
 export type SetTimer = (callback: () => void, milliseconds: number) => () => void;
 
@@ -213,6 +223,8 @@ const SAVE = "Speichern";
 const DELETE_LOSS = "Alle ausgewählten Begriffe dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
 const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel aktiv ist.";
 const AFTER_CLOSE = "Nach dem Schließen:";
+const AFTER_DAMAGED = `${AFTER_CLOSE} Beispiele – ein gespeichertes Profil kann gerade nicht gelesen werden.`;
+const NAME_TAKEN = "Diesen Namen gibt es schon. Bitte wähle einen anderen.";
 const AFTER_NONE_ACTIVE = `${AFTER_CLOSE} Beispiele – es ist keine Tafel aktiv.`;
 const AFTER_ACTIVE_EMPTY = `${AFTER_CLOSE} Beispiele – die aktive Tafel hat noch keinen Begriff.`;
 const AFTER_ACTIVE_UNREADABLE = `${AFTER_CLOSE} Beispiele – die aktive Tafel kann gerade nicht gelesen werden.`;
@@ -221,7 +233,7 @@ const AFTER_NO_STORAGE = `${AFTER_CLOSE} Beispiele – der Speicher ist nicht er
 const HELP_SUMMARY = "Hilfe bei Problemen";
 const RELOAD_BOARD = "Tafel neu laden";
 const RELOAD_HELP = "Zeigt die Tafel des Kindes nicht, was hier eingestellt ist? „Tafel neu laden“ liest sie noch einmal aus dem Speicher dieses Geräts.";
-const VOICE_HELP = "Spricht das Gerät nicht? Dann fehlt eine deutsche Stimme. "
+const VOICE_HELP = "Spricht das Gerät nicht? Dann ist es vielleicht stumm geschaltet, oder es fehlt eine deutsche Stimme. "
   + "Sie wird in den Einstellungen des Geräts bei „Sprachausgabe“ oder „Text-in-Sprache“ installiert.";
 const RELOAD_NO_STORAGE = "Der Speicher dieses Geräts ist gerade nicht erreichbar. Die Tafel zeigt deshalb Beispiele.";
 const RELOAD_NOT_DRAWN = "Die Tafel kann gerade nicht angezeigt werden. Bitte versuche es noch einmal.";
@@ -268,6 +280,17 @@ function damagedLine(count: number): string {
 
 /** A refusal this screen decides itself, already as a German sentence. */
 class Refusal extends Error {}
+
+/** What two profile names are compared by: NFC, trimmed, without regard to case. */
+function nameKey(name: string): string {
+  return name.normalize("NFC").trim().toLocaleLowerCase("de");
+}
+
+/** True when a readable profile other than `exceptId` already has this name. The store allows it; the area does not, because a board is named by it. */
+function nameTaken(profiles: readonly ProfileV1[], name: string, exceptId: string | null): boolean {
+  const key = nameKey(name);
+  return key !== "" && profiles.some((profile) => profile.id !== exceptId && nameKey(profile.displayName) === key);
+}
 
 /**
  * One German sentence for a refused or failed profile name. The store only
@@ -416,9 +439,22 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let work: Promise<void> = Promise.resolve();
   let store: ProfileStore | null = null;
   let selectedId: string | null = null;
-  /** The one rename field or delete confirmation that is open, if any. Changed only by queued tasks. */
+  /**
+   * The one rename field or delete confirmation that is open, if any. Set
+   * when a button is pressed, not when the queue gets to it, so that Escape
+   * right after "Löschen" cancels the confirmation also while an earlier
+   * write is still under way.
+   */
   let mode: Mode = null;
+  /** False from the press on "Löschen" until `GUARD_MS` after the confirmation was drawn: "Endgültig löschen" does nothing then. */
+  let confirmArmed = false;
+  /** False from a press on "Entfernen" until `GUARD_MS` after the list was drawn without that row: no "Entfernen" does anything then. */
+  let removeArmed = true;
+  let removeGuardNo = 0;
+  /** The removals of this visit for the edited profile that can still be taken back, latest last. */
+  let undoStack: UndoOffer[] = [];
   let heading: HTMLElement | null = null;
+  let topBlock: HTMLElement | null = null;
   let afterClose: HTMLElement | null = null;
   let status: HTMLElement | null = null;
   let undoBar: HTMLElement | null = null;
@@ -439,6 +475,45 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
   const say = (text: string): void => {
     if (status !== null && acting === session) status.textContent = text;
+  };
+
+  /** Takes an earlier message away: when a button is pressed, and when the caregiver scrolls. The undo offer stays. */
+  const clearStatus = (): void => {
+    if (isOpen && status !== null && status.textContent !== "") status.textContent = "";
+  };
+
+  /** What every press of a button starts with: the earlier message goes, and so does an open rename field or confirmation unless the press belongs to it. */
+  const begin = (keepMode = false): void => {
+    clearStatus();
+    if (!keepMode) mode = null;
+  };
+
+  /** Calls `onEnd` once the guard time has passed; at once where there is no timer. */
+  const afterGuard = (onEnd: () => void): void => {
+    try {
+      setTimer(onEnd, GUARD_MS);
+    } catch {
+      onEnd();
+    }
+  };
+
+  /** Shows on every drawn "Entfernen" whether a press counts right now. */
+  const markRemoveButtons = (): void => {
+    for (const [key, control] of focusables) if (key.startsWith("remove:")) control.setAttribute("aria-disabled", removeArmed ? "false" : "true");
+  };
+
+  /** Lets "Entfernen" count again: at once after a removal that did not happen, after the guard time otherwise. */
+  const rearmRemove = (wait: boolean): void => {
+    removeGuardNo += 1;
+    const mine = removeGuardNo;
+    const arm = (): void => {
+      // A timer whose cancellation came too late belongs to an earlier guard.
+      if (mine !== removeGuardNo) return;
+      removeArmed = true;
+      markRemoveButtons();
+    };
+    if (wait) afterGuard(arm);
+    else arm();
   };
 
   /** Carries tasks out one after another, in the order they were asked for, across closing and reopening. */
@@ -465,17 +540,72 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
   };
 
-  /** Closes an open rename field or confirmation; every action other than opening one starts with this. */
-  const cancelMode = (): void => {
-    if (acting === session) mode = null;
+  /**
+   * Makes sure `target` is not under the block that stays at the top: the
+   * top edge of `anchor` (the card around it, or `target` itself) comes to
+   * rest just below the block. With `toTop` it is brought there also from
+   * further down, so that what was asked for is the first thing under the
+   * block. If `target` then ends below the region, the region scrolls on as
+   * far as `target` stays clear of the block. Does nothing where the DOM has
+   * no geometry.
+   */
+  const reveal = (target: HTMLElement, anchor: HTMLElement, toTop: boolean): void => {
+    try {
+      if (topBlock === null || typeof target.getBoundingClientRect !== "function" || typeof topBlock.getBoundingClientRect !== "function") return;
+      const edge = topBlock.getBoundingClientRect().bottom + REVEAL_GAP_PX;
+      const at = anchor.getBoundingClientRect().top;
+      if (toTop || at < edge) caregiverRegion.scrollTop = Math.max(0, caregiverRegion.scrollTop + at - edge);
+      const now = target.getBoundingClientRect();
+      const below = now.bottom - caregiverRegion.getBoundingClientRect().bottom;
+      if (below > 0) caregiverRegion.scrollTop += Math.max(0, Math.min(below, now.top - edge));
+    } catch {
+      // Without geometry the browser's own scrolling on focus has to do.
+    }
+  };
+
+  /** Draws the undo button for the latest removal that can be taken back, or takes the button away. */
+  const renderUndo = (): void => {
+    if (undoBar === null) return;
+    const next = undoStack[undoStack.length - 1];
+    if (next === undefined) {
+      undoBar.replaceChildren();
+      undoBar.hidden = true;
+      return;
+    }
+    const back = button(`${UNDO}: ${quoted(next.label)}`);
+    back.setAttribute("aria-label", `${UNDO}: ${next.label} wieder auf die Tafel setzen`);
+    back.addEventListener("click", () => {
+      begin();
+      // Back to where it was: before the id that followed it then, if that one is still on the board.
+      changeBoard(next.profileId, [`remove:${next.id}`], null, `${quoted(next.label)} ist wieder auf der Tafel.`, (ids) => {
+        if (ids.includes(next.id)) {
+          dropUndo((offer) => offer === next);
+          return null;
+        }
+        if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+        const at = next.before === null ? -1 : ids.indexOf(next.before);
+        return at < 0 ? [...ids, next.id] : [...ids.slice(0, at), next.id, ...ids.slice(at)];
+      }, (succeeded) => {
+        if (succeeded) dropUndo((offer) => offer === next);
+      });
+    });
+    undoBar.replaceChildren(back);
+    undoBar.hidden = false;
+  };
+
+  /** Takes offers off the undo stack. Only for the opening that asked: a task of an earlier opening leaves this one's stack alone. */
+  const dropUndo = (gone: (offer: UndoOffer) => boolean): void => {
+    if (acting !== session || !undoStack.some(gone)) return;
+    undoStack = undoStack.filter((offer) => !gone(offer));
+    renderUndo();
   };
 
   /** Reads the store again and replaces the body. `focus` names the controls to try, in order, for the focus. */
-  const draw = async (focus: readonly string[] | null, draftName?: string): Promise<void> => {
+  const draw = async (focus: readonly string[] | null, options: { readonly draftName?: string; readonly toTop?: boolean } = {}): Promise<void> => {
     const mine = acting;
     if (!isOpen || mine !== session) return;
     // A name that is typed but not sent yet survives the redraw after another action.
-    const typed = draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? "";
+    const typed = options.draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? "";
     const nextFocusables = new Map<string, Focusable>();
     let built: Built;
     let failed = false;
@@ -497,180 +627,195 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     // "Tafel neu laden" is the retry then, so it must not sit behind a closed summary.
     if (failed && help !== null) help.open = true;
     focusables = nextFocusables;
+    // Removals are taken back on the board they were made on; with another profile in the editor the offers go.
+    dropUndo((offer) => offer.profileId !== selectedId);
     if (focus === null) return;
     const target = focus.map((key) => focusables.get(key)).find((candidate) => candidate !== undefined && candidate.disabled !== true);
     (target ?? heading)?.focus();
+    if (target === undefined) return;
+    const key = focus.find((candidate) => focusables.get(candidate) === target);
+    reveal(target, focusables.get(`anchor:${key}`) ?? target, options.toTop === true);
   };
 
   /**
    * One change of a board: reads the profile's full `conceptIds` from the
    * store, lets `change` build the new list from them, and saves it through
    * `setBoardConcepts`. `change` returns null when there is nothing to do.
-   * A change that succeeds ends an earlier undo offer; `offer` in its result
-   * is the new one.
+   * Focus goes to `focus` after a change that was saved and to `focusElse`
+   * otherwise (null: it stays where it is), so that a second press after a
+   * failure acts on the same concept. `after` hears whether it was saved.
    */
   const changeBoard = (
-    profileId: string, focus: readonly string[], done: string,
-    change: (ids: readonly string[], editable: ReadonlySet<string>) => { ids: string[]; offer?: UndoOffer } | null,
+    profileId: string, focus: readonly string[], focusElse: readonly string[] | null, done: string,
+    change: (ids: readonly string[], editable: ReadonlySet<string>) => string[] | null,
+    after: (succeeded: boolean) => void = () => undefined,
   ): void => runWrite(async () => {
     if (store === null) return;
-    cancelMode();
+    let succeeded = false;
     try {
       const board = await resolveBoard(store, profileId, catalogue);
       const next = change(board.profile.conceptIds, editableIds(board));
       if (next !== null) {
-        await setBoardConcepts(store, profileId, next.ids, catalogue);
+        await setBoardConcepts(store, profileId, next, catalogue);
         writes += 1;
-        offerUndo(next.offer ?? null);
+        succeeded = true;
         say(done);
       }
     } catch (error) {
       say(boardErrorLine(error));
     }
-    await draw(focus);
-  });
-
-  /**
-   * Shows the undo button for the last removal next to the status line, or
-   * takes it away. Only for the opening that asked; the bar itself goes with
-   * the area when it closes.
-   */
-  function offerUndo(next: UndoOffer | null): void {
-    if (acting !== session || undoBar === null) return;
-    if (next === null) {
-      undoBar.replaceChildren();
-      undoBar.hidden = true;
-      return;
+    try {
+      after(succeeded);
+    } finally {
+      await draw(succeeded ? focus : focusElse);
     }
-    const back = button(UNDO);
-    back.setAttribute("aria-label", `${UNDO}: ${next.label} wieder auf die Tafel setzen`);
-    back.addEventListener("click", () => {
-      // Back to where it was: before the id that followed it then, if that one is still on the board.
-      changeBoard(next.profileId, [`remove:${next.id}`], `${quoted(next.label)} ist wieder auf der Tafel.`, (ids) => {
-        if (ids.includes(next.id)) {
-          offerUndo(null);
-          return null;
-        }
-        if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
-        const at = next.before === null ? -1 : ids.indexOf(next.before);
-        return { ids: at < 0 ? [...ids, next.id] : [...ids.slice(0, at), next.id, ...ids.slice(at)] };
-      });
-    });
-    undoBar.replaceChildren(back);
-    undoBar.hidden = false;
-  }
+  });
 
   /** `raw` is the name as it was when the form was sent, not what the field holds when the queue gets here. */
-  const createProfile = (raw: string): void => runWrite(async () => {
-    if (store === null) return;
-    cancelMode();
-    try {
-      const before = await store.list();
-      const first = before.profiles.length === 0 && before.damaged.length === 0;
-      const profile = await store.create(raw, []);
-      writes += 1;
-      offerUndo(null);
-      selectedId = profile.id;
-      let line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist noch nicht die aktive Tafel.`;
-      if (first) {
-        try {
-          await store.setActive(profile.id);
-          line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist das erste Profil auf diesem Gerät und deshalb jetzt die aktive Tafel.`;
-        } catch {
-          line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es konnte aber nicht als aktive Tafel gespeichert werden.`;
+  const createProfile = (raw: string): void => {
+    begin();
+    runWrite(async () => {
+      if (store === null) return;
+      try {
+        const before = await store.list();
+        if (nameTaken(before.profiles, raw, null)) throw new Refusal(NAME_TAKEN);
+        const first = before.profiles.length === 0 && before.damaged.length === 0;
+        const profile = await store.create(raw, []);
+        writes += 1;
+        selectedId = profile.id;
+        let line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist noch nicht die aktive Tafel.`;
+        if (first) {
+          try {
+            await store.setActive(profile.id);
+            line = `Das Profil ${quoted(profile.displayName)} ist angelegt und jetzt die aktive Tafel. Füge unten Begriffe hinzu.`;
+          } catch {
+            line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es konnte aber nicht als aktive Tafel gespeichert werden.`;
+          }
         }
+        say(line);
+        // The first profile: straight on to its board. A further one: its card, where "Als aktive Tafel verwenden" is.
+        if (first) await draw(["editor-heading"], { draftName: "", toTop: true });
+        else await draw([`activate:${profile.id}`, `edit:${profile.id}`], { draftName: "" });
+      } catch (error) {
+        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw));
+        await draw(["create-name"], { draftName: raw });
       }
-      say(line);
-      await draw(["create-name"], "");
-    } catch (error) {
-      say(nameErrorLine(error, raw));
-      await draw(["create-name"], raw);
-    }
-  });
+    });
+  };
 
-  const activate = (profile: ProfileV1): void => runWrite(async () => {
-    if (store === null) return;
-    cancelMode();
-    try {
-      await store.setActive(profile.id);
-      writes += 1;
-      offerUndo(null);
-      say(`${quoted(profile.displayName)} ist jetzt die aktive Tafel.`);
-    } catch (error) {
-      say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED);
-    }
-    await draw([`edit:${profile.id}`]);
-  });
+  const activate = (profile: ProfileV1, label: string): void => {
+    begin();
+    runWrite(async () => {
+      if (store === null) return;
+      try {
+        await store.setActive(profile.id);
+        writes += 1;
+        say(`${quoted(label)} ist jetzt die aktive Tafel.`);
+      } catch (error) {
+        say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED);
+      }
+      await draw([`edit:${profile.id}`]);
+    });
+  };
 
-  const select = (profile: ProfileV1): void => run(async () => {
-    cancelMode();
-    selectedId = profile.id;
-    offerUndo(null);
-    say("");
-    await draw([`edit:${profile.id}`]);
-  });
+  /** Puts another profile into the editor and goes there: the editor is below the fold on a phone. */
+  const select = (profile: ProfileV1, label: string): void => {
+    begin();
+    run(async () => {
+      selectedId = profile.id;
+      say(`Tafel von ${quoted(label)} wird bearbeitet.`);
+      await draw(["editor-heading"], { toTop: true });
+    });
+  };
 
   /** Opens the rename field or the delete confirmation of one profile; whatever was open before is closed. */
-  const openMode = (next: Exclude<Mode, null>, focus: string): void => run(async () => {
-    if (acting !== session) return;
+  const openMode = (next: Exclude<Mode, null>, focus: string): void => {
+    clearStatus();
     mode = next;
-    await draw([focus]);
-  });
+    if (next.kind === "delete") confirmArmed = false;
+    run(async () => {
+      await draw([focus]);
+      // The guard counts from the moment the confirmation is on screen.
+      if (next.kind !== "delete" || mode !== next) return;
+      afterGuard(() => {
+        if (mode !== next) return;
+        confirmArmed = true;
+        focusables.get("confirm-delete")?.setAttribute("aria-disabled", "false");
+      });
+    });
+  };
 
   /** Closes the open rename field or confirmation without a change; focus returns to the button that opened it. */
-  const leaveMode = (): void => run(async () => {
+  const leaveMode = (): void => {
     const was = mode;
-    if (was === null || acting !== session) return;
+    if (was === null) return;
+    clearStatus();
     mode = null;
-    await draw([`${was.kind}:${was.id}`]);
-  });
+    run(() => draw([`${was.kind}:${was.id}`]));
+  };
 
   /** `raw` is the name as it was when the form was sent. */
-  const renameProfile = (id: string, raw: string): void => runWrite(async () => {
-    if (store === null) return;
-    try {
-      const profile = await store.rename(id, raw);
-      writes += 1;
-      cancelMode();
-      offerUndo(null);
-      say(`Das Profil heißt jetzt ${quoted(profile.displayName)}.`);
-      await draw([`rename:${id}`]);
-    } catch (error) {
-      // `ProfileFormatError` is also what a damaged record gives; only a readable profile has a name to refuse.
-      const gone = error instanceof UnknownProfileError
-        || (error instanceof ProfileFormatError && await store.get(id).then(() => false, () => true));
-      if (gone) {
-        cancelMode();
-        say(PROFILE_GONE);
-        await draw(["profiles-heading"]);
-        return;
+  const renameProfile = (id: string, raw: string): void => {
+    clearStatus();
+    // The field stays open while the name is saved; it closes, or keeps what was typed, only if it is still this one then.
+    const mine = mode;
+    const settle = (next: Mode): void => {
+      if (acting === session && mode === mine) mode = next;
+    };
+    runWrite(async () => {
+      if (store === null) return;
+      try {
+        if (nameTaken((await store.list()).profiles, raw, id)) throw new Refusal(NAME_TAKEN);
+        const profile = await store.rename(id, raw);
+        writes += 1;
+        settle(null);
+        say(`Das Profil heißt jetzt ${quoted(profile.displayName)}.`);
+        await draw([`rename:${id}`]);
+      } catch (error) {
+        // `ProfileFormatError` is also what a damaged record gives; only a readable profile has a name to refuse.
+        const gone = error instanceof UnknownProfileError
+          || (error instanceof ProfileFormatError && await store.get(id).then(() => false, () => true));
+        if (gone) {
+          settle(null);
+          say(PROFILE_GONE);
+          await draw(["profiles-heading"]);
+          return;
+        }
+        // Refused or not written: the field stays open with what was typed.
+        settle({ kind: "rename", id, draft: raw });
+        say(error instanceof Refusal ? error.message : nameErrorLine(error, raw));
+        await draw(["rename-name"]);
       }
-      // Refused or not written: the field stays open with what was typed, and the stored name stays on screen nowhere else.
-      if (acting === session) mode = { kind: "rename", id, draft: raw };
-      say(nameErrorLine(error, raw));
-      await draw(["rename-name"]);
-    }
-  });
+    });
+  };
 
-  const deleteProfile = (profile: ProfileV1): void => runWrite(async () => {
-    if (store === null) return;
-    cancelMode();
-    try {
-      const wasActive = (await store.getActive()) === profile.id;
-      await store.remove(profile.id);
-      writes += 1;
-      offerUndo(null);
-      if (selectedId === profile.id) selectedId = null;
-      // Nothing is made active in its place: which board the child gets is a caregiver's choice.
-      say(wasActive
-        ? `Das Profil ${quoted(profile.displayName)} wurde gelöscht. Gerade ist keine Tafel aktiv.`
-        : `Das Profil ${quoted(profile.displayName)} wurde gelöscht.`);
-      await draw(["profiles-heading"]);
-    } catch (error) {
-      say(error instanceof UnknownProfileError ? PROFILE_GONE : WRITE_FAILED);
-      await draw([`delete:${profile.id}`, "profiles-heading"]);
-    }
-  });
+  const deleteProfile = (profile: ProfileV1, label: string): void => {
+    // A press during the guard time is the second tap of a double tap on "Löschen", not a decision; and one press is one delete.
+    if (!confirmArmed) return;
+    confirmArmed = false;
+    begin(true);
+    const mine = mode;
+    runWrite(async () => {
+      if (store === null) return;
+      const leave = (): void => {
+        if (acting === session && mode === mine) mode = null;
+      };
+      try {
+        const wasActive = (await store.getActive()) === profile.id;
+        await store.remove(profile.id);
+        writes += 1;
+        leave();
+        if (selectedId === profile.id) selectedId = null;
+        // Nothing is made active in its place: which board the child gets is a caregiver's choice.
+        say(wasActive ? `Das Profil ${quoted(label)} wurde gelöscht. Gerade ist keine Tafel aktiv.` : `Das Profil ${quoted(label)} wurde gelöscht.`);
+        await draw(["profiles-heading"]);
+      } catch (error) {
+        leave();
+        say(error instanceof UnknownProfileError ? PROFILE_GONE : WRITE_FAILED);
+        await draw([`delete:${profile.id}`, "profiles-heading"]);
+      }
+    });
+  };
 
   /** Picture (if any), label and sentence of one row. */
   const conceptText = (shown: { labelDe: string; speechDe: string; symbolPath: string | null } | null, fallback: string): HTMLElement => {
@@ -708,23 +853,35 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       control.disabled = !enabled;
       const key = `${delta < 0 ? "up" : "down"}:${id}`;
       control.addEventListener("click", () => {
-        changeBoard(profileId, [key, `${delta < 0 ? "down" : "up"}:${id}`, `remove:${id}`], "Die Reihenfolge wurde gespeichert.", (ids, editable) => {
-          const next = moved(ids, editable, id, delta);
-          return next === null ? null : { ids: next };
-        });
+        begin();
+        changeBoard(profileId, [key, `${delta < 0 ? "down" : "up"}:${id}`, `remove:${id}`], [key], "Die Reihenfolge wurde gespeichert.",
+          (ids, editable) => moved(ids, editable, id, delta));
       });
       register.set(key, control);
       return control;
     };
     const remove = button(REMOVE);
     remove.setAttribute("aria-label", `${REMOVE}: ${entry.labelDe}`);
+    remove.setAttribute("aria-disabled", removeArmed ? "false" : "true");
     remove.addEventListener("click", () => {
+      // After a removal another row is where this one was: a second tap on the same spot must not take that one off too.
+      if (!removeArmed) return;
+      removeArmed = false;
+      markRemoveButtons();
+      begin();
       const focus = [editableOrder[place + 1], editableOrder[place - 1]].filter((other) => other !== undefined).map((other) => `remove:${other}`);
-      changeBoard(profileId, [...focus, "more-heading"], `${quoted(entry.labelDe)} wurde von der Tafel genommen.`, (ids, editable) => {
+      let offer: UndoOffer | null = null;
+      changeBoard(profileId, [...focus, "more-heading"], [`remove:${id}`], `${quoted(entry.labelDe)} wurde von der Tafel genommen.`, (ids, editable) => {
         // Only what this screen may edit is ever taken off; every other id stays in the list.
         const at = ids.indexOf(id);
         if (at < 0 || !editable.has(id)) return null;
-        return { ids: ids.filter((other) => other !== id), offer: { profileId, id, label: entry.labelDe, before: ids[at + 1] ?? null } };
+        offer = { profileId, id, label: entry.labelDe, before: ids[at + 1] ?? null };
+        return ids.filter((other) => other !== id);
+      }, (succeeded) => {
+        rearmRemove(succeeded);
+        if (!succeeded || offer === null || acting !== session) return;
+        undoStack = [...undoStack, offer];
+        renderUndo();
       });
     });
     register.set(`remove:${id}`, remove);
@@ -748,11 +905,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const add = button(ADD);
     add.setAttribute("aria-label", `${ADD}: ${concept.labelDe}`);
     add.addEventListener("click", () => {
+      begin();
       const focus = [rest[place + 1], rest[place - 1]].filter((other) => other !== undefined).map((other) => `add:${other.id}`);
-      changeBoard(profileId, [...focus, `row:${id}`], `Gespeichert: ${quoted(concept.labelDe)} ist jetzt auf der Tafel.`, (ids) => {
+      changeBoard(profileId, [...focus, `row:${id}`], [`add:${id}`], `Gespeichert: ${quoted(concept.labelDe)} ist jetzt auf der Tafel.`, (ids) => {
         if (ids.includes(id)) return null;
         if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
-        return { ids: [...ids, id] };
+        return [...ids, id];
+      }, (succeeded) => {
+        // Back on the board by hand: there is nothing left to take back for this concept.
+        if (succeeded) dropUndo((offer) => offer.profileId === profileId && offer.id === id);
       });
     });
     register.set(`add:${id}`, add);
@@ -763,7 +924,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   };
 
   const boardSection = async (
-    current: ProfileStore, profile: ProfileV1, activeId: string | null, register: Map<string, Focusable>,
+    current: ProfileStore, profile: ProfileV1, label: string, activeId: string | null, register: Map<string, Focusable>,
   ): Promise<HTMLElement> => {
     // What the child sees while another profile is edited: that profile's board, or examples when it has nothing to show.
     let notActive = EDITED_NONE_ACTIVE;
@@ -775,7 +936,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
     }
     const section = element("section", "caregiver-section");
-    section.append(element("h2", "", `Tafel von ${quoted(profile.displayName)} bearbeiten`));
+    const editorHeading = element("h2", "", `Tafel von ${quoted(label)} bearbeiten`);
+    editorHeading.tabIndex = -1;
+    register.set("editor-heading", editorHeading);
+    section.append(editorHeading);
     // Which board the child sees must not depend on a status line that the next action replaces.
     if (profile.id !== activeId) {
       section.append(element("p", "caregiver-notice caregiver-warning", notActive));
@@ -836,20 +1000,27 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return input;
   };
 
-  const profileCard = (profile: ProfileV1, activeId: string | null, register: Map<string, Focusable>): HTMLElement => {
+  /** `label` is the name as the area shows it: the stored name, with "(2)" and so on for a second profile of the same name. */
+  const profileCard = (profile: ProfileV1, label: string, activeId: string | null, register: Map<string, Focusable>): HTMLElement => {
     const isActive = profile.id === activeId;
     const open = mode !== null && mode.id === profile.id ? mode : null;
     if (open?.kind === "delete") {
       const item = element("li", "caregiver-profile caregiver-confirm");
-      item.append(element("p", "caregiver-confirm-title", `Profil ${quoted(profile.displayName)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
+      item.append(element("p", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
       if (isActive) item.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
-      const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger");
-      confirm.addEventListener("click", () => deleteProfile(profile));
       const cancel = button(CANCEL);
       cancel.addEventListener("click", leaveMode);
       register.set("confirm-cancel", cancel);
+      // The whole confirmation is to be read, not only the button that has the focus.
+      register.set("anchor:confirm-cancel", item);
+      const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger");
+      // Not `disabled`: the button keeps its place in the tab order, and says why a press does nothing yet.
+      confirm.setAttribute("aria-disabled", confirmArmed ? "false" : "true");
+      confirm.addEventListener("click", () => deleteProfile(profile, label));
+      register.set("confirm-delete", confirm);
+      // "Abbrechen" first: it is what a second tap on the spot of "Löschen" is most likely to hit.
       const actions = element("div", "caregiver-profile-actions");
-      actions.append(confirm, cancel);
+      actions.append(cancel, confirm);
       item.append(actions);
       return item;
     }
@@ -857,8 +1028,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const head = element("div", "caregiver-profile-head");
     if (open?.kind === "rename") {
       const form = element("form", "caregiver-rename");
-      const label = element("label", "", `Neuer Name für ${quoted(profile.displayName)}`);
-      label.htmlFor = "caregiver-rename-name";
+      const fieldLabel = element("label", "", `Neuer Name für ${quoted(label)}`);
+      fieldLabel.htmlFor = "caregiver-rename-name";
       const input = nameField("caregiver-rename-name", open.draft);
       const save = element("button", "caregiver-button caregiver-primary", SAVE);
       save.type = "submit";
@@ -869,27 +1040,28 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         renameProfile(profile.id, input.value);
       });
       register.set("rename-name", input);
+      register.set("anchor:rename-name", item);
       const actions = element("div", "caregiver-profile-actions");
       actions.append(save, cancel);
-      form.append(label, input, actions);
+      form.append(fieldLabel, input, actions);
       head.append(form);
       if (isActive) head.append(element("span", "caregiver-active", ACTIVE_MARK));
       item.append(head);
       return item;
     }
-    head.append(element("span", "caregiver-profile-name", profile.displayName));
+    head.append(element("span", "caregiver-profile-name", label));
     if (isActive) head.append(element("span", "caregiver-active", ACTIVE_MARK));
     const actions = element("div", "caregiver-profile-actions");
     const action = (text: string, key: string, onClick: () => void, className = "caregiver-button"): HTMLButtonElement => {
       const control = button(text, className);
-      control.setAttribute("aria-label", `${text}: ${profile.displayName}`);
+      control.setAttribute("aria-label", `${text}: ${label}`);
       control.addEventListener("click", onClick);
       register.set(`${key}:${profile.id}`, control);
       actions.append(control);
       return control;
     };
-    if (!isActive) action(ACTIVATE, "activate", () => activate(profile));
-    action(EDIT_BOARD, "edit", () => select(profile)).setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
+    if (!isActive) action(ACTIVATE, "activate", () => activate(profile, label));
+    action(EDIT_BOARD, "edit", () => select(profile, label)).setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
     action(RENAME, "rename", () => openMode({ kind: "rename", id: profile.id, draft: profile.displayName }, "rename-name"));
     action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id }, "confirm-cancel"), "caregiver-button caregiver-danger-quiet");
     item.append(head, actions);
@@ -897,11 +1069,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   };
 
   /** What the child's screen shows once the area is closed, read off the store the way start-up reads it. */
-  const afterCloseLine = async (current: ProfileStore, activeId: string | null): Promise<string> => {
-    if (activeId === null) return AFTER_NONE_ACTIVE;
+  const afterCloseLine = async (current: ProfileStore, activeId: string | null, labels: ReadonlyMap<string, string>, damaged: number): Promise<string> => {
+    // Without a readable active profile, damaged entries decide (as at start-up); one of them may be the active one.
+    if (activeId === null) return damaged > 0 ? AFTER_DAMAGED : AFTER_NONE_ACTIVE;
     try {
       const board = await resolveBoard(current, activeId, catalogue);
-      return board.entries.length === 0 ? AFTER_ACTIVE_EMPTY : `${AFTER_CLOSE} Tafel von ${quoted(board.profile.displayName)}`;
+      return board.entries.length === 0 ? AFTER_ACTIVE_EMPTY : `${AFTER_CLOSE} Tafel von ${quoted(labels.get(activeId) ?? board.profile.displayName)}`;
     } catch {
       return AFTER_ACTIVE_UNREADABLE;
     }
@@ -917,6 +1090,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     // A rename field or confirmation for a profile that is gone has nothing to show.
     if (mode !== null && !profiles.some((profile) => profile.id === mode?.id)) mode = null;
+    // Two profiles of one name (from data stored before the area refused that) are told apart on screen only.
+    const labels = new Map<string, string>();
+    const met = new Map<string, number>();
+    for (const profile of profiles) {
+      const count = (met.get(nameKey(profile.displayName)) ?? 0) + 1;
+      met.set(nameKey(profile.displayName), count);
+      labels.set(profile.id, count === 1 ? profile.displayName : `${profile.displayName} (${count})`);
+    }
+    const labelOf = (profile: ProfileV1): string => labels.get(profile.id) ?? profile.displayName;
 
     const profileSection = element("section", "caregiver-section");
     const profilesHeading = element("h2", "", "Profile");
@@ -929,7 +1111,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       profileSection.append(element("p", "caregiver-notice", listing.damaged.length > 0 ? ONLY_DAMAGED : NO_PROFILES));
     } else {
       const list = element("ul", "caregiver-profiles");
-      for (const profile of profiles) list.append(profileCard(profile, activeId, register));
+      for (const profile of profiles) list.append(profileCard(profile, labelOf(profile), activeId, register));
       profileSection.append(list);
       if (activeId === null) profileSection.append(element("p", "caregiver-notice caregiver-warning", NONE_ACTIVE));
     }
@@ -955,9 +1137,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
     const content = [profileSection];
     const selected = profiles.find((profile) => profile.id === selectedId);
-    if (selected !== undefined) content.push(await boardSection(current, selected, activeId, register));
+    if (selected !== undefined) content.push(await boardSection(current, selected, labelOf(selected), activeId, register));
     else if (profiles.length > 0) content.push(element("p", "caregiver-notice", SELECT_PROFILE));
-    return { content, afterClose: await afterCloseLine(current, activeId) };
+    return { content, afterClose: await afterCloseLine(current, activeId, labels, listing.damaged.length) };
   };
 
   const close = (): Promise<void> => {
@@ -980,6 +1162,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     line.setAttribute("aria-live", "polite");
     caregiverRegion.replaceChildren(line);
     heading = null;
+    topBlock = null;
     afterClose = null;
     status = null;
     undoBar = null;
@@ -1059,10 +1242,22 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     restartIdle();
     if (event.key !== "Escape" || !isOpen) return;
     event.preventDefault();
-    // Escape leaves the innermost thing: an open rename field or confirmation first, the area otherwise.
-    if (mode !== null) leaveMode();
-    else void close();
+    // Escape leaves the innermost thing: an open rename field or confirmation first.
+    if (mode !== null) {
+      leaveMode();
+      return;
+    }
+    // Then a text field with something typed into it: focus leaves the field, the text stays, the area stays open.
+    const target = event.target as Partial<HTMLInputElement> | null | undefined;
+    if (String(target?.tagName ?? "").toLowerCase() === "input" && target?.type === "text" && target.value !== "") {
+      heading?.focus();
+      return;
+    }
+    void close();
   });
+  // A message must not keep the block at the top tall while the caregiver reads on. Wheel and touch only: the area scrolls by itself after a focus move.
+  caregiverRegion.addEventListener("wheel", clearStatus, { passive: true });
+  caregiverRegion.addEventListener("touchmove", clearStatus, { passive: true });
   caregiverRegion.addEventListener("input", restartIdle);
 
   const open = (): boolean => {
@@ -1077,6 +1272,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
     // Stays at the top while the rest scrolls: the title, the board the child gets, the way out, and what was just done.
     const top = element("div", "caregiver-top");
+    topBlock = top;
     const header = element("header", "caregiver-header");
     heading = element("h1", "caregiver-heading", OPEN_LABEL);
     heading.tabIndex = -1;
@@ -1094,25 +1290,32 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
     help = element("details", "caregiver-details caregiver-help");
     const reload = button(RELOAD_BOARD);
-    reload.addEventListener("click", () => run(async () => {
-      cancelMode();
-      say(RELOADING);
-      const answer = await within(refreshBoard(), CLOSE_WAIT_MS);
-      // The board answers a failed refresh with the examples; that is not "reloaded".
-      const startup = boardRegion.dataset["startup"];
-      const fallback = boardRegion.dataset["boardFallback"];
-      if (answer === TIMED_OUT || startup === "refresh-timeout") say(RELOAD_FAILED);
-      else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE);
-      else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN);
-      else say(RELOADED);
-      // Also after a read that failed earlier: the area shows what the store holds now.
-      await draw(null);
-    }));
+    reload.addEventListener("click", () => {
+      begin();
+      run(async () => {
+        say(RELOADING);
+        const answer = await within(refreshBoard(), CLOSE_WAIT_MS);
+        // The board answers a failed refresh with the examples; that is not "reloaded".
+        const startup = boardRegion.dataset["startup"];
+        const fallback = boardRegion.dataset["boardFallback"];
+        if (answer === TIMED_OUT || startup === "refresh-timeout") say(RELOAD_FAILED);
+        else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE);
+        else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN);
+        else say(RELOADED);
+        // Also after a read that failed earlier: the area shows what the store holds now.
+        await draw(null);
+      });
+    });
     help.append(element("summary", "", HELP_SUMMARY), element("p", "caregiver-notice", RELOAD_HELP), reload, element("p", "caregiver-notice", VOICE_HELP));
 
     boardRegion.hidden = true;
     entry.hidden = true;
     mode = null;
+    // What an earlier visit removed is not offered again: the bar is new and the stack starts empty.
+    undoStack = [];
+    confirmArmed = false;
+    removeArmed = true;
+    removeGuardNo += 1;
     caregiverRegion.replaceChildren(top, body, help);
     caregiverRegion.hidden = false;
     heading.focus();
