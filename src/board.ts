@@ -17,7 +17,54 @@ function demoEntries(): BoardEntry[] {
   }));
 }
 
-const EXAMPLES_LINE = "Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben.";
+const EXAMPLES_LINE = "Testoberfläche mit Beispielen, noch nicht freigegeben.";
+
+/** What the sentence bar shows before a tile was tapped. */
+const PROMPT = "Tippe auf ein Bild.";
+const REPEAT_LABEL = "Satz noch einmal sprechen";
+const REPEAT_LABEL_INERT = "Satz noch einmal sprechen. Noch kein Bild gewählt.";
+const SPEAKER_PATH = "./icons/sprechen.svg";
+
+/**
+ * The only speech lines the child's screen ever shows; a normal request shows
+ * none. Short enough for one line inside the sentence bar on a 360 px phone;
+ * the sentence itself stays in the bar right above.
+ */
+const NO_VOICE_LINE = "Dieses Gerät hat gerade keine Stimme.";
+const SPEECH_FAILED_LINE = "Das Vorlesen hat gerade nicht geklappt.";
+
+/**
+ * Taps that ask for the sentence that is already being spoken (the same tile
+ * again, or the sentence bar) do not cancel and restart it while they follow
+ * each other faster than this. An unsteady hand often lands twice. The window
+ * runs from the latest such tap, so a row of quick taps restarts nothing. A
+ * guess: not measured with a child.
+ */
+export const REPEAT_WINDOW_MS = 700;
+
+export type BoardOrientation = "portrait" | "wide";
+
+/**
+ * How many columns a board of `count` tiles gets. "wide" is a landscape
+ * screen or one at least 700 px wide; the stylesheet decides which of the two
+ * applies (`data-columns-portrait`, `data-columns-wide` on the board).
+ */
+export function boardColumns(count: number, orientation: BoardOrientation): number {
+  if (count <= 1) return 1;
+  if (orientation === "portrait") {
+    if (count <= 6) return 2;
+    return count <= 12 ? 3 : 4;
+  }
+  if (count === 4) return 2;
+  if (count <= 3) return count;
+  if (count <= 6) return 3;
+  return count <= 12 ? 4 : 5;
+}
+
+export interface BoardOptions {
+  /** Milliseconds from a steady clock, for the repeat window; for tests. */
+  readonly now?: () => number;
+}
 
 /** One calm sentence per reason why the examples stand in for the child's own board. */
 const FALLBACK_LINES: Record<FallbackCause, string> = {
@@ -39,7 +86,9 @@ function fallbackLine(cause: FallbackCause | null): string {
 }
 
 function makeHeading(): HTMLElement {
+  // For the document outline only: the child's screen shows no app name.
   const heading = document.createElement("h1");
+  heading.className = "visually-hidden";
   heading.textContent = "Amy's Echo NG";
   return heading;
 }
@@ -73,12 +122,12 @@ function reportProblems(root: HTMLElement, view: BoardView): void {
 
 /** The state before storage has answered: nothing to tap, so nothing wrong can be said. */
 export function mountLoading(root: HTMLElement): void {
-  root.replaceChildren(makeHeading(), paragraph("board-notice", "Die Tafel wird geladen."));
+  root.replaceChildren(makeHeading(), paragraph("board-notice board-line", "Die Tafel wird geladen."));
 }
 
 /** Last resort when no board can be drawn. It does not claim that anything is loading. */
 export function mountFailure(root: HTMLElement): void {
-  root.replaceChildren(makeHeading(), paragraph("board-notice", "Die Tafel kann gerade nicht angezeigt werden. Bitte lade die Seite neu oder gib einer Bezugsperson Bescheid."));
+  root.replaceChildren(makeHeading(), paragraph("board-notice board-line", "Die Tafel kann gerade nicht angezeigt werden. Bitte lade die Seite neu oder gib einer Bezugsperson Bescheid."));
   delete root.dataset["boardFallback"];
   delete root.dataset["boardProblems"];
 }
@@ -95,7 +144,8 @@ export function mountFailure(root: HTMLElement): void {
  * Nothing that identifies the child is rendered: no display name and no
  * profile id, neither as text nor in an attribute.
  */
-export function mountBoard(root: HTMLElement, view: BoardView): BoardHandle {
+export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOptions = {}): BoardHandle {
+  const now = options.now ?? ((): number => performance.now());
   const heading = makeHeading();
   const examples = showsExamples(view);
   const entries: readonly BoardEntry[] = view.kind === "profile" && !examples ? view.entries : demoEntries();
@@ -129,52 +179,89 @@ export function mountBoard(root: HTMLElement, view: BoardView): BoardHandle {
     board.className = "concept-board";
     board.setAttribute("aria-label", "Kommunikationsbegriffe");
   }
+  board.dataset["columnsPortrait"] = String(boardColumns(entries.length, "portrait"));
+  board.dataset["columnsWide"] = String(boardColumns(entries.length, "wide"));
+
+  // The sentence bar: the whole bar is one button that speaks the sentence
+  // again. A button hides its content from the live-region machinery, so the
+  // sentence is announced through a separate, visually hidden status line.
+  const bar = document.createElement("button");
+  bar.type = "button";
+  bar.className = "sentence-bar sentence-bar-idle";
+  bar.setAttribute("aria-disabled", "true");
+  bar.setAttribute("aria-label", REPEAT_LABEL_INERT);
+  const sentence = document.createElement("span");
+  sentence.className = "sentence";
+  sentence.textContent = PROMPT;
+  const speaker = document.createElement("img");
+  speaker.className = "sentence-speaker";
+  speaker.src = SPEAKER_PATH;
+  speaker.alt = "";
+  speaker.width = 48;
+  speaker.height = 48;
+  speaker.draggable = false;
+  bar.append(sentence, speaker);
 
   const output = document.createElement("p");
-  output.className = "message";
+  output.className = "message visually-hidden";
   output.setAttribute("role", "status");
   output.setAttribute("aria-live", "polite");
-  output.textContent = "Wähle einen Begriff.";
 
+  // Empty unless speech has a problem; see NO_VOICE_LINE.
   const speechStatus = document.createElement("p");
   speechStatus.className = "speech-status";
   speechStatus.setAttribute("role", "status");
   speechStatus.setAttribute("aria-live", "polite");
-  speechStatus.textContent = "Sprachausgabe noch nicht geprüft.";
 
-  const retry = document.createElement("button");
-  retry.type = "button";
-  retry.className = "retry";
-  retry.textContent = "Sprache erneut versuchen";
-  retry.hidden = true;
-
-  let selection: BoardEntry | null = null;
+  let selection: { readonly concept: BoardEntry; readonly tile: HTMLElement } | null = null;
+  const tiles: HTMLElement[] = [];
   // Each request to speak gets a number. An error reported for an earlier
   // request (the engine reports one when a newer request cancels it, also for
   // the same concept) must not overwrite the status of the current one.
   let currentAttempt = 0;
+  /** True while the latest request was handed to the engine and no error came back for it. */
+  let speaking = false;
+  let lastRequestAt = Number.NEGATIVE_INFINITY;
 
   const speak = (concept: BoardEntry): void => {
     currentAttempt += 1;
     const thisAttempt = currentAttempt;
     const attempt: SpeechAttempt = requestLocalGermanSpeech(concept.speechDe, () => {
       if (thisAttempt === currentAttempt) {
-        speechStatus.textContent = "Sprachausgabe fehlgeschlagen. Der Text bleibt sichtbar.";
+        speaking = false;
+        speechStatus.textContent = SPEECH_FAILED_LINE;
       }
     });
-    const messages: Record<SpeechAttempt, string> = {
-      requested: "Lokale deutsche Stimme angefordert. Offline-Wiedergabe am Gerät noch nicht bestätigt.",
-      unavailable: "Keine lokale deutsche Stimme verfügbar. Der Text bleibt sichtbar.",
-      failed: "Sprachausgabe fehlgeschlagen. Der Text bleibt sichtbar.",
-    };
-    speechStatus.textContent = messages[attempt];
-    retry.hidden = false;
+    speaking = attempt === "requested";
+    const lines: Record<SpeechAttempt, string> = { requested: "", unavailable: NO_VOICE_LINE, failed: SPEECH_FAILED_LINE };
+    speechStatus.textContent = lines[attempt];
+  };
+
+  /** Speaks the selected sentence again, unless it was just asked for and is being spoken. */
+  const repeat = (concept: BoardEntry): void => {
+    const time = now();
+    const tooSoon = speaking && time - lastRequestAt < REPEAT_WINDOW_MS;
+    lastRequestAt = time;
+    if (!tooSoon) speak(concept);
+  };
+
+  const select = (concept: BoardEntry, tile: HTMLElement): void => {
+    selection = { concept, tile };
+    for (const other of tiles) other.setAttribute("aria-pressed", other === tile ? "true" : "false");
+    sentence.textContent = concept.speechDe;
+    output.textContent = concept.speechDe;
+    bar.className = "sentence-bar";
+    bar.setAttribute("aria-disabled", "false");
+    bar.setAttribute("aria-label", REPEAT_LABEL);
+    lastRequestAt = now();
+    speak(concept);
   };
 
   for (const concept of entries) {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute("aria-label", concept.labelDe);
+    button.setAttribute("aria-pressed", "false");
 
     const label = document.createElement("span");
     label.textContent = concept.labelDe;
@@ -190,32 +277,32 @@ export function mountBoard(root: HTMLElement, view: BoardView): BoardHandle {
       symbol.alt = "";
       symbol.width = 64;
       symbol.height = 64;
+      symbol.draggable = false;
       button.append(symbol, label);
     }
 
     button.addEventListener("click", () => {
-      selection = concept;
-      output.textContent = concept.speechDe;
-      speak(concept);
+      // Another tile always takes over at once; the same tile again is a repeat.
+      if (selection !== null && selection.tile === button) repeat(concept);
+      else select(concept, button);
     });
+    tiles.push(button);
     board.append(button);
   }
 
-  retry.addEventListener("click", () => {
-    if (selection !== null) {
-      speak(selection);
-    }
+  bar.addEventListener("click", () => {
+    if (selection !== null) repeat(selection.concept);
   });
 
   cancelRunningSpeech();
-  root.replaceChildren(heading, ...notices, board, output, speechStatus, retry);
+  root.replaceChildren(heading, bar, output, speechStatus, ...notices, board);
   showCause();
   reportProblems(root, view);
   return {
     hasSelection: () => selection !== null,
     restate: (next) => {
       // Only while this board is the one on screen, and only from examples to examples.
-      if (fallbackNotice === null || root.children[1] !== fallbackNotice || !showsExamples(next)) return;
+      if (fallbackNotice === null || root.children[1] !== bar || !showsExamples(next)) return;
       cause = fallbackCause(next);
       fallbackNotice.textContent = fallbackLine(cause);
       fallbackNotice.className = cause === null ? "board-notice" : "board-notice board-fallback";

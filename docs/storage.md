@@ -24,8 +24,10 @@ Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
     `<noscript>`, policy); it does not show what a browser renders when the script fails to load.
   - The real timer in `createBoardHost` (`src/board.ts`) and the value of `STARTUP_WAIT_MS`
     (1500 ms). The value is a guess; no device has been measured.
-  - Real layout, real speech and real `SpeechSynthesis` error events. The fake document has no
-    layout and the fake engine reports errors only when a test calls them.
+  - Real speech and real `SpeechSynthesis` error events: the fake engine reports errors only when
+    a test calls them. The fake document has no layout; the layout of the child's screen was
+    looked at by hand in Chromium (card NG-30, numbers in [board.md](board.md)) and has no
+    automated browser test.
   - The service worker in a browser. A test runs its install step with a fake cache and checks the
     requests; it does not show that an update replaces every module on a device.
 
@@ -392,6 +394,12 @@ always has concepts to tap. Either the child's own board is shown, or the exampl
 in under one sentence that says they are examples and why. The reason is in `data-board-fallback`
 on the board region (absent when there is none).
 
+How the child's screen is laid out and behaves (the sentence bar at the top that repeats the
+sentence, the board that fills the screen, the mark on the tapped tile, the one line for a speech
+problem) is described in [board.md](board.md). The app name is a heading for the document outline
+only (`h1.visually-hidden`); the child's screen shows no visible heading, and there is no separate
+button to retry speech: the sentence bar does that.
+
 A board of examples also looks different, for a child who does not read: the board element has
 the class `concept-board-examples` (a thick dashed frame and a tinted background in `styles.css`)
 and carries a badge "Beispiele" as its first child. This applies to every row below that shows
@@ -459,8 +467,9 @@ concepts are the child's own only in the `profile` row with at least one loaded 
 other row they are the synthetic examples, which no caregiver has approved for that child.
 
 Mounting a board stops running speech first. A speech error is shown only for the latest request to
-speak on the board that is on screen; an error for an earlier request, also for the same concept,
-or for a board that was replaced, is ignored.
+speak on the board that is on screen, whether a tile or the sentence bar asked; an error for an
+earlier request, also for the same concept, or for a board that was replaced, is ignored. No line
+is shown for a request that went to the engine normally ([board.md](board.md)).
 
 ### Decisions applied, owner may reverse
 
@@ -487,7 +496,7 @@ or for a board that was replaced, is ignored.
    something, at the price of the look-alike tiles described above.
 
    To reverse (a message without buttons for some or all causes):
-   - `mountBoard` in `src/board.ts`: for those causes render heading and sentence only, and
+   - `mountBoard` in `src/board.ts`: for those causes render the hidden heading and the sentence only, and
      return a handle whose `hasSelection()` is false; adjust `FALLBACK_LINES`.
    - `showsExamples()` in `src/startup.ts`: it must be false for views that no longer show
      examples, because the next point depends on it.

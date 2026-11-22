@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
+import { REPEAT_WINDOW_MS, boardColumns, createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import {
   BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, isBoardConceptId, listCustomConcepts, normalizeWording,
@@ -89,21 +89,28 @@ function parts(root) {
     badge: board === null ? null : board.children.find((child) => child.className === "examples-badge")?.textContent ?? null,
     notices: byClass("board-notice").map((notice) => notice.textContent),
     fallback: root.dataset.boardFallback ?? null,
-    output: byClass("message")[0] ?? null,
+    /** The sentence bar (a button), and the sentence it shows. */
+    bar: byClass("sentence-bar")[0] ?? null,
+    output: byClass("sentence-bar")[0]?.children.find((child) => child.className === "sentence") ?? null,
+    /** The hidden live region that announces the sentence. */
+    announcement: byClass("message")[0] ?? null,
     speechStatus: byClass("speech-status")[0] ?? null,
-    retry: byClass("retry")[0] ?? null,
     text: root.children.map((child) => child.textContent).join("\n"),
   };
 }
 
-/** Mounts the view into a fake root, with a fake local German voice, and hands the parts to `callback`. */
+/**
+ * Mounts the view into a fake root, with a fake local German voice, and hands the parts to `callback`.
+ * The board's clock is `clock.time` (milliseconds); it only moves when the test moves it.
+ */
 function withMountedBoard(view, callback) {
   const fakes = installFakes();
   try {
     const root = fakeElement("main");
-    const handle = mountBoard(root, view);
+    const clock = { time: 1000 };
+    const handle = mountBoard(root, view, { now: () => clock.time });
     callback({
-      root, handle, speech: fakes.speech, warnings: fakes.warnings, spoken: fakes.speech.spoken,
+      root, handle, clock, speech: fakes.speech, warnings: fakes.warnings, spoken: fakes.speech.spoken,
       ...parts(root),
     });
   } finally {
@@ -596,16 +603,24 @@ test("render: a speech engine that throws on cancel does not stop a board from b
 });
 
 test("render: a speech error from an earlier attempt or an earlier board does not touch the current status line", () => {
-  withMountedBoard(MIA_VIEW, ({ root, speech, buttons, speechStatus, handle }) => {
+  withMountedBoard(MIA_VIEW, ({ root, speech, buttons, bar, speechStatus, handle, clock }) => {
     assert.equal(handle.hasSelection(), false);
     buttons[0].click();
+    clock.time += REPEAT_WINDOW_MS;
     buttons[0].click(); // the same concept again: the engine reports an error for the first utterance
     assert.equal(handle.hasSelection(), true);
     const [first, second] = speech.utterances;
     first.onerror();
-    assert.match(speechStatus.textContent, /Lokale deutsche Stimme angefordert/);
+    assert.equal(speechStatus.textContent, "");
+    // The bar is a second way to ask: its request makes the tile's second utterance a stale one too.
+    clock.time += REPEAT_WINDOW_MS;
+    bar.click();
+    const third = speech.utterances[2];
     second.onerror();
-    assert.match(speechStatus.textContent, /Sprachausgabe fehlgeschlagen/);
+    first.onerror();
+    assert.equal(speechStatus.textContent, "");
+    third.onerror();
+    assert.equal(speechStatus.textContent, "Das Vorlesen hat gerade nicht geklappt.");
 
     // A new board: an error for an utterance of the old board changes nothing on it.
     mountBoard(root, { kind: "demo", storage: "empty" });
@@ -613,7 +628,8 @@ test("render: a speech error from an earlier attempt or an earlier board does no
     fresh.buttons[0].click();
     second.onerror();
     first.onerror();
-    assert.match(fresh.speechStatus.textContent, /Lokale deutsche Stimme angefordert/);
+    third.onerror();
+    assert.equal(fresh.speechStatus.textContent, "");
     assert.equal(fresh.output.textContent, "Ich brauche Hilfe.");
   });
 });
@@ -818,7 +834,7 @@ test("startup: an active-profile pointer that is junk or names no stored profile
 test("render: a device without profiles shows the example concepts with the not-approved line and no fallback cause", () => {
   withMountedBoard({ kind: "demo", storage: "empty" }, ({ root, labels, notices, fallback, buttons, output, spoken }) => {
     assert.deepEqual(labels, EXAMPLE_LABELS);
-    assert.deepEqual(notices, ["Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben."]);
+    assert.deepEqual(notices, ["Testoberfläche mit Beispielen, noch nicht freigegeben."]);
     assert.equal(fallback, null);
     assert.equal("boardFallback" in root.dataset, false);
     assert.equal(buttons[0].children[0].tagName, "img");
@@ -845,7 +861,7 @@ test("render: when the own board cannot be shown, the examples stand in, tappabl
   const sentences = new Set();
   for (const [view, cause, sentence] of cases) {
     assert.equal(fallbackCause(view), cause);
-    withMountedBoard(view, ({ root, labels, notices, fallback, buttons, output, retry, text, spoken }) => {
+    withMountedBoard(view, ({ root, labels, notices, fallback, buttons, output, bar, text, spoken }) => {
       assert.equal(fallback, cause);
       assert.deepEqual(labels, EXAMPLE_LABELS, cause);
       assert.equal(notices.length, 1, cause);
@@ -857,11 +873,12 @@ test("render: when the own board cannot be shown, the examples stand in, tappabl
       if (cause === "timeout") assert.doesNotMatch(notices[0], /eigene/);
       sentences.add(notices[0]);
       assert.equal(root.children[0].tagName, "h1");
+      assert.equal(root.children[1], bar);
       assert.doesNotMatch(text, /lösch|entfern|IndexedDB|Datenbank|Fehlercode|error|Profil|Mia/i);
       buttons[0].click();
       assert.equal(output.textContent, "Ich brauche Hilfe.");
       assert.deepEqual(spoken, ["Ich brauche Hilfe."]);
-      assert.equal(retry.hidden, false);
+      assert.equal(bar["aria-disabled"], "false");
       // The trace for the caregiver is there for a profile whose concepts could not be loaded.
       assert.equal(root.dataset.boardProblems, view.kind === "profile" ? String(view.problems.length) : undefined);
     });
@@ -877,17 +894,16 @@ test("render: a profile's own board shows its concepts; a custom concept is a te
   await putCustomConcept(store, mia.id, "ball", BALL, CONCEPTS);
   await setBoardConcepts(store, mia.id, ["trinken", "ball"], CONCEPTS);
   await store.setActive(mia.id);
-  withMountedBoard(await resolveStartupView(store, CONCEPTS), ({ board, buttons, labels, notices, fallback, output, speechStatus, retry, spoken }) => {
+  withMountedBoard(await resolveStartupView(store, CONCEPTS), ({ board, buttons, labels, notices, fallback, output, announcement, speechStatus, bar, spoken, clock }) => {
     assert.deepEqual(notices, []);
     assert.equal(fallback, null);
     assert.deepEqual(labels, ["Trinken", "Ball"]);
     assert.equal(board.role, "group");
     assert.equal(board["aria-label"], "Kommunikationsbegriffe");
-    for (const region of [output, speechStatus]) {
+    for (const region of [announcement, speechStatus]) {
       assert.equal(region.role, "status");
       assert.equal(region["aria-live"], "polite");
     }
-    assert.equal(retry.hidden, true);
 
     const [withSymbol, textOnly] = buttons;
     assert.deepEqual(withSymbol.children.map((child) => child.tagName), ["img", "span"]);
@@ -901,9 +917,9 @@ test("render: a profile's own board shows its concepts; a custom concept is a te
     textOnly.click();
     assert.equal(output.textContent, BALL.speechDe);
     assert.deepEqual(spoken, [BALL.speechDe]);
-    assert.match(speechStatus.textContent, /Lokale deutsche Stimme angefordert/);
-    assert.equal(retry.hidden, false);
-    retry.click();
+    assert.equal(speechStatus.textContent, "");
+    clock.time += REPEAT_WINDOW_MS;
+    bar.click();
     assert.deepEqual(spoken, [BALL.speechDe, BALL.speechDe]);
     withSymbol.click();
     assert.equal(output.textContent, "Ich möchte etwas trinken.");
@@ -957,12 +973,12 @@ test("render: the fallback sentence of a board of examples can change in place; 
     assert.equal(output.textContent, "Ich möchte etwas trinken.");
     assert.equal(handle.hasSelection(), true);
     handle.restate({ kind: "demo", storage: "empty" });
-    assert.deepEqual(parts(root).notices, ["Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben."]);
+    assert.deepEqual(parts(root).notices, ["Testoberfläche mit Beispielen, noch nicht freigegeben."]);
     assert.equal("boardFallback" in root.dataset, false);
 
     // A view that is a profile's own board cannot be shown by changing a sentence: nothing changes.
     handle.restate({ ...MIA_VIEW, problems: [{ kind: "unknown-concept", conceptId: "einhorn" }] });
-    assert.deepEqual(parts(root).notices, ["Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben."]);
+    assert.deepEqual(parts(root).notices, ["Testoberfläche mit Beispielen, noch nicht freigegeben."]);
     assert.equal("boardProblems" in root.dataset, false);
     assert.deepEqual(parts(root).labels, EXAMPLE_LABELS);
 
@@ -1146,7 +1162,7 @@ test("start: a late answer that shows examples too causes no re-mount: the sente
         assert.equal(now().fallback, cause);
         assert.equal(now().notices.length, 1);
         assert.match(now().notices[0], sentence);
-        assert.equal(now().output.textContent, select ? "Ich möchte mehr." : "Wähle einen Begriff.");
+        assert.equal(now().output.textContent, select ? "Ich möchte mehr." : "Tippe auf ein Bild.");
         // The same trace as when the view is mounted directly.
         assert.equal(root.dataset.boardProblems, problems, String(cause));
         assert.deepEqual(warnings, problems === "2"
@@ -1319,7 +1335,7 @@ test("app: refreshBoard shows a profile change without a reload, replaces a boar
     const cancelled = speech.cancelled;
     await app.refreshBoard();
     assert.deepEqual(now().labels, ["Ball", "Mehr"]);
-    assert.equal(now().output.textContent, "Wähle einen Begriff.");
+    assert.equal(now().output.textContent, "Tippe auf ein Bild.");
     assert.equal(speech.cancelled, cancelled + 1);
     assert.equal(root.dataset.startup, "profile");
     assert.equal(mounts.length, 3);
@@ -1454,7 +1470,7 @@ test("app: a refresh asked for during start-up is carried out after start-up, an
     await app.refreshBoard();
     assert.equal(root.dataset.startup, "demo-empty");
     assert.equal("startupLate" in root.dataset, false);
-    assert.equal(now().output.textContent, "Wähle einen Begriff.");
+    assert.equal(now().output.textContent, "Tippe auf ein Bild.");
   });
 });
 
@@ -1589,6 +1605,268 @@ test("the stylesheet gives the examples board and its badge a look of their own"
   assert.match(rule(".concept-board-examples"), /background:/);
   assert.match(rule(".examples-badge"), /background:/);
   assert.match(rule(".examples-badge"), /grid-column: 1 \/ -1/);
+});
+
+// --- The child's screen: sentence bar, selection, columns, speech status (docs/board.md) ---
+
+/** A profile's own board of `count` text tiles "Wort 1" ... with the sentences "Satz 1." ... */
+const boardOf = (count) => ({
+  kind: "profile", profileId: "0".repeat(32), displayName: "Mia", problems: [],
+  entries: Array.from({ length: count }, (_, index) => ({
+    id: `wort${index + 1}`, labelDe: `Wort ${index + 1}`, speechDe: `Satz ${index + 1}.`, symbolPath: null, source: "custom",
+  })),
+});
+
+const NO_VOICE = "Dieses Gerät hat gerade keine Stimme.";
+const SPEECH_FAILED = "Das Vorlesen hat gerade nicht geklappt.";
+
+test("screen: the sentence bar is the first thing shown; it holds a prompt, then the tapped sentence, which is announced once", () => {
+  for (const view of [boardOf(3), { kind: "demo", storage: "empty" }]) {
+    withMountedBoard(view, ({ root, bar, output, announcement, speechStatus, buttons, board }) => {
+      // Heading (not visible), bar, the hidden live region, the speech line, then notices and the board.
+      const classes = root.children.map((child) => child.className.split(" ")[0]);
+      assert.deepEqual(classes.slice(0, 4), ["visually-hidden", "sentence-bar", "message", "speech-status"]);
+      assert.equal(classes.at(-1), "concept-board");
+      assert.equal(root.children.at(-1), board);
+      assert.equal(root.children[0].tagName, "h1");
+      assert.equal(root.children[0].className, "visually-hidden");
+      assert.equal(root.children[0].hidden, false);
+      assert.equal(root.children[0].textContent, "Amy's Echo NG");
+
+      assert.equal(bar.tagName, "button");
+      assert.equal(bar.type, "button");
+      assert.deepEqual(bar.children.map((child) => child.tagName), ["span", "img"]);
+      assert.equal(bar.children[1].src, "./icons/sprechen.svg");
+      assert.equal(bar.children[1].alt, "");
+      assert.equal(output.textContent, "Tippe auf ein Bild.");
+      // Nothing to announce yet, and nothing wrong with speech yet.
+      assert.equal(announcement.textContent, "");
+      assert.equal(announcement.className, "message visually-hidden");
+      assert.equal(speechStatus.textContent, "");
+
+      buttons[1].click();
+      const sentence = view.kind === "demo" ? "Ich möchte etwas trinken." : "Satz 2.";
+      assert.equal(output.textContent, sentence);
+      assert.equal(announcement.textContent, sentence);
+      buttons[0].click();
+      assert.equal(output.textContent, view.kind === "demo" ? "Ich brauche Hilfe." : "Satz 1.");
+      assert.equal(announcement.textContent, output.textContent);
+      // The separate retry button is gone, with its wording.
+      assert.equal(root.children.some((child) => child.className.split(" ").includes("retry")), false);
+      assert.doesNotMatch(stringsIn(root).join("\n"), /erneut versuchen|Sprachausgabe|Lokale deutsche Stimme|angefordert/);
+    });
+  }
+});
+
+test("screen: the bar is inert before a selection and says so; afterwards a tap on it speaks the selected sentence again", () => {
+  withMountedBoard(boardOf(3), ({ bar, buttons, speech, spoken, clock, handle }) => {
+    assert.equal(bar["aria-disabled"], "true");
+    assert.equal(bar["aria-label"], "Satz noch einmal sprechen. Noch kein Bild gewählt.");
+    assert.equal(bar.className, "sentence-bar sentence-bar-idle");
+    const cancelled = speech.cancelled;
+    bar.click();
+    assert.deepEqual(spoken, []);
+    assert.equal(speech.cancelled, cancelled, "an inert bar must not touch the speech engine");
+    assert.equal(handle.hasSelection(), false);
+
+    buttons[2].click();
+    assert.equal(bar["aria-disabled"], "false");
+    assert.equal(bar["aria-label"], "Satz noch einmal sprechen");
+    assert.equal(bar.className, "sentence-bar");
+    clock.time += 5000;
+    bar.click();
+    assert.deepEqual(spoken, ["Satz 3.", "Satz 3."]);
+    // The bar follows the selection.
+    buttons[0].click();
+    clock.time += 5000;
+    bar.click();
+    assert.deepEqual(spoken, ["Satz 3.", "Satz 3.", "Satz 1.", "Satz 1."]);
+    // Each new request stops the one before, as a tile tap does.
+    assert.equal(speech.cancelled, cancelled + 4);
+  });
+});
+
+test("screen: the tapped tile stays marked as pressed until another tile is tapped or the board is mounted again", () => {
+  withMountedBoard(boardOf(4), ({ root, buttons, bar, clock }) => {
+    const pressed = () => parts(root).buttons.map((tile) => tile["aria-pressed"]);
+    assert.deepEqual(pressed(), ["false", "false", "false", "false"]);
+    buttons[2].click();
+    assert.deepEqual(pressed(), ["false", "false", "true", "false"]);
+    // Asking again, by tile or by bar, keeps the mark where it is.
+    clock.time += 5000;
+    buttons[2].click();
+    bar.click();
+    assert.deepEqual(pressed(), ["false", "false", "true", "false"]);
+    buttons[0].click();
+    assert.deepEqual(pressed(), ["true", "false", "false", "false"]);
+    // A new board starts without a mark and without a sentence.
+    mountBoard(root, boardOf(4));
+    assert.deepEqual(pressed(), ["false", "false", "false", "false"]);
+    assert.equal(parts(root).output.textContent, "Tippe auf ein Bild.");
+    assert.equal(parts(root).bar["aria-disabled"], "true");
+  });
+});
+
+test("screen: the number of columns follows the number of tiles and the orientation", () => {
+  //                    count: 0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 20 40
+  const portrait = [1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4];
+  const wide = [1, 1, 2, 3, 2, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5];
+  const counts = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 40];
+  assert.deepEqual(counts.map((count) => boardColumns(count, "portrait")), portrait);
+  assert.deepEqual(counts.map((count) => boardColumns(count, "wide")), wide);
+
+  // The board carries both numbers; the stylesheet picks one by media query. No measuring in script.
+  for (const [index, count] of counts.entries()) {
+    if (count === 0) continue;
+    withMountedBoard(boardOf(count), ({ board, buttons }) => {
+      assert.equal(buttons.length, count);
+      assert.deepEqual(board.dataset, { columnsPortrait: String(portrait[index]), columnsWide: String(wide[index]) });
+    });
+  }
+  // Five examples are two columns on a phone held upright: frame and badge do not cost a column.
+  withMountedBoard({ kind: "demo", storage: "empty" }, ({ board }) => {
+    assert.deepEqual(board.dataset, { columnsPortrait: "2", columnsWide: "3" });
+  });
+});
+
+test("screen: the speech line is empty for a normal request, names a missing voice or a failure in plain words, and clears when speech works again", () => {
+  withMountedBoard(boardOf(3), ({ buttons, bar, speechStatus, output, spoken, speech, clock }) => {
+    const engine = globalThis.window.speechSynthesis;
+    const voices = engine.getVoices;
+    const speakNormally = engine.speak;
+
+    buttons[0].click();
+    assert.equal(speechStatus.textContent, "", "no status while speech was requested normally");
+
+    // No German voice on this device.
+    engine.getVoices = () => [{ lang: "en-US", localService: true }];
+    buttons[1].click();
+    assert.equal(speechStatus.textContent, NO_VOICE);
+    assert.equal(output.textContent, "Satz 2.");
+    // Asking again at once is not held back by the repeat window: nothing is being spoken.
+    bar.click();
+    assert.equal(speechStatus.textContent, NO_VOICE);
+    engine.getVoices = voices;
+    bar.click();
+    assert.equal(speechStatus.textContent, "", "cleared by an attempt that works");
+    assert.deepEqual(spoken, ["Satz 1.", "Satz 2."]);
+
+    // The engine throws.
+    engine.speak = () => { throw new Error("engine broke"); };
+    buttons[2].click();
+    assert.equal(speechStatus.textContent, SPEECH_FAILED);
+    engine.speak = speakNormally;
+    buttons[2].click();
+    assert.equal(speechStatus.textContent, "");
+
+    // The engine reports an error later, for the request that is the current one.
+    speech.utterances.at(-1).onerror();
+    assert.equal(speechStatus.textContent, SPEECH_FAILED);
+    // The sentence was not spoken, so the same tile may be tried again without waiting.
+    const before = spoken.length;
+    buttons[2].click();
+    assert.equal(spoken.length, before + 1);
+    assert.equal(speechStatus.textContent, "");
+    assert.doesNotMatch(`${NO_VOICE} ${SPEECH_FAILED}`, /lokal|Sprachausgabe|TTS|Fehler|error/i);
+    assert.equal(clock.time, 1000, "all of this happened inside one repeat window");
+  });
+});
+
+test("screen: quick repeated taps on the same tile, or on the bar, do not cancel and restart its speech; another tile takes over at once", () => {
+  assert.equal(REPEAT_WINDOW_MS, 700);
+  withMountedBoard(boardOf(3), ({ buttons, bar, spoken, speech, clock, output }) => {
+    buttons[0].click();
+    const cancelled = speech.cancelled;
+    clock.time += REPEAT_WINDOW_MS - 1;
+    buttons[0].click();
+    bar.click();
+    assert.deepEqual(spoken, ["Satz 1."]);
+    assert.equal(speech.cancelled, cancelled, "running speech was not cut off");
+    // The window runs from the latest tap: a row of quick taps restarts nothing.
+    for (let tap = 0; tap < 5; tap += 1) {
+      clock.time += REPEAT_WINDOW_MS - 1;
+      (tap % 2 === 0 ? buttons[0] : bar).click();
+    }
+    assert.deepEqual(spoken, ["Satz 1."]);
+    // After a pause of the full window the same tile speaks again.
+    clock.time += REPEAT_WINDOW_MS;
+    buttons[0].click();
+    assert.deepEqual(spoken, ["Satz 1.", "Satz 1."]);
+    clock.time += REPEAT_WINDOW_MS;
+    bar.click();
+    assert.deepEqual(spoken, ["Satz 1.", "Satz 1.", "Satz 1."]);
+
+    // Another tile is never held back, and going back to the first one is not a repeat either.
+    clock.time += 5000;
+    buttons[1].click();
+    assert.equal(output.textContent, "Satz 2.");
+    buttons[0].click();
+    assert.deepEqual(spoken.slice(3), ["Satz 2.", "Satz 1."]);
+    // But the tile that took over is protected in turn.
+    buttons[0].click();
+    bar.click();
+    assert.equal(spoken.length, 5);
+  });
+});
+
+test("screen: the waiting line and the last-resort line sit where the bar will be, under the same hidden heading", () => {
+  const fakes = installFakes();
+  try {
+    const root = fakeElement("section");
+    for (const [mount, sentence] of [[mountLoading, /^Die Tafel wird geladen\.$/], [mountFailure, /^Die Tafel kann gerade nicht angezeigt werden\./]]) {
+      mount(root);
+      assert.deepEqual(root.children.map((child) => `${child.tagName}.${child.className}`), ["h1.visually-hidden", "p.board-notice board-line"]);
+      assert.match(root.children[1].textContent, sentence);
+    }
+  } finally {
+    fakes.restore();
+  }
+});
+
+test("the stylesheet lays the child's screen out to the viewport, scrolls the board inside it and takes touch quirks off tiles and bar", async () => {
+  const css = await readFile(new URL("../dist/styles.css", import.meta.url), "utf8");
+  const rule = (selector) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
+  const block = (query) => {
+    const start = css.indexOf(`${query} {\n`);
+    assert.ok(start >= 0, `no ${query} block`);
+    return css.slice(start, css.indexOf("\n}", start));
+  };
+  // One screen high, as a column; the board takes what is left and scrolls inside.
+  assert.match(rule("body"), /flex-direction: column; height: 100vh; height: 100dvh;/);
+  assert.match(rule(".board-region"), /display: flex; flex-direction: column; min-height: 0;/);
+  assert.match(rule(".concept-board"), /flex: 1 1 0;.*grid-template-columns: repeat\(var\(--columns, 2\), minmax\(0, 1fr\)\); grid-auto-rows: minmax\(var\(--tile-min\), 1fr\);.*overflow-y: auto; overscroll-behavior: contain;/);
+  assert.match(rule(":root"), /--tile-min: 112px;/);
+  assert.match(rule(".sentence-bar"), /position: sticky; top: 0;/);
+  // Safe areas, with a plain value first for a browser without env().
+  assert.match(rule(".board-region"), /padding: \.5rem \.5rem 0; padding: max\(\.5rem, env\(safe-area-inset-top\)\)/);
+  assert.match(rule(".caregiver-entry"), /env\(safe-area-inset-bottom\)/);
+  // Columns: one rule per number, the wide ones only under the media query.
+  for (const columns of [1, 2, 3, 4]) assert.match(rule(`.concept-board[data-columns-portrait="${columns}"]`), new RegExp(`--columns: ${columns};`));
+  const wideBlock = block("@media (orientation: landscape)");
+  for (const columns of [1, 2, 3, 4, 5]) assert.ok(wideBlock.includes(`  .concept-board[data-columns-wide="${columns}"] { --columns: ${columns}; }`), `wide ${columns}`);
+  assert.equal(rule('.concept-board[data-columns-wide="2"]'), "", "wide columns must not apply to an upright phone or an upright tablet");
+  // Touch behaviour.
+  for (const selector of [".concept", ".sentence-bar"]) {
+    assert.match(rule(selector), /touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;/, selector);
+    assert.match(rule(selector), /min-height: (44px|var\(--bar-min\))/, selector);
+  }
+  assert.match(rule(".concept"), /min-width: 44px; min-height: 44px;/);
+  // Pressed at once, selected for good, and a focus ring that the scrolling board cannot clip.
+  assert.match(rule(".concept:active"), /background:/);
+  assert.match(rule('.concept[aria-pressed="true"]'), /border-color:.*background:.*box-shadow: inset/);
+  assert.match(rule(".concept:focus-visible, .sentence-bar:focus-visible"), /outline: 5px solid #cf681e; outline-offset: -5px;/);
+  // Movement only for those who have not asked for less of it, and never as a delay on the pressed colour.
+  const outsideMotion = css.replace(block("@media (prefers-reduced-motion: no-preference)"), "");
+  assert.doesNotMatch(outsideMotion, /transform|transition|animation/);
+  assert.match(block("@media (prefers-reduced-motion: no-preference)"), /\.concept:active, \.sentence-bar:active \{ transform: scale/);
+  assert.doesNotMatch(css, /transition:[^;]*(background|all)/);
+  // Hidden from the eye, not from a screen reader.
+  assert.match(rule(".visually-hidden"), /position: absolute; width: 1px; height: 1px;.*clip/);
+  assert.doesNotMatch(rule(".visually-hidden"), /display: none|visibility: hidden/);
+  // The line for a speech problem takes no room while it is empty.
+  assert.match(rule(".speech-status:empty"), /margin: 0;/);
+  assert.equal(rule(".retry"), "");
+  assert.equal(rule(".message"), "");
 });
 
 // --- Copies are marked ---
