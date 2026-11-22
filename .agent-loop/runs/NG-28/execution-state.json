@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
     "history": [
         {
@@ -138,6 +138,108 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:78a51197",
                 "summary": "Second build: late in-place answers trace problems, examples board has its own look and badge, catalogue copies are marked and refreshed on re-choosing, refreshBoard is time-bounded, tests pin what they name; verify passes with 161 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:48:58+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:48:58+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:78bd42ee0e5bbfb0efaf84c69f678a87b3e384e0a505c84a86bfd07cfb88cac3",
+                    "execution-evidence:sha256:abb0f2ce4301aa85ea0b91772b8731f1b8dcce95a1518ad629f6b4d34e0ef8df",
+                    "execution-evidence:sha256:7980ea5e402582a48a0547a5f207885baad8efacd8e37d1b3f00c6138f2798a9",
+                    "execution-evidence:sha256:94f782e42e7d484792bfa2264036fe934cd3d069d635e024ca48bbd2d0467dec",
+                    "execution-evidence:sha256:37c17d3bd0287190bd2279ba1d09f988349504b6646778b197f317d0a9540920",
+                    "execution-evidence:sha256:3be46df7e276dc527fb99ee5c0f4a297fc04106ebf72e8568127dd3c2b3be57b",
+                    "execution-evidence:sha256:7fcda09c8f6c75e8816530f5df8a79857230e1a2893879e1412b9e7a6255bb91",
+                    "execution-evidence:sha256:f3249e869c3518cd61dc48ec7267f77a466feb76afaffd0027467a4d774ad171",
+                    "execution-evidence:sha256:e1d44fe27762c67d3f6c75144b922aa119ed45348d0eaef8fa32629052f16d9d",
+                    "execution-evidence:sha256:92947ce82bcf2491808a46bff1e6631278e300d178b3cdd52db0b6b1c63ee483",
+                    "execution-evidence:sha256:f1bcd23dc35467872362733fa365eb31e9541e6d7d313b570fbef7e71e622a97",
+                    "execution-evidence:sha256:2c19bb0e387fc0105792267d1087eef2128c3a958e33d9f010afd7bf9fed1894"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:78bd42ee0e5bbfb0efaf84c69f678a87b3e384e0a505c84a86bfd07cfb88cac3",
+                    "execution-evidence:sha256:abb0f2ce4301aa85ea0b91772b8731f1b8dcce95a1518ad629f6b4d34e0ef8df",
+                    "execution-evidence:sha256:7980ea5e402582a48a0547a5f207885baad8efacd8e37d1b3f00c6138f2798a9",
+                    "execution-evidence:sha256:94f782e42e7d484792bfa2264036fe934cd3d069d635e024ca48bbd2d0467dec",
+                    "execution-evidence:sha256:37c17d3bd0287190bd2279ba1d09f988349504b6646778b197f317d0a9540920",
+                    "execution-evidence:sha256:3be46df7e276dc527fb99ee5c0f4a297fc04106ebf72e8568127dd3c2b3be57b",
+                    "execution-evidence:sha256:7fcda09c8f6c75e8816530f5df8a79857230e1a2893879e1412b9e7a6255bb91",
+                    "execution-evidence:sha256:f3249e869c3518cd61dc48ec7267f77a466feb76afaffd0027467a4d774ad171",
+                    "execution-evidence:sha256:e1d44fe27762c67d3f6c75144b922aa119ed45348d0eaef8fa32629052f16d9d",
+                    "execution-evidence:sha256:92947ce82bcf2491808a46bff1e6631278e300d178b3cdd52db0b6b1c63ee483",
+                    "execution-evidence:sha256:f1bcd23dc35467872362733fa365eb31e9541e6d7d313b570fbef7e71e622a97",
+                    "execution-evidence:sha256:2c19bb0e387fc0105792267d1087eef2128c3a958e33d9f010afd7bf9fed1894"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "context_id": "claude-subagent-ng28-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "observations": [
+                    "src/board-data.ts:348 choosing overwrites an unsupported-version entry with a v1 copy, also for a concept that stays on the board",
+                    "docs/storage.md:225 clearWording deletes an unreadable entry is not true for a catalogue concept on the board",
+                    "src/startup.ts:230 the kept path drops data-board-problems for a troubled own profile until the next mount",
+                    "src/board.ts:216 and src/app.ts:102 have untested branches"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:e7c65b93",
+                "summary": "Pass: six claims hold under probes; 20 of 22 mutations killed; verify passes with 161 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:48:58+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:48:58+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a04b187e7160e3023a21e66a32814f80d415c129711387cc6b19ab9074645d88",
+                    "execution-evidence:sha256:17faf7cd9c506a96998b692ebffbe090a984fb2a6ab8c998104d96284fffeeff"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a04b187e7160e3023a21e66a32814f80d415c129711387cc6b19ab9074645d88",
+                    "execution-evidence:sha256:17faf7cd9c506a96998b692ebffbe090a984fb2a6ab8c998104d96284fffeeff"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:f86cda9676e36d00d21f1a3493664647c75a16cb",
+                "context_id": "claude-subagent-ng28-blindspot-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:b64ddff9",
+                "summary": "board-data.ts:348 any setBoardConcepts call, including a pure reorder, overwrites an entry this version cannot read (also unsupported-version, possibly intact caregiver wording) and erases its problem trace, against the never-touched statements; docs/storage.md:471-472 reversal recipe for copy-on-choose would remove tiles of concepts the catalogue dropped",
                 "task_id": "NG-28",
                 "validation_references": []
             }
