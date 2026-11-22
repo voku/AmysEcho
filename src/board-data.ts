@@ -5,8 +5,12 @@
  * Layout, all inside one profile:
  *
  *   profile.conceptIds             the board: concept ids in display order
- *   data "concept.<conceptId>"     { version: 1, labelDe, speechDe }                 the wording of a catalogue concept on this board
+ *   data "concept.<conceptId>"     { version: 1, labelDe, speechDe, copied: true }   catalogue wording, copied when the concept was chosen
+ *                                  { version: 1, labelDe, speechDe }                 a caregiver's own wording for a catalogue concept
  *                                  { version: 1, labelDe, speechDe, custom: true }   a concept of this profile only
+ *
+ * These three key sets are the only ones accepted; `custom` and `copied` are
+ * `true` when present and never appear together.
  *
  * The wording of a catalogue concept is copied into the profile when the
  * concept is chosen (`setBoardConcepts`), so a board does not change when a
@@ -188,7 +192,7 @@ export function normalizeWording(input: { readonly labelDe: unknown; readonly sp
 type StoredEntry =
   | { readonly state: "missing" }
   | { readonly state: "damaged"; readonly damage: "unsupported-version" | "unreadable" }
-  | { readonly state: "ok"; readonly wording: Wording; readonly custom: boolean };
+  | { readonly state: "ok"; readonly wording: Wording; readonly custom: boolean; readonly copied: boolean };
 
 /** Strict reader for one stored entry: exact fields, known version, text already in stored form. */
 function readEntry(value: unknown): StoredEntry {
@@ -201,8 +205,9 @@ function readEntry(value: unknown): StoredEntry {
     return typeof version === "number" && version > BOARD_ENTRY_VERSION ? { state: "damaged", damage: "unsupported-version" } : unreadable;
   }
   const custom = Object.hasOwn(record, "custom");
-  if (custom && record["custom"] !== true) return unreadable;
-  const expected = custom ? ["custom", "labelDe", "speechDe", "version"] : ["labelDe", "speechDe", "version"];
+  const copied = Object.hasOwn(record, "copied");
+  if ((custom && record["custom"] !== true) || (copied && record["copied"] !== true) || (custom && copied)) return unreadable;
+  const expected = [...(copied ? ["copied"] : []), ...(custom ? ["custom"] : []), "labelDe", "speechDe", "version"];
   const actual = Object.keys(record).sort();
   if (actual.length !== expected.length || actual.some((key, i) => key !== expected[i])) return unreadable;
   // Stored text is in its final form, so it has at most two UTF-16 units per
@@ -213,7 +218,7 @@ function readEntry(value: unknown): StoredEntry {
   try {
     const wording = normalizeWording({ labelDe: record["labelDe"], speechDe: record["speechDe"] });
     if (wording.labelDe !== record["labelDe"] || wording.speechDe !== record["speechDe"]) return unreadable;
-    return { state: "ok", wording, custom };
+    return { state: "ok", wording, custom, copied };
   } catch (error) {
     if (error instanceof BoardDataError) return unreadable;
     throw error;
@@ -291,26 +296,40 @@ export async function listCustomConcepts(store: ProfileStore, profileId: string)
 }
 
 /**
- * Sets which concepts the board shows and in which order, and copies the
- * current catalogue wording into the profile for every chosen catalogue
- * concept that has no stored entry yet. From then on the board shows the
- * stored wording, whatever a later catalogue says.
+ * Sets which concepts the board shows and in which order, and makes sure
+ * every chosen catalogue concept has its wording stored in the profile. From
+ * then on the board shows the stored wording, whatever a later catalogue says.
+ *
+ * For a chosen catalogue concept the current catalogue wording is stored,
+ * marked `copied: true`, when
+ *
+ * - the profile has no entry for it;
+ * - its entry is a copy and the concept is not on the board yet: a concept
+ *   that is chosen (again) gets the wording of that moment. A copy of a
+ *   concept that stays on the board is left alone, so reordering never
+ *   changes a sentence;
+ * - its entry is unreadable: choosing repairs it.
+ *
+ * A caregiver's own wording (an entry without `copied`) and a custom concept
+ * are never touched.
  *
  * Every id must be a catalogue concept or have a readable entry in this
  * profile (a custom concept, or the stored wording of a concept the catalogue
  * has dropped); duplicates are refused. Everything is checked before the
  * first write.
  *
- * Store writes: one per wording to copy, then one for `conceptIds`, in that
+ * Store writes: one per wording to store, then one for `conceptIds`, in that
  * order. The store's public API has no write that covers a data entry and the
  * profile record together (short of rewriting the whole profile), so this is
  * not one atomic step. If a write fails, the board is as it was before the
- * call and resolves; wordings copied so far stay stored and are harmless:
- * for a concept that is on the board they equal what the board showed, for
- * one that is not they are not shown. Calling again finishes the job.
+ * call and resolves; wordings stored so far stay and are harmless: they are
+ * marked as copies, for a concept on the board they equal what it showed,
+ * and for one that is not they are not shown and are refreshed when it is
+ * chosen. Calling again finishes the job.
  */
 export async function setBoardConcepts(store: ProfileStore, profileId: string, ids: readonly string[], catalogue: readonly CatalogueConcept[]): Promise<ProfileV1> {
   if (!Array.isArray(ids)) throw new BoardDataError("invalid-concept-id", "ids must be an array of concept ids");
+  const onBoard = (await store.get(profileId)).conceptIds;
   const seen = new Set<string>();
   const copies: { readonly id: string; readonly wording: Wording }[] = [];
   for (const id of ids as readonly unknown[]) {
@@ -322,18 +341,22 @@ export async function setBoardConcepts(store: ProfileStore, profileId: string, i
     const stored = await readStored(store, profileId, id);
     if (known === null) {
       if (stored.state !== "ok") throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
-    } else if (stored.state === "missing" && isBoardConceptId(id)) {
-      copies.push({ id, wording: normalizeWording(known) });
+    } else if (isBoardConceptId(id)) {
+      const wording = normalizeWording(known);
+      const stale = stored.state === "ok" && stored.copied && !onBoard.includes(id)
+        && (stored.wording.labelDe !== wording.labelDe || stored.wording.speechDe !== wording.speechDe);
+      if (stored.state !== "ok" || stale) copies.push({ id, wording });
     }
   }
   const data = store.data(profileId);
-  for (const copy of copies) await data.set(dataName(copy.id), { version: BOARD_ENTRY_VERSION, ...copy.wording });
+  for (const copy of copies) await data.set(dataName(copy.id), { version: BOARD_ENTRY_VERSION, ...copy.wording, copied: true });
   return store.setConceptIds(profileId, ids);
 }
 
 /**
  * Rewords a concept for this profile. A custom concept stays custom; any
- * other concept gets (or keeps) a stored wording. The id must be a catalogue
+ * other concept gets a caregiver's own wording (an entry without `copied`,
+ * which choosing never refreshes). The id must be a catalogue
  * concept or have a readable entry in this profile; otherwise it is refused
  * with "unknown-concept". One store write.
  */
@@ -356,7 +379,7 @@ export async function setWording(
  * Takes back the profile's own wording for a catalogue concept. One store write.
  *
  * - A catalogue concept that is on the board gets the current catalogue
- *   wording stored again, so the board keeps a stored wording.
+ *   wording stored again, marked as a copy, so the board keeps a stored wording.
  * - A catalogue concept that is not on the board, and an unreadable entry
  *   under any id, is deleted. Clearing what is not there is fine.
  * - A custom concept is refused ("custom-concept"), and so is the readable
@@ -371,7 +394,7 @@ export async function clearWording(store: ProfileStore, profileId: string, conce
   if (known === null && stored.state === "ok") throw new BoardDataError("retired-concept", `"${id}" is no longer in the catalogue; its stored wording cannot be cleared, only removed`);
   const data = store.data(profileId);
   if (known !== null && (await store.get(profileId)).conceptIds.includes(id)) {
-    await data.set(dataName(id), { version: BOARD_ENTRY_VERSION, ...normalizeWording(known) });
+    await data.set(dataName(id), { version: BOARD_ENTRY_VERSION, ...normalizeWording(known), copied: true });
   } else {
     await data.delete(dataName(id));
   }

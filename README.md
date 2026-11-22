@@ -23,10 +23,15 @@ Early rebuild. What exists today:
   German wording and text-only custom concepts), as library code tested in Node against an
   in-memory store ([docs/storage.md](docs/storage.md));
 - a board that waits for local storage at start (up to 1.5 s, an unmeasured value) and then shows
-  the active profile's own concepts, with the wording stored when they were chosen. Whenever the
-  own board cannot be shown (no profile stored or chosen, no concepts chosen or loadable,
-  unreadable profiles, storage that fails or answers late) the example concepts stand in, under a
-  German sentence that says they are examples and why. The board does not show the child's name;
+  the active profile's own concepts. On a device without any profile it shows the example concepts
+  under the plain "examples, not approved" line. Whenever a profile exists but its board cannot be
+  shown (none chosen, no concepts chosen or loadable, unreadable profiles, storage that fails or
+  answers late) the examples stand in under a German sentence that says they are examples and why.
+  Every board of examples has a dashed frame and a "Beispiele" badge. The board does not show the
+  child's name;
+- wording that is copied into the profile when concepts are chosen through `setBoardConcepts`, so
+  such a board keeps its sentences when the catalogue changes. A board made another way, or
+  restored from a backup without stored wording, follows the current catalogue;
 - an app shell with a board region, an empty region reserved for the caregiver area, and a
   controller that owns the page's one profile store and can re-mount the board without a reload.
 

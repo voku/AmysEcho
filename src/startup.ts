@@ -56,13 +56,14 @@ export async function resolveStartupView(store: ProfileStore, catalogue: readonl
  * "timeout-kept" (it answered late, the child was already using the examples,
  * the own board comes with the next page load), "render-failed" (the own
  * board could not be drawn).
+ * From a refresh: "refresh-timeout" (storage did not answer a re-read in time).
  */
 export type FallbackCause =
   | "storage-unavailable" | "damaged" | "no-active" | "empty-profile" | "unloadable-profile"
-  | "timeout" | "timeout-kept" | "render-failed";
+  | "timeout" | "timeout-kept" | "render-failed" | "refresh-timeout";
 
-/** What a board can be asked to show: a view from storage, or the examples for a start-up cause. */
-export type BoardView = StartupView | { readonly kind: "fallback"; readonly cause: "timeout" | "timeout-kept" | "render-failed" };
+/** What a board can be asked to show: a view from storage, or the examples for a cause that does not come from storage. */
+export type BoardView = StartupView | { readonly kind: "fallback"; readonly cause: "timeout" | "timeout-kept" | "render-failed" | "refresh-timeout" };
 
 /**
  * A board problem that changes what the child sees. A custom concept under
@@ -104,11 +105,13 @@ export interface BoardHandle {
   /** True once a concept has been chosen on this board. */
   hasSelection(): boolean;
   /**
-   * On a board of examples: changes the line that says why examples are
-   * shown (null: the plain examples line) without touching the buttons or the
-   * selection. Does nothing on a profile's own board.
+   * On a board of examples, for a view that shows examples too: takes over
+   * that view's reason (the sentence, `data-board-fallback`) and its problem
+   * trace (`data-board-problems`, console lines) without touching the buttons
+   * or the selection. Does nothing on a profile's own board, for a view that
+   * is one, or once this board has been replaced.
    */
-  setFallback(cause: FallbackCause | null): void;
+  restate(view: BoardView): void;
 }
 
 /** What the start-up sequence needs from the page; `createBoardHost` in board.ts is the real one. */
@@ -220,11 +223,11 @@ export function runStartup(view: Promise<StartupView>, host: StartupHost, waitMs
     if (!timedOut) {
       mountStartupView(host, resolved);
     } else if (shown !== null && showsExamples(resolved)) {
-      shown.setFallback(fallbackCause(resolved));
+      shown.restate(resolved);
       host.setData("startup", stateOf(resolved));
       host.setData("startupLate", "same-board");
     } else if (shown !== null && shown.hasSelection()) {
-      shown.setFallback("timeout-kept");
+      shown.restate({ kind: "fallback", cause: "timeout-kept" });
       host.setData("startupLate", "kept");
     } else {
       mountStartupView(host, resolved);

@@ -152,16 +152,25 @@ profile/<id>/data/concept.<conceptId>    the wording of that concept on this boa
 ```
 
 ```json
-{ "version": 1, "labelDe": "Hilfe", "speechDe": "Ich brauche Hilfe." }
+{ "version": 1, "labelDe": "Hilfe", "speechDe": "Ich brauche Hilfe.", "copied": true }
+{ "version": 1, "labelDe": "Hilf mir", "speechDe": "Bitte hilf mir." }
 { "version": 1, "labelDe": "Ball", "speechDe": "Ich möchte mit dem Ball spielen.", "custom": true }
 ```
 
-- Without `custom`, the entry is the wording of a catalogue concept (`src/concepts.ts`) for this
-  profile. It is written when the concept is chosen for the board (a copy of the catalogue wording
-  at that moment) and when a caregiver rewords it. The two cases are stored the same way and cannot
-  be told apart later.
-- With `custom: true`, the entry is a concept of this profile only. It has no symbol yet and the
-  board shows it as a text button; symbol images are a later card.
+An entry has exactly one of these three key sets. Anything else reads as unreadable:
+
+| Keys | Meaning | Written by |
+| --- | --- | --- |
+| `version`, `labelDe`, `speechDe`, `copied` | The catalogue wording (`src/concepts.ts`), copied when the concept was chosen: a copy of the catalogue wording at that moment. | `setBoardConcepts`, and `clearWording` for a concept on the board |
+| `version`, `labelDe`, `speechDe` | A caregiver's own wording for a catalogue concept. | `setWording` |
+| `version`, `labelDe`, `speechDe`, `custom` | A concept of this profile only. It has no symbol yet and the board shows it as a text button; symbol images are a later card. | `putCustomConcept`, and `setWording` on a custom concept |
+
+- `copied` and `custom` are `true` when present. `false`, any other value, or both together make
+  the entry unreadable.
+- The board reads a copy and a caregiver's wording the same way. The marker exists so that copies
+  can be found and refreshed without touching what a caregiver wrote: when a concept is chosen
+  again (below), for a later fix of a catalogue typo, or to reverse the copy decision.
+- No released app version has written a profile, so there are no entries from before the marker.
 - A custom concept exists as soon as its entry is stored. It is on the board only when its id is in
   `conceptIds`.
 
@@ -169,8 +178,8 @@ Consequences of copying the wording when a concept is chosen:
 
 - A board does not change when a later version of the app changes a catalogue sentence or label.
   The stored wording is shown. Only the symbol is taken from the current catalogue.
-- An entry without `custom` under an id the current catalogue does not have is the stored wording
-  of a concept an earlier catalogue had (a "retired" concept). It is a valid board member: it is
+- An entry without `custom` (a copy or a caregiver's wording) under an id the current catalogue
+  does not have is the stored wording of a concept an earlier catalogue had (a "retired" concept). It is a valid board member: it is
   shown as a text button (the symbol went with the catalogue entry), spoken, can be chosen again
   with `setBoardConcepts` and reworded with `setWording`. Nothing is reported as a problem.
 - If the catalogue has that id again later, the stored wording stays and the symbol is the
@@ -211,12 +220,25 @@ All writes validate first and store nothing when they refuse. A refusal by this 
 
 | Function | Does | Store writes |
 | --- | --- | --- |
-| `setBoardConcepts(store, id, ids, catalogue)` | Sets the board and its order, and stores the catalogue wording for every chosen catalogue concept that has no entry yet. Every id must be a catalogue concept or have a readable entry in this profile (custom or retired); no duplicates. | one per wording to copy, then 1 |
-| `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept, a custom concept (it stays custom) or a retired concept. | 1 |
-| `clearWording(store, id, conceptId, catalogue)` | For a catalogue concept on the board: stores the current catalogue wording again. For one that is not on the board, and for an unreadable entry: deletes the entry. Refuses a custom concept (`custom-concept`) and a readable retired one (`retired-concept`). | 1 |
+| `setBoardConcepts(store, id, ids, catalogue)` | Sets the board and its order, and stores a copy of the catalogue wording where one is due (below). Every id must be a catalogue concept or have a readable entry in this profile (custom or retired); no duplicates. | one per wording to store, then 1 |
+| `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept, a custom concept (it stays custom) or a retired concept. The result is a caregiver's wording, without `copied`. | 1 |
+| `clearWording(store, id, conceptId, catalogue)` | For a catalogue concept on the board: stores the current catalogue wording again, as a copy. For one that is not on the board, and for an unreadable entry: deletes the entry. Refuses a custom concept (`custom-concept`) and a readable retired one (`retired-concept`). | 1 |
 | `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. | 1 |
 | `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom or retired concept off the board and deletes its entry. Also clears an unreadable or missing entry, but only under an id that is not in the catalogue. | 2 |
 | `listCustomConcepts(store, id)` | Read only: the profile's custom concepts (not the retired ones), and the ids of unreadable entries. | 0 |
+
+When `setBoardConcepts` stores a copy for a chosen catalogue concept:
+
+- The profile has no entry for it.
+- Its entry is a copy and the concept is not on the board at the time of the call. So a concept
+  that is taken off the board and chosen again later gets the wording of the moment it is chosen
+  again. A copy of a concept that stays on the board is not touched: reordering, or adding another
+  concept, never changes a sentence that is on the board.
+- Its entry is unreadable. Choosing repairs it. (Until then such a concept shows the current
+  catalogue wording with a `damaged-wording` problem.)
+
+A caregiver's own wording and a custom concept are never overwritten by choosing. When nothing is
+due, a call writes the concept ids only.
 
 Cleaning up unreadable entries:
 
@@ -234,11 +256,11 @@ What is atomic and what is not:
   profile record; the only call that writes both is `restoreProfile`, which rewrites the whole
   profile and would lose a data write made in between. So the wordings are written first, one
   write each, and `conceptIds` last. If any write fails, `conceptIds` is unchanged: the board is
-  the one from before the call and reads without a problem. Wordings copied before the failure
-  stay stored. They do no harm: for a concept on the board they equal what it showed (unless the
-  catalogue changed since the board was made, in which case that concept now shows the stored
-  copy); for a concept not on the board they are not shown, and will be used as its wording if it
-  is chosen later. Calling again finishes the job. A test injects a failure at every write.
+  the one from before the call and reads without a problem. Wordings stored before the failure
+  stay. They do no harm: they are marked as copies; for a concept on the board that had no entry
+  they pin the wording it showed; for a concept not on the board they are not shown, and are
+  refreshed from the catalogue when it is chosen. Calling again finishes the job. A test injects a
+  failure at every write.
 - `removeCustomConcept` is two writes: first the id is taken out of `conceptIds`, then the entry is
   deleted. If the second fails, the board no longer names the concept and reads without a problem;
   the entry is still there and listed by `listCustomConcepts`. Calling the function again finishes
@@ -317,8 +339,19 @@ The controller owns the page's one `ProfileStore`:
 - `app.refreshBoard()` reads the view again from the same store and mounts it. It is meant for the
   caregiver area after a change, so it replaces the board also when something was selected, and
   stops running speech. Calls are carried out one after another in call order, each after start-up
-  has finished; the last one decides what is shown. If storage never answers, a refresh waits with
-  start-up.
+  has finished; the last one decides what is shown.
+- A refresh is bounded like start-up (`waitMs`, default `STARTUP_WAIT_MS`). If storage has not
+  answered by then, the board is replaced by the examples with the `refresh-timeout` sentence
+  (`data-startup="refresh-timeout"`) and the call resolves. The previous board does not stay: on a
+  shared device it may be the board of a child who is no longer the active profile. The answer of a
+  refresh that ran into the bound is dropped, so it cannot replace a board mounted since. Nothing
+  re-mounts by itself afterwards; the next `refreshBoard()` reads again. While storage still hangs,
+  that next call waits behind the hanging read (the store runs its operations one after another)
+  and runs into its own bound.
+- A read that fails during a refresh is reported, shows the examples with the `storage-unavailable`
+  sentence, and the next refresh reads again.
+- A refresh waits for start-up. If storage never answers at start-up, start-up never finishes and
+  a refresh waits with it; the board shows the examples from the start-up bound.
 - `app.started` resolves when start-up has dealt with the answer of storage.
 
 ### What the board shows
@@ -327,6 +360,13 @@ The controller owns the page's one `ProfileStore`:
 always has concepts to tap. Either the child's own board is shown, or the example concepts stand
 in under one sentence that says they are examples and why. The reason is in `data-board-fallback`
 on the board region (absent when there is none).
+
+A board of examples also looks different, for a child who does not read: the board element has
+the class `concept-board-examples` (a thick dashed frame and a tinted background in `styles.css`)
+and carries a badge "Beispiele" as its first child. This applies to every row below that shows
+examples, including the device without profiles. A profile's own board has neither, also when it
+uses the same concepts as the examples. How well a child tells the two apart has not been tried
+with a child or on a device.
 
 | View from storage | When | Board | `data-board-fallback` |
 | --- | --- | --- | --- |
@@ -338,9 +378,11 @@ on the board region (absent when there is none).
 | `no-active` | Readable profiles, none active, nothing damaged. | Examples. | `no-active` |
 | `demo`, `storage: "unavailable"` | Storage could not be opened or read, including an unknown storage layout. | Examples. | `storage-unavailable` |
 
-Three more reasons come from the start-up sequence, not from storage: `timeout`, `timeout-kept`
-and `render-failed` (below). Each of the eight reasons has its own sentence; none tells the child to
-delete anything.
+Four more reasons do not come from storage: `timeout`, `timeout-kept` and `render-failed` from the
+start-up sequence (below) and `refresh-timeout` from a refresh (above). Each of the nine reasons
+has its own sentence; none tells the child to delete anything. The `timeout` sentence does not
+speak of an own board, because it also stands, for good, on a device without profiles whose
+storage never answers.
 
 `damaged` wins over `no-active` when both apply. An active-profile pointer that is not an id, or
 names a profile that is not stored, counts as no active profile; reading does not repair it. With a
@@ -362,8 +404,9 @@ The sequence (`runStartup` in `src/startup.ts`, run by `createApp`):
    (`data-startup="demo-timeout"`). If storage never answers, that board stays.
 4. If storage answers after that:
    - The view shows examples too (every row of the table except the profile's own board): the
-     buttons stay as they are and only the sentence and `data-board-fallback` change. No re-mount,
-     a selection and running speech are kept. `data-startup` follows the view,
+     buttons stay as they are; the sentence, `data-board-fallback` and the problem trace
+     (`data-board-problems`, console lines) become those of the view. No re-mount, a selection and
+     running speech are kept. `data-startup` follows the view,
      `data-startup-late="same-board"`.
    - The view is a profile's own board and no concept has been chosen yet: the board is replaced
      (`data-startup-late="replaced"`, `data-startup="profile"`).
@@ -389,16 +432,46 @@ or for a board that was replaced, is ignored.
 
 ### Decisions applied, owner may reverse
 
-- **Examples stand in when the own board cannot be shown** (damaged, no active profile, no
-  concepts chosen, none loadable), instead of a message without buttons. To reverse: in
-  `mountBoard` (`src/board.ts`) render heading and sentence only when `fallbackCause(view)` is one
-  of those four causes, and change the sentences in `FALLBACK_LINES`.
-- **Wording is copied into the profile when a concept is chosen.** To reverse: remove the copy
-  loop in `setBoardConcepts` and let `clearWording` delete the entry for a board concept
-  (`src/board-data.ts`). Entries already stored keep overriding the catalogue until they are
-  cleared; a profile that should follow the catalogue again needs them removed.
-- **The display name is not shown on the board.** To reverse: add a line with `view.displayName` to
-  the profile branch of `mountBoard`.
+1. **Examples stand in when the own board cannot be shown** (damaged, no active profile, no
+   concepts chosen, none loadable, and the start-up and refresh causes), instead of a message
+   without buttons.
+
+   What that means on the screen:
+   - The examples are the catalogue. They have the same ids and the same pictures as a child's own
+     tiles for those concepts.
+   - A tile can speak another sentence than the child's own tile with the same picture (own
+     "Saft / Ich möchte Saft." against example "Trinken / Ich möchte etwas trinken.").
+   - They appear in catalogue order, not in the order of the child's board, and the child's custom
+     concepts are missing.
+   - This also happens on a slow start (`timeout`): a child with a working profile sees the
+     examples first, and keeps them for the session after tapping one (`timeout-kept`).
+   - The dashed frame, the tint and the "Beispiele" badge are the only non-text difference.
+
+   To reverse (a message without buttons for some or all causes):
+   - `mountBoard` in `src/board.ts`: for those causes render heading and sentence only, and
+     return a handle whose `hasSelection()` is false; adjust `FALLBACK_LINES`.
+   - `showsExamples()` in `src/startup.ts`: it must be false for views that no longer show
+     examples, because the next point depends on it.
+   - The same-board branch of `runStartup` (`src/startup.ts`): it assumes that a late answer with
+     a cause can be shown by changing the sentence above the examples that are already mounted.
+     For a cause without buttons the board must be re-mounted instead.
+   - Tests that pin the current behaviour, all in `test/board.test.mjs`:
+     "render: when the own board cannot be shown, the examples stand in, tappable, under one
+     sentence that says so and why"; "render: every board of examples carries the examples class
+     and a visible badge; a profile's own board carries neither"; "render: the fallback sentence
+     of a board of examples can change in place; an own board and a replaced board ignore it";
+     "start: every resolved view is mounted once and named in data-startup, with its fallback
+     cause"; "start: a late answer that shows examples too causes no re-mount: the sentence above
+     them changes and its problems are traced"; "render: nothing that identifies the child is in
+     the board region, neither as text nor in an attribute" (it taps a tile in each view); and in
+     `test/bootstrap.test.mjs` "built UI starts in the board region only and remains usable
+     without TTS/network/camera/storage".
+2. **Wording is copied into the profile when a concept is chosen.** To reverse: remove the copy
+   loop in `setBoardConcepts` and let `clearWording` delete the entry for a board concept
+   (`src/board-data.ts`). Entries already stored keep overriding the catalogue; the ones to remove
+   are exactly those with `copied: true`. Entries without the marker are caregiver wording and stay.
+3. **The display name is not shown on the board.** To reverse: add a line with `view.displayName` to
+   the profile branch of `mountBoard`.
 
 ### Open decisions
 
@@ -406,10 +479,16 @@ or for a board that was replaced, is ignored.
   (gesture examples) is not known here. Either it is purged together with the concept, or a concept
   id is never used again, so that a new concept cannot inherit old examples. That is a decision for
   the gesture cards.
-- A wording copied by a `setBoardConcepts` call that failed before it set the board stays stored
-  for a concept that is not on the board, and is used if that concept is chosen later, also when
-  the catalogue has changed in between. Whether choosing should refresh such a copy needs a way to
-  tell a copy from a caregiver's own wording, which the stored shape does not have.
+- For the symbol card (NG-27): a concept the catalogue drops becomes a text-only tile on the boards
+  that have it, with no problem reported and no line on the board. The child loses the picture
+  without anyone being told.
+- For the symbol card (NG-27): the symbol always comes from the current catalogue, the sentence
+  from the profile. If a later catalogue gives an id another picture or meaning, a board keeps the
+  stored label and sentence under the new picture.
+- A copy that is on a board is never refreshed by itself, so a catalogue typo that was copied stays
+  on that board. The `copied` marker makes such entries findable; nothing refreshes them yet.
+- After a refresh ran into its bound, the examples stay until the next `refreshBoard()`. Whether
+  the app should try again by itself is not decided.
 
 ## Export format
 

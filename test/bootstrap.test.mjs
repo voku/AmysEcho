@@ -47,7 +47,7 @@ test("built UI starts in the board region only and remains usable without TTS/ne
   };
   globalThis.fetch = () => { throw new Error("Unexpected network request from board"); };
   console.warn = (...parts) => { warnings.push(parts); };
-  const part = (className) => region.children.find((child) => child.className === className);
+  const part = (className) => region.children.find((child) => child.className.split(" ")[0] === className);
 
   try {
     const main = await import(new URL("../dist/main.js?board-smoke", import.meta.url));
@@ -74,15 +74,18 @@ test("built UI starts in the board region only and remains usable without TTS/ne
     const board = part("concept-board");
     const output = part("message");
     const retry = part("retry");
-    assert.equal(board.children.length, 5);
-    assert.equal(board.children[0].children[1].textContent, "Hilfe");
-    board.children[0].click();
+    const tiles = board.children.filter((child) => child.tagName === "button");
+    assert.equal(board.className, "concept-board concept-board-examples");
+    assert.equal(board.children[0].textContent, "Beispiele");
+    assert.equal(tiles.length, 5);
+    assert.equal(tiles[0].children[1].textContent, "Hilfe");
+    tiles[0].click();
     assert.equal(output.textContent, "Ich brauche Hilfe.");
     assert.match(part("speech-status").textContent, /keine lokale deutsche Stimme/i);
     assert.equal(retry.hidden, false);
     retry.click();
     assert.equal(output.textContent, "Ich brauche Hilfe.");
-    board.children[4].click();
+    tiles[4].click();
     assert.equal(output.textContent, "Ich bin fertig.");
   } finally {
     if (previousDocument === undefined) delete globalThis.document;
@@ -176,7 +179,7 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
   const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
   // Names already shipped; a changed asset list or install step needs a name that is none of them.
-  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2"].includes(name), `cache name ${name}`);
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1"].includes(name), `cache name ${name}`);
 
   // Run the worker with a fake scope and look at what install hands to the cache.
   const listeners = {};

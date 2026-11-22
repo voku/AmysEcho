@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
 import { createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
@@ -81,8 +82,11 @@ function parts(root) {
   const board = byClass("concept-board")[0] ?? null;
   return {
     board,
-    buttons: board === null ? [] : board.children,
-    labels: board === null ? [] : board.children.map((button) => button.children.at(-1).textContent),
+    buttons: board === null ? [] : board.children.filter((child) => child.tagName === "button"),
+    labels: board === null ? [] : board.children.filter((child) => child.tagName === "button").map((button) => button.children.at(-1).textContent),
+    /** The non-text marks of a board of examples: the class on the board and the badge on it. */
+    examplesLook: board !== null && board.className.split(" ").includes("concept-board-examples"),
+    badge: board === null ? null : board.children.find((child) => child.className === "examples-badge")?.textContent ?? null,
     notices: byClass("board-notice").map((notice) => notice.textContent),
     fallback: root.dataset.boardFallback ?? null,
     output: byClass("message")[0] ?? null,
@@ -137,7 +141,7 @@ async function withStartup(callback) {
     let answer;
     let fail;
     const view = new Promise((resolve, reject) => { answer = resolve; fail = reject; });
-    await callback({ ...page, host, view, answer, fail, speech: fakes.speech });
+    await callback({ ...page, host, view, answer, fail, speech: fakes.speech, warnings: fakes.warnings });
   } finally {
     fakes.restore();
   }
@@ -266,7 +270,7 @@ test("a wording override applies to one catalogue concept and can be cleared aga
   await clearWording(store, profile.id, "hilfe", CONCEPTS); // clearing twice is fine
   board = await resolveBoard(store, profile.id, CONCEPTS);
   assert.equal(board.entries[0].labelDe, "Hilfe");
-  assert.deepEqual(backend.snapshot()[`profile/${profile.id}/data/concept.hilfe`], { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe." });
+  assert.deepEqual(backend.snapshot()[`profile/${profile.id}/data/concept.hilfe`], { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
   // For a concept that is not on the board the entry is simply removed.
   await setWording(store, profile.id, "pause", { labelDe: "Ruhe", speechDe: "Ich will Ruhe." }, CONCEPTS);
   await clearWording(store, profile.id, "pause", CONCEPTS);
@@ -662,7 +666,7 @@ test("choosing a catalogue concept stores its wording: a later catalogue with an
   const mia = await store.create("Mia", []);
   const ben = await store.create("Ben", ["hilfe"]); // a board from before wording was copied: no entry
   await setBoardConcepts(store, mia.id, ["hilfe", "mehr"], CONCEPTS);
-  assert.deepEqual(backend.snapshot()[`profile/${mia.id}/data/concept.hilfe`], { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe." });
+  assert.deepEqual(backend.snapshot()[`profile/${mia.id}/data/concept.hilfe`], { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
   assert.deepEqual(await store.data(mia.id).names(), ["concept.hilfe", "concept.mehr"]);
 
   const later = withCatalogue({ hilfe: { labelDe: "Helfen", speechDe: "Kannst du mir helfen?", symbolPath: "./icons/helfen.svg" } });
@@ -693,7 +697,7 @@ test("a caregiver's own wording is kept when concepts are chosen, and clearing i
   assert.equal((await resolveBoard(store, mia.id, CONCEPTS)).entries[0].speechDe, "Bitte hilf mir.");
   const later = withCatalogue({ hilfe: { speechDe: "Kannst du mir helfen?" } });
   await clearWording(store, mia.id, "hilfe", later);
-  assert.deepEqual(await store.data(mia.id).get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Kannst du mir helfen?" });
+  assert.deepEqual(await store.data(mia.id).get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Kannst du mir helfen?", copied: true });
   // Stored again, so it is pinned again.
   assert.equal((await resolveBoard(store, mia.id, CONCEPTS)).entries[0].speechDe, "Kannst du mir helfen?");
 });
@@ -827,13 +831,14 @@ test("render: when the own board cannot be shown, the examples stand in, tappabl
   const empty = { kind: "profile", profileId: "0".repeat(32), displayName: "Mia", entries: [], problems: [] };
   const cases = [
     [{ kind: "demo", storage: "unavailable" }, "storage-unavailable", /^Der Speicher dieses Geräts ist gerade nicht erreichbar\. Deshalb werden hier Beispiele gezeigt\.$/],
-    [{ kind: "damaged", count: 2 }, "damaged", /^Die eigene Tafel kann gerade nicht geladen werden\. Bis dahin werden Beispiele gezeigt\. Bitte gib einer Bezugsperson Bescheid\.$/],
+    [{ kind: "damaged", count: 2 }, "damaged", /^Die eigene Tafel kann gerade nicht geladen werden\. Deshalb werden Beispiele gezeigt\. Bitte gib einer Bezugsperson Bescheid\.$/],
     [{ kind: "no-active", profiles: [{ id: "0".repeat(32), displayName: "Mia" }] }, "no-active", /^Es ist noch keine eigene Tafel ausgewählt\. Bis dahin werden Beispiele gezeigt\./],
     [empty, "empty-profile", /^Für die eigene Tafel sind noch keine Begriffe ausgewählt\. Bis dahin werden Beispiele gezeigt\.$/],
-    [{ ...empty, problems: [{ kind: "unknown-concept", conceptId: "einhorn" }] }, "unloadable-profile", /^Die Begriffe der eigenen Tafel konnten nicht geladen werden\. Bis dahin werden Beispiele gezeigt\./],
-    [{ kind: "fallback", cause: "timeout" }, "timeout", /^Die eigene Tafel braucht gerade länger zum Laden\. Bis dahin werden Beispiele gezeigt\.$/],
+    [{ ...empty, problems: [{ kind: "unknown-concept", conceptId: "einhorn" }] }, "unloadable-profile", /^Die Begriffe der eigenen Tafel konnten nicht geladen werden\. Deshalb werden Beispiele gezeigt\./],
+    [{ kind: "fallback", cause: "timeout" }, "timeout", /^Das Laden dauert gerade länger\. Deshalb werden Beispiele gezeigt\.$/],
     [{ kind: "fallback", cause: "timeout-kept" }, "timeout-kept", /Beispiele gezeigt\. Die eigene Tafel ist bereit und erscheint, wenn die Seite neu geladen wird\.$/],
-    [{ kind: "fallback", cause: "render-failed" }, "render-failed", /^Die eigene Tafel kann gerade nicht angezeigt werden\. Bis dahin werden Beispiele gezeigt\./],
+    [{ kind: "fallback", cause: "render-failed" }, "render-failed", /^Die eigene Tafel kann gerade nicht angezeigt werden\. Deshalb werden Beispiele gezeigt\./],
+    [{ kind: "fallback", cause: "refresh-timeout" }, "refresh-timeout", /^Die Tafel konnte gerade nicht neu geladen werden\. Deshalb werden Beispiele gezeigt\./],
   ];
   const sentences = new Set();
   for (const [view, cause, sentence] of cases) {
@@ -844,6 +849,10 @@ test("render: when the own board cannot be shown, the examples stand in, tappabl
       assert.equal(notices.length, 1, cause);
       assert.match(notices[0], sentence);
       assert.match(notices[0], /Beispiele/);
+      // Only the two causes that end by themselves may say "until then".
+      if (!["no-active", "empty-profile"].includes(cause)) assert.doesNotMatch(notices[0], /Bis dahin/);
+      // The timeout sentence also stands on a device without profiles: it must not promise an own board.
+      if (cause === "timeout") assert.doesNotMatch(notices[0], /eigene/);
       sentences.add(notices[0]);
       assert.equal(root.children[0].tagName, "h1");
       assert.doesNotMatch(text, /lösch|entfern|IndexedDB|Datenbank|Fehlercode|error|Profil|Mia/i);
@@ -939,20 +948,20 @@ test("render: the fallback sentence of a board of examples can change in place; 
   withMountedBoard({ kind: "fallback", cause: "timeout" }, ({ root, handle, buttons, output }) => {
     buttons[1].click();
     const mountedNodes = [...root.children];
-    handle.setFallback("timeout-kept");
+    handle.restate({ kind: "fallback", cause: "timeout-kept" });
     assert.deepEqual(root.children, mountedNodes);
     assert.match(parts(root).notices[0], /erscheint, wenn die Seite neu geladen wird/);
     assert.equal(root.dataset.boardFallback, "timeout-kept");
     assert.equal(output.textContent, "Ich möchte etwas trinken.");
     assert.equal(handle.hasSelection(), true);
-    handle.setFallback(null);
+    handle.restate({ kind: "demo", storage: "empty" });
     assert.deepEqual(parts(root).notices, ["Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben."]);
     assert.equal("boardFallback" in root.dataset, false);
 
     // A handle of a board that has been replaced must not write into the new one.
     const own = mountBoard(root, MIA_VIEW);
-    handle.setFallback("damaged");
-    own.setFallback("damaged");
+    handle.restate({ kind: "damaged", count: 1 });
+    own.restate({ kind: "damaged", count: 1 });
     assert.deepEqual(parts(root).notices, []);
     assert.deepEqual(parts(root).labels, ["Ball"]);
     assert.equal("boardFallback" in root.dataset, false);
@@ -1029,7 +1038,7 @@ test("start: storage is slow: after the bound the examples are shown with the st
     assert.equal(root.dataset.startup, "demo-timeout");
     assert.equal(now().fallback, "timeout");
     assert.deepEqual(now().labels, EXAMPLE_LABELS);
-    assert.match(now().notices[0], /braucht gerade länger zum Laden/);
+    assert.match(now().notices[0], /^Das Laden dauert gerade länger/);
     now().buttons[0].click();
     assert.equal(now().output.textContent, "Ich brauche Hilfe.");
     assert.equal(mounts.length, 2);
@@ -1081,22 +1090,24 @@ test("start: a late answer never replaces examples the child has already used; t
     assert.equal(root.dataset.startupLate, "kept");
     assert.equal(now().fallback, "timeout-kept");
     assert.match(now().notices[0], /erscheint, wenn die Seite neu geladen wird/);
-    assert.doesNotMatch(now().notices[0], /länger zum Laden/);
+    assert.doesNotMatch(now().notices[0], /dauert gerade länger/);
     assert.equal(mounts.length, 2);
     // The sentence that is being spoken is not cut off either.
     assert.equal(speech.cancelled, cancelled);
   });
 });
 
-test("start: a late answer that shows examples too causes no re-mount: only the sentence above them changes", async () => {
-  for (const [resolved, state, cause, sentence] of [
-    [{ kind: "damaged", count: 1 }, "damaged", "damaged", /^Die eigene Tafel kann gerade nicht geladen werden/],
-    [{ kind: "demo", storage: "unavailable" }, "demo-unavailable", "storage-unavailable", /^Der Speicher dieses Geräts/],
-    [{ kind: "demo", storage: "empty" }, "demo-empty", null, /^Testoberfläche mit Beispielen/],
-    [{ ...MIA_VIEW, entries: [] }, "profile", "empty-profile", /noch keine Begriffe ausgewählt/],
+test("start: a late answer that shows examples too causes no re-mount: the sentence above them changes and its problems are traced", async () => {
+  const unloadable = { ...MIA_VIEW, entries: [], problems: [{ kind: "unknown-concept", conceptId: "einhorn" }, { kind: "damaged-custom-concept", conceptId: "ball", damage: "unreadable" }] };
+  for (const [resolved, state, cause, sentence, problems] of [
+    [{ kind: "damaged", count: 1 }, "damaged", "damaged", /^Die eigene Tafel kann gerade nicht geladen werden/, undefined],
+    [{ kind: "demo", storage: "unavailable" }, "demo-unavailable", "storage-unavailable", /^Der Speicher dieses Geräts/, undefined],
+    [{ kind: "demo", storage: "empty" }, "demo-empty", null, /^Testoberfläche mit Beispielen/, undefined],
+    [{ ...MIA_VIEW, entries: [] }, "profile", "empty-profile", /noch keine Begriffe ausgewählt/, "0"],
+    [unloadable, "profile", "unloadable-profile", /konnten nicht geladen werden/, "2"],
   ]) {
     for (const select of [false, true]) {
-      await withStartup(async ({ root, host, mounts, fireTimer, view, answer, now, speech }) => {
+      await withStartup(async ({ root, host, mounts, fireTimer, view, answer, now, speech, warnings }) => {
         const done = runStartup(view, host);
         fireTimer();
         if (select) now().buttons[3].click();
@@ -1113,6 +1124,11 @@ test("start: a late answer that shows examples too causes no re-mount: only the 
         assert.equal(now().notices.length, 1);
         assert.match(now().notices[0], sentence);
         assert.equal(now().output.textContent, select ? "Ich möchte mehr." : "Wähle einen Begriff.");
+        // The same trace as when the view is mounted directly.
+        assert.equal(root.dataset.boardProblems, problems, String(cause));
+        assert.deepEqual(warnings, problems === "2"
+          ? ['Board problem: unknown-concept for concept "einhorn"', 'Board problem: damaged-custom-concept for concept "ball" (unreadable)']
+          : []);
       });
     }
   }
@@ -1241,13 +1257,21 @@ test("app: storage that cannot be opened or read: store() is null or the read is
     assert.equal(root.dataset.startup, "demo-unavailable");
     assert.deepEqual(foreign.snapshot(), { "app/schema": 99 });
 
-    // A backend that opens and then fails on reads: there is a store, the view is "unavailable", a throwing reporter is harmless.
+    // A backend that opens and then fails on reads: there is a store, the failed read is reported, the view is "unavailable".
     const failing = { get: async () => 1, keys: () => Promise.reject(new Error("read failed")), write: async () => undefined };
-    const broken = createApp(root, { openBackend: async () => failing, catalogue: CONCEPTS, setTimer, report: () => { throw new Error("reporter broke"); } });
+    const reads = [];
+    const broken = createApp(root, { openBackend: async () => failing, catalogue: CONCEPTS, setTimer, report: (error) => reads.push(error.message) });
     await broken.started;
     assert.ok((await broken.store()) instanceof ProfileStore);
+    assert.deepEqual(reads, ["read failed"]);
     assert.equal(root.dataset.startup, "demo-unavailable");
+    assert.equal(now().fallback, "storage-unavailable");
     assert.deepEqual(now().labels, EXAMPLE_LABELS);
+
+    // A reporter that throws is harmless.
+    const quiet = createApp(root, { openBackend: async () => failing, catalogue: CONCEPTS, setTimer, report: () => { throw new Error("reporter broke"); } });
+    await quiet.started;
+    assert.equal(root.dataset.startup, "demo-unavailable");
   });
 });
 
@@ -1282,28 +1306,6 @@ test("app: refreshBoard shows a profile change without a reload, replaces a boar
     assert.deepEqual(now().labels, EXAMPLE_LABELS);
     assert.equal(now().fallback, "empty-profile");
     assert.equal(opened, 1);
-  });
-});
-
-test("app: refreshBoard clears the late-answer marker of start-up and waits for start-up", async () => {
-  await withPage(async ({ root, setTimer, fireTimer, now, mounts }) => {
-    const backend = new MemoryBackend();
-    let open;
-    const app = createApp(root, { openBackend: () => new Promise((resolve) => { open = resolve; }), catalogue: CONCEPTS, setTimer });
-    const refreshed = app.refreshBoard(); // asked for before storage has answered
-    await new Promise((resolve) => setImmediate(resolve));
-    fireTimer();
-    assert.equal(root.dataset.startup, "demo-timeout");
-    assert.equal(mounts.length, 2);
-    now().buttons[0].click();
-    open(backend);
-    await app.started;
-    assert.equal(root.dataset.startupLate, "same-board");
-    await refreshed;
-    assert.equal(root.dataset.startup, "demo-empty");
-    assert.equal("startupLate" in root.dataset, false);
-    assert.equal(now().fallback, null);
-    assert.equal(now().output.textContent, "Wähle einen Begriff.");
   });
 });
 
@@ -1354,4 +1356,302 @@ test("app: refreshes asked for at the same time are carried out one after anothe
     ]);
     assert.deepEqual(now().labels, ["Fertig"]);
   });
+});
+
+/** A backend over `inner` whose reads the test can hold back or make fail. */
+function controllableBackend(inner) {
+  const control = {
+    holdKey: null, reached: null, release: () => undefined,
+    /** While set, every read rejects with this error. */
+    failWith: null,
+    /** Holds the next `get` of this key until `release()` is called; the returned promise resolves when it is held. */
+    hold(key) {
+      control.holdKey = key;
+      return new Promise((resolve) => { control.reached = resolve; });
+    },
+  };
+  const backend = {
+    async keys(prefix) {
+      if (control.failWith !== null) throw control.failWith;
+      return inner.keys(prefix);
+    },
+    write: (batch) => inner.write(batch),
+    async get(key) {
+      if (control.failWith !== null) throw control.failWith;
+      if (key === control.holdKey) {
+        control.holdKey = null;
+        control.reached();
+        await new Promise((resolve) => { control.release = resolve; });
+      }
+      return inner.get(key);
+    },
+  };
+  return { backend, control };
+}
+
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+test("app: a refresh asked for during start-up is carried out after start-up, and clears its late-answer marker", async () => {
+  await withPage(async ({ root, setTimer, now, mounts }) => {
+    const inner = new MemoryBackend();
+    const seeded = await ProfileStore.open(inner);
+    const many = await seeded.create("A", []);
+    await setBoardConcepts(seeded, many.id, ["hilfe", "trinken", "pause", "mehr", "fertig"], CONCEPTS);
+    const one = await seeded.create("B", []);
+    await setBoardConcepts(seeded, one.id, ["fertig"], CONCEPTS);
+    await seeded.setActive(many.id);
+
+    // Start-up is held in the middle of reading the long board; meanwhile the active profile changes and a refresh is asked for.
+    const { backend, control } = controllableBackend(inner);
+    const held = control.hold(`profile/${many.id}/data/concept.hilfe`);
+    const app = createApp(root, { openBackend: async () => backend, catalogue: CONCEPTS, setTimer });
+    await held;
+    await inner.write({ set: { "app/active-profile": one.id } });
+    const refreshed = app.refreshBoard();
+    await tick();
+    assert.equal(mounts.length, 1, "only the waiting line so far");
+    control.release();
+    await refreshed;
+    // Start-up mounted what it had read, then the refresh mounted the current state. Not the other way round.
+    assert.deepEqual(mounts.map((mount) => mount.labels), [[], ["Hilfe", "Trinken", "Pause", "Mehr", "Fertig"], ["Fertig"]]);
+    assert.deepEqual(now().labels, ["Fertig"]);
+  });
+
+  // The marker of a late start-up answer does not outlive a refresh.
+  await withPage(async ({ root, setTimer, fireTimer, now }) => {
+    let open;
+    const app = createApp(root, { openBackend: () => new Promise((resolve) => { open = resolve; }), catalogue: CONCEPTS, setTimer });
+    await tick();
+    fireTimer();
+    assert.equal(root.dataset.startup, "demo-timeout");
+    now().buttons[0].click();
+    open(new MemoryBackend());
+    await app.started;
+    assert.equal(root.dataset.startupLate, "same-board");
+    await app.refreshBoard();
+    assert.equal(root.dataset.startup, "demo-empty");
+    assert.equal("startupLate" in root.dataset, false);
+    assert.equal(now().output.textContent, "Wähle einen Begriff.");
+  });
+});
+
+test("app: a read that fails during refreshBoard is reported and shows the examples with the storage sentence; the next refresh recovers", async () => {
+  await withPage(async ({ root, setTimer, now }) => {
+    const inner = new MemoryBackend();
+    const { backend, control } = controllableBackend(inner);
+    const reported = [];
+    const app = createApp(root, { openBackend: async () => backend, catalogue: CONCEPTS, setTimer, report: (error) => reported.push(error.message) });
+    await app.started;
+    const store = await app.store();
+    const mia = await store.create("Mia", []);
+    await setBoardConcepts(store, mia.id, ["mehr"], CONCEPTS);
+    await store.setActive(mia.id);
+    await app.refreshBoard();
+    assert.deepEqual(now().labels, ["Mehr"]);
+
+    control.failWith = new Error("read failed");
+    await app.refreshBoard();
+    assert.deepEqual(reported, ["read failed"]);
+    assert.equal(root.dataset.startup, "demo-unavailable");
+    assert.equal(now().fallback, "storage-unavailable");
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    assert.equal(now().examplesLook, true);
+
+    control.failWith = null;
+    await app.refreshBoard();
+    assert.deepEqual(now().labels, ["Mehr"]);
+    assert.equal(root.dataset.startup, "profile");
+    assert.equal(now().fallback, null);
+    assert.equal(reported.length, 1);
+  });
+});
+
+test("app: a refresh that storage does not answer in time takes the previous board off the screen, does not block later refreshes, and its late answer is dropped", async () => {
+  await withPage(async ({ root, setTimer, fireTimer, timers, now, mounts }) => {
+    const inner = new MemoryBackend();
+    const { backend, control } = controllableBackend(inner);
+    const app = createApp(root, { openBackend: async () => backend, catalogue: CONCEPTS, setTimer, waitMs: 700 });
+    await app.started;
+    const store = await app.store();
+    const first = await store.create("A", []);
+    await putCustomConcept(store, first.id, "ball", BALL, CONCEPTS);
+    await setBoardConcepts(store, first.id, ["ball"], CONCEPTS);
+    const second = await store.create("B", []);
+    await setBoardConcepts(store, second.id, ["fertig"], CONCEPTS);
+    await store.setActive(first.id);
+    await app.refreshBoard();
+    assert.deepEqual(now().labels, ["Ball"]);
+    const before = mounts.length;
+
+    // The next read hangs. The refresh is bounded like start-up.
+    const held = control.hold("app/active-profile");
+    let done = false;
+    const hanging = app.refreshBoard().then(() => { done = true; });
+    await held;
+    assert.equal(done, false);
+    assert.deepEqual(now().labels, ["Ball"]);
+    assert.equal(timers.at(-1).milliseconds, 700);
+    fireTimer();
+    await hanging;
+    // The previous profile's tiles are gone; the examples say why.
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    assert.equal(now().fallback, "refresh-timeout");
+    assert.equal(root.dataset.startup, "refresh-timeout");
+    assert.match(now().notices[0], /^Die Tafel konnte gerade nicht neu geladen werden\. Deshalb werden Beispiele gezeigt\./);
+    assert.doesNotMatch(now().text, /Ball/);
+    assert.equal(mounts.length, before + 1);
+
+    // A later refresh is not blocked. While storage still hangs it waits for it; meanwhile the active profile changes.
+    await inner.write({ set: { "app/active-profile": second.id } });
+    const later = app.refreshBoard();
+    await tick();
+    assert.equal(mounts.length, before + 1);
+    control.release(); // storage answers again: first the old read (profile A), then the new one (profile B)
+    await later;
+    // The late answer of the timed-out refresh was dropped: A's board was never mounted again.
+    assert.deepEqual(mounts.slice(before).map((mount) => mount.labels), [EXAMPLE_LABELS, ["Fertig"]]);
+    assert.deepEqual(now().labels, ["Fertig"]);
+    assert.equal(root.dataset.startup, "profile");
+    // A timer that fires after its refresh was answered changes nothing.
+    for (const timer of timers) timer.callback();
+    assert.deepEqual(now().labels, ["Fertig"]);
+    assert.equal(mounts.length, before + 2);
+  });
+});
+
+// --- Examples look different ---
+
+test("render: every board of examples carries the examples class and a visible badge; a profile's own board carries neither", async () => {
+  const empty = { kind: "profile", profileId: "0".repeat(32), displayName: "Mia", entries: [], problems: [] };
+  const exampleViews = [
+    { kind: "demo", storage: "empty" }, { kind: "demo", storage: "unavailable" }, { kind: "damaged", count: 1 }, { kind: "no-active", profiles: [] },
+    empty, { ...empty, problems: [{ kind: "unknown-concept", conceptId: "einhorn" }] },
+    { kind: "fallback", cause: "timeout" }, { kind: "fallback", cause: "timeout-kept" }, { kind: "fallback", cause: "render-failed" }, { kind: "fallback", cause: "refresh-timeout" },
+  ];
+  for (const view of exampleViews) {
+    withMountedBoard(view, ({ board, examplesLook, badge, labels, buttons }) => {
+      const name = JSON.stringify(view);
+      assert.equal(examplesLook, true, name);
+      assert.equal(board.className, "concept-board concept-board-examples");
+      assert.equal(badge, "Beispiele", name);
+      // The badge is on the board itself, before the tiles, and is not a tile.
+      assert.equal(board.children[0].className, "examples-badge");
+      assert.equal(board.children[0].tagName, "span");
+      assert.deepEqual(labels, EXAMPLE_LABELS);
+      assert.equal(buttons.length, EXAMPLE_LABELS.length);
+      assert.match(board["aria-label"], /Beispiele/);
+    });
+  }
+  // An own board that uses the very same catalogue concepts as the examples still looks like an own board.
+  const { store } = await openStore();
+  const mia = await store.create("Mia", []);
+  await setBoardConcepts(store, mia.id, CONCEPTS.map((concept) => concept.id), CONCEPTS);
+  await store.setActive(mia.id);
+  for (const view of [MIA_VIEW, await resolveStartupView(store, CONCEPTS)]) {
+    withMountedBoard(view, ({ board, examplesLook, badge, text }) => {
+      assert.equal(examplesLook, false);
+      assert.equal(board.className, "concept-board");
+      assert.equal(badge, null);
+      assert.equal(board["aria-label"], "Kommunikationsbegriffe");
+      assert.doesNotMatch(text, /Beispiel/);
+    });
+  }
+});
+
+test("the stylesheet gives the examples board and its badge a look of their own", async () => {
+  const css = await readFile(new URL("../dist/styles.css", import.meta.url), "utf8");
+  const rule = (selector) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
+  assert.match(rule(".concept-board-examples"), /border:[^;]*dashed/);
+  assert.match(rule(".concept-board-examples"), /background:/);
+  assert.match(rule(".examples-badge"), /background:/);
+  assert.match(rule(".examples-badge"), /grid-column: 1 \/ -1/);
+});
+
+// --- Copies are marked ---
+
+test("stored entries: exactly three key sets are accepted; custom and copied never together, and only as true", async () => {
+  const { store } = await openStore();
+  const mia = await store.create("Mia", ["hilfe", "mehr", "pause", "trinken", "fertig"]);
+  const data = store.data(mia.id);
+  const wording = { version: 1, labelDe: "Wort", speechDe: "Ein Satz." };
+  await data.set("concept.hilfe", { ...wording, copied: true });
+  await data.set("concept.mehr", { ...wording });
+  await data.set("concept.pause", { ...wording, copied: true, custom: true });
+  await data.set("concept.trinken", { ...wording, copied: false });
+  await data.set("concept.fertig", { ...wording, copied: "yes" });
+  const board = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(board.entries.map((entry) => entry.labelDe), ["Wort", "Wort", "Pause", "Trinken", "Fertig"]);
+  assert.deepEqual(board.problems, ["pause", "trinken", "fertig"].map((conceptId) => ({ kind: "damaged-wording", conceptId, damage: "unreadable" })));
+});
+
+test("only copy-on-choose and clearWording write the copied marker; a caregiver's wording and a custom concept never carry it", async () => {
+  const { store } = await openStore();
+  const mia = await store.create("Mia", []);
+  const data = store.data(mia.id);
+  await setBoardConcepts(store, mia.id, ["hilfe", "mehr"], CONCEPTS);
+  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
+  await setWording(store, mia.id, "hilfe", { labelDe: "Hilf mir", speechDe: "Bitte hilf mir." }, CONCEPTS);
+  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilf mir", speechDe: "Bitte hilf mir." });
+  await clearWording(store, mia.id, "hilfe", CONCEPTS);
+  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
+  await putCustomConcept(store, mia.id, "ball", BALL, CONCEPTS);
+  await setWording(store, mia.id, "ball", { labelDe: "Bälle", speechDe: "Viele Bälle." }, CONCEPTS);
+  await setBoardConcepts(store, mia.id, ["hilfe", "mehr", "ball"], CONCEPTS);
+  assert.deepEqual(await data.get("concept.ball"), { version: 1, labelDe: "Bälle", speechDe: "Viele Bälle.", custom: true });
+});
+
+test("choosing a concept again refreshes a copy from the catalogue of that moment, but never a caregiver's wording and never a concept that stayed on the board", async () => {
+  const { backend, store } = await openStore();
+  const mia = await store.create("Mia", []);
+  const data = store.data(mia.id);
+  await setBoardConcepts(store, mia.id, ["hilfe", "mehr", "pause"], CONCEPTS);
+  await setWording(store, mia.id, "pause", { labelDe: "Ruhe", speechDe: "Ich will Ruhe." }, CONCEPTS);
+  const later = withCatalogue({
+    hilfe: { speechDe: "Kannst du mir helfen?" }, mehr: { speechDe: "Noch mehr, bitte." }, pause: { speechDe: "Pause, bitte." },
+  });
+
+  // "mehr" and "pause" are taken off the board; "hilfe" stays.
+  await setBoardConcepts(store, mia.id, ["hilfe"], later);
+  assert.deepEqual(await data.get("concept.mehr"), { version: 1, labelDe: "Mehr", speechDe: "Ich möchte mehr.", copied: true }, "taking off does not touch the entry");
+
+  // Chosen again: the copy is refreshed, the caregiver's wording is kept, the concept that stayed keeps its sentence.
+  await setBoardConcepts(store, mia.id, ["pause", "hilfe", "mehr"], later);
+  assert.deepEqual(await data.get("concept.mehr"), { version: 1, labelDe: "Mehr", speechDe: "Noch mehr, bitte.", copied: true });
+  assert.deepEqual(await data.get("concept.pause"), { version: 1, labelDe: "Ruhe", speechDe: "Ich will Ruhe." });
+  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
+  assert.deepEqual((await resolveBoard(store, mia.id, later)).entries.map((entry) => entry.speechDe), ["Ich will Ruhe.", "Ich brauche Hilfe.", "Noch mehr, bitte."]);
+
+  // Reordering with an unchanged set is one write, of the concept ids only: a second write would fail here.
+  const before = backend.snapshot();
+  backend.failWrite(2);
+  await setBoardConcepts(store, mia.id, ["mehr", "hilfe", "pause"], later);
+  const after = backend.snapshot();
+  assert.deepEqual(after[`profile/${mia.id}/meta`].conceptIds, ["mehr", "hilfe", "pause"]);
+  delete before[`profile/${mia.id}/meta`];
+  delete after[`profile/${mia.id}/meta`];
+  assert.deepEqual(after, before);
+
+  // A copy left behind by a call that failed before it set the board is refreshed when the concept is chosen later.
+  // Armed anew: the copy is write 1 and is stored, the concept ids are write 2 and fail.
+  backend.failWrite(2);
+  await assert.rejects(setBoardConcepts(store, mia.id, ["mehr", "hilfe", "pause", "fertig"], CONCEPTS), InjectedWriteError);
+  assert.deepEqual(await data.get("concept.fertig"), { version: 1, labelDe: "Fertig", speechDe: "Ich bin fertig.", copied: true });
+  assert.deepEqual((await store.get(mia.id)).conceptIds, ["mehr", "hilfe", "pause"]);
+  await setBoardConcepts(store, mia.id, ["mehr", "hilfe", "pause", "fertig"], withCatalogue({ fertig: { speechDe: "Fertig!" } }));
+  assert.equal((await resolveBoard(store, mia.id, CONCEPTS)).entries[3].speechDe, "Fertig!");
+});
+
+test("choosing replaces an unreadable entry under a catalogue id with a fresh copy", async () => {
+  const { store } = await openStore();
+  const mia = await store.create("Mia", ["hilfe", "mehr"]);
+  const data = store.data(mia.id);
+  await data.set("concept.hilfe", { version: 1, labelDe: "", speechDe: "Leer." });
+  await data.set("concept.pause", { version: 7, labelDe: "Später", speechDe: "Von später." });
+  assert.deepEqual((await resolveBoard(store, mia.id, CONCEPTS)).problems, [{ kind: "damaged-wording", conceptId: "hilfe", damage: "unreadable" }]);
+  await setBoardConcepts(store, mia.id, ["hilfe", "mehr", "pause"], CONCEPTS);
+  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
+  assert.deepEqual(await data.get("concept.pause"), { version: 1, labelDe: "Pause", speechDe: "Ich brauche eine Pause.", copied: true });
+  const board = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(board.problems, []);
+  assert.deepEqual(board.entries.map((entry) => entry.labelDe), ["Hilfe", "Mehr", "Pause"]);
 });

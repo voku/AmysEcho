@@ -22,13 +22,15 @@ const EXAMPLES_LINE = "Testoberfläche mit Beispielen. Die Begriffe sind noch ni
 /** One calm sentence per reason why the examples stand in for the child's own board. */
 const FALLBACK_LINES: Record<FallbackCause, string> = {
   "storage-unavailable": "Der Speicher dieses Geräts ist gerade nicht erreichbar. Deshalb werden hier Beispiele gezeigt.",
-  "damaged": "Die eigene Tafel kann gerade nicht geladen werden. Bis dahin werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  "damaged": "Die eigene Tafel kann gerade nicht geladen werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
   "no-active": "Es ist noch keine eigene Tafel ausgewählt. Bis dahin werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
   "empty-profile": "Für die eigene Tafel sind noch keine Begriffe ausgewählt. Bis dahin werden Beispiele gezeigt.",
-  "unloadable-profile": "Die Begriffe der eigenen Tafel konnten nicht geladen werden. Bis dahin werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
-  "timeout": "Die eigene Tafel braucht gerade länger zum Laden. Bis dahin werden Beispiele gezeigt.",
+  "unloadable-profile": "Die Begriffe der eigenen Tafel konnten nicht geladen werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  // Also shown on a device without any profile whose storage never answers, so it does not speak of an own board.
+  "timeout": "Das Laden dauert gerade länger. Deshalb werden Beispiele gezeigt.",
   "timeout-kept": "Hier werden noch Beispiele gezeigt. Die eigene Tafel ist bereit und erscheint, wenn die Seite neu geladen wird.",
-  "render-failed": "Die eigene Tafel kann gerade nicht angezeigt werden. Bis dahin werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  "render-failed": "Die eigene Tafel kann gerade nicht angezeigt werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  "refresh-timeout": "Die Tafel konnte gerade nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
 };
 
 function fallbackLine(cause: FallbackCause | null): string {
@@ -110,9 +112,21 @@ export function mountBoard(root: HTMLElement, view: BoardView): BoardHandle {
   };
 
   const board = document.createElement("div");
-  board.className = "concept-board";
-  board.setAttribute("aria-label", "Kommunikationsbegriffe");
   board.setAttribute("role", "group");
+  if (examples) {
+    // Examples must look different from a child's own board, not only read
+    // different: they can carry the same pictures as own tiles. The class
+    // gives the frame and tint, the badge sits on the board itself.
+    board.className = "concept-board concept-board-examples";
+    board.setAttribute("aria-label", "Kommunikationsbegriffe, Beispiele");
+    const badge = document.createElement("span");
+    badge.className = "examples-badge";
+    badge.textContent = "Beispiele";
+    board.append(badge);
+  } else {
+    board.className = "concept-board";
+    board.setAttribute("aria-label", "Kommunikationsbegriffe");
+  }
 
   const output = document.createElement("p");
   output.className = "message";
@@ -197,13 +211,14 @@ export function mountBoard(root: HTMLElement, view: BoardView): BoardHandle {
   reportProblems(root, view);
   return {
     hasSelection: () => selection !== null,
-    setFallback: (next) => {
-      // Only while this board is the one on screen, and only on a board of examples.
-      if (fallbackNotice === null || root.children[1] !== fallbackNotice) return;
-      cause = next;
+    restate: (next) => {
+      // Only while this board is the one on screen, and only from examples to examples.
+      if (fallbackNotice === null || root.children[1] !== fallbackNotice || !showsExamples(next)) return;
+      cause = fallbackCause(next);
       fallbackNotice.textContent = fallbackLine(cause);
       fallbackNotice.className = cause === null ? "board-notice" : "board-notice board-fallback";
       showCause();
+      reportProblems(root, next);
     },
   };
 }
