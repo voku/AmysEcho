@@ -52,4 +52,4 @@ NG-10 waits for an agent-loop release and does not block product work. The small
 - Validation is the full chain from `AGENTS.md`.
 - Recognition changes report numbers from the evaluation in `npm test`. Synthetic numbers are not
   accuracy claims.
-- No child data in the repository, in CI or in logs.
+- No recordings of real people in the repository, in CI or in logs: public fixtures are synthetic.
