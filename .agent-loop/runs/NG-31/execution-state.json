@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
     "contract_revision": 1,
-    "current_attempt": 3,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 4,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -211,10 +211,48 @@
                 "task_id": "NG-31",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T19:30:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T19:30:51+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:58a0661c7212ee9c347202ddfb7b7fdf7667a66c47f5e2d147d6b25878f02d1a",
+                    "execution-evidence:sha256:f7403bb8ec747fb3bbbdb99a4a57952976c8d300ad66103fe41444700054280a"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:58a0661c7212ee9c347202ddfb7b7fdf7667a66c47f5e2d147d6b25878f02d1a",
+                    "execution-evidence:sha256:f7403bb8ec747fb3bbbdb99a4a57952976c8d300ad66103fe41444700054280a"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "context_id": "claude-subagent-ng31-correctness-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:875bc37f",
+                "summary": "caregiver.ts:1136,1150,900 a hold started on a confirm button that a redraw then replaces is orphaned and deletes two seconds later after one tap; docs/caregiver.md:237 says a pointer leaving ends the hold, false on touch (implicit pointer capture); blind-spot: lifting the finger after a completed hold clicks what the redraw put there and can activate another profile, and the hold hint can be below the fold",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": null,
+    "last_attention_id": "attention:a99965b8f2814c78",
     "recovery_history": [],
     "run_id": "run:NG-31:e21389d8d0abe454",
     "schema_version": "1.0",
