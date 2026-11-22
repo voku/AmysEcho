@@ -1,0 +1,169 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-25 before calling agent-loop finish NG-25",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T12:00:24+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-25/contract.json",
+                "sha256": "sha256:75e9473a4c3904131b32f40ad70a997dc6311d7778fb1b7c08816ad9be2db0aa"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-25",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "fadcf1493b07b535e5d010464b6a8a39eb0c3cc0937f3dc9d8238194d8439701",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-25.md",
+                "sha256": "sha256:fadcf1493b07b535e5d010464b6a8a39eb0c3cc0937f3dc9d8238194d8439701"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Any value that data(id).set accepts survives export and import unchanged, including a value at the maximum nesting depth; the depth limit is applied per data value in store, import and restore",
+                "An exportedAt value that is not a real calendar timestamp is rejected",
+                "cloneJson rejects objects with accessor properties, non-enumerable own properties and arrays with extra properties instead of dropping or evaluating them",
+                "restoreProfile validates its data argument itself; getActive never returns the id of a profile whose stored record is unreadable; a damaged entry with a malformed id segment can be removed",
+                "Display names are stored NFC-normalised and names with bidirectional or format control characters are rejected",
+                "An import larger than a documented limit on data names or total size is rejected without changing the store",
+                "docs/storage.md states that ProfileV1 carries a display name unlike the product contract section 3 shape, and that storing personal data awaits the caregiver decision of card NG-7"
+            ],
+            "goal": "Close the defects the NG-2 reviews found in src/profiles before anything stores real data: every export must be restorable, and input edge cases are rejected instead of altered",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-25/contract.json",
+                "sha256": "sha256:75e9473a4c3904131b32f40ad70a997dc6311d7778fb1b7c08816ad9be2db0aa"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-25/contract.json",
+                "sha256": "sha256:75e9473a4c3904131b32f40ad70a997dc6311d7778fb1b7c08816ad9be2db0aa"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-25:947884823683544c",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:38d2f9915499468df91c0b4f05e45225428857b5072aafcb4a2bddd28c52607c",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:a9be4d5e0e81a51454e398c42bbd4a16150fb27b19fcf39a71db9c57e9a6850c"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-25:947884823683544c",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "b9793d7cc14e80915469532bb57037193d351569c3a756f2daf75537a9fbe149",
+            "compilation_id": "compilation.NG-25.2026-11-22-120024.f86824c1",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "df249a92e762473e5ce7fe1f824e6a9eddae6ced87ac558c084c9926063c45cb",
+            "source": {
+                "path": ".agent-loop/recall/NG-25/meta.json",
+                "sha256": "sha256:3f084fe97fa1cb9330761d02119c3b86dbc3ae7149f8b6e8969413a977e0a2f9"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-25/reviews/NG-25.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-25-r1-92b5c3c9",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-25-r1-92b5c3c9/session.json",
+                "sha256": "sha256:7dd0e58a1e274ade4d82f0bb546b51f325813aaf65f352c0e10c9364d05b8e0f"
+            },
+            "state": "active",
+            "task_id": "NG-25"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-25 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-25",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:f0c780bf359a3249c5deb8252b08452d63efd67f923a661f88fc268a46bd26a3",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-25:947884823683544c",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-25"
+}

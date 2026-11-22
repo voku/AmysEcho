@@ -1,0 +1,47 @@
+{
+    "attention": null,
+    "candidate_revision": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T12:00:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:00:25+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:584a0a49",
+                "summary": "Located in the merged NG-2 code: backup.ts line 72 and store.ts line 226 clone the whole data dictionary (one nesting level more than the per-value clone in store.ts line 183), reproduced as depth 64 exporting but not importing; EXPORTED_AT_PATTERN plus Date.parse accepts 2026-02-31; cloneJson in backend.ts uses Object.entries; profile.ts validates display names without normalisation.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-25:947884823683544c",
+    "schema_version": "1.0",
+    "task_id": "NG-25"
+}
