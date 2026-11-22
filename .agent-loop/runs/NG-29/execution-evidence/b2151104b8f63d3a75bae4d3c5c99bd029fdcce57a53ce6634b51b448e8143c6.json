@@ -1,0 +1,16 @@
+{
+    "attempt": 3,
+    "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:ed20b16129b201d4b0b52944fdc2d2e81b0f17bb",
+    "contract_revision": 1,
+    "evidence_kind": "candidate",
+    "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-22T14:53:55+00:00",
+    "reference": "execution-evidence:sha256:b2151104b8f63d3a75bae4d3c5c99bd029fdcce57a53ce6634b51b448e8143c6",
+    "run_id": "run:NG-29:da89ee8418a74855",
+    "schema_version": "1.0",
+    "source_digest": "sha256:57930cd0c87e73467a28e2a4567d657f397c874d3ed9334f22ec283e903d926b",
+    "source_reference": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:9f1bdfd6d8af01a1a649dd34f03e0cbd3e030d2a",
+    "stage_id": "build",
+    "task_id": "NG-29"
+}

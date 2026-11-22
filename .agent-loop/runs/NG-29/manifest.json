@@ -1,0 +1,181 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T14:08:48+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-29/contract.json",
+                "sha256": "sha256:d8d2cfd0cad63338ee4a1a4c93867f0168dd45ed5340dff75a1f9dfdc720a7b3"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-29",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "8969f7c76040b734d4c4f446613091fd26a54721d67c0d37edc2ad7dce27cd65",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-29.md",
+                "sha256": "sha256:8969f7c76040b734d4c4f446613091fd26a54721d67c0d37edc2ad7dce27cd65"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A short tap or an interrupted hold never opens the caregiver area; only a hold of the full duration does, and the countdown is visible while holding",
+                "A profile created and activated in the caregiver area is shown on the child's board after closing, without a page reload",
+                "Concepts chosen and ordered in the caregiver area appear on the board in that order; a concept this version cannot show stays on the profile when the order is changed",
+                "When storage is unavailable the caregiver area says so in German and offers nothing that would write",
+                "User-facing text is German and the child's board shows no profile name"
+            ],
+            "goal": "A caregiver opens the caregiver area by a deliberate press-and-hold with a visible countdown, sees the stored profiles, creates a profile, makes one active, and chooses and orders catalogue concepts for it; closing returns to the child's board, which shows the change without a reload.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-29/contract.json",
+                "sha256": "sha256:d8d2cfd0cad63338ee4a1a4c93867f0168dd45ed5340dff75a1f9dfdc720a7b3"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-29/contract.json",
+                "sha256": "sha256:d8d2cfd0cad63338ee4a1a4c93867f0168dd45ed5340dff75a1f9dfdc720a7b3"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T15:05:42+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-29:da89ee8418a74855",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/827e38f870d7a04f4aca269351261b3f5c373299b4d64a2dc70b84ecd07aa51d.json",
+                "sha256": "sha256:8aa8b948ad13e4a9c8c720b0050aaecde3f315921662ea4e7f77fd13be4ec49c"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:38f4e825dc824ce5dd7099f9ee47e51b6dba770a80da0d8b6650f1239acf219b",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:f7e489d5c96503d37d338ccd3d4b9467357d6e6cab91e03042831eaf76458ea5"
+            },
+            "stale_entries": [
+                {
+                    "path": "public/sw.js",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/main.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 3,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-29:da89ee8418a74855",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "d14dea767ef3f64d91d77a1eba95107484ac78600253a11afb1c4c7eb0fa1532",
+            "compilation_id": "compilation.NG-29.2026-11-22-140848.43781278",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "3878572bd1c71a98c77e100cab75fb6ba6bf4ba23dcddde823f381922bdccd45",
+            "source": {
+                "path": ".agent-loop/recall/NG-29/meta.json",
+                "sha256": "sha256:cdedbfaf6eef315c6bbea132df6a196b2867f0ee099522eac4c8eb3792512055"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-29/reviews/NG-29.blindspots.json",
+                "sha256": "sha256:f1f423c254fcf4f9cd43024a1fe91d0c306cafd5d414867e6d35d98fcb5994ab"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "05947ccd08be83869530506228ec0503ce7a6b51",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-29-r1-6c8464ab",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-29-r1-6c8464ab/session.json",
+                "sha256": "sha256:06cfc77b2aa9aa978df576b1eadd22b591ac1c671e9bc13122691f7dd824711d"
+            },
+            "state": "done",
+            "task_id": "NG-29"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:0d36c853343a531be48a9685b4ba09a2a370dcde8ffa0d37fc2147e1fdf1d34f",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-29:da89ee8418a74855",
+            "source": {
+                "path": ".agent-loop/runs/NG-29/verification.json",
+                "sha256": "sha256:18c4e702855794e4592022c05aa15030beb43313bec3472b91cb0c8199c9728e"
+            },
+            "source_session_id": "2026-11-22-ng-29-r1-6c8464ab",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-29:da89ee8418a74855",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-29"
+}

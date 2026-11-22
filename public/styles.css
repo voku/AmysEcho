@@ -15,4 +15,36 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .message { min-height: 3rem; padding: 1.2rem; background: #e0f2ec; border-radius: 1rem; font-size: clamp(1.5rem, 5vw, 2.4rem); font-weight: 700; overflow-wrap: anywhere; }
 .speech-status { min-height: 2.5rem; }
 .retry { padding: .8rem 1.2rem; min-height: 54px; border: 2px solid #215c76; border-radius: .7rem; background: white; color: #143146; font: 600 1rem system-ui, sans-serif; cursor: pointer; }
+.caregiver-entry { max-width: 900px; margin: 2.5rem auto 1rem; padding: 0 1rem; text-align: right; }
+.caregiver-open { min-height: 44px; min-width: 44px; padding: .5rem .9rem; border: 1px solid #9db4bf; border-radius: .6rem; background: transparent; color: #4a6472; font: 400 .9rem system-ui, sans-serif; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.caregiver-hold-progress { display: block; width: 12rem; max-width: 100%; height: .8rem; margin: .5rem 0 0 auto; }
+.caregiver-hint { min-height: 1.5rem; margin: .4rem 0 0; color: #4a6472; font-size: .95rem; }
+.caregiver-region { font-size: 1.05rem; line-height: 1.5; }
+.caregiver-heading:focus { outline: none; }
+.caregiver-status { min-height: 1.6rem; padding: .6rem .9rem; border-left: 6px solid #215c76; border-radius: .4rem; background: #e6f1f5; }
+.caregiver-status:empty { visibility: hidden; }
+.caregiver-notice { max-width: 40rem; }
+.caregiver-damaged { padding: .6rem .9rem; border-left: 6px solid #cf681e; border-radius: .4rem; background: #fff6ec; }
+.caregiver-warning { padding: .6rem .9rem; border-left: 6px solid #cf681e; border-radius: .4rem; background: #fff6ec; font-weight: 600; }
+.caregiver-name-notice { flex-basis: 100%; margin: 0; font-size: .95rem; color: #3d5666; }
+.caregiver-section { margin-block: 1.5rem; }
+.caregiver-profiles, .caregiver-concepts { margin: 0; padding: 0; list-style: none; }
+.caregiver-profile, .caregiver-concept { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .6rem 0; border-bottom: 1px solid #c9dbe2; }
+.caregiver-profile-name { flex: 1 1 10rem; font-weight: 700; overflow-wrap: anywhere; }
+.caregiver-active { padding: .3rem .8rem; border-radius: 999px; background: #215c76; color: white; font-weight: 600; }
+.caregiver-button, .caregiver-input { min-height: 44px; padding: .5rem 1rem; border: 2px solid #215c76; border-radius: .6rem; background: white; color: #143146; font: 600 1rem system-ui, sans-serif; }
+.caregiver-button { min-width: 44px; cursor: pointer; }
+.caregiver-button:disabled { border-color: #b7c4ca; color: #7b8a91; cursor: default; }
+.caregiver-button[aria-pressed="true"] { background: #dceff4; }
+.caregiver-input { font-weight: 400; }
+.caregiver-create { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: 1rem; }
+.caregiver-check { width: 44px; height: 44px; margin: 0; flex: none; }
+.caregiver-concept-label { display: flex; flex: 1 1 14rem; flex-wrap: wrap; align-items: center; gap: .2rem .7rem; min-height: 44px; }
+.caregiver-concept-label img { width: 48px; height: 48px; }
+.caregiver-concept-name { font-weight: 700; overflow-wrap: anywhere; }
+.caregiver-concept-sentence { flex-basis: 100%; color: #3d5666; overflow-wrap: anywhere; }
+.caregiver-concept-note { flex-basis: 100%; margin: 0; color: #6b4a1c; }
+.caregiver-concept-locked .caregiver-concept-label { color: #55656d; }
+.caregiver-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 2rem; }
+.caregiver-open:focus-visible, .caregiver-button:focus-visible, .caregiver-input:focus-visible, .caregiver-check:focus-visible { outline: 5px solid #cf681e; outline-offset: 3px; }
 [hidden] { display: none !important; }

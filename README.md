@@ -32,13 +32,25 @@ Early rebuild. What exists today:
 - wording that is copied into the profile when concepts are chosen through `setBoardConcepts`, so
   such a board keeps its sentences when the catalogue changes. A board made another way, or
   restored from a backup without stored wording, follows the current catalogue;
-- an app shell with a board region, an empty region reserved for the caregiver area, and a
-  controller that owns the page's one profile store and can re-mount the board without a reload.
+- an app shell with a board region, a region for the caregiver area, and a controller that owns
+  the page's one profile store and can re-mount the board without a reload;
+- a first caregiver area ([docs/caregiver.md](docs/caregiver.md)), opened by holding a small
+  control for three seconds: a profile can be created, made the active board and given catalogue
+  concepts in a chosen order, in the app, and the board shows the result without a reload. The
+  hold is a hurdle for a small child, not security.
 
-Not built yet: a caregiver screen. Nothing in the app can create, choose or edit a profile, so in
-practice the board still shows the examples. Also not built: symbols for custom concepts, camera
-input and gesture recognition in the app. The browser storage adapter has no automated test.
-Nothing here has been verified on a physical device or with a child.
+Still missing in the caregiver area: rewording a concept, custom concepts, export and import,
+renaming and deleting a profile, and help with damaged entries; those exist as library code only
+or not at all. Also not built: symbols for custom concepts, camera input and gesture recognition
+in the app. The caregiver area is tested in Node against a fake DOM, not in a browser, and the
+browser storage adapter has no automated test. Nothing here has been verified on a physical
+device or with a child.
+
+A child's first name may be stored as the profile name (owner decision of 2026-11-22, card NG-7);
+how long data is kept, who counts as an authorised caregiver and deletion are still open there.
+The browser storage adapter has never run in a browser (card NG-14), so data entered now may not
+survive. There is no in-app removal of a single profile and no backup; clearing the site data of
+the browser removes all profiles in this browser and the offline copy of the app.
 
 ## Principles
 
