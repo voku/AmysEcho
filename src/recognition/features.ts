@@ -26,17 +26,19 @@ const POSITION_WEIGHT = 1;
 const MIN_ACTIVE_FRAMES = 3;
 /**
  * A hand belongs to the gesture when it is visible for at least this share of
- * the gesture's duration. A hand below it is left out entirely: a second hand
- * that passes through does not turn a one-hand gesture into a two-hand one.
+ * the gesture's duration, whether it moves or not. A hand below it is left out
+ * entirely: a second hand that passes through does not turn a one-hand gesture
+ * into a two-hand one. Presence alone decides: a hand that is clearly in view
+ * is never left out because the other hand moves more.
  */
 export const HAND_PRESENCE_SHARE = 0.5;
 /**
- * And, when anything moves at all, it has to move itself for at least this
- * share of the gesture's duration. A hand that only rests in view while the
- * other one makes the gesture is left out. (So is a hand that is held still on
- * purpose as part of a two-hand gesture; see docs/recognition.md.)
+ * Only a hand visible for less than this share of the gesture's duration is
+ * left out silently. Between the two shares nobody can say whether the hand
+ * belongs, and leaving it out could turn a two-hand gesture into the one-hand
+ * gesture with the same path: no sequence is built ("hands_unclear").
  */
-export const HAND_MOVING_SHARE = 0.2;
+export const HAND_BRIEF_SHARE = 0.2;
 /**
  * A hand that belongs to the gesture may be lost for up to this long and is
  * filled in between the frames around the gap. A longer gap is not guessed
@@ -87,14 +89,26 @@ export type HandKind = "left" | "right" | "both";
 export interface FeatureSequence {
   readonly schemaVersion: 2;
   readonly anchor: Anchor;
-  /** Decided by `HAND_PRESENCE_SHARE`. Sequences of different kinds are not comparable; the slot of a hand that is not part of the gesture is all zero. */
+  /** The hands in view for at least `HAND_PRESENCE_SHARE` of the gesture. Sequences of different kinds are not comparable; the slot of a hand that is not part of the gesture is all zero. */
   readonly hands: HandKind;
   readonly steps: readonly (readonly number[])[];
 }
 /** The name `dtw.ts` imports. The payload is schema version 2. */
 export type FeatureSequenceV1 = FeatureSequence;
 
-export type FeatureFailure = "no_frames" | "bad_timestamps" | "bad_landmarks" | "too_short" | "hand_lost";
+/**
+ * Why no sequence was built. Each names what was seen, not what to do about it.
+ * - "no_hands": frames, but no hand in any of them.
+ * - "too_short": a hand of the gesture is in fewer than three of its frames, or
+ *   the gesture's frames all carry one timestamp.
+ * - "hands_unclear": which hands make the gesture cannot be told. A hand was in
+ *   view for between `HAND_BRIEF_SHARE` and `HAND_PRESENCE_SHARE` of the time;
+ *   or a hand was in view more briefly and the hands that stay show no
+ *   movement of their own (so only the brief hand moved, or nothing did); or
+ *   no hand is in view for half of the time.
+ * - "hand_lost": a hand of the gesture was not seen for longer than `MAX_BRIDGED_GAP_MS`.
+ */
+export type FeatureFailure = "no_frames" | "bad_timestamps" | "bad_landmarks" | "no_hands" | "too_short" | "hands_unclear" | "hand_lost";
 
 export type FeatureResult =
   | { readonly ok: true; readonly sequence: FeatureSequence }
@@ -296,21 +310,16 @@ function segment(frames: readonly LandmarkFrame[], sides: readonly Side[], moves
 }
 
 /**
- * The hands that belong to the span: visible for at least `HAND_PRESENCE_SHARE`
- * of its duration and, unless no hand moves in it at all, moving for at least
- * `HAND_MOVING_SHARE` of it.
+ * The hands that are visible for at least `HAND_PRESENCE_SHARE` of the span's
+ * duration; movement plays no part. Null when a hand is visible for less than
+ * that but not for less than `HAND_BRIEF_SHARE`.
  */
-function presentHands(
-  frames: readonly LandmarkFrame[], sides: readonly Side[], [first, last]: readonly [number, number], moves: Readonly<Record<Side, boolean[]>>,
-): Side[] {
+function presentHands(frames: readonly LandmarkFrame[], [first, last]: readonly [number, number]): Side[] | null {
   const weights = frameWeights(frames, first, last);
   const total = weights.reduce((sum, weight) => sum + weight, 0);
-  const share = (counts: (index: number) => boolean): number =>
-    weights.reduce((sum, weight, offset) => sum + (counts(first + offset) ? weight : 0), 0) / total;
-  const moving = (side: Side): number => share((index) => moves[side][index]!);
-  const anyMoves = sides.some((side) => moving(side) > 0);
-  return sides.filter((side) => share((index) => frames[index]![side] !== null) >= HAND_PRESENCE_SHARE
-    && (!anyMoves || moving(side) >= HAND_MOVING_SHARE));
+  const shares = SIDES.map((side) => weights.reduce((sum, weight, offset) => sum + (frames[first + offset]![side] !== null ? weight : 0), 0) / total);
+  if (shares.some((share) => share >= HAND_BRIEF_SHARE && share < HAND_PRESENCE_SHARE)) return null;
+  return SIDES.filter((_, index) => shares[index]! >= HAND_PRESENCE_SHARE);
 }
 
 function writeHand(target: number[], offset: number, hand: readonly Point[] | null, reference: Reference): void {
@@ -334,8 +343,9 @@ function writeHand(target: number[], offset: number, hand: readonly Point[] | nu
 /**
  * Fills the frames in which a hand of the gesture is missing: between the
  * frames around a gap in proportion to the time, and before its first or after
- * its last sighting with the nearest one. False when a gap between two
- * sightings is longer than `MAX_BRIDGED_GAP_MS`.
+ * its last sighting with the nearest one. False when two sightings are
+ * farther apart in time than `MAX_BRIDGED_GAP_MS`, with or without frames in
+ * between.
  */
 function bridgeGaps(rows: number[][], times: readonly number[], offset: number): boolean {
   const present = (row: number[]): boolean => row[offset + HAND_SHAPE_VALUES + 2] === 1;
@@ -351,8 +361,8 @@ function bridgeGaps(rows: number[][], times: readonly number[], offset: number):
   for (let at = 1; at < seen.length; at += 1) {
     const from = seen[at - 1]!;
     const to = seen[at]!;
-    if (to - from < 2) continue;
     const gap = times[to]! - times[from]!;
+    // By time, not by frames: a camera that delivers nothing for a while has lost the hand as well.
     if (gap > MAX_BRIDGED_GAP_MS) return false;
     for (let missing = from + 1; missing < to; missing += 1) {
       copy(missing, from, to, gap > 0 ? (times[missing]! - times[from]!) / gap : 0.5);
@@ -384,8 +394,10 @@ function resample(rows: readonly number[][], times: readonly number[], steps: nu
  * 1. The gesture is cut out of the capture by movement (`segment`), so a
  *    capture may start early and end late and hands may rest in view.
  * 2. A hand belongs to it when it is visible for `HAND_PRESENCE_SHARE` of that
- *    time. Other hands are dropped, and the gesture is cut out once more from
- *    the movement of the hands that belong to it.
+ *    time, moving or not. A hand seen more briefly is dropped, and the gesture
+ *    is cut out once more from the movement of the hands that belong to it. If
+ *    those do not move themselves, nothing is built ("hands_unclear"): the
+ *    hand that stays is never matched on the strength of a hand that left.
  * 3. Gaps of those hands up to `MAX_BRIDGED_GAP_MS` are filled; a longer one
  *    fails with "hand_lost".
  * 4. Positions are made relative to the body, and the result is resampled to
@@ -412,7 +424,7 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
   // The speed needs a length to be measured in: that of the whole capture is good enough for cutting.
   const coarse = findReference(frames, SIDES);
   if (coarse === null) {
-    return { ok: false, reason: "too_short" };
+    return { ok: false, reason: "no_hands" };
   }
   if (!(coarse.scale > 0) || !Number.isFinite(coarse.scale)) {
     return { ok: false, reason: "bad_landmarks" };
@@ -423,22 +435,30 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
   };
   const rough = segment(frames, SIDES, moves);
   if (rough === null) {
-    return { ok: false, reason: "too_short" };
+    return { ok: false, reason: "no_hands" };
   }
-  const candidates = presentHands(frames, SIDES, rough, moves);
-  const span = candidates.length === 0 ? null : segment(frames, candidates, moves);
-  // Cut again without the hand that only passed through; a hand that falls below the share then is dropped as well.
-  const sides = span === null ? [] : presentHands(frames, candidates, span, moves);
-  if (span === null || sides.length === 0) {
-    return { ok: false, reason: "too_short" };
+  const sides = presentHands(frames, rough);
+  if (sides === null || sides.length === 0) {
+    return { ok: false, reason: "hands_unclear" };
+  }
+  const inView = SIDES.filter((side) => frames.slice(rough[0], rough[1] + 1).some((frame) => frame[side] !== null));
+  if (sides.length < inView.length && !sides.some((side) => moves[side].includes(true))) {
+    return { ok: false, reason: "hands_unclear" };
+  }
+  // Cut again without the hand that only passed through. The hands that belong must still be the same ones, and no other in between.
+  const span = segment(frames, sides, moves);
+  if (span === null || presentHands(frames, span)?.join() !== sides.join()) {
+    return { ok: false, reason: "hands_unclear" };
   }
   const gesture = frames.slice(span[0], span[1] + 1);
   const times = gesture.map((frame) => frame.tMs);
   const active = gesture.filter((frame) => sides.some((side) => frame[side] !== null)).length;
-  if (active < MIN_ACTIVE_FRAMES) {
+  if (active < MIN_ACTIVE_FRAMES || times[times.length - 1] === times[0]) {
     return { ok: false, reason: "too_short" };
   }
-  const reference = findReference(gesture, sides);
+  // Shoulders seen only before or after the movement still anchor it.
+  const own = findReference(gesture, sides);
+  const reference = own !== null && own.anchor === "hands" && coarse.anchor === "shoulders" ? coarse : own;
   if (reference === null) {
     return { ok: false, reason: "bad_landmarks" };
   }

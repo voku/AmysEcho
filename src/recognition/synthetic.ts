@@ -239,6 +239,92 @@ export function renderGesture(gesture: SyntheticGesture, variation: Variation): 
   return frames;
 }
 
+/**
+ * What one hand does over a scripted capture: where its wrist is (in shoulder
+ * widths from the point between the shoulders) and how its fingers are curled
+ * at a time, or null while it is out of view.
+ */
+export type HandScript = (tMs: number) => { readonly wrist: Point; readonly curls: readonly number[] } | null;
+
+export interface ScriptedCapture {
+  readonly durationMs: number;
+  readonly left: HandScript | null;
+  readonly right: HandScript | null;
+}
+
+const between = (from: number, to: number, share: number): number => from + (to - from) * share;
+
+/**
+ * A hand that rests at `from`, goes to `to` between `startMs` and `startMs +
+ * moveMs` while its fingers change from `curls` to `curlsEnd`, and rests there.
+ * With `from` equal to `to` only the shape changes; without `curlsEnd` as well
+ * it is a hand held still. It is in view from `visibleFromMs` to `visibleUntilMs`.
+ */
+export function scriptedHand(options: {
+  readonly from: Point; readonly to?: Point; readonly curls: readonly number[]; readonly curlsEnd?: readonly number[];
+  readonly startMs?: number; readonly moveMs?: number; readonly visibleFromMs?: number; readonly visibleUntilMs?: number;
+}): HandScript {
+  const to = options.to ?? options.from;
+  const curlsEnd = options.curlsEnd ?? options.curls;
+  return (tMs) => {
+    if (tMs < (options.visibleFromMs ?? 0) || tMs > (options.visibleUntilMs ?? Number.POSITIVE_INFINITY)) return null;
+    const share = Math.min(Math.max((tMs - (options.startMs ?? 0)) / (options.moveMs ?? 1), 0), 1);
+    return {
+      wrist: [between(options.from[0], to[0], share), between(options.from[1], to[1], share)],
+      curls: options.curls.map((curl, finger) => between(curl, curlsEnd[finger]!, share)),
+    };
+  };
+}
+
+/** The same hand, fidgeting once: out by `size` and back, and as far to the other side and back, within `lengthMs`. */
+export function fidgeting(hand: HandScript, startMs: number, lengthMs: number, size: number): HandScript {
+  return (tMs) => {
+    const at = hand(tMs);
+    if (at === null) return null;
+    const swing = Math.sin(Math.min(Math.max((tMs - startMs) / lengthMs, 0), 1) * 2 * Math.PI);
+    return { ...at, wrist: [at.wrist[0] + size * swing, at.wrist[1] + (size / 2) * swing] };
+  };
+}
+
+/** The same hand with a tremor of `size` shoulder widths at `hertz`. */
+export function trembling(hand: HandScript, hertz: number, size: number): HandScript {
+  return (tMs) => {
+    const at = hand(tMs);
+    if (at === null) return null;
+    const turn = (tMs / 1000) * 2 * Math.PI * hertz;
+    return { ...at, wrist: [at.wrist[0] + Math.sin(turn) * size, at.wrist[1] + Math.cos(turn * 0.9) * size] };
+  };
+}
+
+/** Renders a scripted capture as landmark frames at about 27 frames per second, with shoulders and tracking jitter. */
+export function renderScript(capture: ScriptedCapture, variation: Pick<Variation, "seed" | "session">): LandmarkFrame[] {
+  const random = createRandom(variation.seed);
+  const { shift, zoom, tilt } = variation.session;
+  const toCamera = ([x, y]: Point): Point => [
+    (x * Math.cos(tilt) - y * Math.sin(tilt)) * zoom + shift[0],
+    (x * Math.sin(tilt) + y * Math.cos(tilt)) * zoom + shift[1],
+  ];
+  const render = (script: HandScript | null, tMs: number): Point[] | null => {
+    const at = script === null ? null : script(tMs);
+    if (at === null) return null;
+    const wander: Point = [gaussian(random) * REST_JITTER, gaussian(random) * REST_JITTER];
+    return handShape(at.curls, 0).map(([x, y]) => toCamera([
+      at.wrist[0] + wander[0] + x * HAND_SIZE + gaussian(random) * 0.003,
+      at.wrist[1] + wander[1] + y * HAND_SIZE + gaussian(random) * 0.003,
+    ]));
+  };
+  const frames: LandmarkFrame[] = [];
+  for (let tMs = 0; tMs <= capture.durationMs; tMs += FRAME_MS * (0.9 + random() * 0.2)) {
+    frames.push({
+      tMs: Math.round(tMs),
+      left: render(capture.left, tMs),
+      right: render(capture.right, tMs),
+      shoulders: [toCamera([-0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01]), toCamera([0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01])],
+    });
+  }
+  return frames;
+}
+
 if (HAND_POINTS !== 21) {
   throw new Error("synthetic hand model assumes 21 landmarks");
 }
