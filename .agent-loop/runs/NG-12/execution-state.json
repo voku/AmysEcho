@@ -1,15 +1,80 @@
 {
     "attention": null,
-    "candidate_revision": "f3b318a922658e98258747ca1dbc4f83245ce362",
-    "contract_revision": 1,
+    "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:55acece81b90ce9459e1c8b4b1330eb9feea2747",
+    "contract_revision": 2,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
-    "execution_plan_digest": "sha256:b250b2864b00895ce82c0ca3fc38d0a590b3344843057bc5fcbbb91de74653ec",
-    "history": [],
+    "current_stage_id": "correctness-review",
+    "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T12:57:32+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:57:32+00:00",
+                "artifact_references": [],
+                "candidate_revision": "f3b318a922658e98258747ca1dbc4f83245ce362",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-12:9ab8ce62c7eebc00",
+                "schema_version": "1.0",
+                "task_id": "NG-12",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "f3b318a922658e98258747ca1dbc4f83245ce362",
+                "context_id": "claude-main-ng12-investigate",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+                "outcome": "completed",
+                "run_id": "run:NG-12:9ab8ce62c7eebc00",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:c425055b",
+                "summary": "Board renders a fixed catalogue; ProfileStore offers get, setConceptIds and per-profile data; a pinned file list in test/profiles.test.mjs keeps new modules out of src/profiles, so board data lives in src/board-data.ts",
+                "task_id": "NG-12",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:57:32+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:57:32+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:55acece81b90ce9459e1c8b4b1330eb9feea2747",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-12:9ab8ce62c7eebc00",
+                "schema_version": "1.0",
+                "task_id": "NG-12",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f3b318a922658e98258747ca1dbc4f83245ce362:55acece81b90ce9459e1c8b4b1330eb9feea2747",
+                "context_id": "claude-subagent-ng12-build-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:426ea06b030088e444edc1f7c9e5178bed994d4e6bc9fb8534c1a70743b2d992",
+                "outcome": "completed",
+                "run_id": "run:NG-12:9ab8ce62c7eebc00",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:24b93bfe",
+                "summary": "Board data API, startup view resolution and view-driven board rendering with tests; verify passes with 126 tests",
+                "task_id": "NG-12",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
-    "run_id": "run:NG-12:4e2a02d2a8b2bba3",
+    "run_id": "run:NG-12:9ab8ce62c7eebc00",
     "schema_version": "1.0",
     "task_id": "NG-12"
 }

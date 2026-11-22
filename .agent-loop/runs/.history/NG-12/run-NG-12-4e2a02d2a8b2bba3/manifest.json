@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-12 before calling agent-loop finish NG-12",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T12:48:08+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-12/contract.json",
+                "sha256": "sha256:231648d29902d7caac5963c619f02630a7dbca3c368871194cc8d05c77612d62"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-12",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "4f964cbbaa1d8e4ffa9b65dd3d1e6e3d05ee1e25c335dac9ada415a6dd231dcc",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-12.md",
+                "sha256": "sha256:4f964cbbaa1d8e4ffa9b65dd3d1e6e3d05ee1e25c335dac9ada415a6dd231dcc"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Two profiles with different concept sets never show each other's concepts or wording",
+                "The board works for a concept without a symbol",
+                "With no active profile and damaged entries present the board shows the damaged state, not the demo board and not a create-profile flow",
+                "When storage cannot be opened the demo board still works",
+                "User-facing text is German"
+            ],
+            "goal": "The board renders the active child profile: its own ordered set of concepts with per-profile German label and sentence, including custom concepts stored in that profile's data. Without a profile the labelled synthetic demo board is shown; damaged profile storage is shown as its own state. A typed API lets a later caregiver screen pick, order, reword and add concepts.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-12/contract.json",
+                "sha256": "sha256:231648d29902d7caac5963c619f02630a7dbca3c368871194cc8d05c77612d62"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-12/contract.json",
+                "sha256": "sha256:231648d29902d7caac5963c619f02630a7dbca3c368871194cc8d05c77612d62"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-12:4e2a02d2a8b2bba3",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:1d829f2b5574252725173620a751fb467d02aca8e04e00e34a3fd9b8b6c9701e",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:b46ec26528b090cecca2a0766c3a5f89dce30c9d90ab1a0f132bfd0f30729a2c"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-12:4e2a02d2a8b2bba3",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "937e0d233ddde45f514363ceca38bfda9a4a840db0ab7dc6feaaefbe11606ed9",
+            "compilation_id": "compilation.NG-12.2026-11-22-124808.2826e957",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "d52080daae08b4befdea03274fbf7483eab833402403c1c2ab26a133155b8bbb",
+            "source": {
+                "path": ".agent-loop/recall/NG-12/meta.json",
+                "sha256": "sha256:3a7c59dae1fb5d84a31183f0adc35674531a7ed45f1c790bd34bb2680e8c594e"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-12/reviews/NG-12.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "f3b318a922658e98258747ca1dbc4f83245ce362",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-12-r1-36289b73",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-12-r1-36289b73/session.json",
+                "sha256": "sha256:6c61db902ed7380f7d883da3fabcdbd388be9a0f45bc040c84732ad879fa1c63"
+            },
+            "state": "active",
+            "task_id": "NG-12"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-12 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-12",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "implementation",
+            "implementation_snapshot": null,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Implementation snapshot scoped path does not exist yet: src/startup.ts (a deleted path needs a Contract base_commit that tracks it)",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-12:4e2a02d2a8b2bba3",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-12"
+}
