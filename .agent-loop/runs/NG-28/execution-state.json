@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
     "history": [
         {
@@ -66,6 +66,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:f2e85cff",
                 "summary": "App controller with one store and refreshBoard, board region, fallback board with a sentence per cause, wording copied on choose, no display name on the board, static index line, start-up branches covered; verify passes with 153 tests",
+                "task_id": "NG-28",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T13:37:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T13:37:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4d02edebd242b06c28af12526a1df9ed26ad997fbdb00278d585f61679423228",
+                    "execution-evidence:sha256:7ac45d577ae6727f14569029591f6213b391e6fb6f0a09c45964a2955119f608",
+                    "execution-evidence:sha256:b16dd02d855253eef8190de359dfc02f6e09beffbc0d11aba608914e6f9a47f1"
+                ],
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "schema_version": "1.0",
+                "task_id": "NG-28",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4d02edebd242b06c28af12526a1df9ed26ad997fbdb00278d585f61679423228",
+                    "execution-evidence:sha256:7ac45d577ae6727f14569029591f6213b391e6fb6f0a09c45964a2955119f608",
+                    "execution-evidence:sha256:b16dd02d855253eef8190de359dfc02f6e09beffbc0d11aba608914e6f9a47f1"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0609c6d70d1aff9c66b70f90a829e8f6eee2561e:9ca28721ddf41390249eee237c37273c5531aef4",
+                "context_id": "claude-subagent-ng28-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b1138764e9b1f574f14831866245bb83d4d7ac037ab81156e9be8d5584bf0adb",
+                "outcome": "changes_required",
+                "run_id": "run:NG-28:c91b439f3817329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:6b201a28",
+                "summary": "startup.ts:222-225 the in-place late-answer path never reports problems, so data-board-problems and the console trace are missing for a late unloadable or empty profile and docs/storage.md is false there; blind-spot: fallback examples are look-alikes of own tiles with other sentences and positions, and the reversal recipe for that decision is incomplete",
                 "task_id": "NG-28",
                 "validation_references": []
             }
