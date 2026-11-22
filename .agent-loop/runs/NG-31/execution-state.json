@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
     "contract_revision": 1,
-    "current_attempt": 6,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 1,
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -418,6 +418,63 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:6:1b7f8108",
                 "summary": "Sixth build: details toggle marks a swap (tested), doc sentence on second-finger tap corrected, faked-click assertion removed; 424 tests pass",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:09:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:09:51+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:9a4a3307cd12fd534156f7b4ece796cc9b27cef59be25f1f7ee4bdf16ed859ea",
+                    "execution-evidence:sha256:36dca1257e496195981e4389fa7b45ed552ad4cbcd5a892d6b4268e5fc331168",
+                    "execution-evidence:sha256:282ad7ce23f880ad308de06da516da1de399b9fc9fd996b052226c27e172ad2b",
+                    "execution-evidence:sha256:c613cebd916ed1883b0de085257611d48256543bb85a70a48907e6a479162139",
+                    "execution-evidence:sha256:0dde1f57b27ced2a6d27f2611b7344241a4c597d861e30423c9d04e54f483bed",
+                    "execution-evidence:sha256:51b6136bb40659d7e49801843136e8ae0a1a8bae649086a6c96763305f5855f8",
+                    "execution-evidence:sha256:1690a38f9eb30506aca1584b4610d5e5ab6e490c31c5d162ab0ef64794a084d5",
+                    "execution-evidence:sha256:45ee14901a5eb0613d8eb072f50f3ac02b2ffe4e70478fd164707e81e89749bd",
+                    "execution-evidence:sha256:83d7f734691714bdaafcba391c44c56e928095db5f791caf1f41acf89dbd12a1"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:9a4a3307cd12fd534156f7b4ece796cc9b27cef59be25f1f7ee4bdf16ed859ea",
+                    "execution-evidence:sha256:36dca1257e496195981e4389fa7b45ed552ad4cbcd5a892d6b4268e5fc331168",
+                    "execution-evidence:sha256:282ad7ce23f880ad308de06da516da1de399b9fc9fd996b052226c27e172ad2b",
+                    "execution-evidence:sha256:c613cebd916ed1883b0de085257611d48256543bb85a70a48907e6a479162139",
+                    "execution-evidence:sha256:0dde1f57b27ced2a6d27f2611b7344241a4c597d861e30423c9d04e54f483bed",
+                    "execution-evidence:sha256:51b6136bb40659d7e49801843136e8ae0a1a8bae649086a6c96763305f5855f8",
+                    "execution-evidence:sha256:1690a38f9eb30506aca1584b4610d5e5ab6e490c31c5d162ab0ef64794a084d5",
+                    "execution-evidence:sha256:45ee14901a5eb0613d8eb072f50f3ac02b2ffe4e70478fd164707e81e89749bd",
+                    "execution-evidence:sha256:83d7f734691714bdaafcba391c44c56e928095db5f791caf1f41acf89dbd12a1"
+                ],
+                "attempt": 6,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "context_id": "correctness-review-6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "observations": [
+                    "src/caregiver.ts:1472 the swap is marked on the async toggle event about one frame after the fold; two synthetic taps inside that frame get through. Marking in the capture click handler's summary branch would close it.",
+                    "test/caregiver.test.mjs:4825 dispatches toggle by hand; only a browser probe shows a real fold fires it in time (NG-14).",
+                    "docs/caregiver.md:285 the no-click claim for a second-finger tap is Chromium-specific and has no unit test (NG-14)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:6:41a0387d",
+                "summary": "Sixth build passes: doc sentences true of the code, toggle mark verified in Chromium for human-speed taps, no lock-out, 424 tests pass",
                 "task_id": "NG-31",
                 "validation_references": []
             }
