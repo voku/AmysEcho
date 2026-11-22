@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:d53a1533e6b5ac28681eb89d8bafb31254b792e1",
+    "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
     "contract_revision": 1,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
     "history": [
         {
@@ -104,6 +104,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:cc784850",
                 "summary": "recognition.md still says the left/right convention is undecided; the record still reads as spike input with two adapter locations; the zero-requests-offline claim is not supported by the retained result.",
+                "task_id": "NG-16",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:32:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:32:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "schema_version": "1.0",
+                "task_id": "NG-16",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:4944fa69984577d481e99c3f9e89e7994cedda08",
+                "context_id": "build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "outcome": "completed",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:b064ad67",
+                "summary": "Record retitled as the decision, one adapter location, left/right convention written into docs/recognition.md, offline request claim matched to the retained result",
                 "task_id": "NG-16",
                 "validation_references": []
             }
