@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
     "contract_revision": 1,
-    "current_attempt": 3,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 4,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -216,10 +216,50 @@
                 "task_id": "NG-25",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T12:29:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:29:10+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:1d0373a3b3b08ed3df661ab1049b2f7bdfd69c782ab9774385cc27273a9b9526",
+                    "execution-evidence:sha256:21e57837df708ab994d79c68d3a8d0d034658223a62821a2b31a93d259be432b",
+                    "execution-evidence:sha256:8cd18c556a8020e45ad8ead4a7582d3eb1794dd90b084cf8afaed6d01328f3ac"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:1d0373a3b3b08ed3df661ab1049b2f7bdfd69c782ab9774385cc27273a9b9526",
+                    "execution-evidence:sha256:21e57837df708ab994d79c68d3a8d0d034658223a62821a2b31a93d259be432b",
+                    "execution-evidence:sha256:8cd18c556a8020e45ad8ead4a7582d3eb1794dd90b084cf8afaed6d01328f3ac"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "context_id": "claude-subagent-ng25-correctness-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "changes_required",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:e146ee4b",
+                "summary": "readProfile's correcting usage write (store.ts:430,484-488) is unguarded, so export fails when storage refuses writes; backup.ts:32-34 still claims a store-written profile never hits ExportSizeError; a too-high record makes set refuse data that fits.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": null,
+    "last_attention_id": "attention:34651a5b2cc7c1ec",
     "recovery_history": [],
     "run_id": "run:NG-25:947884823683544c",
     "schema_version": "1.0",
