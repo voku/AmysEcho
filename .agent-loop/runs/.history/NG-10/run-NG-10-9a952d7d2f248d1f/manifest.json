@@ -1,0 +1,161 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-10 before calling agent-loop finish NG-10",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T11:38:22+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-10/contract.json",
+                "sha256": "sha256:9250d68be8fce8fe63392b2a6d4c8b35d525e4b8275d956d52a449a3fb2da5cc"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-10",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "f7db0a8d8b9ee6b62e19c9958a7f64798384b2903c305eb1514c801e668b41bd",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-10.md",
+                "sha256": "sha256:f7db0a8d8b9ee6b62e19c9958a7f64798384b2903c305eb1514c801e668b41bd"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "composer.lock holds voku/agent-loop 0.20.105 and voku/agent-map 0.25.1 or newer",
+                ".agent-loop/init.json declares map.languages typescript and agent-loop map build indexes src/*.ts",
+                "After the upgrade, init host-status reports next_action_kind none",
+                "AGENTS.md says that the map covers TypeScript and what a missing Node toolchain does"
+            ],
+            "goal": "Governed tasks in this repository get TypeScript code facts: require agent-loop 0.20.105, declare map.languages typescript, and re-sync the projected host assets",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-10/contract.json",
+                "sha256": "sha256:9250d68be8fce8fe63392b2a6d4c8b35d525e4b8275d956d52a449a3fb2da5cc"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-10/contract.json",
+                "sha256": "sha256:9250d68be8fce8fe63392b2a6d4c8b35d525e4b8275d956d52a449a3fb2da5cc"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-10:9a952d7d2f248d1f",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "state": "missing"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-10:9a952d7d2f248d1f",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "17eaacae10216eecb63bddfc9825e7ac71eaed0facee8499d114fcc884da148f",
+            "compilation_id": "compilation.NG-10.2026-11-22-113822.c16e2f8e",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "928506427b0ca016cc7d8bf6aa42bb23f7f7687e1f091b590fbca31ee62d81c2",
+            "source": {
+                "path": ".agent-loop/recall/NG-10/meta.json",
+                "sha256": "sha256:c0d2d2b2a2940afe323c1a2daee9af2bd9f2f8e3ac59a82de56a76f3c80777ee"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-10/reviews/NG-10.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-10-r1-d3c30f98",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-10-r1-d3c30f98/session.json",
+                "sha256": "sha256:8a9771ce17294e3cc31ec26c4a017a3c6f227e7cdd03c508393a76ea2f89d608"
+            },
+            "state": "active",
+            "task_id": "NG-10"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-10 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-10",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:6e00370dcfec36e3472b5769fbdd8772b2211b7ac4ff5e8dd92de351ba5073e7",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-10:9a952d7d2f248d1f",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-10"
+}

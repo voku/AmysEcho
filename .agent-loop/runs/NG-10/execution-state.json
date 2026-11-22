@@ -1,0 +1,287 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+    "contract_revision": 2,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T11:41:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:41:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "9ab463aef3368fec7eb88f72d87d9caf74fbb2aa",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "outcome": "completed",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:d984fbc7",
+                "summary": "Revision 2 corrects the Contract scope to the five files the task changes (composer.json, composer.lock, .agent-loop/init.json, AGENTS.md, README.md); revision 1 recorded only .claude because --scope replaced the --file list. No .claude drift exists after the upgrade (init host-status: none).",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:41:02+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:41:02+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:1d1b526dd43b6de5a0d253b1977e62ac9f4de2c5",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:1d1b526dd43b6de5a0d253b1977e62ac9f4de2c5",
+                "context_id": "claude-session_01Jpe7RDVp43iZAe1CvtiVuB-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "outcome": "completed",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:fdcee236",
+                "summary": "voku/agent-loop 0.20.105 with agent-map 0.25.1 in the lock; map.languages typescript in .agent-loop/init.json; AGENTS.md and README.md document the TypeScript map and that npm ci --ignore-scripts must precede enter. composer validate --strict and npm run verify pass (39 tests); map build wrote 14 files, map query matchGesture resolves.",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:42:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:42:01+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4de5c944acc9fc532a9077dda8bd9fcec5912b82d6aa75a42a0bbaada660c7a8",
+                    "execution-evidence:sha256:06bebd76824fba3cf7fd9b5b1aaf37a198c6f20db568fb3835eac5182420816d",
+                    "execution-evidence:sha256:9ee56490fdf86f85f17e2a9f57768f1589be2af56ce0eb9f4ee061f30220d60a",
+                    "execution-evidence:sha256:436c72370557907d19d32867c5581d86d5cf52b9779199a8cfc97ed9c202a7fa"
+                ],
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:1d1b526dd43b6de5a0d253b1977e62ac9f4de2c5",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4de5c944acc9fc532a9077dda8bd9fcec5912b82d6aa75a42a0bbaada660c7a8",
+                    "execution-evidence:sha256:06bebd76824fba3cf7fd9b5b1aaf37a198c6f20db568fb3835eac5182420816d",
+                    "execution-evidence:sha256:9ee56490fdf86f85f17e2a9f57768f1589be2af56ce0eb9f4ee061f30220d60a",
+                    "execution-evidence:sha256:436c72370557907d19d32867c5581d86d5cf52b9779199a8cfc97ed9c202a7fa"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:1d1b526dd43b6de5a0d253b1977e62ac9f4de2c5",
+                "context_id": "claude-subagent-ng10-correctness-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "outcome": "changes_required",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:34c85045",
+                "summary": "README.md says the workflow builds a TypeScript symbol map for each task; the tooling builds it only when the Contract scope holds TypeScript or JavaScript files. Everything else confirmed: scope, lock versions, composer validate, map query, host-status none, AGENTS.md accurate, npm run verify passes.",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:42:15+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:42:15+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "context_id": "claude-session_01Jpe7RDVp43iZAe1CvtiVuB-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "outcome": "completed",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:17e228e0",
+                "summary": "README.md now says the map is built for a task that touches TypeScript or JavaScript files, matching AGENTS.md and the tooling docs. No other change; npm run verify passes (39 tests).",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:43:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:43:08+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:078ff6b42d6aa537126c5fbac946f1fc9ad9365c85addaded46b0a257e5e7ce0",
+                    "execution-evidence:sha256:a1572fbefa87553bbcecbf7376cf94953bbc87af7fe84c50f2488a8dbe741b2d",
+                    "execution-evidence:sha256:a4fa21c1b972a1f6625f9c40632d48c0205c2a593f23835fa04bb6644963895e",
+                    "execution-evidence:sha256:3dc037a741726d0b6e5f5792f41f44fd24638d3d790aef00644d1bf229d73bc6"
+                ],
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:078ff6b42d6aa537126c5fbac946f1fc9ad9365c85addaded46b0a257e5e7ce0",
+                    "execution-evidence:sha256:a1572fbefa87553bbcecbf7376cf94953bbc87af7fe84c50f2488a8dbe741b2d",
+                    "execution-evidence:sha256:a4fa21c1b972a1f6625f9c40632d48c0205c2a593f23835fa04bb6644963895e",
+                    "execution-evidence:sha256:3dc037a741726d0b6e5f5792f41f44fd24638d3d790aef00644d1bf229d73bc6"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "context_id": "claude-subagent-ng10-correctness-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "observations": [
+                    ".agent-loop/.gitignore gains a line for lock files outside the Contract scope; it was added by hand to match the new scaffold because the tooling refuses that path as scope."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:3c3e84ee",
+                "summary": "Fresh-context review of AGENTS.md, README.md, composer.json and composer.lock: the README sentence now limits the map to tasks touching TypeScript or JavaScript files and matches AGENTS.md and the tooling docs; lock holds agent-loop 0.20.105 and agent-map 0.25.1; composer validate passes; map query matchGesture resolves; host-status none; npm run verify passes 39 of 39.",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:43:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:43:08+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:535006c2a835cc19a308438db93ffc024507b91fb9f3cce8415ded0c5367fda6",
+                    "execution-evidence:sha256:de75a133b6b0e130614fd18c633b4479c265df4b5823bd5327e072ca6c14c663",
+                    "execution-evidence:sha256:ab255db30f66a0fdb1c9519b0a9eb2d3bfb34fc5a8290030862bd62376b6f1a0",
+                    "execution-evidence:sha256:35139293e15414a87a78b1972394833fa395ab706cbbf6c93c2f7d508a4c08bd"
+                ],
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:535006c2a835cc19a308438db93ffc024507b91fb9f3cce8415ded0c5367fda6",
+                    "execution-evidence:sha256:de75a133b6b0e130614fd18c633b4479c265df4b5823bd5327e072ca6c14c663",
+                    "execution-evidence:sha256:ab255db30f66a0fdb1c9519b0a9eb2d3bfb34fc5a8290030862bd62376b6f1a0",
+                    "execution-evidence:sha256:35139293e15414a87a78b1972394833fa395ab706cbbf6c93c2f7d508a4c08bd"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "context_id": "claude-subagent-ng10-blindspot-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "observations": [
+                    "README does not state the PHP version the tooling needs (8.3 or newer).",
+                    "README has composer install and npm ci in separate paragraphs; one ordered setup block would be clearer.",
+                    "The map is built for existing scoped files; a Contract naming only new TypeScript files may get no map, and neither text says so."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:f6d97ee2",
+                "summary": "Fresh-context blind-spot review of AGENTS.md, README.md, composer.json and composer.lock: README and AGENTS.md agree with each other and with the tooling docs on when the map is built and that npm ci --ignore-scripts precedes enter; nothing misleading for the next task.",
+                "task_id": "NG-10",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:43:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:43:22+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "schema_version": "1.0",
+                "task_id": "NG-10",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:4a1315ff119aa6c54d3aedfca67b6136bcf815399b1b4c0e2b086629103ff863",
+                    "execution-evidence:sha256:abf9998ef4e850a92f025acd386d6df74065e4eb251e65e9120f1cd8120d9a03",
+                    "execution-evidence:sha256:8c5afabe994a580f33c834f36949ace9f97debc6eda71b95215c68a5b3a72c37"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:9ab463aef3368fec7eb88f72d87d9caf74fbb2aa:061598674650150c9dc27819cfd8ee1995e84188",
+                "consistency_references": [
+                    "execution-evidence:sha256:00ca93fb3d75258a5034022fbd57c9166da0bb0638654300be0efc010a69f52d"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:999dcc24784c26a38c66e13456ccfe177d205854f11490043908379c0b45e178",
+                "outcome": "pass",
+                "run_id": "run:NG-10:c023d1d261ce0c90",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:3b283876b935e5217c92cb664bbe5a4a9faadbcf436a3fab4b2a1a7807245f29",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-10: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-10 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-10:c023d1d261ce0c90 binds active Session 2026-11-22-ng-10-r2-ea01e984 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-10 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] composer validate --strict\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-10",
+                "validation_references": [
+                    "execution-evidence:sha256:4a1315ff119aa6c54d3aedfca67b6136bcf815399b1b4c0e2b086629103ff863",
+                    "execution-evidence:sha256:abf9998ef4e850a92f025acd386d6df74065e4eb251e65e9120f1cd8120d9a03",
+                    "execution-evidence:sha256:8c5afabe994a580f33c834f36949ace9f97debc6eda71b95215c68a5b3a72c37"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-10:c023d1d261ce0c90",
+    "schema_version": "1.0",
+    "task_id": "NG-10"
+}

@@ -52,6 +52,10 @@ The repository is developed with the governed [`voku/agent-loop`](https://github
 workflow. That tooling is PHP and is installed with `composer install`; the product itself has no
 PHP. See [AGENTS.md](AGENTS.md).
 
+Run `npm ci --ignore-scripts` before `vendor/bin/agent-loop enter`: for a task that touches
+TypeScript or JavaScript files the workflow builds a symbol map and needs
+`node_modules/typescript` for it.
+
 ## The previous version
 
 The first Amy's Echo (React, Express, Python training) is kept unchanged on the
