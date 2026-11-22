@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+    "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
     "contract_revision": 1,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
     "history": [
         {
@@ -104,6 +104,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:1746f84a",
                 "summary": "A queued save or reset is not tied to the mode that asked for it and draft.busy is never cleared on success: reset then Escape still resets and leaves Speichern dead. Doc claims the fields stay open on an unsupported entry, true only for catalogue ids.",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:51:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:51:06+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "context_id": "build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "completed",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:3c1e2ea4",
+                "summary": "Second build: queued save/reset tied to its mode, busy cleared on every path, fields kept on unsupported-entry for all kinds, Enter moves on, typed-back app wording is a reset; 457 tests pass",
                 "task_id": "NG-33",
                 "validation_references": []
             }
