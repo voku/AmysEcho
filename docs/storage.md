@@ -476,7 +476,9 @@ or for a board that was replaced, is ignored.
    - They appear in catalogue order, not in the order of the child's board, and the child's custom
      concepts are missing.
    - This also happens on a slow start (`timeout`): a child with a working profile sees the
-     examples first, and keeps them for the session after tapping one (`timeout-kept`).
+     examples first, and keeps them for the session after tapping one (`timeout-kept`). One
+     exception: a refresh asked for by the caregiver area replaces them when it answers, also
+     after a tap (docs/caregiver.md, known gaps).
    - The dashed frame, the tint and the "Beispiele" badge are the only non-text difference.
 
    What the alternative costs: with a message and no buttons a child cannot say anything in

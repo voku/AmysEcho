@@ -52,12 +52,13 @@ of `HOLD_TICK_MS`, so a hold is never shorter than the duration.
 
 Limits, stated plainly:
 
-- **Do not enter a real child's name yet.** Two recorded preconditions for real data are still
-  open: the retention and authorised-caregiver decision (card NG-7; section 6 of the product
-  contract says to decide before personal data is stored), and the browser verification of the
-  IndexedDB adapter (card NG-14 says it must not be wired to real data until then). There is no
-  in-app removal of a single profile. Clearing the site data of the browser removes **all**
-  profiles on this device and the offline copy of the app.
+- **A first name is allowed; the storage is still unproven.** The owner decided on 2026-11-22
+  (card NG-7) that a child's first name may be stored as the profile name. Still open on NG-7:
+  how long data is kept, who counts as an authorised caregiver, and deletion. Still open on
+  NG-14: the IndexedDB adapter has never run in a browser, so data entered now may not survive.
+  There is no in-app removal of a single profile and no backup. Clearing the site data of the
+  browser removes **all** profiles in this browser and the offline copy of the app, and a browser
+  may remove stored data on its own (docs/storage.md).
 
 - **This is not security.** There is no password or PIN. It is a hurdle for a small child who
   taps; anyone who can read the line and hold for three seconds gets in. A child can learn it.
@@ -88,9 +89,10 @@ plus a margin), because a refresh waits behind start-up and start-up may never b
 storage. What happens when the bound passes before the refresh has settled depends on whether the
 mounted board can be out of date:
 
-- It **cannot**, and the board region is shown as it is (the normal return: caregiver region
+- It **cannot** be out of date through this page, and the board region is shown as it is (the normal return: caregiver region
   hidden and emptied, opening control available and focused), when the board region shows
-  examples (`data-board-fallback` is set, or `data-startup` starts with `demo-`), or when nothing
+  examples (`data-board-fallback` is set, or `data-startup` starts with `demo-`; the
+  `unrenderable` state, in which nothing can be tapped, counts the same), or when nothing
   was written that the mounted board does not already reflect. Without storage nothing is ever
   written. Looking around, picking another profile for editing and a write that failed do not
   count. This is the case when storage never answered at start-up: the examples come back.
@@ -166,11 +168,12 @@ redraw after another action.
 The name is the one in the field when the form is sent, also when the action waits behind
 another and the caregiver types on.
 
-Next to the field one paragraph says what is true today: this is a test version and no real name
-should be entered yet, a nickname is enough; the name and the chosen concepts are stored only in
-this browser on this device; the app itself sends nothing, but the device's keyboard may process
-what is typed on its own; this version cannot rename or delete a single profile; clearing the
-website data in the browser removes all profiles on this device and the offline copy of the app.
+Next to the field one paragraph says what is true today: this is a test version; a first name or
+nickname is enough and no surname should be entered (owner decision on card NG-7); the name and
+the chosen concepts are stored only in this browser on this device; the app sends nothing, but
+the device's keyboard may process what is typed on its own; this version cannot rename or delete
+a single profile and has no backup; clearing the website data in the browser removes all profiles
+in this browser and the offline copy of the app; the browser may remove the data on its own.
 The field has `autocomplete="off"`, `spellcheck=false`, `autocapitalize="off"` and
 `autocorrect="off"`, because a browser's spell checking can send typed text to a service. Whether
 a given browser or on-screen keyboard honours these is unverified.
@@ -225,6 +228,16 @@ with assistive technology.
 - If storage never answered at start-up, a refresh never finishes (see docs/storage.md). "Tafel
   neu laden" and closing stop waiting after `CLOSE_WAIT_MS`; closing then returns to the examples
   board that start-up mounted.
+- A board that is shown at the bound is replaced when the refresh that closing asked for answers
+  later. If the child has tapped a concept on it meanwhile, the selection is lost and running
+  speech is stopped; the board that arrives is the correct one. This overrides the start-up rule
+  that a board in use is kept (docs/storage.md, start-up sequence). A fix needs the controller to
+  let a refresh leave a board in use alone (card NG-13).
+- "Nothing was written" means: by this page. Another tab, or the installed app next to a browser
+  tab, can change the active profile; a board shown at the bound can then be another profile's,
+  as it already can without opening the area (two tabs, docs/storage.md).
+- The state without a board does not end by itself while a write hangs, because the refresh that
+  closing asked for waits behind that write. One press of "Tafel neu laden" ends it.
 - Closing by itself is silent, and nothing at the moment of closing, by hand or by itself, names
   which board will be shown (card NG-13).
 - A refresh started while the page is in the background (the close on a hidden page) may run into

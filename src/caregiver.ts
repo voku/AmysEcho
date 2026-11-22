@@ -146,9 +146,13 @@ export interface CaregiverHandle {
    * asked to do. The board region stays hidden under a waiting line until
    * that refresh has settled; then it is shown and focus returns to the
    * opening control. If the refresh has not settled after `CLOSE_WAIT_MS`,
-   * the board region stays hidden (what it holds may be another child's
-   * board), and a line, a "Tafel neu laden" button and the opening control
-   * are shown instead; the board is shown as soon as a refresh settles.
+   * what happens depends on whether the mounted board may be out of date
+   * (a profile's own board with a write that no settled refresh has seen,
+   * or a write still running): if it may be, the board region stays hidden
+   * and a line, a "Tafel neu laden" button and the opening control are
+   * shown instead, until a refresh settles; otherwise the mounted board is
+   * shown as it is. A board shown at the bound is replaced when the queued
+   * refresh answers later, also if the child has used it meanwhile.
    * Resolves when the board is shown or the bound has passed, whichever
    * comes first; while the area is closed, the promise is that of the last
    * closing. Never rejects.
@@ -170,11 +174,12 @@ const READING = "Der Speicher wird gelesen.";
 const BOARD_LOADING = "Die Tafel wird geladen.";
 const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. "
   + "Bitte drücke „Tafel neu laden“, lade die Seite neu oder gib einer Bezugsperson Bescheid.";
-const NAME_NOTICE = "Dies ist eine Testversion. Bitte trage noch keinen echten Namen ein; ein Spitzname genügt. "
+const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
-  + "Die App selbst sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
-  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen. "
-  + "Wer die Website-Daten im Browser löscht, entfernt alle Profile auf diesem Gerät und die Offline-Kopie der App.";
+  + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
+  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen, und eine Sicherung gibt es noch nicht. "
+  + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
+  + "Der Browser kann diese Daten auch von sich aus löschen.";
 const NONE_ACTIVE = "Gerade ist keine Tafel aktiv. Das Kind sieht Beispiele, bis eine Tafel als aktive Tafel verwendet wird.";
 const EDITED_NOT_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht eine andere Tafel.";
 const EDITED_NONE_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht Beispiele.";

@@ -46,12 +46,11 @@ in the app. The caregiver area is tested in Node against a fake DOM, not in a br
 browser storage adapter has no automated test. Nothing here has been verified on a physical
 device or with a child.
 
-**Do not enter a real child's name yet.** Two recorded preconditions for real data are still
-open: the retention and authorised-caregiver decision (card NG-7; section 6 of the product
-contract says to decide before personal data is stored), and the browser verification of the
-IndexedDB adapter (card NG-14 says it must not be wired to real data until then). There is no
-in-app removal of a single profile; clearing the site data of the browser removes all profiles on
-this device and the offline copy of the app.
+A child's first name may be stored as the profile name (owner decision of 2026-11-22, card NG-7);
+how long data is kept, who counts as an authorised caregiver and deletion are still open there.
+The browser storage adapter has never run in a browser (card NG-14), so data entered now may not
+survive. There is no in-app removal of a single profile and no backup; clearing the site data of
+the browser removes all profiles in this browser and the offline copy of the app.
 
 ## Principles
 

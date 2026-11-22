@@ -1364,11 +1364,12 @@ test("auto-close: the idle period of an earlier opening touches neither a hold i
 
 // --- Notices ---
 
-const NAME_NOTICE = "Dies ist eine Testversion. Bitte trage noch keinen echten Namen ein; ein Spitzname genügt. "
+const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
-  + "Die App selbst sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
-  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen. "
-  + "Wer die Website-Daten im Browser löscht, entfernt alle Profile auf diesem Gerät und die Offline-Kopie der App.";
+  + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
+  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen, und eine Sicherung gibt es noch nicht. "
+  + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
+  + "Der Browser kann diese Daten auch von sich aus löschen.";
 
 test("create: next to the name field one paragraph says where the name is stored and that it cannot be renamed or deleted yet", async () => {
   await withArea({}, async ({ holdOpen, caregiverRegion, nameInput }) => {
