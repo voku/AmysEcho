@@ -1,0 +1,48 @@
+{
+    "attention": null,
+    "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T22:35:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:35:46+00:00",
+                "artifact_references": [],
+                "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "outcome": "completed",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:d5fdfe14",
+                "summary": "The tracker spike located the gaps: features.ts:28 and :163-181 bridge dropouts of up to 6 frames only, features.ts:218-224 lets any visible hand start or end the gesture, matcher.ts:53-68 separates one-hand from two-hand by distance only, and features.ts:111-126 with matcher.ts:56 gives no_examples when shoulders differ between examples and attempt.",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-18:3da5f471dc313675",
+    "schema_version": "1.0",
+    "task_id": "NG-18"
+}
