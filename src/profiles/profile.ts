@@ -24,11 +24,30 @@ const CONCEPT_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 /** Control characters plus the line and paragraph separators. */
 const CONTROL_CHARACTERS = /[\p{Cc}\p{Zl}\p{Zp}]/u;
 /**
- * Format characters: the invisible ones that reorder or hide text
- * (bidirectional overrides and isolates, zero-width characters, byte order
- * mark). A name must look on screen like what is stored.
+ * Format characters are invisible and can reorder or hide text (bidirectional
+ * marks, overrides and isolates, zero-width space, byte order mark, soft
+ * hyphen, tag characters), so a name could look different from what is stored.
+ * They are rejected, with one exception: the zero-width non-joiner and joiner
+ * are part of the correct spelling of names in Persian, Sinhala, Bengali and
+ * other scripts, and join emoji. Those two are accepted between two visible
+ * characters only.
  */
-const FORMAT_CHARACTERS = /\p{Cf}/u;
+const FORMAT_CHARACTER = /^\p{Cf}$/u;
+const WHITESPACE = /^\s$/u;
+const ZERO_WIDTH_NON_JOINER = 0x200c;
+const ZERO_WIDTH_JOINER = 0x200d;
+
+function hasForbiddenFormatCharacter(text: string): boolean {
+  const characters = [...text];
+  const isVisible = (character: string | undefined): boolean =>
+    character !== undefined && !FORMAT_CHARACTER.test(character) && !WHITESPACE.test(character);
+  return characters.some((character, i) => {
+    if (!FORMAT_CHARACTER.test(character)) return false;
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== ZERO_WIDTH_NON_JOINER && codePoint !== ZERO_WIDTH_JOINER) return true;
+    return !isVisible(characters[i - 1]) || !isVisible(characters[i + 1]);
+  });
+}
 
 /** 16 random bytes as 32 lowercase hex characters; no timestamp, nothing derived from the name. */
 export function newProfileId(): string {
@@ -48,7 +67,7 @@ export function normalizeDisplayName(input: unknown): string {
   if (typeof input !== "string") throw new ProfileFormatError("displayName must be a string");
   const normalized = input.normalize("NFC");
   // Checked before trimming: trim() would quietly drop a leading byte order mark.
-  if (FORMAT_CHARACTERS.test(normalized)) throw new ProfileFormatError("displayName must not contain control or invisible format characters");
+  if (hasForbiddenFormatCharacter(normalized)) throw new ProfileFormatError("displayName must not contain control or invisible format characters");
   const name = normalized.trim();
   const length = [...name].length;
   if (length < 1 || length > MAX_DISPLAY_NAME_LENGTH) {

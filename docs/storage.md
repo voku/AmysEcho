@@ -28,13 +28,15 @@ Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
 app/schema                  1 (layout version, written on first use)
 app/active-profile          id of the profile in use
 profile/<id>/meta           the ProfileV1 record
+profile/<id>/usage          { names, bytes }: how much data the profile holds
 profile/<id>/data/<name>    data owned by that profile
 ```
 
 - `<id>` is 16 random bytes from `crypto.getRandomValues` as 32 lowercase hex characters. It contains
   no timestamp and nothing derived from the name.
 - `<name>` matches `[a-z0-9][a-z0-9._-]{0,63}`. Ids and names are checked before a key is built and
-  cannot contain `/`, so one profile's accessor cannot address another profile's keys.
+  cannot contain `/`, so one profile's accessor cannot address another profile's keys. Data lives
+  below `data/` only, so a data entry named `usage` or `meta` does not touch those records.
 - `ProfileStore.open` refuses to work (`StorageSchemaError`) when `app/schema` is anything other
   than `1`, or when data exists without a marker. It writes nothing in that case.
 
@@ -51,22 +53,51 @@ interface ProfileV1 {
 
 `displayName` is the only personal text. It lives inside `profile/<id>/meta` and nowhere else: not in
 keys, not in ids. It is stored in Unicode NFC form and trimmed, and the 1-40 character limit applies
-to that form. Names with control characters or invisible format characters (Unicode category Cf:
-bidirectional overrides and isolates, zero-width characters, byte order mark, soft hyphen) are
-rejected. This also rejects emoji that are joined with a zero-width joiner; single emoji are fine. A
-stored or imported name that is not already in this form is rejected, not rewritten.
+to that form. A stored or imported name that is not already in this form is rejected, not rewritten.
+
+Characters in a name:
+
+- Control characters and line or paragraph separators are rejected.
+- Invisible format characters (Unicode category Cf) are rejected, because they can reorder or hide
+  text so that a name looks different from what is stored: bidirectional marks, embeddings,
+  overrides and isolates (U+200E, U+200F, U+202A-U+202E, U+2066-U+2069), zero-width space, byte
+  order mark, soft hyphen, tag characters (U+E0000-U+E007F) and the rest of that category.
+- Two of them are allowed, because correct spellings need them: the zero-width non-joiner (U+200C,
+  as in Persian names) and the zero-width joiner (U+200D, as in Sinhala and Bengali names). Each
+  must stand directly between two characters that are neither whitespace nor format characters. At
+  the start or end of a name, doubled, or next to a space they are rejected.
+- Consequences for emoji: a single emoji works, emoji joined with a zero-width joiner (a family, for
+  example) work, flags made of two regional-indicator letters (the German flag) work. The flags of
+  England, Scotland and Wales are built from tag characters and are rejected.
+- Arabic, Hebrew and other right-to-left names need none of the rejected characters and work.
 
 Everything else a profile owns is stored through `store.data(id)` under `profile/<id>/data/`. Each
 value must be plain JSON, nested at most 64 levels. Rejected, never altered: `undefined`, `NaN`,
 infinite numbers, `Date`, `Map`, typed arrays, class instances, objects with getters or setters,
 non-enumerable properties or symbol keys, and arrays with holes or extra properties. The one
-alteration is that negative zero is stored as zero. The same per-value rules apply in `set`, in
-import and in restore, so anything `set` accepted can be exported and restored unchanged.
+alteration is that negative zero is stored as zero. The same per-value rules and the same size
+limits (see "Size limits and usage") apply in `set`, in import and in restore, so anything `set`
+accepted can be exported and restored unchanged.
 
-`list()` returns `{ profiles, damaged }`. A stored record that cannot be read (wrong version, unknown
-fields, missing record, id mismatch) is listed under `damaged` with a reason and is never dropped
-silently. `getActive()` returns `null` while the active profile's record is unreadable; the damage
-itself is reported by `list()` only.
+`list()` returns `{ profiles, damaged }`. A stored record that cannot be read is listed under
+`damaged` and is never dropped silently. Each damaged entry has the `id` segment of its key, a
+free-text `reason`, and a `kind`:
+
+- `"unsupported-version"`: the stored record is an object whose `version` is a number greater than
+  1. A newer version of the app wrote it. The record and its data are most likely intact; this app
+  version just cannot read them.
+- `"unreadable"`: everything else (unknown fields, missing record, id mismatch, malformed key, a
+  name that is not in stored form).
+
+What a user interface must do with this (card NG-13):
+
+- "Damaged" does not mean "broken". For `unsupported-version`, do not offer deletion; tell the carer
+  to update the app.
+- Removing a damaged entry deletes its record and all of its data and cannot be undone. There is no
+  export of a damaged entry. `removeDamaged` does not look at `kind`; the caller decides.
+- `getActive()` returns `null` while the active profile's record is unreadable, and the damage is
+  reported by `list()` only. `getActive() === null` together with a non-empty `damaged` list must
+  not lead into a "create a profile" flow, as if the device were new. Show the damaged entries.
 
 Removing damaged entries:
 
@@ -106,18 +137,40 @@ that is not JSON fails there and never reaches the store.
 (`YYYY-MM-DDTHH:MM:SS.sssZ`; the milliseconds may be left out). Dates such as 31 February or hour 24
 are rejected.
 
-### Size limits
+### Size limits and usage
 
 | Limit | Value | Constant |
 | --- | --- | --- |
-| Data names in one export | 10,000 | `MAX_EXPORT_DATA_NAMES` |
-| Size of one export | 64 MiB, counted as UTF-8 bytes of the document written as compact JSON | `MAX_EXPORT_BYTES` |
+| Data names in one profile | 10,000 | `MAX_EXPORT_DATA_NAMES` |
+| Size of one export | 64 MiB, as UTF-8 bytes of the document written as compact JSON | `MAX_EXPORT_BYTES` |
+| Part of that size kept for everything except data | 34 KiB | `EXPORT_ENVELOPE_RESERVE` |
 
-An import over either limit is rejected with `ExportSizeError` before anything is written.
-`exportProfile` applies the same limits and fails with the same error instead of producing a file
-that could not be restored. `data(id).set` does not enforce them, so a profile can grow past what
-can be exported; nothing warns about that yet. For scale: 300 gesture examples of 32 x 86 numbers are
-about 17 MB. A file saved with indentation is larger on disk than the counted size.
+The limits are enforced when data is written, not only when it is exported, so a profile cannot grow
+into something that can no longer be backed up:
+
+- Each profile has a usage record, `profile/<id>/usage` = `{ names, bytes }`. `bytes` is the sum,
+  over all data entries, of the UTF-8 bytes of the value as compact JSON, plus the length of the
+  name, plus 4 (two quotes, a colon and a comma, as the entry appears in an export).
+- `data(id).set` and `delete` update the record in the same atomic batch as the value. `create` and
+  restore write it too. Overwriting a name counts the difference to the old value.
+- A write is refused with `ProfileSizeError`, and nothing changes, when it would give the profile
+  more than 10,000 names or more than 64 MiB minus 34 KiB of counted bytes. Restore applies the same
+  rule; `importProfile` reports it as `ExportSizeError` before anything is written.
+- The count is conservative. The reserve of 34 KiB is more than the largest possible rest of an
+  export document (fixed fields plus a profile record with a 40-character name and 500 concept ids
+  of 64 characters: just under 34,000 bytes; a test builds it). So counted bytes plus the reserve
+  are never less than the real size of the export, and usually a little more. A document that is
+  within 64 MiB but leaves less than the reserve free is refused on import.
+- If the usage record is missing or cannot be right (data written before the record existed,
+  negative or non-integer numbers), it is counted again from the stored data and written back.
+- `store.usage(id)` returns `{ names, bytes, maxNames, maxBytes }`, where `maxBytes` is the most
+  `bytes` may reach. Use it to warn a carer well before a write is refused (card NG-19).
+- `exportProfile` checks the same limits once more. That can only fail for data that was put into
+  storage without going through `ProfileStore` with these limits.
+
+For scale: 300 gesture examples of 32 x 86 numbers are about 17 MB. A file saved with indentation is
+larger on disk than the counted size. The limits can be lowered per store
+(`ProfileStore.open(backend, { limits })`); that exists for tests.
 
 The export contains the display name and all profile data in readable form. It is not encrypted.
 

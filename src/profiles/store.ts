@@ -6,18 +6,24 @@
  *   app/schema                  layout version, written on first use
  *   app/active-profile          id of the profile currently in use
  *   profile/<id>/meta           the ProfileV1 record
+ *   profile/<id>/usage          how much data the profile holds (names, bytes)
  *   profile/<id>/data/<name>    data owned by that profile
  *
  * Isolation is structural: ids and data names are checked against fixed
  * patterns before they become part of a key, neither can contain "/", and a
  * data accessor can only build keys below its own `profile/<id>/data/`.
  *
+ * Every write that changes a profile's data updates its usage record in the
+ * same atomic batch and is refused when the profile would no longer fit into
+ * one export. So a profile that was written through this store can always be
+ * backed up.
+ *
  * Operations of one store instance run one after another. Two browser tabs
  * each have their own instance and are not coordinated with each other.
  */
-import { cloneJson, cloneJsonRecord } from "./backend.js";
+import { cloneJson, cloneJsonRecord, ownValue } from "./backend.js";
 import type { KeyValueBackend } from "./backend.js";
-import { ProfileFormatError, isProfileId, makeProfile, newProfileId, parseProfile } from "./profile.js";
+import { PROFILE_VERSION, ProfileFormatError, isProfileId, makeProfile, newProfileId, parseProfile } from "./profile.js";
 import type { ProfileV1 } from "./profile.js";
 
 export const STORAGE_SCHEMA_VERSION = 1;
@@ -26,11 +32,43 @@ const ACTIVE_KEY = "app/active-profile";
 const PROFILE_ROOT = "profile/";
 const DATA_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
+/** Most data names one profile, and so one export, may hold. */
+export const MAX_EXPORT_DATA_NAMES = 10_000;
+/** Largest export, measured as UTF-8 bytes of the document written as compact JSON (64 MiB). */
+export const MAX_EXPORT_BYTES = 64 * 1024 * 1024;
+/**
+ * Bytes of an export set aside for everything that is not data: the fixed
+ * fields and the largest possible profile record (40-character name, 500
+ * concept ids of 64 characters). The largest such document is just under
+ * 34,000 bytes; a test builds it.
+ */
+export const EXPORT_ENVELOPE_RESERVE = 34 * 1024;
+/** Counted per data entry on top of name and value: two quotes, a colon and a comma. */
+const ENTRY_OVERHEAD = 4;
+
+export interface ExportLimits {
+  readonly maxDataNames?: number;
+  /** Limit for a whole export document; must be larger than `EXPORT_ENVELOPE_RESERVE`. */
+  readonly maxBytes?: number;
+}
+
+export interface ProfileUsage {
+  /** Data names stored. */
+  readonly names: number;
+  /** Counted size of the data: per entry the UTF-8 bytes of the value as compact JSON, the name, and 4. */
+  readonly bytes: number;
+  readonly maxNames: number;
+  /** The most `bytes` may reach: the export limit minus `EXPORT_ENVELOPE_RESERVE`. */
+  readonly maxBytes: number;
+}
+
 /** No profile with this id is stored (or the value is not a profile id at all). */
 export class UnknownProfileError extends Error {}
 /** The stored layout is from another app version or not recognisable; nothing was touched. */
 export class StorageSchemaError extends Error {}
 export class DataNameError extends Error {}
+/** The write would make the profile hold more names or bytes than one export may; nothing was written. */
+export class ProfileSizeError extends Error {}
 /** A profile with the same id already exists and the caller asked not to touch it. */
 export class ProfileConflictError extends Error {}
 /** `removeDamaged` was asked to delete an entry that is readable; use `remove` for those. */
@@ -38,9 +76,18 @@ export class NotDamagedError extends Error {}
 
 export type ConflictMode = "reject" | "replace" | "copy";
 
+/**
+ * "unsupported-version": the stored record says it was written by a newer app
+ * version; it is probably intact, so update the app instead of deleting it.
+ * "unreadable": anything else that cannot be read.
+ */
+export type DamageKind = "unsupported-version" | "unreadable";
+
 export interface DamagedProfile {
   /** The id segment of the storage key; not guaranteed to be a well-formed id. Pass it to `removeDamaged` unchanged. */
   readonly id: string;
+  readonly kind: DamageKind;
+  /** Free text for logs and support; not for deciding what to offer. */
   readonly reason: string;
 }
 
@@ -58,6 +105,7 @@ export interface ProfileContents {
 /** Data of exactly one profile. Values are JSON values; reads return private copies. */
 export interface ProfileData {
   get(name: string): Promise<unknown | undefined>;
+  /** Rejects with `ProfileSizeError`, changing nothing, when the profile would outgrow one export. */
   set(name: string, value: unknown): Promise<void>;
   delete(name: string): Promise<void>;
   names(): Promise<string[]>;
@@ -79,6 +127,64 @@ export function cloneProfileData(data: unknown): Record<string, unknown> {
   return copy;
 }
 
+export function utf8Length(text: string): number {
+  let bytes = text.length;
+  for (let i = 0; i < text.length; i += 1) {
+    const unit = text.charCodeAt(i);
+    // Two surrogates together are 4 bytes, so each counts 2; other units above 0x7ff are 3 bytes.
+    if (unit > 0x7f) bytes += unit > 0x7ff && (unit < 0xd800 || unit > 0xdfff) ? 2 : 1;
+  }
+  return bytes;
+}
+
+/**
+ * Counted size of one data entry. Summed over a profile and with
+ * `EXPORT_ENVELOPE_RESERVE` added, it is never less than the bytes of the
+ * export document, which holds each entry as `"name":value,`.
+ */
+function entryBytes(name: string, value: unknown): number {
+  return utf8Length(JSON.stringify(value)) + name.length + ENTRY_OVERHEAD;
+}
+
+/** Counted names and bytes of a validated name-to-value dictionary (see `cloneProfileData`). */
+export function measureProfileData(data: Readonly<Record<string, unknown>>): { names: number; bytes: number } {
+  let names = 0;
+  let bytes = 0;
+  for (const [name, value] of Object.entries(data)) {
+    names += 1;
+    bytes += entryBytes(name, value);
+  }
+  return { names, bytes };
+}
+
+interface ResolvedLimits {
+  readonly maxDataNames: number;
+  readonly maxBytes: number;
+}
+
+export function resolveLimits(limits: ExportLimits | undefined): ResolvedLimits {
+  const maxDataNames = limits?.maxDataNames ?? MAX_EXPORT_DATA_NAMES;
+  const maxBytes = limits?.maxBytes ?? MAX_EXPORT_BYTES;
+  if (!Number.isSafeInteger(maxDataNames) || maxDataNames < 0) throw new TypeError("maxDataNames must be a non-negative integer");
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < EXPORT_ENVELOPE_RESERVE) throw new TypeError(`maxBytes must be an integer of at least ${EXPORT_ENVELOPE_RESERVE}`);
+  return { maxDataNames, maxBytes };
+}
+
+/** Throws `ProfileSizeError` when data of this size does not fit into one export. */
+export function checkProfileSize(usage: { readonly names: number; readonly bytes: number }, limits: ExportLimits | undefined): void {
+  const { maxDataNames, maxBytes } = resolveLimits(limits);
+  if (usage.names > maxDataNames) throw new ProfileSizeError(`${usage.names} data names; the limit is ${maxDataNames}`);
+  const budget = maxBytes - EXPORT_ENVELOPE_RESERVE;
+  if (usage.bytes > budget) throw new ProfileSizeError(`${usage.bytes} bytes of data; the limit is ${budget}`);
+}
+
+function isUsage(value: unknown): value is { names: number; bytes: number } {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const { names, bytes } = value as { names?: unknown; bytes?: unknown };
+  const isCount = (count: unknown): boolean => typeof count === "number" && Number.isSafeInteger(count) && count >= 0;
+  return Object.keys(value).length === 2 && isCount(names) && isCount(bytes);
+}
+
 function profilePrefix(id: string): string {
   if (!isProfileId(id)) throw new UnknownProfileError("not a profile id");
   return `${PROFILE_ROOT}${id}/`;
@@ -91,14 +197,25 @@ function dataKey(prefix: string, name: string): string {
 
 export class ProfileStore {
   readonly #backend: KeyValueBackend;
+  readonly #limits: ResolvedLimits;
   #queue: Promise<unknown> = Promise.resolve();
 
-  private constructor(backend: KeyValueBackend) {
+  private constructor(backend: KeyValueBackend, limits: ResolvedLimits) {
     this.#backend = backend;
+    this.#limits = limits;
   }
 
-  /** Fails closed with `StorageSchemaError` on an unknown layout, without writing anything. */
-  static async open(backend: KeyValueBackend): Promise<ProfileStore> {
+  /** The size limits this store enforces on writes; export and import use the same unless told otherwise. */
+  get limits(): Required<ExportLimits> {
+    return this.#limits;
+  }
+
+  /**
+   * Fails closed with `StorageSchemaError` on an unknown layout, without
+   * writing anything. `options.limits` lowers the size limits; meant for tests.
+   */
+  static async open(backend: KeyValueBackend, options: { readonly limits?: ExportLimits } = {}): Promise<ProfileStore> {
+    const limits = resolveLimits(options.limits);
     const schema = await backend.get(SCHEMA_KEY);
     if (schema === undefined) {
       if ((await backend.keys("")).length > 0) throw new StorageSchemaError("storage holds data but no schema marker");
@@ -106,7 +223,7 @@ export class ProfileStore {
     } else if (schema !== STORAGE_SCHEMA_VERSION) {
       throw new StorageSchemaError(`unsupported storage schema ${JSON.stringify(schema)}; this app version reads schema ${STORAGE_SCHEMA_VERSION}`);
     }
-    return new ProfileStore(backend);
+    return new ProfileStore(backend, limits);
   }
 
   list(): Promise<ProfileListing> {
@@ -117,12 +234,22 @@ export class ProfileStore {
       const profiles: ProfileV1[] = [];
       const damaged: DamagedProfile[] = [];
       for (const id of segments) {
+        if (!isProfileId(id)) {
+          damaged.push({ id, kind: "unreadable", reason: "storage key does not contain a profile id" });
+          continue;
+        }
+        const raw = await this.#backend.get(`${profilePrefix(id)}meta`);
         try {
-          if (!isProfileId(id)) throw new ProfileFormatError("storage key does not contain a profile id");
-          profiles.push(await this.#readMeta(id));
+          profiles.push(this.#parseMeta(id, raw));
         } catch (error) {
           if (!(error instanceof ProfileFormatError) && !(error instanceof UnknownProfileError)) throw error;
-          damaged.push({ id, reason: error instanceof UnknownProfileError ? "profile record is missing" : error.message });
+          const version = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as { version?: unknown }).version : undefined;
+          const newer = typeof version === "number" && version > PROFILE_VERSION;
+          damaged.push({
+            id,
+            kind: newer ? "unsupported-version" : "unreadable",
+            reason: error instanceof UnknownProfileError ? "profile record is missing" : error.message,
+          });
         }
       }
       return { profiles, damaged };
@@ -137,7 +264,8 @@ export class ProfileStore {
   create(displayName: string, conceptIds: readonly string[]): Promise<ProfileV1> {
     return this.#exclusive(async () => {
       const profile = makeProfile(await this.#unusedId(), displayName, conceptIds);
-      await this.#backend.write({ set: { [`${profilePrefix(profile.id)}meta`]: profile } });
+      const prefix = profilePrefix(profile.id);
+      await this.#backend.write({ set: { [`${prefix}meta`]: profile, [`${prefix}usage`]: { names: 0, bytes: 0 } } });
       return profile;
     });
   }
@@ -219,18 +347,44 @@ export class ProfileStore {
         const key = dataKey(prefix, name);
         const copy = cloneJson(value);
         await this.#requireExisting(id);
-        await this.#backend.write({ set: { [key]: copy } });
+        const before = await this.#readUsage(id);
+        const old = await this.#backend.get(key);
+        const after = {
+          names: before.names + (old === undefined ? 1 : 0),
+          bytes: before.bytes - (old === undefined ? 0 : entryBytes(name, old)) + entryBytes(name, copy),
+        };
+        checkProfileSize(after, this.#limits);
+        await this.#backend.write({ set: { [key]: copy, [`${prefix}usage`]: after } });
       }),
       delete: (name) => this.#exclusive(async () => {
         const key = dataKey(prefix, name);
         await this.#requireExisting(id);
-        await this.#backend.write({ delete: [key] });
+        const before = await this.#readUsage(id);
+        const old = await this.#backend.get(key);
+        const after = old === undefined ? before : { names: before.names - 1, bytes: before.bytes - entryBytes(name, old) };
+        await this.#backend.write({ delete: [key], set: { [`${prefix}usage`]: after } });
       }),
       names: () => this.#exclusive(async () => {
         await this.#requireExisting(id);
         return (await this.#backend.keys(dataPrefix)).map((key) => key.slice(dataPrefix.length));
       }),
     };
+  }
+
+  /**
+   * How much data the profile holds and how much it may hold, so that a carer
+   * can be warned well before a write is refused. Reads the usage record; when
+   * that is missing or not trustworthy it is counted again from the data and
+   * written back.
+   */
+  usage(id: string): Promise<ProfileUsage> {
+    return this.#exclusive(async () => {
+      await this.#requireExisting(id);
+      const stored = await this.#backend.get(`${profilePrefix(id)}usage`);
+      const usage = await this.#readUsage(id);
+      if (!isUsage(stored)) await this.#backend.write({ set: { [`${profilePrefix(id)}usage`]: usage } });
+      return { ...usage, maxNames: this.#limits.maxDataNames, maxBytes: this.#limits.maxBytes - EXPORT_ENVELOPE_RESERVE };
+    });
   }
 
   /** The profile record and all of its data, read as one step. Used by export. */
@@ -251,16 +405,20 @@ export class ProfileStore {
    * Writes a whole profile (record plus data) in one atomic batch. Used by
    * import. Everything is checked before the write, so a rejected call changes
    * nothing: `ProfileFormatError` for the record, `JsonValueError` or
-   * `DataNameError` for the data. When a profile with the same id exists: "reject" throws
+   * `DataNameError` for the data, `ProfileSizeError` when it would not fit
+   * into one export. Getters are refused, not called.
+   * When a profile with the same id exists: "reject" throws
    * `ProfileConflictError`; "replace" removes all of its keys in the same
    * batch; "copy" stores the incoming profile under a new random id.
    */
   restoreProfile(contents: ProfileContents, onConflict: ConflictMode = "reject"): Promise<ProfileV1> {
     return this.#exclusive(async () => {
       if (onConflict !== "reject" && onConflict !== "replace" && onConflict !== "copy") throw new TypeError("unknown conflict mode");
-      let profile = parseProfile(contents.profile);
-      const data = cloneProfileData(contents.data);
+      let profile = parseProfile(cloneJson(ownValue(contents, "profile")));
+      const data = cloneProfileData(ownValue(contents, "data"));
       const names = Object.keys(data);
+      const usage = measureProfileData(data);
+      checkProfileSize(usage, this.#limits);
       let stale = await this.#backend.keys(profilePrefix(profile.id));
       if (stale.length > 0 && onConflict === "reject") throw new ProfileConflictError("a profile with this id already exists");
       if (stale.length > 0 && onConflict === "copy") {
@@ -268,7 +426,7 @@ export class ProfileStore {
         stale = [];
       }
       const prefix = profilePrefix(profile.id);
-      const set: Record<string, unknown> = { [`${prefix}meta`]: profile };
+      const set: Record<string, unknown> = { [`${prefix}meta`]: profile, [`${prefix}usage`]: usage };
       for (const name of names) set[dataKey(prefix, name)] = data[name];
       await this.#backend.write({ delete: stale, set });
       return profile;
@@ -283,8 +441,31 @@ export class ProfileStore {
     });
   }
 
+  /**
+   * The stored usage record, or a fresh count when it is missing or cannot be
+   * right (data written before usage was recorded, or a damaged record).
+   */
+  async #readUsage(id: string): Promise<{ names: number; bytes: number }> {
+    const prefix = profilePrefix(id);
+    const stored = await this.#backend.get(`${prefix}usage`);
+    if (isUsage(stored)) return { names: stored.names, bytes: stored.bytes };
+    const dataPrefix = `${prefix}data/`;
+    let names = 0;
+    let bytes = 0;
+    for (const key of await this.#backend.keys(dataPrefix)) {
+      const value = await this.#backend.get(key);
+      if (value === undefined) continue;
+      names += 1;
+      bytes += entryBytes(key.slice(dataPrefix.length), value);
+    }
+    return { names, bytes };
+  }
+
   async #readMeta(id: string): Promise<ProfileV1> {
-    const raw = await this.#backend.get(`${profilePrefix(id)}meta`);
+    return this.#parseMeta(id, await this.#backend.get(`${profilePrefix(id)}meta`));
+  }
+
+  #parseMeta(id: string, raw: unknown): ProfileV1 {
     if (raw === undefined) throw new UnknownProfileError("no such profile");
     const profile = parseProfile(raw);
     if (profile.id !== id) throw new ProfileFormatError("stored profile record carries a different id than its storage key");

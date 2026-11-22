@@ -5,7 +5,8 @@ import { JsonValueError, cloneJson } from "../dist/profiles/backend.js";
 import { InjectedWriteError, MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileFormatError, newProfileId, normalizeDisplayName, parseProfile } from "../dist/profiles/profile.js";
 import {
-  DataNameError, NotDamagedError, ProfileStore, StorageSchemaError, UnknownProfileError,
+  DataNameError, EXPORT_ENVELOPE_RESERVE, MAX_EXPORT_BYTES, MAX_EXPORT_DATA_NAMES, NotDamagedError, ProfileSizeError,
+  ProfileStore, StorageSchemaError, UnknownProfileError,
 } from "../dist/profiles/store.js";
 
 const chr = (...codePoints) => String.fromCodePoint(...codePoints);
@@ -125,7 +126,7 @@ test("a data name cannot reach outside its profile", async () => {
     await assert.rejects(store.data(a.id).delete(name), DataNameError, label);
   }
   assert.deepEqual(backend.snapshot(), before);
-  for (const key of Object.keys(before)) assert.match(key, /^(app\/schema|profile\/[0-9a-f]{32}\/(meta|data\/[a-z0-9][a-z0-9._-]*))$/);
+  for (const key of Object.keys(before)) assert.match(key, /^(app\/schema|profile\/[0-9a-f]{32}\/(meta|usage|data\/[a-z0-9][a-z0-9._-]*))$/);
 });
 
 test("unknown and malformed profile ids are rejected before any key is built", async () => {
@@ -160,7 +161,7 @@ test("remove deletes every key the profile owns and nothing else", async () => {
   }
   await store.setActive(a.id);
   const expected = Object.fromEntries(Object.entries(backend.snapshot()).filter(([key]) => !key.includes(a.id) && key !== "app/active-profile"));
-  assert.equal(Object.keys(expected).length, 5);
+  assert.equal(Object.keys(expected).length, 6);
 
   await store.remove(a.id);
 
@@ -430,7 +431,7 @@ test("display names are stored NFC-normalised and non-normalised stored names ar
 test("display names with bidirectional or other invisible format characters are rejected", async () => {
   const { backend, store } = await openStore();
   const before = backend.snapshot();
-  for (const codePoint of [0x202e, 0x202d, 0x202a, 0x200b, 0x200d, 0x200e, 0x200f, 0x2066, 0x2067, 0x2068, 0x2069, 0xfeff, 0xad, 0x61c, 0x2060, 0xe0001]) {
+  for (const codePoint of [0x202e, 0x202d, 0x202a, 0x202b, 0x202c, 0x200b, 0x200e, 0x200f, 0x2066, 0x2067, 0x2068, 0x2069, 0xfeff, 0xad, 0x61c, 0x2060, 0x2061, 0x180e, 0xfff9, 0xe0001, 0xe0020, 0xe0067, 0xe007f]) {
     const label = `U+${codePoint.toString(16)}`;
     for (const name of [`Mi${chr(codePoint)}a`, `${chr(codePoint)}Mia`, `Mia${chr(codePoint)}`]) {
       assert.throws(() => normalizeDisplayName(name), ProfileFormatError, label);
@@ -478,7 +479,8 @@ test("a damaged entry is removable by the exact id segment list reported, and no
     "app/active-profile": future,
   };
   await backend.write({ set: planted });
-  const kept = { "app/schema": 1, [`profile/${good.id}/meta`]: good, [`profile/${good.id}/data/settings`]: { volume: 1 } };
+  const kept = Object.fromEntries(Object.entries(backend.snapshot()).filter(([key]) => key === "app/schema" || key.startsWith(`profile/${good.id}/`)));
+  assert.deepEqual(Object.keys(kept), ["app/schema", `profile/${good.id}/data/settings`, `profile/${good.id}/meta`, `profile/${good.id}/usage`]);
   const reported = (await store.list()).damaged.map((entry) => entry.id).sort();
   assert.deepEqual(reported, ["", "ab", "abc", "bare", future].sort());
 
@@ -531,4 +533,269 @@ test("restoreProfile checks its data argument itself", async () => {
 
   assert.deepEqual(await store.restoreProfile({ profile, data: { 0: "digit names are valid", settings: [] } }), profile);
   assert.deepEqual(await store.data(ID).names(), ["0", "settings"]);
+});
+
+test("names spelled with a zero-width joiner or non-joiner are accepted, other invisible characters are not", () => {
+  const ZWNJ = chr(0x200c);
+  const ZWJ = chr(0x200d);
+  const accepted = {
+    "Persian Alireza with non-joiner": chr(0x639, 0x644, 0x6cc, 0x200c, 0x631, 0x636, 0x627),
+    "Sinhala Sri with joiner": chr(0xdc1, 0xdca, 0x200d, 0xdbb, 0xdd3),
+    "Bengali ya-phala form with joiner": chr(0x9b0, 0x200d, 0x9cd, 0x9af, 0x9be),
+    "Arabic without controls": chr(0x645, 0x62d, 0x645, 0x62f),
+    "Hebrew without controls": chr(0x5d3, 0x5d5, 0x5d3),
+    "Arabic and Latin with a space": `${chr(0x645, 0x631, 0x64a, 0x645)} M`,
+    "family emoji joined with joiners": chr(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467),
+    "emoji with variation selector and joiner": chr(0x2764, 0xfe0f, 0x200d, 0x1f525),
+    "German flag (regional indicators)": chr(0x1f1e9, 0x1f1ea),
+    "name with flag": `Mia ${chr(0x1f1e9, 0x1f1ea)}`,
+    "single emoji": chr(0x1f98a),
+  };
+  for (const [label, name] of Object.entries(accepted)) {
+    assert.equal(normalizeDisplayName(name), name.normalize("NFC"), label);
+    assert.equal(normalizeDisplayName(`  ${name} `), name.normalize("NFC"), label);
+    assert.deepEqual(parseProfile(record({ displayName: name.normalize("NFC") })).displayName, name.normalize("NFC"), label);
+  }
+  assert.ok(normalizeDisplayName(accepted["Persian Alireza with non-joiner"]).includes(ZWNJ));
+  assert.ok(normalizeDisplayName(accepted["Sinhala Sri with joiner"]).includes(ZWJ));
+
+  const englandFlag = chr(0x1f3f4, 0xe0067, 0xe0062, 0xe0065, 0xe006e, 0xe0067, 0xe007f);
+  const rejected = {
+    "leading non-joiner": `${ZWNJ}Mia`,
+    "trailing non-joiner": `Mia${ZWNJ}`,
+    "leading joiner": `${ZWJ}Mia`,
+    "trailing joiner": `Mia${ZWJ}`,
+    "joiner before trailing space": `Mia${ZWJ} `,
+    "joiner after leading space": ` ${ZWJ}Mia`,
+    "doubled joiner": `Mi${ZWJ}${ZWJ}a`,
+    "doubled non-joiner": `Mi${ZWNJ}${ZWNJ}a`,
+    "joiner next to non-joiner": `Mi${ZWNJ}${ZWJ}a`,
+    "joiner after a space": `Mia ${ZWJ}Lu`,
+    "non-joiner before a space": `Mia${ZWNJ} Lu`,
+    "joiner next to a no-break space": `Mia${chr(0xa0)}${ZWJ}Lu`,
+    "only a joiner": ZWJ,
+    "joiner next to a bidi mark": `Mi${chr(0x200e)}${ZWJ}a`,
+    "right-to-left override inside": `Mia${chr(0x202e)}aiM`,
+    "right-to-left override in the Persian name": chr(0x639, 0x644, 0x6cc, 0x202e, 0x631, 0x636, 0x627),
+    "isolate around a name": `${chr(0x2067)}Mia${chr(0x2069)}`,
+    "zero-width space inside": `Mi${chr(0x200b)}a`,
+    "England flag (tag characters)": englandFlag,
+    "Scotland flag (tag characters)": chr(0x1f3f4, 0xe0067, 0xe0062, 0xe0073, 0xe0063, 0xe0074, 0xe007f),
+    "Wales flag (tag characters)": chr(0x1f3f4, 0xe0067, 0xe0062, 0xe0077, 0xe006c, 0xe0073, 0xe007f),
+  };
+  for (const [label, name] of Object.entries(rejected)) {
+    assert.throws(() => normalizeDisplayName(name), ProfileFormatError, label);
+    assert.throws(() => parseProfile(record({ displayName: name })), ProfileFormatError, label);
+  }
+});
+
+test("damaged entries say whether a newer app version wrote them", async () => {
+  const { backend, store } = await openStore();
+  const good = await store.create("Good", []);
+  const ids = Object.fromEntries(["newer", "muchNewer", "fractional", "older", "textVersion", "noVersion", "notObject", "array", "badName", "missing"].map((label, i) => [label, String(i).repeat(32)]));
+  const meta = (label, value) => [`profile/${ids[label]}/meta`, value];
+  await backend.write({
+    set: Object.fromEntries([
+      meta("newer", { version: 2, id: ids.newer, displayName: "Later", conceptIds: [], theme: "dark" }),
+      meta("muchNewer", { version: 17 }),
+      meta("fractional", { version: 1.5, id: ids.fractional }),
+      meta("older", { version: 0, id: ids.older, displayName: "Old", conceptIds: [] }),
+      meta("textVersion", { version: "2", id: ids.textVersion, displayName: "Text", conceptIds: [] }),
+      meta("noVersion", { id: ids.noVersion, displayName: "None", conceptIds: [] }),
+      meta("notObject", 2),
+      meta("array", [2]),
+      meta("badName", { version: 1, id: ids.badName, displayName: "", conceptIds: [] }),
+      [`profile/${ids.missing}/data/settings`, 1],
+      ["profile/v2/meta", { version: 2 }],
+    ]),
+  });
+  const listing = await store.list();
+  assert.deepEqual(listing.profiles, [good]);
+  const kinds = Object.fromEntries(listing.damaged.map((entry) => [entry.id, entry.kind]));
+  assert.deepEqual(kinds, {
+    [ids.newer]: "unsupported-version",
+    [ids.muchNewer]: "unsupported-version",
+    [ids.fractional]: "unsupported-version",
+    [ids.older]: "unreadable",
+    [ids.textVersion]: "unreadable",
+    [ids.noVersion]: "unreadable",
+    [ids.notObject]: "unreadable",
+    [ids.array]: "unreadable",
+    [ids.badName]: "unreadable",
+    [ids.missing]: "unreadable",
+    v2: "unreadable",
+  });
+  for (const entry of listing.damaged) assert.ok(entry.reason.length > 0);
+});
+
+test("cloneJson rejects Array subclasses like other class instances", () => {
+  class Examples extends Array {}
+  const examples = Examples.from([1, 2]);
+  assert.ok(Array.isArray(examples));
+  assert.throws(() => cloneJson(examples), JsonValueError);
+  assert.throws(() => cloneJson({ list: [examples] }), /value\.list\[0\] is not a plain array/);
+  const disguised = Object.setPrototypeOf([1, 2], { length: 0 });
+  assert.throws(() => cloneJson(disguised), JsonValueError);
+  assert.deepEqual(cloneJson(Array.from(examples)), [1, 2]);
+});
+
+test("restoreProfile does not call getters on its argument", async () => {
+  const { backend, store } = await openStore();
+  const before = backend.snapshot();
+  const fail = () => assert.fail("getter was called");
+  const viaGetter = (name, rest) => Object.defineProperty({ ...rest }, name, { get: fail, enumerable: true });
+  await assert.rejects(store.restoreProfile(viaGetter("profile", { data: {} })), JsonValueError);
+  await assert.rejects(store.restoreProfile(viaGetter("data", { profile: record() })), JsonValueError);
+  await assert.rejects(store.restoreProfile({ profile: viaGetter("displayName", { version: 1, id: ID, conceptIds: [] }), data: {} }), JsonValueError);
+  await assert.rejects(store.restoreProfile({ profile: viaGetter("id", { version: 1, displayName: "Mia", conceptIds: [] }), data: {} }), JsonValueError);
+  await assert.rejects(store.restoreProfile({ profile: record(), data: viaGetter("settings", {}) }), JsonValueError);
+  for (const contents of [null, undefined, 5, "x"]) await assert.rejects(store.restoreProfile(contents), JsonValueError);
+  await assert.rejects(store.restoreProfile({ data: {} }), JsonValueError);
+  assert.deepEqual(backend.snapshot(), before);
+});
+
+// ---- usage accounting -------------------------------------------------
+
+const entryBytes = (name, value) => Buffer.byteLength(JSON.stringify(value), "utf8") + name.length + 4;
+/** Counted independently of the store, from what is actually stored. */
+const recount = (snapshot, id) => {
+  const prefix = `profile/${id}/data/`;
+  const entries = Object.entries(snapshot).filter(([key]) => key.startsWith(prefix));
+  return { names: entries.length, bytes: entries.reduce((sum, [key, value]) => sum + entryBytes(key.slice(prefix.length), value), 0) };
+};
+const openSmall = async (maxDataNames, dataBytes) => {
+  const backend = new MemoryBackend();
+  return { backend, store: await ProfileStore.open(backend, { limits: { maxDataNames, maxBytes: EXPORT_ENVELOPE_RESERVE + dataBytes } }) };
+};
+
+test("usage is recorded with every data write and reported with the limits", async () => {
+  const { backend, store } = await openStore();
+  const a = await store.create("A", []);
+  const b = await store.create("B", []);
+  const limits = { maxNames: MAX_EXPORT_DATA_NAMES, maxBytes: MAX_EXPORT_BYTES - EXPORT_ENVELOPE_RESERVE };
+  assert.deepEqual(limits, { maxNames: 10_000, maxBytes: 64 * 1024 * 1024 - 34 * 1024 });
+  assert.deepEqual(await store.usage(a.id), { names: 0, bytes: 0, ...limits });
+  assert.deepEqual(backend.snapshot()[`profile/${a.id}/usage`], { names: 0, bytes: 0 });
+
+  const euro = chr(0x20ac);
+  await store.data(a.id).set("settings", { text: `${euro}${chr(0x1f98a)}` });
+  // {"text":"<3 bytes><4 bytes>"} is 18 bytes, the name 8, plus 4.
+  assert.deepEqual(await store.usage(a.id), { names: 1, bytes: 30, ...limits });
+  await store.data(a.id).set("x", [1, 2, 3]);
+  assert.deepEqual(await store.usage(a.id), { names: 2, bytes: 30 + 7 + 1 + 4, ...limits });
+  await store.data(a.id).set("settings", null);
+  assert.deepEqual(await store.usage(a.id), { names: 2, bytes: 4 + 8 + 4 + 12, ...limits });
+  await store.data(a.id).delete("settings");
+  await store.data(a.id).delete("never-there");
+  assert.deepEqual(await store.usage(a.id), { names: 1, bytes: 12, ...limits });
+  assert.deepEqual(backend.snapshot()[`profile/${a.id}/usage`], recount(backend.snapshot(), a.id));
+  assert.deepEqual(await store.usage(b.id), { names: 0, bytes: 0, ...limits });
+
+  // The record is not data: not listed, not readable or writable as a data name.
+  assert.deepEqual(await store.data(a.id).names(), ["x"]);
+  assert.deepEqual((await store.readProfile(a.id)).data, { x: [1, 2, 3] });
+  await store.data(a.id).set("usage", "a data entry that happens to be called usage");
+  assert.deepEqual(backend.snapshot()[`profile/${a.id}/usage`], recount(backend.snapshot(), a.id));
+  assert.equal(backend.snapshot()[`profile/${a.id}/usage`].names, 2);
+  await assert.rejects(store.data(a.id).get("../usage"), DataNameError);
+
+  await assert.rejects(store.usage("f".repeat(32)), UnknownProfileError);
+  await assert.rejects(store.usage("nope"), UnknownProfileError);
+  await store.remove(a.id);
+  assert.deepEqual(await backend.keys(`profile/${a.id}`), []);
+  await assert.rejects(store.usage(a.id), UnknownProfileError);
+});
+
+test("set refuses what would not fit into one export and changes nothing", async () => {
+  const { backend, store } = await openSmall(3, 100);
+  const a = await store.create("A", []);
+  const set = (name, value) => store.data(a.id).set(name, value);
+  await set("a", "x".repeat(40)); // 42 + 1 + 4 = 47
+  await set("b", "x".repeat(40)); // 94 in total
+  const before = backend.snapshot();
+  assert.deepEqual(await store.usage(a.id), { names: 2, bytes: 94, maxNames: 3, maxBytes: 100 });
+  await assert.rejects(set("c", "xx"), ProfileSizeError); // 4 + 1 + 4 = 9 -> 103
+  await assert.rejects(set("a", "x".repeat(47)), ProfileSizeError); // overwrite: 94 - 47 + 54 = 101
+  assert.deepEqual(backend.snapshot(), before);
+  await set("a", "x".repeat(46)); // exactly 100
+  assert.deepEqual(await store.usage(a.id), { names: 2, bytes: 100, maxNames: 3, maxBytes: 100 });
+  await set("a", ""); // overwriting with something smaller always works
+  await set("c", 1);
+  const full = backend.snapshot();
+  await assert.rejects(set("d", 1), ProfileSizeError); // fourth name
+  assert.deepEqual(backend.snapshot(), full);
+  await set("c", 2); // overwriting does not need a free name
+  await store.data(a.id).delete("b");
+  await set("d", 1);
+  assert.deepEqual(await store.usage(a.id), { names: 3, bytes: 7 + 6 + 6, maxNames: 3, maxBytes: 100 });
+
+  // restoreProfile is held to the same limits.
+  const profile = record();
+  const atLimit = { a: "x".repeat(46), b: "x".repeat(40) };
+  const snapshot = backend.snapshot();
+  await assert.rejects(store.restoreProfile({ profile, data: { ...atLimit, a: "x".repeat(47) } }), ProfileSizeError);
+  await assert.rejects(store.restoreProfile({ profile, data: { a: 1, b: 2, c: 3, d: 4 } }), ProfileSizeError);
+  await assert.rejects(store.restoreProfile({ profile: a, data: { a: 1, b: 2, c: 3, d: 4 } }, "replace"), ProfileSizeError);
+  assert.deepEqual(backend.snapshot(), snapshot);
+  await store.restoreProfile({ profile, data: atLimit });
+  assert.deepEqual(await store.usage(ID), { names: 2, bytes: 100, maxNames: 3, maxBytes: 100 });
+
+  await assert.rejects(ProfileStore.open(new MemoryBackend(), { limits: { maxBytes: EXPORT_ENVELOPE_RESERVE - 1 } }), TypeError);
+  await assert.rejects(ProfileStore.open(new MemoryBackend(), { limits: { maxDataNames: -1 } }), TypeError);
+});
+
+test("with the built-in limits a value or a name count that could not be exported is refused at set", async () => {
+  const { backend, store } = await openStore();
+  const a = await store.create("A", []);
+  const before = backend.snapshot();
+  await assert.rejects(store.data(a.id).set("big", "x".repeat(MAX_EXPORT_BYTES)), ProfileSizeError);
+  await assert.rejects(store.data(a.id).set("big", "x".repeat(MAX_EXPORT_BYTES - EXPORT_ENVELOPE_RESERVE)), ProfileSizeError);
+  assert.deepEqual(backend.snapshot(), before);
+
+  await store.restoreProfile({ profile: a, data: Object.fromEntries(Array.from({ length: MAX_EXPORT_DATA_NAMES }, (_, i) => [`n${i}`, i])) }, "replace");
+  const full = backend.snapshot();
+  await assert.rejects(store.data(a.id).set("one-more", 1), ProfileSizeError);
+  assert.deepEqual(backend.snapshot(), full);
+  await store.data(a.id).set("n0", "overwritten");
+  assert.equal((await store.usage(a.id)).names, MAX_EXPORT_DATA_NAMES);
+});
+
+test("a missing or impossible usage record is counted again from the data", async () => {
+  const { backend, store } = await openStore();
+  const a = await store.create("A", []);
+  await store.data(a.id).set("one", [1, 2, 3]);
+  await store.data(a.id).set("two", { text: chr(0xe4) });
+  const key = `profile/${a.id}/usage`;
+  const correct = recount(backend.snapshot(), a.id);
+  assert.deepEqual(backend.snapshot()[key], correct);
+
+  // As written by the first version of this module: no usage record at all.
+  await backend.write({ delete: [key] });
+  assert.equal((await store.usage(a.id)).bytes, correct.bytes);
+  assert.deepEqual(backend.snapshot()[key], correct, "written back");
+
+  for (const bad of [{ names: -1, bytes: 5 }, { names: 2, bytes: -5 }, { names: 2, bytes: NaN }, { names: 1.5, bytes: 5 }, { names: "2", bytes: 5 }, { names: 2 }, { names: 2, bytes: 5, extra: 1 }, [2, 5], null, 7, "usage", { names: 2, bytes: 2 ** 60 }]) {
+    const stored = Number.isNaN(bad?.bytes) ? { names: 2, bytes: null } : bad;
+    await backend.write({ set: { [key]: stored } });
+    const usage = await store.usage(a.id);
+    assert.deepEqual({ names: usage.names, bytes: usage.bytes }, correct, JSON.stringify(bad));
+    assert.deepEqual(backend.snapshot()[key], correct, JSON.stringify(bad));
+  }
+
+  // set and delete repair it in the same batch as their own change.
+  await backend.write({ delete: [key] });
+  await store.data(a.id).set("three", true);
+  assert.deepEqual(backend.snapshot()[key], recount(backend.snapshot(), a.id));
+  await backend.write({ set: { [key]: { names: -3, bytes: -3 } } });
+  await store.data(a.id).delete("one");
+  assert.deepEqual(backend.snapshot()[key], recount(backend.snapshot(), a.id));
+  assert.equal(backend.snapshot()[key].names, 2);
+
+  // A failed write leaves value and usage as they were.
+  const before = backend.snapshot();
+  backend.failWrite();
+  await assert.rejects(store.data(a.id).set("four", 4), InjectedWriteError);
+  backend.failWrite();
+  await assert.rejects(store.data(a.id).delete("two"), InjectedWriteError);
+  assert.deepEqual(backend.snapshot(), before);
 });

@@ -40,7 +40,8 @@ export const MAX_JSON_DEPTH = 64;
  * stored is what an export can reproduce. Rejected are:
  *
  * - undefined, functions, symbols, bigints, NaN and infinite numbers;
- * - objects that are not plain (Date, Map, typed arrays, class instances);
+ * - objects that are not plain (Date, Map, typed arrays, class instances),
+ *   and arrays of an Array subclass;
  * - objects with symbol keys, non-enumerable own properties, or getters and
  *   setters (accessors are refused without being called);
  * - arrays with holes, with getters, or with own properties besides their
@@ -64,6 +65,17 @@ export function cloneJsonRecord(value: unknown, label = "value"): Record<string,
   return copyObject(value, label, -1);
 }
 
+/**
+ * The value of an own data property, or undefined when there is none. A getter
+ * or setter is refused with `JsonValueError` without being called.
+ */
+export function ownValue(holder: unknown, name: string): unknown {
+  if (typeof holder !== "object" || holder === null) throw new JsonValueError(`cannot read ${name} of a non-object`);
+  const property = Object.getOwnPropertyDescriptor(holder, name);
+  if (property !== undefined && !("value" in property)) throw new JsonValueError(`${name} is a getter or setter`);
+  return property?.value;
+}
+
 function copy(value: unknown, path: string, depth: number): unknown {
   if (value === null || typeof value === "boolean" || typeof value === "string") return value;
   if (typeof value === "number") {
@@ -76,6 +88,7 @@ function copy(value: unknown, path: string, depth: number): unknown {
 }
 
 function copyArray(value: readonly unknown[], path: string, depth: number): unknown[] {
+  if (Object.getPrototypeOf(value) !== Array.prototype) throw new JsonValueError(`${path} is not a plain array`);
   const length = value.length;
   const out: unknown[] = new Array(length);
   for (let i = 0; i < length; i += 1) {
