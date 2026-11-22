@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:9f1bdfd6d8af01a1a649dd34f03e0cbd3e030d2a",
+    "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:ed20b16129b201d4b0b52944fdc2d2e81b0f17bb",
     "contract_revision": 1,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
     "history": [
         {
@@ -239,6 +239,38 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:1:463324a7",
                 "summary": "caregiver.ts:672-693 the no-board state hides a board that cannot be stale (examples, or no store, or nothing written) and with storage hung at start-up the device cannot leave it, since every refresh queues behind start-up; caregiver.ts:172-174 the name notice understates what clearing site data removes and invites a first name while docs forbid real names",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:53:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:53:55+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:ed20b16129b201d4b0b52944fdc2d2e81b0f17bb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:ed20b16129b201d4b0b52944fdc2d2e81b0f17bb",
+                "context_id": "claude-subagent-ng29-build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "completed",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:3053f2f0",
+                "summary": "Third build: no-board state only when a profile's own board is mounted and a write may be unseen by a refresh; name notice rewritten as test-version notice; precision fixes for the not-active line, name at submit, redraw after reload, damaged-only device; tests for the two surviving mutants; verify passes with 268 tests",
                 "task_id": "NG-29",
                 "validation_references": []
             }
