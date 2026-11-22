@@ -40,8 +40,11 @@ Keep this section outside the managed router markers above.
 ## Validation
 
 ```sh
-npm ci --ignore-scripts && npm run typecheck && npm run build && npm test && npm run smoke:offline
+npm ci --ignore-scripts
+npm run verify
 ```
 
-Contracts must list these as validation commands. Validation runs in an exported copy without
-`node_modules`, so `npm ci --ignore-scripts` has to be the first command.
+`npm run verify` runs the type check, the build, the tests and the offline asset smoke check, in
+that order, and is what CI runs. Every Contract, including a `quick` task, lists exactly these two
+commands as validation. Validation runs in an exported copy without `node_modules`, so
+`npm ci --ignore-scripts` has to come first.

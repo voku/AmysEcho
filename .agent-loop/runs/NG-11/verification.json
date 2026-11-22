@@ -1,0 +1,54 @@
+{
+    "contract_revision": 1,
+    "contract_sha256": "sha256:e788027a3ced2ca01b696d5ce7ac45a33e5b5b31610fa5fc097252d5662749a3",
+    "implementation_snapshot": "sha256:f18d2ec87b11567b1d0724a35a9388922aec53671d640f03b2ec950b777db571",
+    "kind": "run_verification_receipt",
+    "obligations": [
+        {
+            "command": "npm ci --ignore-scripts",
+            "duration_ms": 497,
+            "executed_at": "2026-11-22T11:34:44+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        },
+        {
+            "command": "npm run typecheck",
+            "duration_ms": 1535,
+            "executed_at": "2026-11-22T11:34:45+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        },
+        {
+            "command": "npm run build",
+            "duration_ms": 1716,
+            "executed_at": "2026-11-22T11:34:47+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        },
+        {
+            "command": "npm test",
+            "duration_ms": 9186,
+            "executed_at": "2026-11-22T11:34:56+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        },
+        {
+            "command": "npm run smoke:offline",
+            "duration_ms": 234,
+            "executed_at": "2026-11-22T11:34:56+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        }
+    ],
+    "run_id": "run:NG-11:28ddf7e18542ae7c",
+    "schema_version": "1.1",
+    "source_session_id": "2026-11-22-ng-11-r1-7c4d97e5",
+    "task_id": "NG-11",
+    "verdict": "satisfied",
+    "verified_at": "2026-11-22T11:35:04+00:00"
+}

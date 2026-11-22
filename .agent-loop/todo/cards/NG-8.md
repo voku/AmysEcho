@@ -4,10 +4,10 @@
 - **Lane:** BACKLOG
 - **Domain:** recognition
 - **Created:** 2026-11-22T08:25:44+00:00
-- **Updated:** 2026-11-22T09:48:12+00:00
+- **Updated:** 2026-11-22T11:35:16+00:00
 - **Summary:** Remaining hardening items from the NG-1 reviews: look-alike rejection, anchor policy, input validation, one-handed profiles.
 - **Next:** Take items 3, 4, 5 and 7 as a first small task; item 1 needs measurement on replay fixtures (NG-17).
-- **Validation:** npm ci --ignore-scripts && npm run typecheck && npm run build && npm test && npm run smoke:offline
+- **Validation:** npm ci --ignore-scripts && npm run verify
 - **Priority:** 15
 - **Wave:** Wave 3 - teach and recognise (S3)
 - **Format version:** 1

@@ -1,0 +1,159 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T11:31:51+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-11/contract.json",
+                "sha256": "sha256:e788027a3ced2ca01b696d5ce7ac45a33e5b5b31610fa5fc097252d5662749a3"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-11",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "63fc720add0ac4eb3ba69bee98accb7ee6c5d2a7fbb99de52ffd8b87e48245c7",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-11.md",
+                "sha256": "sha256:63fc720add0ac4eb3ba69bee98accb7ee6c5d2a7fbb99de52ffd8b87e48245c7"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "npm run verify runs the four checks in order and fails when any of them fails",
+                "CI calls npm run verify instead of the four separate steps and keeps npm audit",
+                "AGENTS.md names exactly npm ci --ignore-scripts and npm run verify as the Contract validation commands, and README matches"
+            ],
+            "goal": "One command, npm run verify, runs typecheck, build, test and smoke:offline, and is the validation gate for CI and for every Contract",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-11/contract.json",
+                "sha256": "sha256:e788027a3ced2ca01b696d5ce7ac45a33e5b5b31610fa5fc097252d5662749a3"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-11/contract.json",
+                "sha256": "sha256:e788027a3ced2ca01b696d5ce7ac45a33e5b5b31610fa5fc097252d5662749a3"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T11:35:04+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-11:28ddf7e18542ae7c",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/3625e8ed468a716ce4f43faa5d99df2db00360961d3ab7f9e38d7d2e2e9beaa6.json",
+                "sha256": "sha256:4f9a1813734086e74d1434f000b74bba438d0a96c46c4491a54d6219f1a5e39b"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "state": "missing"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-11:28ddf7e18542ae7c",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "819f0b636077e7ac22153d055409d5ef068a44b185247adb9c2a020d05324ae8",
+            "compilation_id": "compilation.NG-11.2026-11-22-113151.f4b1009e",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "650096c099b7d8d6ea677290ea558ee34102d5e0f7fd35c3ecc2904306716335",
+            "source": {
+                "path": ".agent-loop/recall/NG-11/meta.json",
+                "sha256": "sha256:b5441ae643657f2e6f1dfdfdf4ec8929429a74fc0d84ac6d5da5fabe3e0df197"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-11/reviews/NG-11.blindspots.json",
+                "sha256": "sha256:fab9e0772f8d8bb6c97670a226ed5d0c4933259ef165f7db16274df528b438f8"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-11-r1-7c4d97e5",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-11-r1-7c4d97e5/session.json",
+                "sha256": "sha256:e8b692b0901a87ed9fa1bf1f3a8fe08bd2c12a21ab51bc5da27d5efc7d888e76"
+            },
+            "state": "done",
+            "task_id": "NG-11"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:f18d2ec87b11567b1d0724a35a9388922aec53671d640f03b2ec950b777db571",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-11:28ddf7e18542ae7c",
+            "source": {
+                "path": ".agent-loop/runs/NG-11/verification.json",
+                "sha256": "sha256:9ae6a359e5289282bbae4c88be8d68b3532e1b461ca16bad9d95335723e325a0"
+            },
+            "source_session_id": "2026-11-22-ng-11-r1-7c4d97e5",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-11:28ddf7e18542ae7c",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-11"
+}

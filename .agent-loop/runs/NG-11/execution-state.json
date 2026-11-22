@@ -1,0 +1,218 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T11:32:04+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:32:04+00:00",
+                "artifact_references": [],
+                "candidate_revision": "fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "schema_version": "1.0",
+                "task_id": "NG-11",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "outcome": "completed",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:f43bf761",
+                "summary": "Validation chain today: package.json has typecheck, build, test and smoke:offline as separate scripts; .github/workflows/ci.yml calls them as four steps plus npm audit; AGENTS.md (Validation section, outside the managed router block) and README.md (Development section) list the five commands. No verify script exists.",
+                "task_id": "NG-11",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:32:27+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:32:27+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "schema_version": "1.0",
+                "task_id": "NG-11",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "context_id": "claude-session_01Jpe7RDVp43iZAe1CvtiVuB-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "outcome": "completed",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:f8db2a8f",
+                "summary": "Added the npm script verify (typecheck, build, test, smoke:offline in order); CI calls npm run verify and keeps npm audit; AGENTS.md and README name npm ci --ignore-scripts and npm run verify. npm run verify passes (39 tests) and exits non-zero with an injected type error.",
+                "task_id": "NG-11",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:33:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:33:29+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:b1a767b0a9b05aa6ed83b70b3e603aa9bb289663fe1f8e4f7420e8c9ccc8e6ed",
+                    "execution-evidence:sha256:540157c3318285437a8430f95befc6d0ab337602b58466322368c815c879def7",
+                    "execution-evidence:sha256:a6c0aa2fa366cc93601dd23991aac455798af309a9f7e6ca6d2d49b79e58b7e9",
+                    "execution-evidence:sha256:ba16ccc1493ff1f446ab0a72af2de9b41caa04c1d8aa279bde6634eeae7df9d4"
+                ],
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "schema_version": "1.0",
+                "task_id": "NG-11",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:b1a767b0a9b05aa6ed83b70b3e603aa9bb289663fe1f8e4f7420e8c9ccc8e6ed",
+                    "execution-evidence:sha256:540157c3318285437a8430f95befc6d0ab337602b58466322368c815c879def7",
+                    "execution-evidence:sha256:a6c0aa2fa366cc93601dd23991aac455798af309a9f7e6ca6d2d49b79e58b7e9",
+                    "execution-evidence:sha256:ba16ccc1493ff1f446ab0a72af2de9b41caa04c1d8aa279bde6634eeae7df9d4"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "context_id": "claude-subagent-ng11-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "observations": [
+                    "AGENTS.md now says every Contract lists exactly the two commands, but the NG-11 Contract itself still lists the five old ones (equivalent checks; verify did not exist when it was planned)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:d1d37f51",
+                "summary": "Fresh-context review of package.json, .github/workflows/ci.yml, AGENTS.md and README.md: npm run verify exits 0 with 39 tests; failing each step in a scratch copy gave a non-zero exit with later steps skipped; CI keeps matrix, install and audit; the managed AGENTS.md block is untouched; docs match package.json.",
+                "task_id": "NG-11",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:34:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:34:29+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d3fb3c4243cc779dab483879f769b2a7e51d765e13a00bf1508030f4d0667f9a",
+                    "execution-evidence:sha256:9d2e5f73604926d1a05c50723d09005c12538a5076cf6693f2e5eece219fed40",
+                    "execution-evidence:sha256:39326b2b807df9ffc1ed2204c8561f6c9d262a9291ebb42547770d75101372cc",
+                    "execution-evidence:sha256:9a76138accc1d38db890716e8d1c01910392e1811494a038b430f89509bbbb88"
+                ],
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "schema_version": "1.0",
+                "task_id": "NG-11",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d3fb3c4243cc779dab483879f769b2a7e51d765e13a00bf1508030f4d0667f9a",
+                    "execution-evidence:sha256:9d2e5f73604926d1a05c50723d09005c12538a5076cf6693f2e5eece219fed40",
+                    "execution-evidence:sha256:39326b2b807df9ffc1ed2204c8561f6c9d262a9291ebb42547770d75101372cc",
+                    "execution-evidence:sha256:9a76138accc1d38db890716e8d1c01910392e1811494a038b430f89509bbbb88"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "context_id": "claude-subagent-ng11-blindspot-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "observations": [
+                    "AGENTS.md says exactly these two commands; that forbids legitimate extras such as composer validate on NG-10. At least would be more accurate, and nothing enforces it.",
+                    "Board cards still carry the old five-command validation string; new Contracts would copy it.",
+                    "node --test with a glob that matches nothing exits 0; a zero-test run would pass verify. Predates this change.",
+                    "CI now shows one step; the failing sub-step is only visible in the log."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:f3564efc",
+                "summary": "Fresh-context blind-spot review of package.json, .github/workflows/ci.yml, AGENTS.md and README.md: in a clean copy without node_modules, npm ci --ignore-scripts then npm run verify exited 0; injected type error, failing test and missing asset each failed the gate; CI keeps matrix, cache and audit; no stale five-command chain in docs, .claude or scripts.",
+                "task_id": "NG-11",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T11:34:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T11:34:43+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "schema_version": "1.0",
+                "task_id": "NG-11",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:cfd81b1a02fbfc15435edaa989d72f36bfbae831a014af2b9ff54b60f47dc3fb",
+                    "execution-evidence:sha256:6baee5630a1b4f98b6d05babec38ccfcb5a8f5d32e0a8d6f75a6483b436462ce",
+                    "execution-evidence:sha256:0db84cde7bb39e48aa7c4f48295a108e2f8b46058b6c74bf53ff12248e80b8d5",
+                    "execution-evidence:sha256:35dfe5925e6d859ce2a408fcecc08f2127004e3bbe7f4dd8dfc13eea28074396",
+                    "execution-evidence:sha256:8455b1caa7c53c3ca8471721423372d287e1a2a9814d2f540a3e695040011c32"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:fe251ddbc2c4f34784cca5bcc880dd391ddb4f9d:359d01d92d5fde2d1c8887d9bc47893542dcc32b",
+                "consistency_references": [
+                    "execution-evidence:sha256:73fb3a13fc10cfd5e6551a033897c851c694e4733f2e1e46920f02abeea9714e"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0561b5dd29d3df4b48818801842f05d210004a969c6f981b9c9f747df58efbe9",
+                "outcome": "pass",
+                "run_id": "run:NG-11:28ddf7e18542ae7c",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:ac57229e1e322be6e2d98279c045941394ceb6e2d68ca06c66767387c4581d07",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-11: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-11 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-11:28ddf7e18542ae7c binds active Session 2026-11-22-ng-11-r1-7c4d97e5 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-11 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run typecheck\n\n[OK] npm run build\n\n[OK] npm test\n\n[OK] npm run smoke:offline",
+                "task_id": "NG-11",
+                "validation_references": [
+                    "execution-evidence:sha256:cfd81b1a02fbfc15435edaa989d72f36bfbae831a014af2b9ff54b60f47dc3fb",
+                    "execution-evidence:sha256:6baee5630a1b4f98b6d05babec38ccfcb5a8f5d32e0a8d6f75a6483b436462ce",
+                    "execution-evidence:sha256:0db84cde7bb39e48aa7c4f48295a108e2f8b46058b6c74bf53ff12248e80b8d5",
+                    "execution-evidence:sha256:35dfe5925e6d859ce2a408fcecc08f2127004e3bbe7f4dd8dfc13eea28074396",
+                    "execution-evidence:sha256:8455b1caa7c53c3ca8471721423372d287e1a2a9814d2f540a3e695040011c32"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-11:28ddf7e18542ae7c",
+    "schema_version": "1.0",
+    "task_id": "NG-11"
+}
