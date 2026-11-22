@@ -1,11 +1,76 @@
 {
     "attention": null,
-    "candidate_revision": "6cbffb1b03dd05843d3c12c5617b2121d2acf615",
+    "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:d53a1533e6b5ac28681eb89d8bafb31254b792e1",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-22T22:30:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:30:29+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6cbffb1b03dd05843d3c12c5617b2121d2acf615",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "schema_version": "1.0",
+                "task_id": "NG-16",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6cbffb1b03dd05843d3c12c5617b2121d2acf615",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "outcome": "completed",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:656a29d1",
+                "summary": "Decision record written from the tracker spike: tasks-vision 0.10.35, offline bundle, CSP change, left/right convention, measured numbers, matcher gaps, build plan",
+                "task_id": "NG-16",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:30:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:30:29+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:d53a1533e6b5ac28681eb89d8bafb31254b792e1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "schema_version": "1.0",
+                "task_id": "NG-16",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6cbffb1b03dd05843d3c12c5617b2121d2acf615:d53a1533e6b5ac28681eb89d8bafb31254b792e1",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:ab4dc1a39eedc119d5b0a6af1c1ab6ea403b33fb5edcf083f0b3710c9f81f6ba",
+                "outcome": "completed",
+                "run_id": "run:NG-16:9802dc61311a68f0",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:116ebea6",
+                "summary": "Decision record written from the tracker spike: tasks-vision 0.10.35, offline bundle, CSP change, left/right convention, measured numbers, matcher gaps, build plan",
+                "task_id": "NG-16",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
