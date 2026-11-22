@@ -30,7 +30,8 @@ const FALLBACK_LINES: Record<FallbackCause, string> = {
   "timeout": "Das Laden dauert gerade länger. Deshalb werden Beispiele gezeigt.",
   "timeout-kept": "Hier werden noch Beispiele gezeigt. Die eigene Tafel ist bereit und erscheint, wenn die Seite neu geladen wird.",
   "render-failed": "Die eigene Tafel kann gerade nicht angezeigt werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
-  "refresh-timeout": "Die Tafel konnte gerade nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Die eigene Tafel erscheint wieder, wenn die Seite neu geladen wird.",
+  // Also shown when no own board exists (no profile, or one that was just removed), so it promises none.
+  "refresh-timeout": "Die Tafel konnte gerade nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Bitte lade die Seite neu oder gib einer Bezugsperson Bescheid.",
 };
 
 function fallbackLine(cause: FallbackCause | null): string {

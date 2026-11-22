@@ -339,8 +339,9 @@ test("a damaged custom concept is skipped and reported, and can be removed", asy
     { kind: "damaged-custom-concept", conceptId: "ball", damage: "unreadable" },
     { kind: "damaged-custom-concept", conceptId: "auto", damage: "unreadable" },
   ]);
-  // A damaged custom concept cannot be chosen for a board.
-  await rejectsWith(setBoardConcepts(store, profile.id, ["ball"], CONCEPTS), "unknown-concept");
+  // A damaged custom concept that is on the board may stay there, but it cannot be chosen anew.
+  await setBoardConcepts(store, profile.id, ["hilfe", "auto"], CONCEPTS);
+  await rejectsWith(setBoardConcepts(store, profile.id, ["hilfe", "auto", "ball"], CONCEPTS), "unknown-concept");
   await removeCustomConcept(store, profile.id, "ball", CONCEPTS);
   await removeCustomConcept(store, profile.id, "auto", CONCEPTS);
   assert.deepEqual(await resolveBoard(store, profile.id, CONCEPTS).then(({ entries, problems }) => [entries.length, problems]), [1, []]);
@@ -1520,7 +1521,7 @@ test("app: a refresh that storage does not answer in time takes the previous boa
     assert.deepEqual(now().labels, EXAMPLE_LABELS);
     assert.equal(now().fallback, "refresh-timeout");
     assert.equal(root.dataset.startup, "refresh-timeout");
-    assert.match(now().notices[0], /^Die Tafel konnte gerade nicht neu geladen werden\. Deshalb werden Beispiele gezeigt\. Die eigene Tafel erscheint wieder, wenn die Seite neu geladen wird\.$/);
+    assert.match(now().notices[0], /^Die Tafel konnte gerade nicht neu geladen werden\. Deshalb werden Beispiele gezeigt\. Bitte lade die Seite neu oder gib einer Bezugsperson Bescheid\.$/);
     assert.doesNotMatch(now().text, /Ball/);
     assert.equal(mounts.length, before + 1);
 
@@ -1662,6 +1663,46 @@ test("choosing a concept again refreshes a copy from the catalogue of that momen
   assert.deepEqual((await store.get(mia.id)).conceptIds, ["mehr", "hilfe", "pause"]);
   await setBoardConcepts(store, mia.id, ["mehr", "hilfe", "pause", "fertig"], withCatalogue({ fertig: { speechDe: "Fertig!" } }));
   assert.equal((await resolveBoard(store, mia.id, CONCEPTS)).entries[3].speechDe, "Fertig!");
+});
+
+test("an id that is already on the board may stay in a reorder whatever its entry holds; a newly chosen one still needs a readable entry", async () => {
+  const { backend, store } = await openStore();
+  const mia = await store.create("Mia", ["hilfe", "ball", "drache", "geist", "trinken"]);
+  const data = store.data(mia.id);
+  const newer = { version: 2, labelDe: "Ball", speechDe: "Ich möchte den Ball.", custom: true, symbol: "ball" };
+  await data.set("concept.ball", newer); // a custom concept a newer app wrote
+  await data.set("concept.drache", { version: 1, labelDe: "", speechDe: "Leer.", custom: true }); // unreadable
+  // "geist" has no entry at all.
+  const problems = [
+    { kind: "damaged-custom-concept", conceptId: "ball", damage: "unsupported-version" },
+    { kind: "damaged-custom-concept", conceptId: "drache", damage: "unreadable" },
+    { kind: "unknown-concept", conceptId: "geist" },
+  ];
+  const before = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(before.entries.map((entry) => entry.id), ["hilfe", "trinken"]);
+  assert.deepEqual(before.problems, problems);
+
+  // Reorder and add with the full list: accepted, the three ids stay, entries untouched, problems still reported.
+  await setBoardConcepts(store, mia.id, ["trinken", "geist", "drache", "ball", "hilfe", "mehr"], CONCEPTS);
+  assert.deepEqual((await store.get(mia.id)).conceptIds, ["trinken", "geist", "drache", "ball", "hilfe", "mehr"]);
+  assert.deepEqual(await data.get("concept.ball"), newer);
+  assert.deepEqual(await data.get("concept.drache"), { version: 1, labelDe: "", speechDe: "Leer.", custom: true });
+  assert.equal(await data.get("concept.geist"), undefined);
+  const after = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(after.entries.map((entry) => entry.id), ["trinken", "hilfe", "mehr"]);
+  assert.deepEqual(after.problems, [problems[2], problems[1], problems[0]]);
+
+  // Taking such an id off and choosing it again is choosing: refused, nothing changes.
+  await setBoardConcepts(store, mia.id, ["trinken", "hilfe", "mehr"], CONCEPTS);
+  const snapshot = JSON.stringify(backend.snapshot());
+  for (const id of ["ball", "drache", "geist"]) {
+    await assert.rejects(
+      setBoardConcepts(store, mia.id, ["trinken", "hilfe", "mehr", id], CONCEPTS),
+      (error) => error instanceof BoardDataError && error.kind === "unknown-concept",
+    );
+  }
+  assert.equal(JSON.stringify(backend.snapshot()), snapshot);
+  assert.deepEqual(await data.get("concept.ball"), newer);
 });
 
 test("choosing never overwrites an entry it cannot read, except a plainly unreadable one of a concept that is newly chosen", async () => {

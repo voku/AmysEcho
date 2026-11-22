@@ -353,7 +353,10 @@ export async function setBoardConcepts(store: ProfileStore, profileId: string, i
     if (known === null) requireConceptId(id);
     const stored = await readStored(store, profileId, id);
     if (known === null) {
-      if (stored.state !== "ok") throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
+      // Staying is not choosing: an id that is already on the board may stay
+      // whatever state its entry is in, so a reorder never forces a caller
+      // to drop a tile (and its problem report) that a newer app can read.
+      if (stored.state !== "ok" && !onBoard.includes(id)) throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
     } else if (isBoardConceptId(id)) {
       const wording = normalizeWording(known);
       const newlyChosen = !onBoard.includes(id);

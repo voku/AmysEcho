@@ -243,7 +243,11 @@ the list of this call and not on the board when the call starts.
 - So a concept that is taken off the board and chosen again later gets the wording of the moment
   it is chosen again, unless a caregiver worded it.
 - No existing entry of a concept that is already on the board is ever written by this function.
-  Reordering, or adding another concept, changes no stored sentence and removes no problem report.
+  Reordering, or adding another concept, changes no stored sentence and removes no problem report,
+  as long as the caller passes the full `conceptIds` of the profile. An id that is already on the
+  board may stay in the list whatever state its entry is in, also an id that `resolveBoard` leaves
+  off; a caller that builds the new order from `resolveBoard().entries` drops such an id and its
+  problem report with it. A newly chosen id outside the catalogue still needs a readable entry.
 - The one case in which a concept on the board gets an entry is the first row: a board from before
   wording was copied (or made with `store.create` / `store.setConceptIds`) has none, and the first
   call stores the wording it shows. A call that only reorders a board whose concepts all have an
@@ -317,7 +321,9 @@ never shown as some other concept.
 What the board does with problems:
 
 - It sets `data-board-problems` on the board region to the number of problems (`0` for a profile
-  without any; the attribute is absent when the view is not a profile).
+  without any). The attribute is absent when the view is not a profile, with one exception: the
+  examples board that is kept after a late start-up answer carries the count of the own board that
+  is waiting behind it, not of the board on screen.
 - It writes one `console.warn` line per problem with the kind, the concept id and, where there is
   one, the damage. No label, no sentence and no profile name is logged. A custom concept id is
   caregiver-chosen text and does appear.
@@ -359,8 +365,9 @@ The controller owns the page's one `ProfileStore`:
   has finished; the last one decides what is shown.
 - A refresh is bounded like start-up (`waitMs`, default `STARTUP_WAIT_MS`). If storage has not
   answered by then, the board is replaced by the examples with the `refresh-timeout` sentence,
-  which also says that the own board appears again when the page is loaded again
-  (`data-startup="refresh-timeout"`), and the call resolves. This swaps a correct own board for
+  which asks to load the page again or to tell a caregiver (`data-startup="refresh-timeout"`), and
+  the call resolves. The sentence promises no own board: the refresh may follow the removal of the
+  profile, and a reload during a storage hang runs into the start-up bound again. This swaps a correct own board for
   the examples too, when the profile did not change and storage was only slow. The previous board does not stay: on a
   shared device it may be the board of a child who is no longer the active profile. The answer of a
   refresh that ran into the bound is dropped, so it cannot replace a board mounted since. Nothing
