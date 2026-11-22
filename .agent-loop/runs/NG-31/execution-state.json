@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:c6ce47949431768ec42b8bc6eb6a3bee72a975ba",
+    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
     "contract_revision": 1,
     "current_attempt": 6,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -386,6 +386,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:5:7c8d1237",
                 "summary": "docs/caregiver.md says a second finger's tap on Abbrechen leaves the confirmation; Chromium sends no click for it, and the backing test fakes the click. Folding a details section moves content without marking a swap.",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:04:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:04:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 6,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:d787eed6ad48a2f01c21738273088a92fc5237c0",
+                "context_id": "build-6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:6:1b7f8108",
+                "summary": "Sixth build: details toggle marks a swap (tested), doc sentence on second-finger tap corrected, faked-click assertion removed; 424 tests pass",
                 "task_id": "NG-31",
                 "validation_references": []
             }
