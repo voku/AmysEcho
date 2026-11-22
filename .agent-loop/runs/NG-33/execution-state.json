@@ -1,0 +1,361 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T21:21:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:21:35+00:00",
+                "artifact_references": [],
+                "candidate_revision": "4915794fdd5f6baa4e0e51f956fc68384072536a",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "4915794fdd5f6baa4e0e51f956fc68384072536a",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "completed",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:9c982d3a",
+                "summary": "setWording and clearWording in src/board-data.ts cover the storage side with one write each; refusals arrive as BoardDataError kinds (invalid-text, unsupported-entry, unknown-concept, retired-concept, custom-concept) and need German lines like nameErrorLine; own wording is detectable by comparing the resolved entry with the catalogue; the rename mode in src/caregiver.ts is the pattern for a form that keeps drafts through redraws.",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:30:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:30:48+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "completed",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:a03f157a",
+                "summary": "Rewording built: takeover view with label and sentence, reset in two steps, German refusals, no control for newer-app entries; 447 tests pass; Chromium probes at four sizes",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:46:14+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:46:14+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c8c9f23380e21e5a93464f4c15138b38c48315abdb82711ca6bf02dd3b9f2201",
+                    "execution-evidence:sha256:fe67b2f1ce220b92a245ba518c70a8e09ad3f3e79c6510de47f923bbd6b1a71e"
+                ],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c8c9f23380e21e5a93464f4c15138b38c48315abdb82711ca6bf02dd3b9f2201",
+                    "execution-evidence:sha256:fe67b2f1ce220b92a245ba518c70a8e09ad3f3e79c6510de47f923bbd6b1a71e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "changes_required",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:1746f84a",
+                "summary": "A queued save or reset is not tied to the mode that asked for it and draft.busy is never cleared on success: reset then Escape still resets and leaves Speichern dead. Doc claims the fields stay open on an unsupported entry, true only for catalogue ids.",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:51:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:51:06+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "context_id": "build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "completed",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:3c1e2ea4",
+                "summary": "Second build: queued save/reset tied to its mode, busy cleared on every path, fields kept on unsupported-entry for all kinds, Enter moves on, typed-back app wording is a reset; 457 tests pass",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:20:41+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:20:41+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:645301abab5fdfb573c906c69cbb90940ca271fa205dd2b696f8b2a475812847",
+                    "execution-evidence:sha256:ca757f63dac8f35757d6d5a0ca0f401d6fc6422ea52d30dddf50dd9fd19a5b46"
+                ],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:645301abab5fdfb573c906c69cbb90940ca271fa205dd2b696f8b2a475812847",
+                    "execution-evidence:sha256:ca757f63dac8f35757d6d5a0ca0f401d6fc6422ea52d30dddf50dd9fd19a5b46"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "context_id": "correctness-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "changes_required",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:caf9b8de",
+                "summary": "U+0085 is refused although the doc says every line break becomes a space; Enter during an IME composition in the word field still submits the form.",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:21:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:21:08+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "context_id": "build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "completed",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:f3a3683b",
+                "summary": "Third build: Enter in the word field always prevents the submit, focus moves only when not composing; U+0085 joins the line-break class; doc and tests updated; verify passes",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:22:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:22:48+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:73d7203cdc7c6171deacd54f6b81c5cda7873e90ab64d52f9bed38f4948aec0e",
+                    "execution-evidence:sha256:338d2afc2a5f05086a51c30cb9744a50eba1156b84e477ee0b24f4f10d65e5a2",
+                    "execution-evidence:sha256:c88c0c2522f7b5a27366a5a3e951f08d6b1e6c7b648d8fa9e8851357d9e90641",
+                    "execution-evidence:sha256:7438e3cafc48907c75d8e22a6e6ea6568f02dcdbfd59e089be955cecca940f20",
+                    "execution-evidence:sha256:70c8702b302afe3f74a746924949addde8ddea84dba3b251b4dbfb72774147e4",
+                    "execution-evidence:sha256:729354b103ad0556eb02209c57581cf2a0b3211d46971781ac23d37dde7d8f87"
+                ],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:73d7203cdc7c6171deacd54f6b81c5cda7873e90ab64d52f9bed38f4948aec0e",
+                    "execution-evidence:sha256:338d2afc2a5f05086a51c30cb9744a50eba1156b84e477ee0b24f4f10d65e5a2",
+                    "execution-evidence:sha256:c88c0c2522f7b5a27366a5a3e951f08d6b1e6c7b648d8fa9e8851357d9e90641",
+                    "execution-evidence:sha256:7438e3cafc48907c75d8e22a6e6ea6568f02dcdbfd59e089be955cecca940f20",
+                    "execution-evidence:sha256:70c8702b302afe3f74a746924949addde8ddea84dba3b251b4dbfb72774147e4",
+                    "execution-evidence:sha256:729354b103ad0556eb02209c57581cf2a0b3211d46971781ac23d37dde7d8f87"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "context_id": "correctness-review-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "observations": [
+                    "test/caregiver.test.mjs:5509 the composing-Enter case does not re-check the store snapshot; only a browser probe shows no submit (NG-14).",
+                    "src/caregiver.ts: four mutants from the second review survive (busy guard on the reset button, final NFC, step reset after a refused reset, catalogue-source check); tests to add with NG-34."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:ddf2bdef",
+                "summary": "Third build passes: Enter while composing prevented and verified in Chromium, U+0085 stored as a space, doc sentences true",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:23:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:23:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:1172e82e24c5582934e4ae6d14710ebe049d03b23deb731223b182923707cdce",
+                    "execution-evidence:sha256:176f62ef64d55db34bfae18096307a73790af1d3d66e0875c272867027c0aff8",
+                    "execution-evidence:sha256:627f6f79bd71a655b97318529e3657540ca9c755131c7a01c48e0a5ab16cd27f",
+                    "execution-evidence:sha256:46ce39c105032088bc39140c2c38b6728a788c8f4fd31853b824ec9af8d8850b",
+                    "execution-evidence:sha256:15086ae99b3b29452ea32cf05cc50917e04e3d3ac2e71f7fa12f5f1f8d1f1b2e",
+                    "execution-evidence:sha256:503056722181b26f37071bb4d85ff19f1295acbdbbd61a4161fc140926272a6b"
+                ],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:1172e82e24c5582934e4ae6d14710ebe049d03b23deb731223b182923707cdce",
+                    "execution-evidence:sha256:176f62ef64d55db34bfae18096307a73790af1d3d66e0875c272867027c0aff8",
+                    "execution-evidence:sha256:627f6f79bd71a655b97318529e3657540ca9c755131c7a01c48e0a5ab16cd27f",
+                    "execution-evidence:sha256:46ce39c105032088bc39140c2c38b6728a788c8f4fd31853b824ec9af8d8850b",
+                    "execution-evidence:sha256:15086ae99b3b29452ea32cf05cc50917e04e3d3ac2e71f7fa12f5f1f8d1f1b2e",
+                    "execution-evidence:sha256:503056722181b26f37071bb4d85ff19f1295acbdbbd61a4161fc140926272a6b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "context_id": "blindspot-review-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "observations": [
+                    "Rückgängig during a rewording with a slow write closes the rewording while the fields stay on screen until the write ends (NG-32).",
+                    "A long sentence makes the child's sentence bar tall and moves the tiles when tapped; the form gives no hint or counter (board follow-up).",
+                    "Behaviour with a real on-screen keyboard and predictive text is untested (NG-14, NG-6)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:6107e9b9",
+                "summary": "Blind-spot review passes: composing Enter writes nothing, save afterwards works, status and store agree, doc sentences true",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:23:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:23:22+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:e99c7a42777bae4d7d9cf2751cc6175055cacef72d81d985ddc00e1c2f468d31",
+                    "execution-evidence:sha256:ad37790fbe787e3b5954f91ca2fb2547eb0e3643ec6c1be8e54577873a3aaae2"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:10d3b15fa40e5e3956a2f330836045ea6bc38a21",
+                "consistency_references": [
+                    "execution-evidence:sha256:bebbfa22040dec50f2714d983132ca757b8c1531bd8b422fc27576e1678c156e"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "pass",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:9dbc07890b63a69c4990e3f489156536da666be5da3ae56d1d813f242a5c46be",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-33: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-33 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-33:18a006734411e387 binds active Session 2026-11-22-ng-33-r1-d47d8e45 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-33 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-33",
+                "validation_references": [
+                    "execution-evidence:sha256:e99c7a42777bae4d7d9cf2751cc6175055cacef72d81d985ddc00e1c2f468d31",
+                    "execution-evidence:sha256:ad37790fbe787e3b5954f91ca2fb2547eb0e3643ec6c1be8e54577873a3aaae2"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-33:18a006734411e387",
+    "schema_version": "1.0",
+    "task_id": "NG-33"
+}

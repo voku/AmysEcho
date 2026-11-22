@@ -14,7 +14,7 @@
  * See docs/caregiver.md.
  */
 import type { App } from "./app.js";
-import { BoardDataError, resolveBoard, setBoardConcepts } from "./board-data.js";
+import { BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, normalizeWording, resolveBoard, setBoardConcepts, setWording } from "./board-data.js";
 import type { BoardEntry, CatalogueConcept, ResolvedBoard } from "./board-data.js";
 import { MAX_CONCEPT_IDS, MAX_DISPLAY_NAME_LENGTH, ProfileFormatError } from "./profiles/profile.js";
 import type { ProfileV1 } from "./profiles/profile.js";
@@ -210,7 +210,7 @@ const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wi
 const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt.";
 const NAME_DETAILS = "Was wird gespeichert?";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
-  + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
+  + "Der Name, die ausgewählten Begriffe und eigene Texte dazu werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -268,6 +268,55 @@ const ACTIVATE = "Als aktive Tafel verwenden";
 const EDIT_BOARD = "Tafel bearbeiten";
 const NOT_EDITABLE = "Dieser Begriff kann in dieser Version nicht bearbeitet werden.";
 const RETIRED = "Dieser Begriff ist nicht mehr in der Auswahl.";
+const LOCKED_PLACE = "Dieser Begriff kann hier nicht verschoben oder entfernt werden.";
+const REWORD = "Text ändern";
+const NEWER_ENTRY = "Diese Taste wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
+const REWORD_LABEL = "Wort auf der Taste";
+const REWORD_SPEECH = "Gesprochener Satz";
+const RESET_WORDING = "Text der App wiederherstellen";
+const RESET_CONFIRM = "Wiederherstellen";
+const REWORD_FULL = "Der Platz für dieses Profil ist voll. Der Text wurde nicht gespeichert. Entferne Begriffe oder kürze Texte, dann ist wieder Platz.";
+
+/** A refusal of a wording, with the field the focus goes back to. */
+class WordingRefusal extends Error {
+  readonly field: "label" | "speech";
+
+  constructor(field: "label" | "speech", message: string) {
+    super(message);
+    this.field = field;
+  }
+}
+
+/**
+ * What a caregiver typed or pasted, without what cannot be seen: soft
+ * hyphens, zero-width spaces, word joiners and byte order marks go; a
+ * zero-width joiner or non-joiner stays only between two visible characters
+ * (where an emoji sequence needs it); line breaks and tabs become one space.
+ */
+function cleanWordingText(input: string): string {
+  const spaced = input.normalize("NFC").replace(/[\u00ad\u200b\u2060\ufeff]/gu, "").replace(/[ ]*[\r\n\t\v\f\u0085\u2028\u2029]+[ ]*/gu, " ");
+  const characters = [...spaced];
+  const visible = (character: string | undefined): boolean => character !== undefined && !/[\s\u200c\u200d]/u.test(character);
+  return characters.filter((character, at) => (character !== "\u200c" && character !== "\u200d") || (visible(characters[at - 1]) && visible(characters[at + 1]))).join("").trim().normalize("NFC");
+}
+
+/** The wording in its stored form, or a German refusal that names the field. Board data has the last word on which characters are allowed. */
+function checkedWording(label: string, speech: string): { labelDe: string; speechDe: string } {
+  const fields = [
+    ["label", cleanWordingText(label), MAX_LABEL_LENGTH, "Bitte gib ein Wort für die Taste ein.", "Das Wort ist zu lang. Es darf", "Das Wort enthält"],
+    ["speech", cleanWordingText(speech), MAX_SPEECH_LENGTH, "Bitte gib einen Satz ein, den das Gerät sprechen soll.", "Der Satz ist zu lang. Er darf", "Der Satz enthält"],
+  ] as const;
+  for (const [field, text, max, empty, tooLong, forbidden] of fields) {
+    if (text === "") throw new WordingRefusal(field, empty);
+    if ([...text].length > max) throw new WordingRefusal(field, `${tooLong} höchstens ${max} Zeichen haben.`);
+    try {
+      normalizeWording({ labelDe: field === "label" ? text : "x", speechDe: field === "speech" ? text : "x" });
+    } catch {
+      throw new WordingRefusal(field, `${forbidden} unsichtbare Zeichen oder Steuerzeichen. Bitte tippe den Text neu ein.`);
+    }
+  }
+  return normalizeWording({ labelDe: fields[0][1], speechDe: fields[1][1] });
+}
 const BOARD_UNREADABLE = "Die Begriffe dieses Profils können gerade nicht gelesen werden.";
 const SELECT_PROFILE = "Wähle oben bei einem Profil „Tafel bearbeiten“.";
 const WRITE_FAILED = "Das konnte gerade nicht gespeichert werden. Bitte versuche es noch einmal.";
@@ -282,7 +331,29 @@ const quoted = (text: string): string => `„${text}“`;
 
 type Focusable = HTMLElement & { disabled?: boolean };
 /** The one thing that can be open in the profile list: a rename field (with what was typed) or a delete confirmation. */
-type Mode = { readonly kind: "rename"; readonly id: string; readonly draft: string } | { readonly kind: "delete"; readonly id: string } | null;
+type Mode =
+  | { readonly kind: "rename"; readonly id: string; readonly draft: string }
+  | { readonly kind: "delete"; readonly id: string }
+  | RewordMode
+  | null;
+/**
+ * Rewording one concept of the profile `id`. It takes over the body like the
+ * delete confirmation. The object is the same for as long as the rewording
+ * is open, so that a queued write can tell whether it is still wanted.
+ * `draft` holds what changes meanwhile: what the fields hold (so that it
+ * survives a redraw), which step is shown, and `busy` while a save or reset
+ * is asked for and has not ended. `title` and `source` are the concept as it
+ * was when the rewording was opened, for the case that its entry cannot be
+ * read any more.
+ */
+interface RewordMode {
+  readonly kind: "reword";
+  readonly id: string;
+  readonly conceptId: string;
+  readonly title: string;
+  readonly source: BoardEntry["source"];
+  readonly draft: { label: string; speech: string; step: "edit" | "reset"; busy: boolean };
+}
 /** A removal that can be taken back: `before` is the id that followed the removed one in the stored list then. */
 interface UndoOffer {
   readonly profileId: string;
@@ -1018,7 +1089,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     dropHold();
     mode = next;
     // A confirmation is the whole body: it starts right under the block.
-    run(() => draw([focus], { toTop: next.kind === "delete" }));
+    run(() => draw([focus], { toTop: next.kind !== "rename" }));
   };
 
   /** Closes the open rename field or confirmation without a change; focus returns to the button that opened it. */
@@ -1027,9 +1098,88 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (was === null) return;
     clearStatus();
     dropHold();
+    // The second step of a reset goes back to the fields, with what they held.
+    if (was.kind === "reword" && was.draft.step === "reset") {
+      was.draft.step = "edit";
+      run(() => draw(["reword-reset"], { toTop: true }));
+      return;
+    }
     mode = null;
-    run(() => draw([`${was.kind}:${was.id}`]));
+    run(() => draw([was.kind === "reword" ? `reword:${was.conceptId}` : `${was.kind}:${was.id}`]));
   };
+
+  /** One German sentence for a wording that could not be saved or reset. */
+  const wordingErrorLine = (error: unknown): string => {
+    if (error instanceof WordingRefusal) return error.message;
+    if (error instanceof ProfileSizeError) return REWORD_FULL;
+    if (error instanceof BoardDataError && error.kind === "unsupported-entry") return `${NEWER_ENTRY} Der Text wurde nicht geändert.`;
+    if (error instanceof BoardDataError && error.kind === "invalid-text") return "Der Text enthält Zeichen, die nicht erlaubt sind. Bitte tippe ihn neu ein.";
+    return `${WRITE_FAILED} Der Text ist unverändert.`;
+  };
+
+  /**
+   * Saves or resets the wording of the open rewording, as one queued write.
+   * `write` returns the message for the status line, or null when nothing
+   * had to be written. A second press while the first is under way is not a
+   * second write. After a refusal the fields stay open with what was typed.
+   */
+  const settleWording = (write: (current: ProfileStore, open: RewordMode) => Promise<string | null>): void => {
+    const mine = mode;
+    if (mine === null || mine.kind !== "reword" || mine.draft.busy) return;
+    const step = mine.draft.step;
+    mine.draft.busy = true;
+    clearStatus();
+    runWrite(async () => {
+      try {
+        // Left before the write began ("Abbrechen", Escape, another action): it is dropped. One that has begun
+        // cannot be taken back; it is carried out, and the status line says so.
+        if (store === null || mode !== mine || mine.draft.step !== step) return;
+        try {
+          const done = await write(store, mine);
+          if (done !== null) {
+            writes += 1;
+            say(done);
+          }
+          if (acting === session && mode === mine) mode = null;
+          await draw([`reword:${mine.conceptId}`]);
+        } catch (error) {
+          if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
+            if (acting === session && mode === mine) mode = null;
+            say(PROFILE_GONE, true);
+            await draw(["profiles-heading"]);
+            return;
+          }
+          say(wordingErrorLine(error), true);
+          // Back to the fields, also from the second step of a reset: that is where something can be done about it.
+          mine.draft.step = "edit";
+          await draw([error instanceof WordingRefusal && error.field === "speech" ? "reword-speech" : "reword-label"], { toTop: true });
+        }
+      } finally {
+        mine.draft.busy = false;
+      }
+    });
+  };
+
+  const saveWording = (): void => settleWording(async (current, open) => {
+    const wording = checkedWording(open.draft.label, open.draft.speech);
+    const shown = (await resolveBoard(current, open.id, catalogue)).entries.find((entry) => entry.id === open.conceptId);
+    // Nothing changed: nothing is written, and nothing is claimed.
+    if (shown !== undefined && shown.labelDe === wording.labelDe && shown.speechDe === wording.speechDe) return null;
+    // The app's own text, typed back by hand, is the app's text again: a copy, not an own wording.
+    const known = shown?.source === "catalogue" ? catalogue.find((concept) => concept.id === open.conceptId) : undefined;
+    if (known !== undefined && known.labelDe === wording.labelDe && known.speechDe === wording.speechDe) {
+      await clearWording(current, open.id, open.conceptId, catalogue);
+      return `${quoted(known.labelDe)} hat wieder den Text der App.`;
+    }
+    const saved = await setWording(current, open.id, open.conceptId, wording, catalogue);
+    return `Gespeichert: neuer Text für ${quoted(saved.labelDe)}.`;
+  });
+
+  const resetWording = (): void => settleWording(async (current, open) => {
+    await clearWording(current, open.id, open.conceptId, catalogue);
+    const known = catalogue.find((concept) => concept.id === open.conceptId);
+    return `${quoted(known?.labelDe ?? open.conceptId)} hat wieder den Text der App.`;
+  });
 
   /** `raw` is the name as it was when the form was sent. */
   const renameProfile = (id: string, raw: string): void => {
@@ -1121,8 +1271,20 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   };
 
   /** A catalogue concept on the board: it can be moved among the editable rows and taken off. */
+  /** "Text ändern" for one concept of a board: opens the rewording with the wording that is stored now. */
+  const rewordButton = (profileId: string, entry: BoardEntry, register: Map<string, Focusable>): HTMLButtonElement => {
+    const control = button(REWORD);
+    control.setAttribute("aria-label", `${REWORD}: ${entry.labelDe}`);
+    control.addEventListener("click", () => openMode({
+      kind: "reword", id: profileId, conceptId: entry.id, title: entry.labelDe, source: entry.source,
+      draft: { label: entry.labelDe, speech: entry.speechDe, step: "edit", busy: false },
+    }, "reword-label"));
+    register.set(`reword:${entry.id}`, control);
+    return control;
+  };
+
   const boardRow = (
-    profileId: string, entry: BoardEntry, place: number, editableOrder: readonly string[], register: Map<string, Focusable>,
+    profileId: string, entry: BoardEntry, place: number, editableOrder: readonly string[], register: Map<string, Focusable>, newer: boolean,
   ): HTMLElement => {
     const { id } = entry;
     const row = element("li", "caregiver-concept");
@@ -1171,17 +1333,123 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       });
     });
     register.set(`remove:${id}`, remove);
-    actions.append(move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1), remove);
+    // An entry a newer app wrote is not overwritten: no rewording, and a line that says what to do.
+    actions.append(move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1), ...(newer ? [] : [rewordButton(profileId, entry, register)]), remove);
     row.append(conceptText(entry, ""), actions);
+    if (newer) row.append(element("p", "caregiver-concept-note", NEWER_ENTRY));
     return row;
   };
 
-  /** A concept on the board that this version does not edit: shown at its place, with the reason and no buttons. */
-  const lockedRow = (id: string, entry: BoardEntry | undefined): HTMLElement => {
+  /**
+   * A concept on the board that this version does not move or take off: shown
+   * at its place with the reason. One that the board shows (a custom or a
+   * retired concept) can be reworded; one it cannot show has no button.
+   */
+  const lockedRow = (profileId: string, id: string, entry: BoardEntry | undefined, register: Map<string, Focusable>, newer: boolean): HTMLElement => {
     const row = element("li", "caregiver-concept caregiver-concept-locked");
-    const note = element("p", "caregiver-concept-note", entry?.source === "retired" ? `${RETIRED} ${NOT_EDITABLE}` : NOT_EDITABLE);
-    row.append(conceptText(entry ?? null, `Begriff ${quoted(id)}`), note);
+    if (entry === undefined) {
+      row.append(conceptText(null, `Begriff ${quoted(id)}`), element("p", "caregiver-concept-note", newer ? NEWER_ENTRY : NOT_EDITABLE));
+      return row;
+    }
+    const actions = element("div", "caregiver-row-actions");
+    actions.append(rewordButton(profileId, entry, register));
+    row.append(conceptText(entry, ""), actions, element("p", "caregiver-concept-note", entry.source === "retired" ? `${RETIRED} ${LOCKED_PLACE}` : LOCKED_PLACE));
     return row;
+  };
+
+  /**
+   * The rewording of one concept. Like the delete confirmation it is the
+   * whole body while it is open: the fields have room on a small phone, and
+   * nothing else is there to be hit or to move.
+   */
+  const rewordView = (open: RewordMode, entry: BoardEntry, profileLabel: string, register: Map<string, Focusable>): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-takeover");
+    const known = entry.source === "catalogue" ? catalogue.find((concept) => concept.id === entry.id) : undefined;
+    if (open.draft.step === "reset" && known !== undefined) {
+      view.append(
+        element("h2", "", `Text der App für ${quoted(entry.labelDe)} wiederherstellen?`),
+        element("p", "caregiver-notice", `Danach steht auf der Taste ${quoted(known.labelDe)}, und das Gerät spricht ${quoted(known.speechDe)}.`),
+      );
+      const cancel = button(CANCEL);
+      cancel.addEventListener("click", leaveMode);
+      register.set("reset-cancel", cancel);
+      register.set("anchor:reset-cancel", view);
+      // A tap, not a hold: the own text can be typed again.
+      const confirm = button(RESET_CONFIRM, "caregiver-button caregiver-primary");
+      confirm.addEventListener("click", resetWording);
+      const actions = element("div", "caregiver-profile-actions");
+      actions.append(cancel, confirm);
+      view.append(actions);
+      return view;
+    }
+    view.append(element("h2", "", `Text für ${quoted(entry.labelDe)} auf der Tafel von ${quoted(profileLabel)}`));
+    const form = element("form", "caregiver-reword");
+    const field = <K extends "input" | "textarea">(tag: K, id: string, text: string, key: "label" | "speech"): HTMLElementTagNameMap[K] => {
+      const label = element("label", "", text);
+      label.htmlFor = id;
+      const control = element(tag, "caregiver-input");
+      control.id = id;
+      control.autocomplete = "off";
+      // The same care as for a name: nothing typed here goes to a spelling service.
+      control.spellcheck = false;
+      // Capitals are left to the keyboard: German nouns and the start of a sentence want them.
+      control.setAttribute("autocorrect", "off");
+      control.value = open.draft[key];
+      control.addEventListener("input", () => {
+        open.draft[key] = control.value;
+      });
+      register.set(`reword-${key}`, control);
+      form.append(label, control);
+      return control;
+    };
+    const labelField = field("input", "caregiver-reword-label", REWORD_LABEL, "label");
+    labelField.type = "text";
+    labelField.setAttribute("enterkeyhint", "next");
+    const speechField = field("textarea", "caregiver-reword-speech", REWORD_SPEECH, "speech");
+    speechField.rows = 3;
+    // Enter in the first field goes on to the second: it must not send the form with half of a wording (the action key of an on-screen keyboard is Enter).
+    labelField.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      // Also while an input method composes: the form is never sent from here. The focus stays then, so the composition can end.
+      event.preventDefault();
+      if (!event.isComposing) speechField.focus();
+    });
+    register.set("anchor:reword-label", view);
+    if (known !== undefined) form.append(element("p", "caregiver-notice caregiver-name-notice", `Text der App: ${quoted(known.labelDe)} – ${quoted(known.speechDe)}`));
+    else if (entry.source === "retired") form.append(element("p", "caregiver-notice caregiver-name-notice", RETIRED));
+    if (entry.symbolPath !== null) form.append(element("p", "caregiver-notice caregiver-name-notice", "Das Bild bleibt gleich."));
+    const save = element("button", "caregiver-button caregiver-primary", SAVE);
+    save.type = "submit";
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      // A form that has only just appeared is not sent by a press that was meant for something else.
+      if (!aimed(now())) return;
+      open.draft.label = labelField.value;
+      open.draft.speech = speechField.value;
+      saveWording();
+    });
+    const actions = element("div", "caregiver-profile-actions");
+    actions.append(save, cancel);
+    form.append(actions);
+    view.append(form);
+    // Only where there is something to go back to: a stored wording that differs from the app's text now (an own one, or the copy of an earlier text of the app).
+    if (known !== undefined && (known.labelDe !== entry.labelDe || known.speechDe !== entry.speechDe)) {
+      const reset = button(RESET_WORDING);
+      reset.addEventListener("click", () => {
+        // Not while a save is under way: its answer would arrive in the second step.
+        if (mode !== open || open.draft.busy) return;
+        clearStatus();
+        open.draft.label = labelField.value;
+        open.draft.speech = speechField.value;
+        open.draft.step = "reset";
+        run(() => draw(["reset-cancel"], { toTop: true }));
+      });
+      register.set("reword-reset", reset);
+      view.append(reset);
+    }
+    return view;
   };
 
   /** A catalogue concept that is not on the board. */
@@ -1251,9 +1519,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       const onBoard = element("ol", "caregiver-concepts");
       for (const id of ids) {
         const entry = board.entries.find((candidate) => candidate.id === id);
+        const newer = board.problems.some((problem) => problem.conceptId === id && problem.damage === "unsupported-version");
         onBoard.append(entry !== undefined && editable.has(id)
-          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register)
-          : lockedRow(id, entry));
+          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register, newer)
+          : lockedRow(profile.id, id, entry, register, newer));
       }
       section.append(onBoard);
     }
@@ -1434,6 +1703,24 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const confirming = mode !== null && mode.kind === "delete" ? profiles.find((profile) => profile.id === mode?.id) : undefined;
     if (confirming !== undefined) {
       return { content: [confirmView(confirming, labelOf(confirming), confirming.id === activeId, register, holds)], afterClose: header, confirming: true };
+    }
+
+    // So does the rewording of a concept, while that concept is on the board and this version may write its entry.
+    if (mode !== null && mode.kind === "reword") {
+      const open = mode;
+      const owner = profiles.find((profile) => profile.id === open.id);
+      const board = owner === undefined ? null : await resolveBoard(current, owner.id, catalogue).catch(() => null);
+      // An entry that turns out to be a newer app's while this is open is not shown by the board any more (a custom or
+      // retired one) or shown with the app's text. The fields stay, with what was typed, for as long as the id is on
+      // the board; saving says why it cannot.
+      const entry = board?.entries.find((candidate) => candidate.id === open.conceptId)
+        ?? (board?.profile.conceptIds.includes(open.conceptId) === true
+          ? { id: open.conceptId, labelDe: open.title, speechDe: open.draft.speech, symbolPath: null, source: open.source }
+          : undefined);
+      if (owner !== undefined && entry !== undefined) {
+        return { content: [rewordView(open, entry, labelOf(owner), register)], afterClose: header, confirming: true };
+      }
+      mode = null;
     }
 
     const profileSection = element("section", "caregiver-section");
@@ -1634,7 +1921,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /** Events that Escape was already answered for: one that bubbles from the region reaches the document as well. */
   const answered = new WeakSet<object>();
   const onEscape = (event: KeyboardEvent): void => {
-    if (event.key !== "Escape" || !isOpen || answered.has(event)) return;
+    // While an input method composes a character, Escape belongs to it.
+    if (event.key !== "Escape" || !isOpen || event.isComposing === true || answered.has(event)) return;
     answered.add(event);
     event.preventDefault();
     // Escape leaves the innermost thing: an open rename field or confirmation first.
