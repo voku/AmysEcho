@@ -454,13 +454,14 @@ for a concept with a picture "Das Bild bleibt gleich.", "Speichern" and "Abbrech
 start from the stored wording. What is typed lives in the open mode and survives a redraw.
 "Abbrechen" and Escape leave without a change and drop what was typed (rule 18); Escape is left
 alone while an input method composes a character. Enter in "Wort auf der Taste" moves on to the
-sentence and sends nothing (`enterkeyhint="next"`): only "Speichern" saves. Spell checking and
+sentence and sends nothing (`enterkeyhint="next"`): only "Speichern" saves. While an input
+method composes, Enter sends nothing either and the focus stays. Spell checking and
 correction are off as for a name; capitals are left to the keyboard.
 
 - **Saving** is one queued write through `setWording`. Before that the text is cleaned: soft
   hyphens, zero-width spaces, word joiners and byte order marks are taken out, a zero-width
   (non-)joiner stays only between two visible characters, line breaks of every kind (also the
-  Unicode line and paragraph separators, vertical tab and form feed) and tabs become one space,
+  Unicode line and paragraph separators, next line U+0085, vertical tab and form feed) and tabs become one space,
   the ends are trimmed, and the length is counted on that text in NFC, as the store counts it.
   Text that equals the app's wording of a catalogue concept is not stored as an own wording: it
   goes through `clearWording`, as a reset does, and the status line says so. Then it is checked, and board data has the last word. Afterwards the

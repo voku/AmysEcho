@@ -294,7 +294,7 @@ class WordingRefusal extends Error {
  * (where an emoji sequence needs it); line breaks and tabs become one space.
  */
 function cleanWordingText(input: string): string {
-  const spaced = input.normalize("NFC").replace(/[\u00ad\u200b\u2060\ufeff]/gu, "").replace(/[ ]*[\r\n\t\v\f\u2028\u2029]+[ ]*/gu, " ");
+  const spaced = input.normalize("NFC").replace(/[\u00ad\u200b\u2060\ufeff]/gu, "").replace(/[ ]*[\r\n\t\v\f\u0085\u2028\u2029]+[ ]*/gu, " ");
   const characters = [...spaced];
   const visible = (character: string | undefined): boolean => character !== undefined && !/[\s\u200c\u200d]/u.test(character);
   return characters.filter((character, at) => (character !== "\u200c" && character !== "\u200d") || (visible(characters[at - 1]) && visible(characters[at + 1]))).join("").trim().normalize("NFC");
@@ -1409,9 +1409,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     speechField.rows = 3;
     // Enter in the first field goes on to the second: it must not send the form with half of a wording (the action key of an on-screen keyboard is Enter).
     labelField.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || event.isComposing) return;
+      if (event.key !== "Enter") return;
+      // Also while an input method composes: the form is never sent from here. The focus stays then, so the composition can end.
       event.preventDefault();
-      speechField.focus();
+      if (!event.isComposing) speechField.focus();
     });
     register.set("anchor:reword-label", view);
     if (known !== undefined) form.append(element("p", "caregiver-notice caregiver-name-notice", `Text der App: ${quoted(known.labelDe)} – ${quoted(known.speechDe)}`));

@@ -5502,10 +5502,13 @@ test("reword: Enter in the first field goes on to the second and sends nothing; 
     assert.equal(prevented, 1, "the browser must not send the form");
     assert.equal(focused.current, fields.speech);
     assert.equal(JSON.stringify(backend.snapshot()), before);
-    // Another key is left alone, and so is Enter while an input method composes.
+    // Another key is left alone. Enter while an input method composes sends nothing either, and the focus stays.
     fields.label.dispatch("keydown", { key: "a", preventDefault() { prevented += 1; } });
-    fields.label.dispatch("keydown", { key: "Enter", isComposing: true, preventDefault() { prevented += 1; } });
     assert.equal(prevented, 1);
+    focused.current = fields.label;
+    fields.label.dispatch("keydown", { key: "Enter", isComposing: true, preventDefault() { prevented += 1; } });
+    assert.equal(prevented, 2);
+    assert.equal(focused.current, fields.label);
     // In the sentence Enter is not taken over.
     assert.equal(fields.speech.handlers.keydown, undefined);
   });
@@ -5525,8 +5528,8 @@ test("reword: the line about the picture is there for a concept with a picture o
 test("reword: every kind of line break becomes a space, and the length is counted on the text as it is stored", async () => {
   await withArea({ seed: seedThree }, async ({ holdOpen, reword, backend, seeded, concept }) => {
     await holdOpen();
-    await reword("Trinken", "Saft", `A${chr(0x2028)}B${chr(0x2029)}C\vD\fE`);
-    assert.equal(entryOf(backend, seeded, "trinken").speechDe, "A B C D E");
+    await reword("Trinken", "Saft", `A${chr(0x2028)}B${chr(0x2029)}C\vD\fE${chr(0x85)}F`);
+    assert.equal(entryOf(backend, seeded, "trinken").speechDe, "A B C D E F");
     // Forty letters typed as letter plus combining accent are forty characters once composed.
     await reword("Saft", `e${chr(0x301)}`.repeat(40), "Satz.");
     assert.equal(entryOf(backend, seeded, "trinken").labelDe, "é".repeat(40));

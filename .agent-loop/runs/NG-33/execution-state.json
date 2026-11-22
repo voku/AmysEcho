@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
     "history": [
         {
@@ -136,6 +136,44 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:3c1e2ea4",
                 "summary": "Second build: queued save/reset tied to its mode, busy cleared on every path, fields kept on unsupported-entry for all kinds, Enter moves on, typed-back app wording is a reset; 457 tests pass",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T22:20:41+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T22:20:41+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:645301abab5fdfb573c906c69cbb90940ca271fa205dd2b696f8b2a475812847",
+                    "execution-evidence:sha256:ca757f63dac8f35757d6d5a0ca0f401d6fc6422ea52d30dddf50dd9fd19a5b46"
+                ],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:645301abab5fdfb573c906c69cbb90940ca271fa205dd2b696f8b2a475812847",
+                    "execution-evidence:sha256:ca757f63dac8f35757d6d5a0ca0f401d6fc6422ea52d30dddf50dd9fd19a5b46"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:803e42ce75cbd37770bd884d7ebe5364ec62348e",
+                "context_id": "correctness-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "changes_required",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:caf9b8de",
+                "summary": "U+0085 is refused although the doc says every line break becomes a space; Enter during an IME composition in the word field still submits the form.",
                 "task_id": "NG-33",
                 "validation_references": []
             }
