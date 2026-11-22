@@ -38,9 +38,10 @@ The code does not check these; the camera task (card NG-3) has to guarantee them
   coordinates (0 to 1 on each axis) must first be multiplied by image width and height. In
   reviewer probes, stretching one axis by 16:9 on the attempts only dropped top-1 from 100% to 31%
   (vertical stretch) and to about 2% (horizontal stretch).
-- **`left` and `right` must mean the same thing in every capture of a profile.** Which convention is
-  used (the child's own hands, or sides of the image) is not decided yet, and a front camera mirrors
-  the image. In reviewer probes, mirrored attempts or swapped hand labels were rejected 100% of the
+- **`left` and `right` must mean the same thing in every capture of a profile.** The convention
+  is decided (card NG-16, [tracker-decision.md](tracker-decision.md)): `left` is the child's own
+  left hand, and frames go to the tracker unflipped. Whether the phone's front camera delivers
+  unflipped frames is not verified yet. In reviewer probes, mirrored attempts or swapped hand labels were rejected 100% of the
   time, and labels flickering on 10% of frames between a quarter and two fifths of the time,
   depending on how the flicker was simulated. The synthetic data never varies this.
 - **Examples and attempts need the same anchor.** If shoulders are visible in the examples but not

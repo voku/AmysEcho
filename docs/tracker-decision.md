@@ -1,7 +1,7 @@
-# Hand tracking for Amy's Echo NG: spike result (input for NG-16)
+# Hand tracking for Amy's Echo NG: decision record (NG-16)
 
-Spike date 2026-11-22. Everything here was measured in headless Chromium 157 on a 4-core desktop
-VM. **None of it is a phone number.** Nothing in the app repository was changed.
+Spike date 2026-11-22. The browser numbers were measured in headless Chromium 157 on a 4-core desktop
+VM; the adapter and matcher counts come from a Node test. **None of it is a phone number.** Nothing in the app repository was changed.
 
 ## Recommendation
 
@@ -67,8 +67,9 @@ Service worker (`public/sw.js`):
 
 - Add the five files above to the precache and bump `CACHE_NAME`. The spike used the app's own
   install/activate/fetch logic with only the list changed: after one online load, the page ran with
-  the network off, on the main thread and in a worker, with zero requests reaching the server in a
-  dedicated probe. Without the service worker the offline load failed, as expected.
+  the network off, on the main thread and in a worker. The retained result of that run counts one request
+  reaching the server while offline, and what it was is not recorded; check it again with the
+  offline browser test of card NG-14. Without the service worker the offline load failed, as expected.
 - `cache.addAll` is all-or-nothing. A failed 25 MB download would also fail the board's install.
   Put the tracker files in their own cache (own name and version), fill it when a caregiver turns
   gestures on, and keep the `activate` clean-up from deleting it.
@@ -198,14 +199,15 @@ Matcher gaps:
 Each step is small. "CI" means Node tests with synthetic or replayed landmark frames, no camera.
 
 **NG-16 (decision record)**
-1. Put this content into `docs/decisions/hand-tracking.md`; update the input contract in
-   `docs/recognition.md` with the convention and the pixel rule. CI: nothing new.
-2. Phone probe, not committed: this spike page on the phone, items 1 to 5 of the list above.
+1. This record, and the input contract in `docs/recognition.md` updated with the left/right
+   convention. Done with this card.
+2. Phone probe, not committed: a page like the spike's on the phone, items 1 to 5 of the list above.
    Phone only. If hands-only is below about 10 frames per second on both delegates, stop and
    reconsider (smaller input, `numHands` 1 while teaching one-hand gestures, pose off).
 
 **NG-3 (camera capture)**
-3. `src/capture/adapter.ts` from `adapter/src/tracker-adapter.ts`, with its tests. CI: all of it.
+3. The adapter from tracker output to landmark frames, in `src/recognition/`, rebuilt from the
+   spike's sketch, with its tests. CI: all of it.
 4. Vendor the five files under `public/vendor/mediapipe/` with licence notice and checksums; CSP
    `'wasm-unsafe-eval'`; separate tracker cache in `sw.js`. CI: checksum test, CSP test, offline
    smoke check extended to the tracker files.
