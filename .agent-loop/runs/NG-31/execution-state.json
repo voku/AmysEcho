@@ -1,11 +1,76 @@
 {
     "attention": null,
-    "candidate_revision": "2634ee38c05443cd971db3cb441c0b8419938885",
+    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-22T17:22:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T17:22:59+00:00",
+                "artifact_references": [],
+                "candidate_revision": "2634ee38c05443cd971db3cb441c0b8419938885",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "2634ee38c05443cd971db3cb441c0b8419938885",
+                "context_id": "claude-main-ng31-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:e7e7d2a8",
+                "summary": "Chromium look at the area: notice dominates, ticked rows move under the finger, close is at the bottom, no rename or delete; store offers rename and remove",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T17:22:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T17:22:59+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "context_id": "claude-subagent-ng31-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:69079140",
+                "summary": "Sticky header with after-closing line and Fertig, Escape, profile cards with rename and two-step delete, two-list board editor with focus rules and undo, short notice with details, 12-tile warning, help section, no-board line without reload; walked in Chromium at five sizes; verify passes with 348 tests",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
