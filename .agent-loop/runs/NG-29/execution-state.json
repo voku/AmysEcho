@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:b4784f5bb007d0af2e69cc53ab79e9ba54875707",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
     "history": [
         {
@@ -66,6 +66,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:dec20c64",
                 "summary": "Caregiver area first slice: hold-to-open with countdown, profile list, create, activate, choose and order concepts with locked rows preserved, board hidden after close until refreshed; verify passes with 214 tests",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T14:32:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T14:32:22+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:9618739a49e26cc8c8282c40aee072f4b8ca2de1fcfca2450b2b6f508ad7e4ef",
+                    "execution-evidence:sha256:8cb5ed1620683c5bcc2513db44ea1e15822909b4e60d2b9f937068de12d35c03",
+                    "execution-evidence:sha256:cf618b90ed718929190a981ab2bd08ad4a67590e7bf6db0844763ab40bea8ea4"
+                ],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:b4784f5bb007d0af2e69cc53ab79e9ba54875707",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:9618739a49e26cc8c8282c40aee072f4b8ca2de1fcfca2450b2b6f508ad7e4ef",
+                    "execution-evidence:sha256:8cb5ed1620683c5bcc2513db44ea1e15822909b4e60d2b9f937068de12d35c03",
+                    "execution-evidence:sha256:cf618b90ed718929190a981ab2bd08ad4a67590e7bf6db0844763ab40bea8ea4"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:b4784f5bb007d0af2e69cc53ab79e9ba54875707",
+                "context_id": "claude-subagent-ng29-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "changes_required",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:7d701248",
+                "summary": "caregiver.ts:282,573-611 one returning flag is shared by all closings, so a late refresh of an earlier closing shows the board during a later closing's wait and that close() never resolves; blind-spot: no notice where a name is first stored and no way to remove it, and docs/caregiver.md does not state the open NG-7 and NG-14 preconditions for real data",
                 "task_id": "NG-29",
                 "validation_references": []
             }

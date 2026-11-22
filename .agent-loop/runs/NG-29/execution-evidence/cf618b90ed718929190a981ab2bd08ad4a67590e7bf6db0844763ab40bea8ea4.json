@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:b4784f5bb007d0af2e69cc53ab79e9ba54875707",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-22T14:32:22+00:00",
+    "reference": "execution-evidence:sha256:cf618b90ed718929190a981ab2bd08ad4a67590e7bf6db0844763ab40bea8ea4",
+    "run_id": "run:NG-29:da89ee8418a74855",
+    "schema_version": "1.0",
+    "source_digest": "sha256:e33a9a9140f0061399fc55e7b613319a0ae847d7747c5fa69f21441eda41b0b8",
+    "source_reference": "workspace-file:test/caregiver.test.mjs",
+    "stage_id": "correctness-review",
+    "task_id": "NG-29"
+}
