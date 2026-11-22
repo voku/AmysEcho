@@ -1,11 +1,76 @@
 {
     "attention": null,
-    "candidate_revision": "23b0cf7b29189309f8d7ca066122af4abc8a128d",
+    "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ec7605a95cf4534f7cb667848ebb46454355b3ff",
     "contract_revision": 2,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-22T16:15:40+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:15:40+00:00",
+                "artifact_references": [],
+                "candidate_revision": "23b0cf7b29189309f8d7ca066122af4abc8a128d",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "23b0cf7b29189309f8d7ca066122af4abc8a128d",
+                "context_id": "claude-main-ng30-investigate-r2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "outcome": "completed",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:2538e70b",
+                "summary": "Contract revision 2 adds src/speech.ts and test/speech.test.mjs to the scope; speech.ts wires onerror only and never asks for voices before a tap",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T16:15:40+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T16:15:40+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ec7605a95cf4534f7cb667848ebb46454355b3ff",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "schema_version": "1.0",
+                "task_id": "NG-30",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:23b0cf7b29189309f8d7ca066122af4abc8a128d:ec7605a95cf4534f7cb667848ebb46454355b3ff",
+                "context_id": "claude-subagent-ng30-build-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cad3a9581923e4d8868cb508c3fdf6a2af11ef5c9fa936009712705cb2e73299",
+                "outcome": "completed",
+                "run_id": "run:NG-30:c7005b152ab42c3f",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:5e08686e",
+                "summary": "Second build: utterance end tracked with an 8 s fallback, voice warm-up and voiceschanged, dimmed speaker and actionable lines, five examples fit 320x568 and 360x640 under every notice, overscroll and contextmenu guards, corrected docs; measured in Chromium at five sizes; verify passes with 283 tests",
+                "task_id": "NG-30",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
