@@ -11,9 +11,12 @@
     "build": "tsc --project tsconfig.json && node scripts/assemble.mjs",
     "test": "node scripts/run-tests.mjs",
     "smoke:offline": "node scripts/offline-smoke.mjs",
-    "verify": "npm run typecheck && npm run build && npm test && npm run smoke:offline"
+    "verify": "npm run typecheck && npm run build && npm test && npm run smoke:offline && npm run test:browser",
+    "test:browser": "node scripts/run-tests.mjs test/browser"
   },
   "devDependencies": {
+    "@mediapipe/tasks-vision": "0.10.35",
+    "playwright": "1.63.0",
     "typescript": "6.0.3"
   }
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { once } from "node:events";
 import { extname } from "node:path";
@@ -13,6 +14,12 @@ const TYPES = {
   ".css": "text/css; charset=utf-8",
   ".svg": "image/svg+xml",
   ".webmanifest": "application/manifest+json",
+  // The hand tracker (vendor/mediapipe/, card NG-3).
+  ".mjs": "text/javascript; charset=utf-8",
+  ".wasm": "application/wasm",
+  ".task": "application/octet-stream",
+  ".json": "application/json",
+  ".txt": "text/plain; charset=utf-8",
 };
 
 /**
@@ -48,15 +55,15 @@ export async function precacheList(workerSource) {
 
 /**
  * Serves `dist` the way a plain static host does (the directory itself as
- * index.html, known file types only) and fetches the service worker and every
- * entry of its pre-cache list. Rejects for an entry that is not served or is
- * empty: installing the worker would fail on it, and the app would not work
- * offline. Returns the checked paths.
+ * index.html, known file types only, query strings ignored). `onRequest` sees
+ * every request path. Resolves to the server and its origin
+ * ("http://127.0.0.1:<port>/").
  */
-export async function smoke(dist = DIST) {
+export async function serveDist(dist = DIST, onRequest = () => undefined) {
   const server = createServer(async (request, response) => {
     try {
       const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname).slice(1);
+      onRequest(path, request);
       const file = path === "" || path.endsWith("/") ? `${path}index.html` : path;
       const type = TYPES[extname(file)];
       const target = new URL(file, dist);
@@ -70,11 +77,21 @@ export async function smoke(dist = DIST) {
     }
   });
   server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  return { server, origin: `http://127.0.0.1:${address.port}/` };
+}
+
+/**
+ * Serves `dist` (see `serveDist`) and fetches the service worker and every
+ * entry of its pre-cache list. Rejects for an entry that is not served or is
+ * empty: installing the worker would fail on it, and the app would not work
+ * offline. Returns the checked paths.
+ */
+export async function smoke(dist = DIST) {
+  const { server, origin } = await serveDist(dist);
   try {
-    await once(server, "listening");
-    const address = server.address();
-    assert.ok(address && typeof address !== "string");
-    const origin = `http://127.0.0.1:${address.port}/`;
     const paths = ["sw.js", ...await precacheList(await readFile(new URL("sw.js", dist), "utf8"))];
     for (const path of paths) {
       const response = await fetch(new URL(path, origin));
@@ -87,7 +104,42 @@ export async function smoke(dist = DIST) {
   }
 }
 
+/**
+ * The tracker files (card NG-3) are not in the board's pre-cache; the capture
+ * path fills their own cache from vendor/mediapipe/manifest.json. Checks that
+ * every file the manifest names is served with its size and sha256, and that
+ * none of them is in the board's pre-cache list, so a failed tracker download
+ * cannot fail the board's install. Returns the checked paths.
+ */
+export async function trackerSmoke(dist = DIST) {
+  const { server, origin } = await serveDist(dist);
+  try {
+    const manifestPath = "vendor/mediapipe/manifest.json";
+    const response = await fetch(new URL(manifestPath, origin));
+    assert.equal(response.status, 200, `missing tracker manifest: ./${manifestPath}`);
+    const manifest = await response.json();
+    const precached = new Set(await precacheList(await readFile(new URL("sw.js", dist), "utf8")));
+    const paths = [];
+    for (const file of manifest.files) {
+      const path = `vendor/mediapipe/${file.path}`;
+      assert.ok(!precached.has(path), `tracker file in the board's pre-cache: ./${path}`);
+      const served = await fetch(new URL(path, origin));
+      assert.equal(served.status, 200, `missing tracker file: ./${path}`);
+      const bytes = Buffer.from(await served.arrayBuffer());
+      assert.equal(bytes.byteLength, file.bytes, `tracker file of the wrong size: ./${path}`);
+      assert.equal(createHash("sha256").update(bytes).digest("hex"), file.sha256, `tracker file does not match its sha256: ./${path}`);
+      paths.push(path);
+    }
+    assert.ok(!precached.has(manifestPath), "the tracker manifest is in the board's pre-cache");
+    return paths;
+  } finally {
+    server.close();
+  }
+}
+
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const paths = await smoke();
   console.log(`NG local bundle smoke OK (${paths.length} files from the service worker's pre-cache list); browser offline and actual speech are unverified`);
+  const tracker = await trackerSmoke();
+  console.log(`NG tracker files OK (${tracker.length} files with their sha256, served, none in the board's pre-cache)`);
 }

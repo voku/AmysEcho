@@ -103,7 +103,9 @@ There is no training step and no shared model. Adding an example changes the res
 
 ## Input contract
 
-The code does not check these; the camera task (card NG-3) has to guarantee them.
+The matcher does not check these. The camera capture (card NG-3, [capture.md](capture.md)) produces its
+frames through `src/recognition/tracker-adapter.ts`, which guarantees the first two and the
+timestamps; how, and what is still unverified on a phone, is in capture.md.
 
 - **Coordinates must have the same scale on both axes**, for example pixels. MediaPipe's normalised
   coordinates (0 to 1 on each axis) must first be multiplied by image width and height. In
@@ -120,7 +122,10 @@ The code does not check these; the camera task (card NG-3) has to guarantee them
   reason `other_anchor` and an empty correction list. The rule itself is unchanged. Shoulders
   seen at any time in a capture anchor it. Between captures nothing is carried over: if the
   camera task (NG-3) wants a child whose shoulders are hidden for one attempt to stay
-  comparable, it has to pass on the last shoulders it saw.
+  comparable, it has to pass on the last shoulders it saw. Card NG-3 does not: each capture is
+  anchored by the shoulders it saw itself, and the adapter has `shoulders: "never"` for a profile
+  that uses the hands anchor throughout. Which of the two a profile uses is decided with the stored
+  examples (card NG-19).
 - **Frames carry timestamps in milliseconds that do not decrease.** The cut, the hand rules and
   the resampling all use them. 7 to 15 frames per second are enough for the rules; what low and
   unsteady rates cost is in the table below.

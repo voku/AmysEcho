@@ -118,8 +118,8 @@ test("index.html has the stable regions and a static German line for when script
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
   const app = /<main id="app">([\s\S]*)<\/main>/.exec(html)?.[1] ?? "";
   const board = /<section id="board-region"[^>]*>([\s\S]*?)<\/section>/.exec(app)?.[1] ?? "";
-  // The two regions, in this order, directly inside #app.
-  assert.match(app, /^\s*<section id="board-region"[^>]*>[\s\S]*?<\/section>\s*<section id="caregiver-region"[^>]*\shidden>\s*<\/section>\s*$/);
+  // The regions, in this order, directly inside #app: the board, the caregiver area and the camera test (card NG-3), both hidden and empty.
+  assert.match(app, /^\s*<section id="board-region"[^>]*>[\s\S]*?<\/section>\s*<section id="caregiver-region"[^>]*\shidden>\s*<\/section>\s*<section id="capture-region" class="capture-region" aria-label="Kamera testen" hidden><\/section>\s*$/);
   // The opening control of the caregiver area gets its own element after #app; empty and hidden until the script fills it.
   assert.match(html, /<\/main>\s*<footer id="caregiver-entry" class="caregiver-entry" hidden><\/footer>\s*<\/body>/);
   // A plain line that is visible until the script replaces it, and one for a browser without scripts.
@@ -135,8 +135,9 @@ test("index.html has the stable regions and a static German line for when script
   assert.doesNotMatch(board, /lade[^<]*neu|neu laden/);
   // Without a running script nothing may claim that the board is loading.
   assert.doesNotMatch(board, /wird geladen|lädt/);
-  // Still no inline script or style, and the same policy.
-  assert.match(html, /<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'">/);
+  // Still no inline script or style, and the same policy with one addition: 'wasm-unsafe-eval', so that the
+  // hand tracker's WebAssembly compiles (card NG-3). Not 'unsafe-eval', no other source.
+  assert.match(html, /<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'">/);
   assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>|<style|\sstyle=|\son[a-z]+=/i);
 });
 
@@ -160,6 +161,9 @@ test("compiled shell contains only local assets", async () => {
   const js = await readFile(new URL("../dist/main.js", import.meta.url), "utf8");
   assert.match(html, /lang="de"/);
   assert.match(html, /src="\.\/main\.js"/);
+  // The camera test is its own module next to the board's, so a failure in it cannot stop the board.
+  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/g)].map((match) => match[0]),
+    ['<script type="module" src="./main.js">', '<script type="module" src="./capture/capture.js">']);
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(js, /from\s+["'](?:\.\.\/)+(?:webapp|server|integration)\//);
 });
@@ -188,13 +192,19 @@ async function reachableModules(entry) {
 
 test("service-worker pre-cache includes the full local concept bundle", async () => {
   const worker = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
-  const modules = await reachableModules("main.js");
+  const modules = [...new Set([...await reachableModules("main.js"), ...await reachableModules("capture/capture.js")])].sort();
   // The walk really follows imports, including into a subdirectory and through a re-export-free chain.
   for (const expected of ["main.js", "app.js", "board.js", "concepts.js", "speech.js", "startup.js", "status.js", "board-data.js", "caregiver.js", "profiles/store.js", "profiles/profile.js", "profiles/backend.js", "profiles/indexeddb-backend.js"]) {
     assert.ok(modules.includes(expected), `import walk did not reach ${expected}`);
   }
   // Test-only code is not part of the app.
   assert.ok(!modules.includes("profiles/memory-backend.js"));
+  // The camera test and what it imports are pre-cached with the board, so the page loads offline without errors;
+  // its worker's script too. The tracker itself (vendor/mediapipe/) is not: it has its own cache (card NG-3).
+  for (const expected of ["capture/capture.js", "recognition/tracker-adapter.js", "recognition/features.js"]) {
+    assert.ok(modules.includes(expected), `import walk did not reach ${expected}`);
+  }
+  modules.push("capture/tracker-worker.js");
   for (const asset of [...modules, "styles.css", "manifest.webmanifest"]) {
     assert.ok(worker.includes(`"./${asset}"`), `missing precache member ${asset}`);
   }
@@ -244,7 +254,7 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
   const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
   // Names already shipped; a changed asset list or install step needs a name that is none of them.
-  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3", "caregiver-s1-v4", "board-ux-v1", "board-ux-v2", "board-ux-v3", "board-ux-v4", "caregiver-ux-v1", "caregiver-ux-v2", "caregiver-ux-v3", "caregiver-ux-v4", "caregiver-ux-v5"].includes(name), `cache name ${name}`);
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2", "caregiver-s1-v1", "caregiver-s1-v2", "caregiver-s1-v3", "caregiver-s1-v4", "board-ux-v1", "board-ux-v2", "board-ux-v3", "board-ux-v4", "caregiver-ux-v1", "caregiver-ux-v2", "caregiver-ux-v3", "caregiver-ux-v4", "caregiver-ux-v5", "caregiver-ux-v6"].includes(name), `cache name ${name}`);
 
   // Run the worker with a fake scope and look at what install hands to the cache.
   const listeners = {};

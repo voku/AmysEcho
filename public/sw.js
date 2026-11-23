@@ -1,8 +1,14 @@
 /* Precache only locally bundled public test assets. No remote fallback.
  * A successful cache install is NOT proof of target-device offline TTS.
+ *
+ * The hand tracker (vendor/mediapipe/, about 25 MB) is NOT in this list: it
+ * has its own cache, "amysecho-tracker-<version>", which the capture path
+ * (capture/capture.js) fills and checks on the first tap, so a failed tracker
+ * download can never fail the board's install. "activate" below removes only
+ * old board caches; that prefix does not match the tracker's.
  */
 const CACHE_PREFIX = "amysecho-ng-";
-const CACHE_NAME = CACHE_PREFIX + "caregiver-ux-v6";
+const CACHE_NAME = CACHE_PREFIX + "capture-v1";
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest", "./styles.css",
   "./main.js", "./status.js", "./board.js", "./concepts.js", "./speech.js",
@@ -10,8 +16,13 @@ const ASSETS = [
   "./profiles/indexeddb-backend.js", "./profiles/profile.js", "./profiles/store.js",
   "./icons/hilfe.svg", "./icons/trinken.svg", "./icons/pause.svg",
   "./icons/mehr.svg", "./icons/fertig.svg", "./icons/sprechen.svg",
-  "./icons/app.svg"
+  "./icons/app.svg",
+  "./capture/capture.js", "./capture/tracker-worker.js",
+  "./recognition/tracker-adapter.js", "./recognition/features.js"
 ];
+/* The tracker's wasm loader is also requested as "...?task=pose" (a module
+ * worker evaluates it once per URL); its cached copy is found without the query. */
+const TRACKER_PATH = "vendor/mediapipe/";
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
@@ -40,7 +51,18 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin ||
       !url.href.startsWith(self.registration.scope)) return;
   event.respondWith((async () => {
-    const cached = await caches.match(event.request);
+    const trackerBase = new URL(TRACKER_PATH, self.registration.scope).href;
+    const tracker = url.href.startsWith(trackerBase);
+    // The tracker's manifest names the files of the current build: from the
+    // network when there is one, so an update is seen; the cached copy offline.
+    if (url.href === trackerBase + "manifest.json") {
+      try {
+        return await fetch(event.request);
+      } catch {
+        return (await caches.match(event.request)) ?? Response.error();
+      }
+    }
+    const cached = await caches.match(event.request, tracker ? { ignoreSearch: true } : undefined);
     return cached ?? fetch(event.request);
   })());
 });
