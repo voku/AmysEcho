@@ -3,7 +3,7 @@
 Code: `src/recognition/`. Board cards: NG-1, NG-18 for one and two hands, time and rest, and NG-19 for
 stored examples. Product slice: S3 in [#1176](https://github.com/voku/AmysEcho/issues/1176). The camera
 is card NG-3 ([capture.md](capture.md)); teaching examples in the caregiver area is card NG-19
-([caregiver.md](caregiver.md)); recognising an attempt on the child's board is card NG-20 and not built.
+([caregiver.md](caregiver.md)); recognising an attempt on the child's board, with a confirming tap before anything is spoken, is card NG-20 ([recognise.md](recognise.md)).
 
 The hand-tracker decision, with what was measured and what only the phone can answer, is in
 [tracker-decision.md](tracker-decision.md) (card NG-16).
@@ -481,7 +481,8 @@ more.
 
 - **Look-alikes that end somewhere else are accepted** (last table row). The distance sums over the
   whole path, so a difference at the end is diluted below the normal variation between
-  repetitions. Until this is solved, the UI must confirm before speaking.
+  repetitions. Until this is solved, the UI must confirm before speaking; the board does
+  ([recognise.md](recognise.md)).
 - **Rest is part of the gesture.** A long rest before or after makes the movement a smaller
   part of the sequence, so examples and attempts with very different rest are farther apart
   (as with the matcher of schema version 1). In the tables above rest of up to 2 s, with

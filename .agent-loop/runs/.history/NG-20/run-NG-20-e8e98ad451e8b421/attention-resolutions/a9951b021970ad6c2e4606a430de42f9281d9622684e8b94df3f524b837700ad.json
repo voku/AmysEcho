@@ -1,0 +1,14 @@
+{
+    "actor": "Lars Moelleken (delegated to Claude for this session)",
+    "attempt": 1,
+    "attention_id": "attention:a206ae2757cd4068",
+    "contract_revision": 2,
+    "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+    "kind": "execution_attention_resolution",
+    "resolved_at": "2026-11-23T14:38:36+00:00",
+    "response": "The verify run failed on a race in the new browser test: the 5 s recording limit can remove the Stopp button between the state check and the click on a slow machine. Fix the test to treat that as a cut; the app behaviour is unchanged.",
+    "run_id": "run:NG-20:e8e98ad451e8b421",
+    "schema_version": "1.0",
+    "stage_id": "verify",
+    "task_id": "NG-20"
+}

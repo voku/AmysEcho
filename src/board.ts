@@ -83,6 +83,46 @@ export function boardColumns(count: number, orientation: BoardOrientation): numb
 export interface BoardOptions {
   /** Milliseconds from a steady clock, for `SPEECH_MAX_MS`; for tests. */
   readonly now?: () => number;
+  /**
+   * Adds the "Gebärde" control (card NG-20, docs/recognise.md) above the
+   * tiles; a tap calls `onStart`. The app passes it only when the active
+   * profile has examples of concepts on this board. Without it the board is
+   * exactly as before.
+   */
+  readonly gesture?: { readonly onStart: () => void };
+}
+
+/** The label of the gesture control. */
+export const GESTURE_LABEL = "Gebärde";
+/** The symbol of the gesture control: a raised hand, as text so that no picture file is needed. */
+const GESTURE_SYMBOL = "\u270B";
+/**
+ * After a view that covered the board (recognising a gesture) is closed, a
+ * press on a tile, the bar or the gesture control is ignored for this long:
+ * the tiles appear where the buttons of that view were, and the second tap of
+ * a double tap must not speak a word. A guess.
+ */
+export const BOARD_SHIELD_MS = 700;
+/**
+ * The gesture control itself stays shielded longer after that view closed: a
+ * slow double tap on "Zurück zur Tafel" can come down on it a second later,
+ * and it would start the camera again. A guess.
+ */
+export const GESTURE_SHIELD_MS = 1500;
+
+/** What a mounted board offers besides `BoardHandle`: for the view that recognises a gesture (src/recognise/recognise.ts). */
+export interface MountedBoard extends BoardHandle {
+  /**
+   * Does exactly what a tap on the tile of `conceptId` does (select and
+   * speak, or repeat when it is the selected tile), past the press shield.
+   * False when the board has no such tile or is no longer on screen.
+   */
+  say(conceptId: string): boolean;
+  /** Hides the board's own content and shows `view` in its place. Nothing of the board is lost. */
+  cover(view: HTMLElement): void;
+  /** Shows the board again, without `view`; starts `BOARD_SHIELD_MS`. */
+  uncover(): void;
+  isCovered(): boolean;
 }
 
 /** One calm sentence per reason why the examples stand in for the child's own board. */
@@ -185,7 +225,7 @@ export function mountFailure(root: HTMLElement, options: FailureOptions = {}): v
  * Nothing that identifies the child is rendered: no display name and no
  * profile id, neither as text nor in an attribute.
  */
-export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOptions = {}): BoardHandle {
+export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOptions = {}): MountedBoard {
   const now = options.now ?? ((): number => performance.now());
   const heading = makeHeading();
   const examples = showsExamples(view);
@@ -350,6 +390,17 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
 
   // A long press on a picture or on the bar must not open the browser's menu.
   const noMenu = (event: Event): void => event.preventDefault();
+  /** Until when presses on the board are ignored: see `BOARD_SHIELD_MS`. */
+  let shieldUntil = Number.NEGATIVE_INFINITY;
+  const shielded = (): boolean => now() < shieldUntil;
+  let gestureShieldUntil = Number.NEGATIVE_INFINITY;
+  /** What a tap on the tile of `concept` does. */
+  const tap = (concept: BoardEntry, tile: HTMLElement): void => {
+    // Another tile always takes over at once; the same tile again is a repeat.
+    if (selection !== null && selection.tile === tile) repeat(concept);
+    else select(concept, tile);
+  };
+  const tileOf = new Map<string, { readonly concept: BoardEntry; readonly tile: HTMLElement }>();
 
   for (const concept of entries) {
     const button = document.createElement("button");
@@ -376,29 +427,80 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
     }
 
     button.addEventListener("click", () => {
-      // Another tile always takes over at once; the same tile again is a repeat.
-      if (selection !== null && selection.tile === button) repeat(concept);
-      else select(concept, button);
+      if (!shielded()) tap(concept, button);
     });
     button.addEventListener("contextmenu", noMenu);
+    if (!tileOf.has(concept.id)) tileOf.set(concept.id, { concept, tile: button });
     tiles.push(button);
     board.append(button);
   }
 
   bar.addEventListener("click", () => {
-    if (selection !== null) repeat(selection.concept);
+    if (selection !== null && !shielded()) repeat(selection.concept);
   });
   bar.addEventListener("contextmenu", noMenu);
+
+  // The gesture control: only with `options.gesture`, so a board without examples is unchanged.
+  const gestureControls: HTMLElement[] = [];
+  /** True while another view covers the board (`cover`). */
+  let covered = false;
+  if (options.gesture !== undefined) {
+    const { onStart } = options.gesture;
+    const control = document.createElement("button");
+    control.type = "button";
+    control.className = "gesture-start";
+    control.setAttribute("aria-label", GESTURE_LABEL);
+    // Spans: a button holds phrasing content only.
+    const symbol = document.createElement("span");
+    symbol.className = "gesture-symbol";
+    symbol.textContent = GESTURE_SYMBOL;
+    symbol.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.className = "gesture-label";
+    label.textContent = GESTURE_LABEL;
+    control.append(symbol, label);
+    control.addEventListener("click", () => {
+      if (!shielded() && now() >= gestureShieldUntil && !covered) onStart();
+    });
+    control.addEventListener("contextmenu", noMenu);
+    gestureControls.push(control);
+  }
+  const own: HTMLElement[] = [heading, bar, output, speechStatus, ...notices, ...gestureControls, board];
+  const onScreen = (): boolean => root.children[1] === bar;
 
   releaseMountedBoard();
   releaseMountedBoard = () => stopWatchingVoices();
   cancelRunningSpeech();
   // Voices load in the background; asking now gives them time until the first tap.
   hasLocalGermanVoice();
-  root.replaceChildren(heading, bar, output, speechStatus, ...notices, board);
+  root.replaceChildren(...own);
   showCause();
   reportProblems(root, view);
   return {
+    say(conceptId) {
+      const found = tileOf.get(conceptId);
+      if (found === undefined || !onScreen()) return false;
+      tap(found.concept, found.tile);
+      return true;
+    },
+    cover(other) {
+      if (covered || !onScreen()) return;
+      covered = true;
+      for (const element of own) element.hidden = true;
+      root.replaceChildren(...own, other);
+    },
+    uncover() {
+      if (!covered || !onScreen()) return;
+      covered = false;
+      for (const element of own) element.hidden = false;
+      root.replaceChildren(...own);
+      shieldUntil = now() + BOARD_SHIELD_MS;
+      gestureShieldUntil = now() + GESTURE_SHIELD_MS;
+      // Keyboard and switch users come back to the control that opened the view.
+      const control = gestureControls[0];
+      if (control !== undefined && typeof control.focus === "function") control.focus();
+    },
+    isCovered: () => covered,
     hasSelection: () => selection !== null,
     restate: (next) => {
       // Only while this board is the one on screen, and only from examples to examples.

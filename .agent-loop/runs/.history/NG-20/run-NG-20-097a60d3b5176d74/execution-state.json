@@ -1,0 +1,48 @@
+{
+    "attention": null,
+    "candidate_revision": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:4755d2d906960c2b5426ffac77dade7fba3aaf40610fa35b658a4d134ebb4f8f",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T13:39:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T13:39:28+00:00",
+                "artifact_references": [],
+                "candidate_revision": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4755d2d906960c2b5426ffac77dade7fba3aaf40610fa35b658a4d134ebb4f8f",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:097a60d3b5176d74",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4755d2d906960c2b5426ffac77dade7fba3aaf40610fa35b658a4d134ebb4f8f",
+                "outcome": "completed",
+                "run_id": "run:NG-20:097a60d3b5176d74",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:6a05bab2",
+                "summary": "Matcher exposes matchGesture and rankConcepts over GestureExample (feature sequences); examples.ts lists stored examples per profile; capture.ts exposes start/stopRecording through the amysEchoCapture bridge used by teaching; board.ts mounts the board with the sentence bar and speech; app.ts holds the store and the active profile.",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-20:097a60d3b5176d74",
+    "schema_version": "1.0",
+    "task_id": "NG-20"
+}

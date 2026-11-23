@@ -43,11 +43,18 @@ Early rebuild. What exists today:
   catalogue concepts in a chosen order, in the app, and the board shows the result without a
   reload. A header that stays says which board the child gets after closing, and concepts removed
   during a visit can be put back while the same board stays in the editor. Deleting a profile
-  needs a two-second hold. The hold is a hurdle for a small child, not security.
+  needs a two-second hold. The hold is a hurdle for a small child, not security;
+- teaching gestures in the caregiver area (card NG-19) and recognising them on the child's board
+  ([docs/recognise.md](docs/recognise.md), card NG-20): a profile with examples gets a "Gebärde"
+  control; the camera starts only on its tap, one attempt is recorded after a countdown, and the
+  app shows what it understood large with "Ja, sagen" and "Nein". **Nothing is spoken without
+  that confirming tap.** An unknown gesture is said to be not understood, with up to three
+  candidates; a candidate is asked about the same way. Tested in Node and in headless Chromium with DGS videos of adult signers;
+  not tried with a real camera, on a device or with a child.
 
 Still missing in the caregiver area: rewording a concept, custom concepts, export and import, and
 help with damaged entries; those exist as library code only or not at all. Also not built:
-symbols for custom concepts, camera input and gesture recognition in the app. The caregiver area
+symbols for custom concepts. The caregiver area
 is tested in Node against a fake DOM and was looked at in headless Chromium with a hand-run
 script; there is no browser test in CI, and the browser storage adapter has no automated test.
 Nothing here has been verified on a physical device, with a caregiver or with a child.
@@ -68,7 +75,8 @@ bottom for three seconds).
 
 The camera test is at <https://voku.github.io/AmysEcho/#kamera-testen>: "Kamera starten" loads the
 hand tracker (about 25 MB, once), asks for the camera and shows whether no, one or two hands are
-seen. Nothing is recorded or sent. Gesture teaching and recognition are not built yet.
+seen. Nothing is recorded or sent. Gestures are taught in the caregiver area and recognised on the
+board ("Gebärde"); see [docs/recognise.md](docs/recognise.md).
 
 ## Principles
 

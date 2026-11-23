@@ -26,7 +26,7 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   shoulders are seen, "Kamera stoppen", and "Zurück zur Tafel". Without that address the section
   stays hidden and empty, so a child on the board never sees it. It is a test entry for caregivers
   and developers. Teaching gestures is in the caregiver area since card NG-19 (below, "Teaching");
-  recognising is card NG-20.
+  recognising on the board is card NG-20 ([recognise.md](recognise.md)), through the same bridge.
 - **The camera only after a tap.** `capture/capture.js` is loaded by `index.html` as its own module
   next to `main.js` (a failure in it cannot stop the board) and only wires the section. The camera
   is requested only by `startCapture`, which only the tap on "Kamera starten" calls. Order on the
@@ -78,6 +78,12 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   hidden video element, and stops the capture through the signal and `stop()` on every way out
   ([caregiver.md](caregiver.md), "Teaching a gesture"). Importing the module in Node defines
   nothing.
+- **Recognising on the board** (card NG-20) uses the same bridge: "Gebärde" on the board starts
+  it (`start(host, options)` with the gesture view as `host`), the attempt is kept with
+  `startRecording` / `stopRecording` after a countdown, and the capture is stopped after every
+  attempt and on every way out ([recognise.md](recognise.md)). The browser test
+  `test/browser/recognise.test.mjs` replaces this bridge in the page with one that runs the same
+  `startCapture` and real tracker on video frames instead of a camera.
 - What a recording becomes: `sequenceFromRecording` in `src/recognition/examples.ts` (the adapter,
   then the matcher's feature builder); stored only as features ([recognition.md](recognition.md),
   "Stored examples").
@@ -367,7 +373,8 @@ took 13 min. A CI runner is slower; the job's time limit was raised from 10 to 2
   it may delete a tracker cache the other tab is still filling (the other tab's next start
   downloads again). Nothing coordinates tabs yet (follow-up).
 - The camera test entry is reached only by its address. Teaching has its entry in the caregiver area
-  (card NG-19); recognising (card NG-20) has none yet.
+  (card NG-19); recognising has "Gebärde" on the child's board when the profile has examples
+  (card NG-20, [recognise.md](recognise.md)).
 - The browser test does not drive the teaching view; it was tried once by hand (card NG-19, see
   caregiver.md, "Verification status").
 - The live fake camera reached 8 to 9.5 frames per second on the desktop VM (camera frame, bitmap,

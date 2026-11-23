@@ -18,7 +18,8 @@ const ASSETS = [
   "./icons/mehr.svg", "./icons/fertig.svg", "./icons/sprechen.svg",
   "./icons/app.svg",
   "./capture/capture.js", "./capture/tracker-worker.js",
-  "./recognition/tracker-adapter.js", "./recognition/features.js", "./recognition/examples.js"
+  "./recognition/tracker-adapter.js", "./recognition/features.js", "./recognition/examples.js",
+  "./recognition/matcher.js", "./recognition/dtw.js", "./recognise/recognise.js"
 ];
 /* Tracker files live under vendor/mediapipe/<version>-<digest>/ and are
  * answered only from the cache named "amysecho-tracker-<version>-<digest>",

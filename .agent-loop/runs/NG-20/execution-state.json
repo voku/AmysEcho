@@ -1,0 +1,583 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+    "contract_revision": 3,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T14:39:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:39:08+00:00",
+                "artifact_references": [],
+                "candidate_revision": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+                "context_id": "investigate-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "completed",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:07f6a8f2",
+                "summary": "Second build as reviewed and passed, plus a browser-test fix: a recording ended by the 5 s limit between the state check and the Stopp click counts as a cut instead of a 30 s timeout",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:39:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:39:08+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "context_id": "build-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "completed",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:3e577012",
+                "summary": "Second build as reviewed and passed, plus a browser-test fix: a recording ended by the 5 s limit between the state check and the Stopp click counts as a cut instead of a 30 s timeout",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:40:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:40:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:49a059d73d344fc922d77f6675cc9fcd901f0621f6979d35fbfe870e83d2dc2a",
+                    "execution-evidence:sha256:146fbd2da5db1c2168aacbbbc000b97d4ef2b36d6a681cfd60bf38f8ac624f6e",
+                    "execution-evidence:sha256:bf4885410e426c286599cf3e430df6b303f8108f5c887d0e988928f15f734ebf",
+                    "execution-evidence:sha256:6b14103f70f7fc7be7ea734a5fe987a28994fa96b5ce9e608a98334df1b9937b",
+                    "execution-evidence:sha256:dcc84d044c319cee1cca6c65130963362408d1ba4aa303a62f679a56e51da629",
+                    "execution-evidence:sha256:78f14e85eb17435d1652982d2bf3442317f3f0924fac97b5500a759881a6ebe5",
+                    "execution-evidence:sha256:750505520a351cfb21f211673416e326b4563ca1e690902533224e13a70374be",
+                    "execution-evidence:sha256:82c5e341b0f5372fcf8110ad13149909046fb7c7cc1353f66feff49d0853dc2a",
+                    "execution-evidence:sha256:8219469e1a64ef45c0396ccae77c847f1c7dc73f7dbb8b217452752682d06a20",
+                    "execution-evidence:sha256:3d0526505a270c8074e8019813421ffaeef2acadd3ae448ef4636ef25c13aa9a",
+                    "execution-evidence:sha256:45cfd1476621e01d3a1a6e050b30374bd38bdd8de4efbbf329201a29f422fca9",
+                    "execution-evidence:sha256:bdb39f570a27dce73e60cc4fe34c4024124b187c565c4ae566cc39e891d3c0a0",
+                    "execution-evidence:sha256:ca78b9fb5c7287fe66281f47c2b5a29f19698f9ff4011d14d5cdc1b8f6df73f5",
+                    "execution-evidence:sha256:22ae09b00ef693ca68ffbd85d748ccfebb031d0eb5b348fb92c18489e7a15cca",
+                    "execution-evidence:sha256:69a2141238b72532c3449fa36fc4f57a679934108c384cb904db8ae470c3997a"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:49a059d73d344fc922d77f6675cc9fcd901f0621f6979d35fbfe870e83d2dc2a",
+                    "execution-evidence:sha256:146fbd2da5db1c2168aacbbbc000b97d4ef2b36d6a681cfd60bf38f8ac624f6e",
+                    "execution-evidence:sha256:bf4885410e426c286599cf3e430df6b303f8108f5c887d0e988928f15f734ebf",
+                    "execution-evidence:sha256:6b14103f70f7fc7be7ea734a5fe987a28994fa96b5ce9e608a98334df1b9937b",
+                    "execution-evidence:sha256:dcc84d044c319cee1cca6c65130963362408d1ba4aa303a62f679a56e51da629",
+                    "execution-evidence:sha256:78f14e85eb17435d1652982d2bf3442317f3f0924fac97b5500a759881a6ebe5",
+                    "execution-evidence:sha256:750505520a351cfb21f211673416e326b4563ca1e690902533224e13a70374be",
+                    "execution-evidence:sha256:82c5e341b0f5372fcf8110ad13149909046fb7c7cc1353f66feff49d0853dc2a",
+                    "execution-evidence:sha256:8219469e1a64ef45c0396ccae77c847f1c7dc73f7dbb8b217452752682d06a20",
+                    "execution-evidence:sha256:3d0526505a270c8074e8019813421ffaeef2acadd3ae448ef4636ef25c13aa9a",
+                    "execution-evidence:sha256:45cfd1476621e01d3a1a6e050b30374bd38bdd8de4efbbf329201a29f422fca9",
+                    "execution-evidence:sha256:bdb39f570a27dce73e60cc4fe34c4024124b187c565c4ae566cc39e891d3c0a0",
+                    "execution-evidence:sha256:ca78b9fb5c7287fe66281f47c2b5a29f19698f9ff4011d14d5cdc1b8f6df73f5",
+                    "execution-evidence:sha256:22ae09b00ef693ca68ffbd85d748ccfebb031d0eb5b348fb92c18489e7a15cca",
+                    "execution-evidence:sha256:69a2141238b72532c3449fa36fc4f57a679934108c384cb904db8ae470c3997a"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "context_id": "correctness-review-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:122a2e82",
+                "summary": "Test-only fix cannot hide a missing Stopp while still recording; camera check unchanged; app code unchanged since the second build passed two reviews",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:40:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:40:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:dc325677b95c22308292eb614aab007c6e5c9ee985d8f46e36e134f8f6dd560d"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:dc325677b95c22308292eb614aab007c6e5c9ee985d8f46e36e134f8f6dd560d"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "context_id": "blindspot-review-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "changes_required",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:9950ae5b",
+                "summary": "The browser test can still fail by timing alone: on a slow machine the wall-clock 5 s limit cuts every attempt and the recognition assertions fail; and a broken Stopp can be hidden as a cut because nothing checks that Stopp ended at least one recording.",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:57:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:57:20+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
+                "context_id": "build-r3-2",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "completed",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:03cda551",
+                "summary": "Browser test tracks each video once with the real tracker through startCapture and replays exactly those answers during the recording (timestamp and pose flag checked); 0 cuts in 5 runs, under CPU throttle 4 and under verify; asserts Stopp ended at least one recording; doc updated",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:58:03+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:58:03+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:3e9db5836c1a8234559397450ac74026cdd822e256bc19b18406236585f8a156"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:3e9db5836c1a8234559397450ac74026cdd822e256bc19b18406236585f8a156"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
+                "context_id": "correctness-review-r3-2",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "changes_required",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:10c3f6f5",
+                "summary": "A replay mismatch throws inside the capture loop, is reported as tracker_failed and accepted as a cut with a problem view; only some(!cut) catches it. Record mismatches and assert none, assert no problem view, and require every attempt to end through Stopp.",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:01:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:01:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "context_id": "build-r3-3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "completed",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:fbb2f986",
+                "summary": "Replay mismatches recorded and asserted empty; no attempt may end in a problem view; every attempt must end through Stopp; doc updated; verify passes",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:02:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:02:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:87365196fc6964ce1a8415a71e57cac55bc4c0a4acde2494a84fe3f5d3262ba5",
+                    "execution-evidence:sha256:3e48f93a9567c584ca8555580be31e5b79a4f885d0c4b163d2ca4e9ad30932da",
+                    "execution-evidence:sha256:fc29017608be70f5d9c736879c9cd5a760b02bc5c62870548e88159c11221308",
+                    "execution-evidence:sha256:57b98a407ba2f194ca1b0b6dddee5e7515b9448f3900e9e4f065045676b34009",
+                    "execution-evidence:sha256:fb7b613f52eb3ed2fd1e49d6f7cca3cc684cd6519fc03dba6063c91ae8d415c9",
+                    "execution-evidence:sha256:eb3ad7601abbbd86ffc3605f39cf8d40fb9ba27ff3cccc855beb051bb3034f00",
+                    "execution-evidence:sha256:4d9baeaa7faff7d1d6af21638be4e0d7c9298b018f4da328ca6dbe861c2b95fd",
+                    "execution-evidence:sha256:548e02187fa037ef899a969d1007e4687f53c10440411859ddf4398f636eef44",
+                    "execution-evidence:sha256:c2a48fd569a9214b8742b8c416495cb484f242c2d0001a53db738e1e64158300",
+                    "execution-evidence:sha256:6c5c49e6b96664e653c050dac4bb65659392ebf261e777e45b574e22c0bdd234",
+                    "execution-evidence:sha256:3bb30384dd8ccb0f37ef72f9d81597c067ba7faa9dacfb91a889135a3eda9775",
+                    "execution-evidence:sha256:215d76486c64aadc2261e408dc02ed7c21749ed30e0e5a81d118d316eddfc7bc",
+                    "execution-evidence:sha256:b8610e7f51b403d6d09179ec2a9dade74e6107bf5dc9ceb40ff6e291b989a32a",
+                    "execution-evidence:sha256:a3db17109ba41b23bf833dc77fd0a63f744dd396b3b38f403845a36bee1e30a1",
+                    "execution-evidence:sha256:b3f1baac1ef33510696fe4035e262f3f7e5ed511d5fd937c28fa13c5c87084d3"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:87365196fc6964ce1a8415a71e57cac55bc4c0a4acde2494a84fe3f5d3262ba5",
+                    "execution-evidence:sha256:3e48f93a9567c584ca8555580be31e5b79a4f885d0c4b163d2ca4e9ad30932da",
+                    "execution-evidence:sha256:fc29017608be70f5d9c736879c9cd5a760b02bc5c62870548e88159c11221308",
+                    "execution-evidence:sha256:57b98a407ba2f194ca1b0b6dddee5e7515b9448f3900e9e4f065045676b34009",
+                    "execution-evidence:sha256:fb7b613f52eb3ed2fd1e49d6f7cca3cc684cd6519fc03dba6063c91ae8d415c9",
+                    "execution-evidence:sha256:eb3ad7601abbbd86ffc3605f39cf8d40fb9ba27ff3cccc855beb051bb3034f00",
+                    "execution-evidence:sha256:4d9baeaa7faff7d1d6af21638be4e0d7c9298b018f4da328ca6dbe861c2b95fd",
+                    "execution-evidence:sha256:548e02187fa037ef899a969d1007e4687f53c10440411859ddf4398f636eef44",
+                    "execution-evidence:sha256:c2a48fd569a9214b8742b8c416495cb484f242c2d0001a53db738e1e64158300",
+                    "execution-evidence:sha256:6c5c49e6b96664e653c050dac4bb65659392ebf261e777e45b574e22c0bdd234",
+                    "execution-evidence:sha256:3bb30384dd8ccb0f37ef72f9d81597c067ba7faa9dacfb91a889135a3eda9775",
+                    "execution-evidence:sha256:215d76486c64aadc2261e408dc02ed7c21749ed30e0e5a81d118d316eddfc7bc",
+                    "execution-evidence:sha256:b8610e7f51b403d6d09179ec2a9dade74e6107bf5dc9ceb40ff6e291b989a32a",
+                    "execution-evidence:sha256:a3db17109ba41b23bf833dc77fd0a63f744dd396b3b38f403845a36bee1e30a1",
+                    "execution-evidence:sha256:b3f1baac1ef33510696fe4035e262f3f7e5ed511d5fd937c28fa13c5c87084d3"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "context_id": "correctness-review-r3-3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:59058113",
+                "summary": "A forced replay mismatch fails the test three ways; nothing outside the test and doc changed",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:02:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:02:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:81a79666ee15e3479d234655c6ab854b36f0e1b6f952543c7c5420f6e4e4b5d4"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:81a79666ee15e3479d234655c6ab854b36f0e1b6f952543c7c5420f6e4e4b5d4"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "context_id": "blindspot-review-r3-3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "changes_required",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:82bca97f",
+                "summary": "every(!cut) cannot catch a broken Stopp: Stopp ignores presses within 700 ms of the recording view, the click still succeeds, and the time limit then ends the attempt with cut false.",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:05:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:05:25+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "context_id": "build-r3-4",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "completed",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:62801278",
+                "summary": "Browser test presses Stopp at least 1 s after the recording view (past the 700 ms guard) and requires the state to leave recording within 1.5 s, else the attempt counts as cut and every(!cut) fails; verify passes with 0 cuts",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:06:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:06:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8b58b2361227f476d00d33e830623fefb8c8c108e7eb7fc459ae08445304617c",
+                    "execution-evidence:sha256:ab81a604b5a57ecd95b1c113fd241e1af9324b1dd5ac11ddd183f03a500eff37",
+                    "execution-evidence:sha256:63c1e5811dd116e0e38a5a86e00147814a77244b39fd4b7b03a66c9c1dcb70ec",
+                    "execution-evidence:sha256:507521442622dba91fbd9b3c718049388f6ae0f2c025739b1a89e0e49a72d115",
+                    "execution-evidence:sha256:88827022ada641bcb47ebca31fa64d03f484e705f88b736dd40da7fb19102972",
+                    "execution-evidence:sha256:ef5e631663210bde041d1fb211d8913575efd8222a757cd7613cb91f3dc28b25",
+                    "execution-evidence:sha256:e5f2a251b540bb42141a90c18e19b5121332bfade2d6bf682417ba199391db04",
+                    "execution-evidence:sha256:31f45fc7bb8e81c1f1a7cf4c2e31c2a38f00fb579651d5d0ceae9a82ee73885e",
+                    "execution-evidence:sha256:2c19dfdf7ace2331347e6336fc338e2303cfa4db81961063a630814e77a531bb",
+                    "execution-evidence:sha256:829456b9872f223ddcc8df2a122a41e0367ee4ade062717f3233b69a043b9c2c",
+                    "execution-evidence:sha256:d9e0b2388a0014ad1c6842b0a61b703abb4715f4d54f74ac7e841530b817161a",
+                    "execution-evidence:sha256:9239d060575548644dbfe57540d501f6d84c26ce40d88fa03b6c14ca81c84b07",
+                    "execution-evidence:sha256:560f04bfe7388e32ae5a72d93f54944fa3743f61d1a6713f0b68c4de60cf754a",
+                    "execution-evidence:sha256:9d6dfd06573cb9d743f54e2da1c0dd8e84c057b614016c3d06d72afda47a443c",
+                    "execution-evidence:sha256:66739b0a07c37da9b9b5b9c008d48e5af3b376fe3bf104242fa0d2a54650a4b3"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8b58b2361227f476d00d33e830623fefb8c8c108e7eb7fc459ae08445304617c",
+                    "execution-evidence:sha256:ab81a604b5a57ecd95b1c113fd241e1af9324b1dd5ac11ddd183f03a500eff37",
+                    "execution-evidence:sha256:63c1e5811dd116e0e38a5a86e00147814a77244b39fd4b7b03a66c9c1dcb70ec",
+                    "execution-evidence:sha256:507521442622dba91fbd9b3c718049388f6ae0f2c025739b1a89e0e49a72d115",
+                    "execution-evidence:sha256:88827022ada641bcb47ebca31fa64d03f484e705f88b736dd40da7fb19102972",
+                    "execution-evidence:sha256:ef5e631663210bde041d1fb211d8913575efd8222a757cd7613cb91f3dc28b25",
+                    "execution-evidence:sha256:e5f2a251b540bb42141a90c18e19b5121332bfade2d6bf682417ba199391db04",
+                    "execution-evidence:sha256:31f45fc7bb8e81c1f1a7cf4c2e31c2a38f00fb579651d5d0ceae9a82ee73885e",
+                    "execution-evidence:sha256:2c19dfdf7ace2331347e6336fc338e2303cfa4db81961063a630814e77a531bb",
+                    "execution-evidence:sha256:829456b9872f223ddcc8df2a122a41e0367ee4ade062717f3233b69a043b9c2c",
+                    "execution-evidence:sha256:d9e0b2388a0014ad1c6842b0a61b703abb4715f4d54f74ac7e841530b817161a",
+                    "execution-evidence:sha256:9239d060575548644dbfe57540d501f6d84c26ce40d88fa03b6c14ca81c84b07",
+                    "execution-evidence:sha256:560f04bfe7388e32ae5a72d93f54944fa3743f61d1a6713f0b68c4de60cf754a",
+                    "execution-evidence:sha256:9d6dfd06573cb9d743f54e2da1c0dd8e84c057b614016c3d06d72afda47a443c",
+                    "execution-evidence:sha256:66739b0a07c37da9b9b5b9c008d48e5af3b376fe3bf104242fa0d2a54650a4b3"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "context_id": "correctness-review-r3-4",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "observations": [
+                    "If the replay ever took over about 3.5 s, the time limit could hide an ignored Stopp in that attempt (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:f4a488e9",
+                "summary": "A broken Stopp fails the test; the wait clears the 700 ms guard; no timing-only failure with replayed frames",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:06:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:06:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:eefaa58e2ab125513e6242b2d97cb768dbb9f014eec5086da537442148b3a916",
+                    "execution-evidence:sha256:71a3cc0a55235ceb872938335463be09f797770770c9b57e36bcf44cf2f8ec5c",
+                    "execution-evidence:sha256:60b4f52010e856fc1f07d97226b9cf262d997a23c31f0137c644ce02ef157db4",
+                    "execution-evidence:sha256:1d9bc44b6b9ee54d7b04e5428c4728912f583bb6079675f3618c4903d7e48f7d",
+                    "execution-evidence:sha256:4ee31ac7478b52967b2207fba579c0560df6d2545dd49cc2f49f9a7b595bf39b",
+                    "execution-evidence:sha256:c2becd4e0c4103e7946f203301a52204a0aeb5b6bcc14330c18af2acf42fe0de",
+                    "execution-evidence:sha256:35650517d4e555cd82348b4384cacddd76dd996d5f526049587511234c0b1196",
+                    "execution-evidence:sha256:a62123a1ae3e21950f4f199683e81d20d5de47df212e8fd54376def3e8d76434",
+                    "execution-evidence:sha256:a0f054ab7aa53bf978c0353244ddf7d639413de1609169894a8aa8094e3fe88f",
+                    "execution-evidence:sha256:65d5d699eac9e33082fe723823894be5965f20846cb3cc2656e44b882a2857a2",
+                    "execution-evidence:sha256:e8b89447d03be428e424ecb00776cb12903af77bece017e77cbb3132401f0dd3",
+                    "execution-evidence:sha256:cc721580cc9c3ba0e2b9369cd7ebe724730f092d9d61394a6694e02e082cd186",
+                    "execution-evidence:sha256:54ece769606e590e2052370887d4781afdf6f094b2de6f09bd286a3eac88708f",
+                    "execution-evidence:sha256:3ccb04a9cba5c7965246fddaccc7b1294bb5957837d112461b41dadf8dd36685",
+                    "execution-evidence:sha256:6c14052fbe59aa9b954cd3b73c297ca1cc0c865e65ebf3db643b73b30f7fd541"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:eefaa58e2ab125513e6242b2d97cb768dbb9f014eec5086da537442148b3a916",
+                    "execution-evidence:sha256:71a3cc0a55235ceb872938335463be09f797770770c9b57e36bcf44cf2f8ec5c",
+                    "execution-evidence:sha256:60b4f52010e856fc1f07d97226b9cf262d997a23c31f0137c644ce02ef157db4",
+                    "execution-evidence:sha256:1d9bc44b6b9ee54d7b04e5428c4728912f583bb6079675f3618c4903d7e48f7d",
+                    "execution-evidence:sha256:4ee31ac7478b52967b2207fba579c0560df6d2545dd49cc2f49f9a7b595bf39b",
+                    "execution-evidence:sha256:c2becd4e0c4103e7946f203301a52204a0aeb5b6bcc14330c18af2acf42fe0de",
+                    "execution-evidence:sha256:35650517d4e555cd82348b4384cacddd76dd996d5f526049587511234c0b1196",
+                    "execution-evidence:sha256:a62123a1ae3e21950f4f199683e81d20d5de47df212e8fd54376def3e8d76434",
+                    "execution-evidence:sha256:a0f054ab7aa53bf978c0353244ddf7d639413de1609169894a8aa8094e3fe88f",
+                    "execution-evidence:sha256:65d5d699eac9e33082fe723823894be5965f20846cb3cc2656e44b882a2857a2",
+                    "execution-evidence:sha256:e8b89447d03be428e424ecb00776cb12903af77bece017e77cbb3132401f0dd3",
+                    "execution-evidence:sha256:cc721580cc9c3ba0e2b9369cd7ebe724730f092d9d61394a6694e02e082cd186",
+                    "execution-evidence:sha256:54ece769606e590e2052370887d4781afdf6f094b2de6f09bd286a3eac88708f",
+                    "execution-evidence:sha256:3ccb04a9cba5c7965246fddaccc7b1294bb5957837d112461b41dadf8dd36685",
+                    "execution-evidence:sha256:6c14052fbe59aa9b954cd3b73c297ca1cc0c865e65ebf3db643b73b30f7fd541"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "context_id": "blindspot-review-r3-4",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:3:7c2387e5",
+                "summary": "Broken Stopp caught; about 2.5 s slack before the limit",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:08:52+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:08:52+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:b717c8967777aa17317461a9a9bfca6163f80004e8c16a9894c914dc5417195e",
+                    "execution-evidence:sha256:f83595301b97161cc309df3c09f0e2307840f196a204c5d83962bdf20cad8e2a"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "consistency_references": [
+                    "execution-evidence:sha256:f9acc7f0598b0fafb1bffe12e26d4dc66ca25dfcdac713391d13253bf48e4811"
+                ],
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:d4a17829e0ea5aee76d71724759d2e193a5909517b579a3024d348967fdf2b82",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-20: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-20 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-20:6dbed2dff2320d38 binds active Session 2026-11-23-ng-20-r3-13364a20 to approved Contract revision 3\n[OK] sessions: 3 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-20 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-20",
+                "validation_references": [
+                    "execution-evidence:sha256:b717c8967777aa17317461a9a9bfca6163f80004e8c16a9894c914dc5417195e",
+                    "execution-evidence:sha256:f83595301b97161cc309df3c09f0e2307840f196a204c5d83962bdf20cad8e2a"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-20:6dbed2dff2320d38",
+    "schema_version": "1.0",
+    "task_id": "NG-20"
+}

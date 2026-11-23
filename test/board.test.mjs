@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { SPEECH_GRACE_MS, SPEECH_MAX_MS, boardColumns, createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
+import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, SPEECH_GRACE_MS, SPEECH_MAX_MS, boardColumns, createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import {
   BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, isBoardConceptId, listCustomConcepts, normalizeWording,
@@ -2399,3 +2399,134 @@ test("an entry written by a newer app version is not overwritten or deleted by r
   assert.equal(await data.get("concept.mehr"), undefined);
 });
 
+
+// --- The gesture control (card NG-20, docs/recognise.md) ---
+
+/** Mounts MIA_VIEW plus a second tile with or without the gesture control; `starts` counts taps that reached `onStart`. */
+function withGestureBoard(gesture, callback) {
+  const view = { ...MIA_VIEW, entries: [...MIA_VIEW.entries, { id: "saft", labelDe: "Saft", speechDe: "Ich möchte Saft.", symbolPath: null, source: "custom" }] };
+  const fakes = installFakes();
+  try {
+    const root = fakeElement("main");
+    const clock = { time: 1000 };
+    const starts = { count: 0 };
+    const handle = mountBoard(root, view, { now: () => clock.time, ...(gesture ? { gesture: { onStart: () => { starts.count += 1; } } } : {}) });
+    const control = root.children.find((child) => child.className === "gesture-start") ?? null;
+    callback({ root, handle, clock, starts, control, speech: fakes.speech, spoken: fakes.speech.spoken, ...parts(root) });
+  } finally {
+    fakes.restore();
+  }
+}
+
+test("gesture: without the option the board is exactly as before; with it, one 'Gebärde' control sits between the notices and the tiles", () => {
+  const shapes = [];
+  for (const gesture of [false, true]) {
+    withGestureBoard(gesture, ({ root, control }) => {
+      shapes.push(root.children.map((child) => `${child.tagName}.${child.className}`));
+      if (!gesture) {
+        assert.equal(control, null);
+        assert.ok(!stringsIn(root).some((text) => text.includes("Gebärde")), "no trace of gestures on a board without examples");
+      } else {
+        assert.equal(control.tagName, "button");
+        assert.equal(control.type, "button");
+        assert.equal(control["aria-label"], GESTURE_LABEL);
+        assert.equal(GESTURE_LABEL, "Gebärde");
+        assert.deepEqual(control.children.map((child) => child.className), ["gesture-symbol", "gesture-label"]);
+        assert.equal(control.children[0]["aria-hidden"], "true");
+        assert.equal(control.children[1].textContent, "Gebärde");
+      }
+    });
+  }
+  const [plain, withControl] = shapes;
+  assert.deepEqual(withControl.filter((shape) => shape !== "button.gesture-start"), plain);
+  assert.equal(withControl.indexOf("button.gesture-start"), withControl.length - 2, "right above the tiles");
+});
+
+test("gesture: a tap on the control starts recognising and speaks nothing; say() does what a tap on the tile does", () => {
+  withGestureBoard(true, ({ handle, control, starts, spoken, buttons, output, speech }) => {
+    control.click();
+    assert.equal(starts.count, 1);
+    assert.deepEqual(spoken, []);
+    assert.equal(handle.say("saft"), true);
+    assert.deepEqual(spoken, ["Ich möchte Saft."]);
+    assert.equal(output.textContent, "Ich möchte Saft.");
+    assert.equal(buttons[1]["aria-pressed"], "true");
+    // The same tile again while its sentence is still spoken: ignored, as a second tap on the tile would be.
+    assert.equal(handle.say("saft"), true);
+    assert.deepEqual(spoken, ["Ich möchte Saft."]);
+    speech.end();
+    handle.say("saft");
+    assert.deepEqual(spoken, ["Ich möchte Saft.", "Ich möchte Saft."]);
+    assert.equal(handle.say("nicht-da"), false);
+    assert.equal(spoken.length, 2);
+  });
+});
+
+test("gesture: cover hides the board and shows the view; after uncover, presses on tiles and bar are ignored for BOARD_SHIELD_MS, on the control for GESTURE_SHIELD_MS", () => {
+  withGestureBoard(true, ({ root, handle, control, starts, clock, spoken, buttons, bar }) => {
+    const own = [...root.children];
+    const view = fakeElement("section");
+    handle.cover(view);
+    assert.equal(handle.isCovered(), true);
+    assert.deepEqual(root.children, [...own, view]);
+    assert.ok(own.every((child) => child.hidden), "the board's own content is hidden");
+    assert.equal(root.children[1], bar, "the bar keeps its place: the board is still the one on screen");
+    control.click();
+    assert.equal(starts.count, 0, "no second start while covered");
+    handle.uncover();
+    assert.equal(handle.isCovered(), false);
+    assert.deepEqual(root.children, own);
+    assert.ok(own.every((child) => !child.hidden));
+    buttons[0].click();
+    bar.click();
+    control.click();
+    clock.time += BOARD_SHIELD_MS - 1;
+    buttons[0].click();
+    assert.deepEqual(spoken, []);
+    assert.equal(starts.count, 0);
+    // say() is the confirmed path and is not shielded.
+    handle.say("ball");
+    assert.deepEqual(spoken, ["Ich möchte mit dem Ball spielen."]);
+    clock.time += 1;
+    buttons[1].click();
+    control.click();
+    assert.deepEqual(spoken, ["Ich möchte mit dem Ball spielen.", "Ich möchte Saft."]);
+    assert.equal(starts.count, 0, "the gesture control is shielded longer");
+    clock.time += GESTURE_SHIELD_MS - BOARD_SHIELD_MS - 1;
+    control.click();
+    assert.equal(starts.count, 0);
+    clock.time += 1;
+    control.click();
+    assert.equal(starts.count, 1);
+  });
+});
+
+test("gesture: a board without the control has no shield, and a replaced board ignores cover, uncover and say", () => {
+  withGestureBoard(false, ({ root, handle, buttons, spoken }) => {
+    handle.uncover();
+    buttons[0].click();
+    assert.deepEqual(spoken, ["Ich möchte mit dem Ball spielen."]);
+    mountBoard(root, MIA_VIEW);
+    const children = [...root.children];
+    handle.cover(fakeElement("section"));
+    assert.deepEqual(root.children, children);
+    assert.equal(handle.say("ball"), false);
+  });
+});
+
+test("gesture: the stylesheet gives the control and the gesture view big targets and a frame of their own", async () => {
+  const css = await readFile(new URL("../dist/styles.css", import.meta.url), "utf8");
+  const rule = (selector) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
+  assert.match(rule(".gesture-start"), /min-height: var\(--tile-min\)/);
+  assert.match(rule(".gesture-start"), /touch-action: manipulation/);
+  assert.match(rule(".recognise-back, .recognise-action"), /min-height: var\(--tile-min\)/);
+  assert.match(rule(".recognise-back, .recognise-action"), /touch-action: manipulation/);
+  // The button row keeps its height also when empty, so nothing in the view moves within one state.
+  assert.match(rule(".recognise-actions"), /min-height: var\(--tile-min\)/);
+  assert.match(rule(".recognise-candidates"), /grid-template-rows: var\(--tile-min\)/);
+  assert.match(rule(".recognise-main"), /justify-content: safe center/, "never centred into an overflow that cannot be reached");
+  // Never taken for the board: a thick frame and a background of its own.
+  assert.match(rule(".recognise"), /border: 6px solid #4b2a7a/);
+  assert.match(rule(".recognise"), /background: #f7f2fd/);
+  assert.match(css, /\[hidden\] \{ display: none !important; \}/, "the hidden board stays hidden under the view");
+});

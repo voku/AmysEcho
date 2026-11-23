@@ -1,0 +1,173 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T14:39:07+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 3,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-20/contract.json",
+                "sha256": "sha256:86014627471eab9b5d7f82bf730f300c653d5450a6f2b5a3877b1cb6b70ce8c8"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-20",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "VERIFY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "14b695a46a1d8c58247faf6b7393cdc4a483360775dab478f6bcce57b5cc33fe",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-20.md",
+                "sha256": "sha256:14b695a46a1d8c58247faf6b7393cdc4a483360775dab478f6bcce57b5cc33fe"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A 'Gebärde' control appears on the board only when the active profile has usable examples; the camera starts only after a tap; the attempt is recorded after a short countdown until a tap or a time limit, with the same capture path as teaching",
+                "A recognised concept is shown large with its symbol and label and 'Ja, sagen' and 'Nein'; speech happens only after 'Ja, sagen', through the board's existing speech path and sentence bar",
+                "An unknown result speaks nothing, says in German that it was not understood, and shows up to three candidate tiles that open the same confirmation, and 'Zurück zur Tafel'; unusable recordings are refused with the reason",
+                "One- and two-hand gestures are recognised against examples of the same kind; the camera stops on every way out and after each attempt; nothing is stored or sent",
+                "A real-browser test teaches examples from DGS videos and attempts gestures from the same videos through the board's own flow, and checks that a confirmed result speaks and an unconfirmed one does not; it is not flaky"
+            ],
+            "goal": "On the child's board a tap starts a gesture attempt; the app matches it against that child's taught examples and shows what it understood, and speaks only after a confirming tap; an unknown gesture shows up to three candidates, each confirmed before it is spoken, and the way back to the board.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 3,
+            "run_revision": 3,
+            "source": {
+                "path": ".agent-loop/contracts/NG-20/contract.json",
+                "sha256": "sha256:86014627471eab9b5d7f82bf730f300c653d5450a6f2b5a3877b1cb6b70ce8c8"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 3,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-20/contract.json",
+                "sha256": "sha256:86014627471eab9b5d7f82bf730f300c653d5450a6f2b5a3877b1cb6b70ce8c8"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-23T15:11:45+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-20:6dbed2dff2320d38",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/093e1227763679740b4e1bf59e70e1210529adcc92da5682999663a1b497d035.json",
+                "sha256": "sha256:384d3a65863120d8818f8bca2c34c9f1f65b0198994abd9754ba460bb6f12c99"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:ac15424113be7d102fb54e9cbb8c964e4840d2ccb64a2455816f90c1c34740e5",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:77322fc4593aa182dbbff30e52ecb4fae8454ee96404336994c8467103235995"
+            },
+            "stale_entries": [
+                {
+                    "path": "test/browser/recognise.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 1,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-20:6dbed2dff2320d38",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "317f1dea9c5a3bfd28f426beb4a89a246c91b1d03b17f24883a6545f17ba2878",
+            "compilation_id": "compilation.NG-20.2026-11-23-143908.27d69e1b",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "74be07a80d0f2b7b0355493e00abb6f7981594a51fdc0ba752981b29f5a502a8",
+            "source": {
+                "path": ".agent-loop/recall/NG-20/meta.json",
+                "sha256": "sha256:63cdecd4a563977c1e761d34a96ebc692f39ca132742d6067e1a130faff9f8f6"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-20/reviews/NG-20.blindspots.json",
+                "sha256": "sha256:1c5e3efa5a416738970133f4579e4e985e3dda0a07d0290382c08d50cc7faac6"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-20-r3-13364a20",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-20-r3-13364a20/session.json",
+                "sha256": "sha256:0e68e16bde03244692dcaa0919ca872b4f9fdafa4f3b1af0164f0d7ae4a21a9a"
+            },
+            "state": "done",
+            "task_id": "NG-20"
+        },
+        "verification": {
+            "contract_revision": 3,
+            "implementation_snapshot": "sha256:b5a8e1bb002aa398433d4b93f76bea67b33b88abbedcddc18556e7235884200d",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-20:6dbed2dff2320d38",
+            "source": {
+                "path": ".agent-loop/runs/NG-20/verification.json",
+                "sha256": "sha256:e2344f6dea2955e60832c73c93d7db640f16d9297e0df81e77d13c1e80c6a4b3"
+            },
+            "source_session_id": "2026-11-23-ng-20-r3-13364a20",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-20:6dbed2dff2320d38",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-20"
+}
