@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "973ea927c6c904afafa780006b9fe4306b2e114f",
+    "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
     "history": [
         {
@@ -34,6 +34,38 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:eaeeb77c",
                 "summary": "capture.ts requests facingMode user only (line 220); the preview mirrors with CSS; the tracker adapter keeps MediaPipe's handedness on unflipped frames; teaching and recognising go through the amysEchoCapture bridge; no device setting storage exists yet.",
+                "task_id": "NG-43",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T18:14:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T18:14:06+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "outcome": "completed",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:de46ba66",
+                "summary": "Kamera: vorne/hinten row in the camera test and teaching, device choice used by the child's view without a control; back camera exact with one fallback and a German line; preview mirrored for the front camera only; handedness unchanged across cameras proven by tests; verify passes",
                 "task_id": "NG-43",
                 "validation_references": []
             }
