@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:acefdf9d373a9f2cf38671d65ad9c78d020fa4eb",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
     "history": [
         {
@@ -66,6 +66,42 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:982f5eb9",
                 "summary": "examples.ts record format, teach view, capture recording, examples.js pre-cached; verify passes",
+                "task_id": "NG-19",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T12:48:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T12:48:45+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a1b82a3d9733ad967ea3f8830e8999f9b37a3a605565005248757d89e5e0afde"
+                ],
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:acefdf9d373a9f2cf38671d65ad9c78d020fa4eb",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "schema_version": "1.0",
+                "task_id": "NG-19",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a1b82a3d9733ad967ea3f8830e8999f9b37a3a605565005248757d89e5e0afde"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:acefdf9d373a9f2cf38671d65ad9c78d020fa4eb",
+                "context_id": "correctness-review-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "outcome": "changes_required",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:c3bcedf5",
+                "summary": "When a redraw fails while the teach camera runs (storage read error), the view is replaced by the read notice but the camera keeps running with no stop on screen (caregiver.ts:1099 checks only a mode change).",
                 "task_id": "NG-19",
                 "validation_references": []
             }
