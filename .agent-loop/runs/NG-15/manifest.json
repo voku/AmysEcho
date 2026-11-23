@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-15 before calling agent-loop finish NG-15",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-23T20:02:18+00:00",
@@ -74,11 +74,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-23T20:10:30+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-15:db7f1c3295ce9cde",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/eb49f88c0dab0075ab946086b07381173acda5d8425e051d0de00aa5f5361396.json",
+                "sha256": "sha256:1a9b1f23739b600a4c26ca9674864f14344ba12b35a83d917fe56ffe9681a498"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -89,7 +95,14 @@
                 "path": ".agent-loop/map/php-symbols.json",
                 "sha256": "sha256:e4212b10165ba1da94427f66bc4257a82e3332942cb338bc8f4aacd058358b87"
             },
-            "state": "ready"
+            "stale_entries": [
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 1,
+            "state": "stale"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
@@ -112,14 +125,17 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-15/reviews/NG-15.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-15/reviews/NG-15.blindspots.json",
+                "sha256": "sha256:d2f524e2c36fe7ebc383a2da893b742e5b62a168f01d354d9bc351fc341457cf"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/search.sqlite",
-            "state": "missing"
+            "state": "unavailable"
         },
         "session": {
             "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
@@ -129,37 +145,27 @@
             "session_id": "2026-11-23-ng-15-r1-73387d31",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-23-ng-15-r1-73387d31/session.json",
-                "sha256": "sha256:d825f4d7951e1b900f1869aa5fae8628d71cb1ade24aaa782b14b8b0df9210fc"
+                "sha256": "sha256:1e81011778512cba2112f6a6272526cfe25872280dd5e36211a1f8d5f74d541d"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-15"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-15 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-15",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "implementation",
-            "implementation_snapshot": null,
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:9c9c4d1651f39312f4e50656e193b78869b6d6cc14597cc47c95e7c5e164263e",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "Implementation snapshot scoped path does not exist yet: public/icons/licences.json (a deleted path needs a Contract base_commit that tracks it)",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-15:db7f1c3295ce9cde",
+            "source": {
+                "path": ".agent-loop/runs/NG-15/verification.json",
+                "sha256": "sha256:06424d1ca7faca0b11ada67cd7f27f2b19d5640cfe09cae46acc683a03f65a2e"
+            },
+            "source_session_id": "2026-11-23-ng-15-r1-73387d31",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-15:db7f1c3295ce9cde",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-15"
 }
