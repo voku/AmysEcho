@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
     "contract_revision": 3,
-    "current_attempt": 4,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
     "history": [
         {
@@ -400,6 +400,177 @@
                 "summary": "Browser test presses Stopp at least 1 s after the recording view (past the 700 ms guard) and requires the state to leave recording within 1.5 s, else the attempt counts as cut and every(!cut) fails; verify passes with 0 cuts",
                 "task_id": "NG-20",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:06:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:06:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8b58b2361227f476d00d33e830623fefb8c8c108e7eb7fc459ae08445304617c",
+                    "execution-evidence:sha256:ab81a604b5a57ecd95b1c113fd241e1af9324b1dd5ac11ddd183f03a500eff37",
+                    "execution-evidence:sha256:63c1e5811dd116e0e38a5a86e00147814a77244b39fd4b7b03a66c9c1dcb70ec",
+                    "execution-evidence:sha256:507521442622dba91fbd9b3c718049388f6ae0f2c025739b1a89e0e49a72d115",
+                    "execution-evidence:sha256:88827022ada641bcb47ebca31fa64d03f484e705f88b736dd40da7fb19102972",
+                    "execution-evidence:sha256:ef5e631663210bde041d1fb211d8913575efd8222a757cd7613cb91f3dc28b25",
+                    "execution-evidence:sha256:e5f2a251b540bb42141a90c18e19b5121332bfade2d6bf682417ba199391db04",
+                    "execution-evidence:sha256:31f45fc7bb8e81c1f1a7cf4c2e31c2a38f00fb579651d5d0ceae9a82ee73885e",
+                    "execution-evidence:sha256:2c19dfdf7ace2331347e6336fc338e2303cfa4db81961063a630814e77a531bb",
+                    "execution-evidence:sha256:829456b9872f223ddcc8df2a122a41e0367ee4ade062717f3233b69a043b9c2c",
+                    "execution-evidence:sha256:d9e0b2388a0014ad1c6842b0a61b703abb4715f4d54f74ac7e841530b817161a",
+                    "execution-evidence:sha256:9239d060575548644dbfe57540d501f6d84c26ce40d88fa03b6c14ca81c84b07",
+                    "execution-evidence:sha256:560f04bfe7388e32ae5a72d93f54944fa3743f61d1a6713f0b68c4de60cf754a",
+                    "execution-evidence:sha256:9d6dfd06573cb9d743f54e2da1c0dd8e84c057b614016c3d06d72afda47a443c",
+                    "execution-evidence:sha256:66739b0a07c37da9b9b5b9c008d48e5af3b376fe3bf104242fa0d2a54650a4b3"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8b58b2361227f476d00d33e830623fefb8c8c108e7eb7fc459ae08445304617c",
+                    "execution-evidence:sha256:ab81a604b5a57ecd95b1c113fd241e1af9324b1dd5ac11ddd183f03a500eff37",
+                    "execution-evidence:sha256:63c1e5811dd116e0e38a5a86e00147814a77244b39fd4b7b03a66c9c1dcb70ec",
+                    "execution-evidence:sha256:507521442622dba91fbd9b3c718049388f6ae0f2c025739b1a89e0e49a72d115",
+                    "execution-evidence:sha256:88827022ada641bcb47ebca31fa64d03f484e705f88b736dd40da7fb19102972",
+                    "execution-evidence:sha256:ef5e631663210bde041d1fb211d8913575efd8222a757cd7613cb91f3dc28b25",
+                    "execution-evidence:sha256:e5f2a251b540bb42141a90c18e19b5121332bfade2d6bf682417ba199391db04",
+                    "execution-evidence:sha256:31f45fc7bb8e81c1f1a7cf4c2e31c2a38f00fb579651d5d0ceae9a82ee73885e",
+                    "execution-evidence:sha256:2c19dfdf7ace2331347e6336fc338e2303cfa4db81961063a630814e77a531bb",
+                    "execution-evidence:sha256:829456b9872f223ddcc8df2a122a41e0367ee4ade062717f3233b69a043b9c2c",
+                    "execution-evidence:sha256:d9e0b2388a0014ad1c6842b0a61b703abb4715f4d54f74ac7e841530b817161a",
+                    "execution-evidence:sha256:9239d060575548644dbfe57540d501f6d84c26ce40d88fa03b6c14ca81c84b07",
+                    "execution-evidence:sha256:560f04bfe7388e32ae5a72d93f54944fa3743f61d1a6713f0b68c4de60cf754a",
+                    "execution-evidence:sha256:9d6dfd06573cb9d743f54e2da1c0dd8e84c057b614016c3d06d72afda47a443c",
+                    "execution-evidence:sha256:66739b0a07c37da9b9b5b9c008d48e5af3b376fe3bf104242fa0d2a54650a4b3"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "context_id": "correctness-review-r3-4",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "observations": [
+                    "If the replay ever took over about 3.5 s, the time limit could hide an ignored Stopp in that attempt (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:f4a488e9",
+                "summary": "A broken Stopp fails the test; the wait clears the 700 ms guard; no timing-only failure with replayed frames",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:06:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:06:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:eefaa58e2ab125513e6242b2d97cb768dbb9f014eec5086da537442148b3a916",
+                    "execution-evidence:sha256:71a3cc0a55235ceb872938335463be09f797770770c9b57e36bcf44cf2f8ec5c",
+                    "execution-evidence:sha256:60b4f52010e856fc1f07d97226b9cf262d997a23c31f0137c644ce02ef157db4",
+                    "execution-evidence:sha256:1d9bc44b6b9ee54d7b04e5428c4728912f583bb6079675f3618c4903d7e48f7d",
+                    "execution-evidence:sha256:4ee31ac7478b52967b2207fba579c0560df6d2545dd49cc2f49f9a7b595bf39b",
+                    "execution-evidence:sha256:c2becd4e0c4103e7946f203301a52204a0aeb5b6bcc14330c18af2acf42fe0de",
+                    "execution-evidence:sha256:35650517d4e555cd82348b4384cacddd76dd996d5f526049587511234c0b1196",
+                    "execution-evidence:sha256:a62123a1ae3e21950f4f199683e81d20d5de47df212e8fd54376def3e8d76434",
+                    "execution-evidence:sha256:a0f054ab7aa53bf978c0353244ddf7d639413de1609169894a8aa8094e3fe88f",
+                    "execution-evidence:sha256:65d5d699eac9e33082fe723823894be5965f20846cb3cc2656e44b882a2857a2",
+                    "execution-evidence:sha256:e8b89447d03be428e424ecb00776cb12903af77bece017e77cbb3132401f0dd3",
+                    "execution-evidence:sha256:cc721580cc9c3ba0e2b9369cd7ebe724730f092d9d61394a6694e02e082cd186",
+                    "execution-evidence:sha256:54ece769606e590e2052370887d4781afdf6f094b2de6f09bd286a3eac88708f",
+                    "execution-evidence:sha256:3ccb04a9cba5c7965246fddaccc7b1294bb5957837d112461b41dadf8dd36685",
+                    "execution-evidence:sha256:6c14052fbe59aa9b954cd3b73c297ca1cc0c865e65ebf3db643b73b30f7fd541"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:eefaa58e2ab125513e6242b2d97cb768dbb9f014eec5086da537442148b3a916",
+                    "execution-evidence:sha256:71a3cc0a55235ceb872938335463be09f797770770c9b57e36bcf44cf2f8ec5c",
+                    "execution-evidence:sha256:60b4f52010e856fc1f07d97226b9cf262d997a23c31f0137c644ce02ef157db4",
+                    "execution-evidence:sha256:1d9bc44b6b9ee54d7b04e5428c4728912f583bb6079675f3618c4903d7e48f7d",
+                    "execution-evidence:sha256:4ee31ac7478b52967b2207fba579c0560df6d2545dd49cc2f49f9a7b595bf39b",
+                    "execution-evidence:sha256:c2becd4e0c4103e7946f203301a52204a0aeb5b6bcc14330c18af2acf42fe0de",
+                    "execution-evidence:sha256:35650517d4e555cd82348b4384cacddd76dd996d5f526049587511234c0b1196",
+                    "execution-evidence:sha256:a62123a1ae3e21950f4f199683e81d20d5de47df212e8fd54376def3e8d76434",
+                    "execution-evidence:sha256:a0f054ab7aa53bf978c0353244ddf7d639413de1609169894a8aa8094e3fe88f",
+                    "execution-evidence:sha256:65d5d699eac9e33082fe723823894be5965f20846cb3cc2656e44b882a2857a2",
+                    "execution-evidence:sha256:e8b89447d03be428e424ecb00776cb12903af77bece017e77cbb3132401f0dd3",
+                    "execution-evidence:sha256:cc721580cc9c3ba0e2b9369cd7ebe724730f092d9d61394a6694e02e082cd186",
+                    "execution-evidence:sha256:54ece769606e590e2052370887d4781afdf6f094b2de6f09bd286a3eac88708f",
+                    "execution-evidence:sha256:3ccb04a9cba5c7965246fddaccc7b1294bb5957837d112461b41dadf8dd36685",
+                    "execution-evidence:sha256:6c14052fbe59aa9b954cd3b73c297ca1cc0c865e65ebf3db643b73b30f7fd541"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "context_id": "blindspot-review-r3-4",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:3:7c2387e5",
+                "summary": "Broken Stopp caught; about 2.5 s slack before the limit",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:08:52+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:08:52+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:b717c8967777aa17317461a9a9bfca6163f80004e8c16a9894c914dc5417195e",
+                    "execution-evidence:sha256:f83595301b97161cc309df3c09f0e2307840f196a204c5d83962bdf20cad8e2a"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "consistency_references": [
+                    "execution-evidence:sha256:f9acc7f0598b0fafb1bffe12e26d4dc66ca25dfcdac713391d13253bf48e4811"
+                ],
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:d4a17829e0ea5aee76d71724759d2e193a5909517b579a3024d348967fdf2b82",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-20: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-20 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-20:6dbed2dff2320d38 binds active Session 2026-11-23-ng-20-r3-13364a20 to approved Contract revision 3\n[OK] sessions: 3 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-20 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-20",
+                "validation_references": [
+                    "execution-evidence:sha256:b717c8967777aa17317461a9a9bfca6163f80004e8c16a9894c914dc5417195e",
+                    "execution-evidence:sha256:f83595301b97161cc309df3c09f0e2307840f196a204c5d83962bdf20cad8e2a"
+                ]
             }
         }
     ],
