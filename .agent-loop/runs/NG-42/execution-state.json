@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:035ac725a80e1b0e7b82f22f39c13f5f6f4cb452",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
     "history": [
         {
@@ -66,6 +66,42 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:776e0c2e",
                 "summary": "Mirrored preview video plus canvas skeleton (L orange, R cyan, shoulders yellow) in the teach view and the camera test; fixed box; controls in place at 320x480, 360x640, 640x360, 820x1180; preview closed on every camera stop; verify passes",
+                "task_id": "NG-42",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T16:55:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T16:55:48+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8e59d987610d727370bf855798973c060d155aaf248605a629d49682abf40b75"
+                ],
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:035ac725a80e1b0e7b82f22f39c13f5f6f4cb452",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "schema_version": "1.0",
+                "task_id": "NG-42",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8e59d987610d727370bf855798973c060d155aaf248605a629d49682abf40b75"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:035ac725a80e1b0e7b82f22f39c13f5f6f4cb452",
+                "context_id": "correctness-review-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "outcome": "changes_required",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:1061669d",
+                "summary": "In the camera test the preview box is hidden while the camera is off (.capture-preview-holder:empty display none), so the controls jump when it starts: 320 px sideways at 640x360, 250 px down at 360x640.",
                 "task_id": "NG-42",
                 "validation_references": []
             }

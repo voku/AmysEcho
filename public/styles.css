@@ -157,8 +157,8 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
 .capture-title { font-size: 1.2rem; line-height: 1.25; }
 .capture-region > button { justify-self: start; min-height: 44px; padding: .4rem .9rem; font: 600 1rem system-ui, sans-serif; }
 .capture-seen { min-height: 2.7em; }
-.capture-preview-holder { --preview-h: clamp(6rem, 100dvh - 19rem, 24rem); box-sizing: border-box; width: min(100%, var(--preview-h) * 4 / 3); aspect-ratio: 4 / 3; }
-.capture-preview-holder:empty { display: none; }
+/* The box keeps its size while the camera is off, so the controls do not move when it starts (card NG-42). */
+.capture-preview-holder { --preview-h: clamp(6rem, 100dvh - 19rem, 24rem); box-sizing: border-box; width: min(100%, var(--preview-h) * 4 / 3); aspect-ratio: 4 / 3; border-radius: .6rem; background: #dfe8ec; }
 /* In the teaching view the box is there in every state, camera on or off, with a size set by the window only: the buttons under it never move because of it.
    Its height leaves room for the block at the top, the heading, the two lines and the buttons. */
 .caregiver-teach-preview { --preview-h: clamp(6rem, 100dvh - 25rem, 22.5rem); box-sizing: border-box; width: min(100%, var(--preview-h) * 4 / 3); aspect-ratio: 4 / 3; margin: .6rem 0 0; border-radius: .6rem; background: #dfe8ec; }
