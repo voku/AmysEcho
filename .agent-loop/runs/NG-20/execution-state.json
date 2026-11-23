@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
     "contract_revision": 2,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
     "history": [
         {
@@ -34,6 +34,38 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:bcff2c3b",
                 "summary": "Same investigation; scope widened by the browser test file",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:07:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:07:44+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
+                "context_id": "build-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "outcome": "completed",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:016f69ac",
+                "summary": "Recognise view over the board with countdown, Stopp, 5 s limit; confirm view speaks only on Ja, sagen through the tile path; unknown speaks nothing with up to three candidates; camera stopped on every exit; DGS browser test 4 of 4 taught attempts recognised, 0 wrong shown, 2 untaught unknown; verify passes",
                 "task_id": "NG-20",
                 "validation_references": []
             }
