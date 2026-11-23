@@ -203,7 +203,11 @@ async function installFeeder(page) {
     const replay = {
       async detect(image, timestampMs, pose) {
         const frame = trackedPasses.get(image.key)[image.index];
-        if (frame.timestampMs !== timestampMs || frame.poseRan !== pose) throw new Error("replay out of step with the capture");
+        if (frame.timestampMs !== timestampMs || frame.poseRan !== pose) {
+          // The capture turns a thrown error into "tracker_failed"; keep a record so the test fails on it.
+          (window.__replayFaults ??= []).push({ key: image.key, index: image.index, timestampMs, pose });
+          throw new Error("replay out of step with the capture");
+        }
         return { hands: frame.hands, pose: frame.pose };
       },
       close() {},
@@ -454,8 +458,10 @@ test("recognising on the board: DGS videos taught as examples, attempted through
     ];
     console.log(lines.join("\n"));
 
-    // A broken "Stopp" must not hide as a cut: with replayed frames every attempt is in the recording long before the limit.
-    assert.ok(outcomes.some((outcome) => !outcome.cut), "'Stopp' never ended a recording");
+    // A broken "Stopp" must not hide as a cut: with replayed frames every attempt is fed long before the limit, so every one must end through "Stopp".
+    assert.deepEqual(await page.evaluate(() => window.__replayFaults ?? []), [], "the replayed tracker answers went out of step with the capture");
+    assert.deepEqual(outcomes.filter((outcome) => outcome.state === "problem").map((outcome) => outcome.name), [], "an attempt ended in a problem view");
+    assert.ok(outcomes.every((outcome) => !outcome.cut), "an attempt was not ended by 'Stopp'");
     assert.ok(confirmedSpoken >= 1, "no attempt was recognised and confirmed");
     assert.ok(rejected >= 1, "'Nein' was never tried");
     assert.equal((await spoken()).length, confirmedSpoken + candidateSpoken, "something was spoken without a confirming tap");

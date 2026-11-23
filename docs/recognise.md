@@ -168,7 +168,8 @@ after use), skips with a reason when that history is missing and fails under `CI
   pass, half a frame later: the same signing seen in other frames), and refuses a frame whose
   timestamp or pose flag is out of step. A replayed frame takes microseconds, so the 5 s limit
   cannot cut an attempt on a slow machine. Then "Stopp" is clicked; the test asserts that "Stopp"
-  ended at least one recording. Also two
+  ended every recording, that no attempt ended in a problem view and that the replay never went out
+  of step. Also two
   videos of words that were not taught (`danke_var_danke_2`, `oma_main_oma`).
 - Speech is observed through a stand-in engine in the page (headless Chromium has no German voice)
   and the sentence bar.

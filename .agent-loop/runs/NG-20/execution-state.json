@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
     "contract_revision": 3,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
     "history": [
         {
@@ -198,6 +198,42 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:03cda551",
                 "summary": "Browser test tracks each video once with the real tracker through startCapture and replays exactly those answers during the recording (timestamp and pose flag checked); 0 cuts in 5 runs, under CPU throttle 4 and under verify; asserts Stopp ended at least one recording; doc updated",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:58:03+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:58:03+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:3e9db5836c1a8234559397450ac74026cdd822e256bc19b18406236585f8a156"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:3e9db5836c1a8234559397450ac74026cdd822e256bc19b18406236585f8a156"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
+                "context_id": "correctness-review-r3-2",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "changes_required",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:10c3f6f5",
+                "summary": "A replay mismatch throws inside the capture loop, is reported as tracker_failed and accepted as a cut with a problem view; only some(!cut) catches it. Record mismatches and assert none, assert no problem view, and require every attempt to end through Stopp.",
                 "task_id": "NG-20",
                 "validation_references": []
             }
