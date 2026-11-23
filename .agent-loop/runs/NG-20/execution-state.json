@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
+    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:8d6b200ed67ff54e05f3ba0c5612240aed626b98",
     "contract_revision": 2,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
     "history": [
         {
@@ -171,6 +171,38 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:1:24ff7b0c",
                 "summary": "Decision before a trial with the child: in phone landscape (640x360, 844x390) the confirm and unknown views are cut off (question behind Zurück, tile cropped without label, candidates below the 80 px minimum); Nein and Ja, sagen are text only; candidates speak on one tap; the offline line names the wrong button.",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:25:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:25:22+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:8d6b200ed67ff54e05f3ba0c5612240aed626b98",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:8d6b200ed67ff54e05f3ba0c5612240aed626b98",
+                "context_id": "build-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "outcome": "completed",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:7bbc08ed",
+                "summary": "Layout fits all eight states at 320x480, 360x640, 640x360, 844x390, 820x1180 with targets at or above tile-min; check and cross symbols, tile picture on Ja, sagen; candidates open the confirm view; problem lines point to Nochmal; Gebärde shielded 1.5 s after leaving; verify passes",
                 "task_id": "NG-20",
                 "validation_references": []
             }
