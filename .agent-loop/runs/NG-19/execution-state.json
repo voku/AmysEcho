@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:acefdf9d373a9f2cf38671d65ad9c78d020fa4eb",
+    "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
     "contract_revision": 2,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
     "history": [
         {
@@ -102,6 +102,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:c3bcedf5",
                 "summary": "When a redraw fails while the teach camera runs (storage read error), the view is replaced by the read notice but the camera keeps running with no stop on screen (caregiver.ts:1099 checks only a mode change).",
+                "task_id": "NG-19",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T13:03:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T13:03:45+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "schema_version": "1.0",
+                "task_id": "NG-19",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "context_id": "build-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "outcome": "completed",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:46a9f0f2",
+                "summary": "Camera stops on any redraw not showing the teach controls (failed read included); truthful delete and listing messages; one count; profile named; wording; fixed control block (positions constant over 16 states at 360x640 and 640x360); 3-2-1 countdown cancellable by every exit; still-hand hint; verify passes",
                 "task_id": "NG-19",
                 "validation_references": []
             }
