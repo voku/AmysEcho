@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
     "history": [
         {
@@ -66,6 +66,98 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:de46ba66",
                 "summary": "Kamera: vorne/hinten row in the camera test and teaching, device choice used by the child's view without a control; back camera exact with one fallback and a German line; preview mirrored for the front camera only; handedness unchanged across cameras proven by tests; verify passes",
+                "task_id": "NG-43",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T18:16:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T18:16:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:38431ac69076423c7094e654a62ecd7677d1585515bfc090339dfa3d7da8f43f",
+                    "execution-evidence:sha256:7828be685e257c47d0545f4e6442cd245c52cb9e7b4433b9c2095771ec9f0ee8",
+                    "execution-evidence:sha256:c7a7ed24d36c861e689c5ddd86bf1b726dc2bd1fdee6105cd3b3989373577f0b",
+                    "execution-evidence:sha256:009b5fda393ff948d5c2f8f2b871e9579c344bc0422788699cc00521a33aad8f",
+                    "execution-evidence:sha256:f4fb06aff6515d7794d0a439ac5cf78aaf5cf6eb88e29100e506ac170d34c2f5",
+                    "execution-evidence:sha256:579058788ec1ced1ec5887d2c8fda01044c9e78d69aacb45b0ce8bfb13d3681a",
+                    "execution-evidence:sha256:489220f30791bdec9d85db097a0e6b4a5f9a5e38f11cacb8fcf868cb7ff05d80",
+                    "execution-evidence:sha256:b515300f7d0b133fe412597e439dbba8314336b725d0a0cb3b67d8baa31121b2",
+                    "execution-evidence:sha256:f85480ead185bc363e8fb2f3e14050a3d386de5c255b72f5937450438ee9ec1e",
+                    "execution-evidence:sha256:d3c48e7fedf795b50f9c31a66aeb7814b6fb8909475f251c54714af03452d759"
+                ],
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:38431ac69076423c7094e654a62ecd7677d1585515bfc090339dfa3d7da8f43f",
+                    "execution-evidence:sha256:7828be685e257c47d0545f4e6442cd245c52cb9e7b4433b9c2095771ec9f0ee8",
+                    "execution-evidence:sha256:c7a7ed24d36c861e689c5ddd86bf1b726dc2bd1fdee6105cd3b3989373577f0b",
+                    "execution-evidence:sha256:009b5fda393ff948d5c2f8f2b871e9579c344bc0422788699cc00521a33aad8f",
+                    "execution-evidence:sha256:f4fb06aff6515d7794d0a439ac5cf78aaf5cf6eb88e29100e506ac170d34c2f5",
+                    "execution-evidence:sha256:579058788ec1ced1ec5887d2c8fda01044c9e78d69aacb45b0ce8bfb13d3681a",
+                    "execution-evidence:sha256:489220f30791bdec9d85db097a0e6b4a5f9a5e38f11cacb8fcf868cb7ff05d80",
+                    "execution-evidence:sha256:b515300f7d0b133fe412597e439dbba8314336b725d0a0cb3b67d8baa31121b2",
+                    "execution-evidence:sha256:f85480ead185bc363e8fb2f3e14050a3d386de5c255b72f5937450438ee9ec1e",
+                    "execution-evidence:sha256:d3c48e7fedf795b50f9c31a66aeb7814b6fb8909475f251c54714af03452d759"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "outcome": "pass",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:e62a0ec2",
+                "summary": "Handedness holds for both cameras (geometric test), fallback never retries a refusal and stops late streams, storage in try/catch, child's view has no control, preview follows the camera in use",
+                "task_id": "NG-43",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T18:16:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T18:16:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d21fe73dacba79769251a0c74fa97b5ad0c1796c15236dd778ed0cca32b02041",
+                    "execution-evidence:sha256:183d09ec1d0169a8dae8984cc7796cb17e3d2f13395fab7bb915dde53d72cc48"
+                ],
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d21fe73dacba79769251a0c74fa97b5ad0c1796c15236dd778ed0cca32b02041",
+                    "execution-evidence:sha256:183d09ec1d0169a8dae8984cc7796cb17e3d2f13395fab7bb915dde53d72cc48"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
+                "context_id": "blindspot-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "outcome": "changes_required",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:be884641",
+                "summary": "The child's view uses the stored device choice: after teaching with the back camera it points away from the child alone, every attempt has no hands and nothing says why. Decision: the child's gesture view always uses the front camera; the choice applies to teaching and the camera test.",
                 "task_id": "NG-43",
                 "validation_references": []
             }
