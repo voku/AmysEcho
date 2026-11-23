@@ -1,10 +1,10 @@
 # NG-3: Camera input: hand and upper-body landmarks to FeatureSequenceV1
 
 - **Ticket:** NG-3
-- **Lane:** READY
+- **Lane:** VERIFY
 - **Domain:** recognition
 - **Created:** 2026-11-22T08:00:52+00:00
-- **Updated:** 2026-11-23T07:18:13+00:00
+- **Updated:** 2026-11-23T09:58:03+00:00
 - **Summary:** Tap-to-start capture that turns camera frames into landmark frames for the matcher; assets bundled for offline use; nothing stored.
 - **Next:** Depends on NG-1 feature schema. Measure frame rate on a mid-range phone before adding pose or face.
 - **Validation:** npm ci --ignore-scripts && npm run verify
