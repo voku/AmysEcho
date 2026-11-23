@@ -6,14 +6,14 @@
     "next_action_kind": "host_work",
     "references": {
         "approval": {
-            "approved_at": "2026-11-23T13:39:25+00:00",
+            "approved_at": "2026-11-23T13:39:38+00:00",
             "approved_by": "Lars Moelleken (delegated to Claude for this session)",
-            "contract_revision": 1,
+            "contract_revision": 2,
             "observation_mode": "checked",
             "owner": "agent-loop",
             "source": {
                 "path": ".agent-loop/contracts/NG-20/contract.json",
-                "sha256": "sha256:44a56133f5bee873d87e3a40f5184056ce3ae374d1fa7d61babd933dc9a90e04"
+                "sha256": "sha256:4d1d83362ab64f3a641e269d73b6186fa80b2427f00143080f00e577a82a2256"
             },
             "state": "current"
         },
@@ -51,11 +51,11 @@
             "rejected_at": null,
             "rejected_by": null,
             "rejection_reason": null,
-            "revision": 1,
-            "run_revision": 1,
+            "revision": 2,
+            "run_revision": 2,
             "source": {
                 "path": ".agent-loop/contracts/NG-20/contract.json",
-                "sha256": "sha256:44a56133f5bee873d87e3a40f5184056ce3ae374d1fa7d61babd933dc9a90e04"
+                "sha256": "sha256:4d1d83362ab64f3a641e269d73b6186fa80b2427f00143080f00e577a82a2256"
             },
             "state": "approved"
         },
@@ -65,10 +65,10 @@
             "state": "none"
         },
         "execution_contract": {
-            "contract_revision": 1,
+            "contract_revision": 2,
             "contract_source": {
                 "path": ".agent-loop/contracts/NG-20/contract.json",
-                "sha256": "sha256:44a56133f5bee873d87e3a40f5184056ce3ae374d1fa7d61babd933dc9a90e04"
+                "sha256": "sha256:4d1d83362ab64f3a641e269d73b6186fa80b2427f00143080f00e577a82a2256"
             },
             "observation_mode": "checked",
             "owner": "agent-loop",
@@ -79,35 +79,35 @@
             "observation_mode": "checked",
             "owner": "agent-learning",
             "review_observations": [],
-            "run_id": "run:NG-20:097a60d3b5176d74",
+            "run_id": "run:NG-20:e8e98ad451e8b421",
             "state": "missing"
         },
         "map": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/php-symbols.json",
-            "snapshot": "sha256:8bd351ba5329fa55ca6292f149f390bee1810c3dac1dab53324f0aa0cc1e17a1",
+            "snapshot": "sha256:57321902923f446a7ded5719b93d448d2b0aa077567a7a8bed8799d0e2658953",
             "source": {
                 "path": ".agent-loop/map/php-symbols.json",
-                "sha256": "sha256:aeb462a94df5551d5e2cc77fe88dd1e21da8df0fe71af8a76d2062093839af70"
+                "sha256": "sha256:0fa53170aead1b74d8cff330989f97b98f6d9e05dbfc3ae5501ea6d5b269c6da"
             },
             "state": "ready"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "run_id": "run:NG-20:097a60d3b5176d74",
+            "run_id": "run:NG-20:e8e98ad451e8b421",
             "state": "run_bound"
         },
         "recall": {
-            "bundle_sha256": "ac70024482b2aed0471b821ad8df5c13d7022753c8c8b7359cf52cef2eb88cb7",
-            "compilation_id": "compilation.NG-20.2026-11-23-133928.51e29ea6",
+            "bundle_sha256": "da84dad6e0d1ae579f88081c6266046d95a332535ad05a042f67de6f10f17a06",
+            "compilation_id": "compilation.NG-20.2026-11-23-133939.9307e582",
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "snapshot_sha256": "275c99fa42b0f330704298bc426d18ebcc3d8c4ec4d3c970d20b6e27b690296f",
+            "snapshot_sha256": "f958fb511bc48d1723ae5223b1243c9066913fa1e93d43a18533c7108a42bd63",
             "source": {
                 "path": ".agent-loop/recall/NG-20/meta.json",
-                "sha256": "sha256:a22915f5417beb1f253cde4c733c262f80d5eadf7be6be2cf3ad2d4ee3dee901"
+                "sha256": "sha256:02bc9235d84f90d63d7cf7827cd0b62b58608e1284058510e381d253b18319be"
             },
             "state": "compiled"
         },
@@ -128,10 +128,10 @@
             "ephemeral": false,
             "observation_mode": "checked",
             "owner": "agent-session",
-            "session_id": "2026-11-23-ng-20-r1-12a8cbdb",
+            "session_id": "2026-11-23-ng-20-r2-d5d26687",
             "source": {
-                "path": ".agent-loop/sessions/2026-11-23-ng-20-r1-12a8cbdb/session.json",
-                "sha256": "sha256:c6e44ac0cabba40fe6be233c5e9302ef9dd3301706afa52d4b322225284258b8"
+                "path": ".agent-loop/sessions/2026-11-23-ng-20-r2-d5d26687/session.json",
+                "sha256": "sha256:9ad05dd38cd1f58f5df1656427ca2bbc8e647899120ec7051224841c8122861b"
             },
             "state": "active",
             "task_id": "NG-20"
@@ -148,11 +148,11 @@
                 "executable": "agent-loop",
                 "template": false
             },
-            "gate": "implementation",
-            "implementation_snapshot": null,
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:79f439c2a391274097d9de82ac0eb88ba45239a725919714aaf095951b2aa8cf",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "Implementation snapshot scoped path does not exist yet: test/app.test.mjs (a deleted path needs a Contract base_commit that tracks it)",
+            "reason": "independent review pipeline is incomplete at stage investigate",
             "recall_outcome_draft": null,
             "repair_action": null,
             "repair_invocation": null,
@@ -160,7 +160,7 @@
             "validation_failed": false
         }
     },
-    "run_id": "run:NG-20:097a60d3b5176d74",
+    "run_id": "run:NG-20:e8e98ad451e8b421",
     "schema_version": "1.0",
     "state": "incomplete",
     "task_id": "NG-20"
