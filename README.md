@@ -61,7 +61,7 @@ profiles in this browser and the offline copy of the app.
 
 ## Try it
 
-The app on `main` is deployed to GitHub Pages after CI has passed: <https://voku.github.io/AmysEcho/>. Open it in
+The app on `main` is deployed to GitHub Pages by the CI workflow after its tests have passed: <https://voku.github.io/AmysEcho/>. Open it in
 Chrome on the phone; "Zum Startbildschirm hinzufügen" installs it, and after one visit it starts
 offline. The board shows the examples until a caregiver sets up a profile (hold the control at the
 bottom for three seconds).

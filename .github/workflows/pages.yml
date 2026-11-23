@@ -1,13 +1,11 @@
 # Deploys the built app to GitHub Pages (https://voku.github.io/AmysEcho/).
-# Runs after the CI workflow has passed on main, or by hand. The app uses
-# relative paths only, so it works under the repository sub-path.
+# Called by the CI workflow after its tests passed on a push to main, or run by
+# hand on main. The app uses relative paths only, so it works under the
+# repository sub-path.
 name: Deploy to GitHub Pages
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -19,30 +17,21 @@ concurrency:
 
 jobs:
   build:
-    # Only a push to main of this repository that passed CI, or a manual run on main.
-    # A pull request (also one from a fork whose branch is named main) never deploys.
-    if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+    # Only main is ever deployed; CI calls this workflow for a push to main only.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # The commit CI tested, not whatever main points to now.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
+      # No dependency cache: the deploy builds from a clean install.
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: '24'
-          cache: npm
 
       - name: Install dependencies
         run: npm ci --ignore-scripts

@@ -162,7 +162,7 @@ test("compiled shell contains only local assets", async () => {
   assert.match(html, /lang="de"/);
   assert.match(html, /src="\.\/main\.js"/);
   // The camera test is its own module next to the board's, so a failure in it cannot stop the board.
-  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/g)].map((match) => match[0]),
+  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/gi)].map((match) => match[0]),
     ['<script type="module" src="./main.js">', '<script type="module" src="./capture/capture.js">']);
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(js, /from\s+["'](?:\.\.\/)+(?:webapp|server|integration)\//);

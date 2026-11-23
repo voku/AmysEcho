@@ -67,3 +67,14 @@ jobs:
         run: php vendor/bin/agent-loop workflow help
       - name: Verify Composer inputs are unchanged
         run: git diff --exit-code -- composer.json composer.lock
+
+  # Deploys to GitHub Pages after the tests passed, for a push to main only.
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: app
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
