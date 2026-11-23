@@ -194,6 +194,11 @@ through the profile store (`saveExample`). Its value, `GestureExampleRecordV1`:
 - `sequenceFromRecording` is what the teaching view runs on a recording: the tracker adapter's
   `toLandmarkFrames`, then `buildFeatureSequence`, with the adapter's defaults (shoulders when
   seen, nothing removed). A recording that gives no sequence is refused with the builder's reason.
+  For a two-hand sequence it also says whether one hand stayed within `MIN_TRAVEL` (`handTravel`:
+  palm centres averaged over `SPEED_SPAN_MS`, in shoulder widths, or three hand lengths without
+  shoulders; an approximation of the builder's own movement rule). That is a hint for the
+  caregiver only ("Eine Hand lag still im Bild …"); nothing about it is stored, and the matcher
+  does not use it.
 
 **Precision and what rounding costs.** Four decimals is 0.00005 at most per value; distances
 between repetitions of one gesture are 0.2 to 1.2. Checked with a probe that is not part of the

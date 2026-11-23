@@ -593,6 +593,9 @@ profile/<id>/data/gesture.<conceptId>.<12 hex characters>    one stored example
   them, `importProfile` restores them (also as a copy under a new id: the record holds no profile
   id), and `remove` deletes them with the profile. Tests in `test/examples.test.mjs` cover all
   three. Import does not check them as examples; a damaged one is reported when it is read.
+- The board editor's "Gebärde: N Beispiele" counts every stored entry of a concept from the data
+  names (`countExamples`, no value read); the teaching view shows the same number and says how many
+  of them cannot be used (`listExamples`).
 - Examples are not deleted when their concept leaves the board, and the caregiver area shows them
   only for concepts on the board. They still count towards the limits and are exported.
 - No picture, video or landmark is stored (recognition.md, "Stored examples").

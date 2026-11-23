@@ -16,8 +16,8 @@
  */
 import { isBoardConceptId } from "../board-data.js";
 import type { ProfileStore, ProfileUsage } from "../profiles/store.js";
-import { FEATURE_SCHEMA_VERSION, buildFeatureSequence, parseFeatureSequence } from "./features.js";
-import type { Anchor, FeatureFailure, FeatureSequence, HandKind } from "./features.js";
+import { FEATURE_SCHEMA_VERSION, MIN_TRAVEL, SPEED_SPAN_MS, buildFeatureSequence, parseFeatureSequence } from "./features.js";
+import type { Anchor, FeatureFailure, FeatureSequence, HandKind, LandmarkFrame, Point } from "./features.js";
 import { toLandmarkFrames } from "./tracker-adapter.js";
 import type { AdapterOptions, TrackerFrame } from "./tracker-adapter.js";
 
@@ -320,7 +320,11 @@ export function usageLevel(usage: Pick<ProfileUsage, "names" | "bytes" | "maxNam
 }
 
 export type RecordingResult =
-  | { readonly ok: true; readonly sequence: FeatureSequence; readonly frames: number; readonly durationMs: number }
+  | {
+    readonly ok: true; readonly sequence: FeatureSequence; readonly frames: number; readonly durationMs: number;
+    /** A two-hand sequence in which one hand stayed within `MIN_TRAVEL` the whole time: a hint for the caregiver, not stored. */
+    readonly stillHand: boolean;
+  }
   | { readonly ok: false; readonly reason: FeatureFailure; readonly frames: number; readonly durationMs: number };
 
 /** A recording of the camera, as the matcher would see it: tracker frames to landmark frames to a feature sequence. */
@@ -328,6 +332,44 @@ export function sequenceFromRecording(frames: readonly TrackerFrame[], options: 
   const first = frames[0]?.timestampMs ?? 0;
   const last = frames[frames.length - 1]?.timestampMs ?? first;
   const facts = { frames: frames.length, durationMs: Math.max(0, Math.round(last - first)) };
-  const built = buildFeatureSequence(toLandmarkFrames(frames, options));
-  return built.ok ? { ok: true, sequence: built.sequence, ...facts } : { ok: false, reason: built.reason, ...facts };
+  const landmarks = toLandmarkFrames(frames, options);
+  const built = buildFeatureSequence(landmarks);
+  if (!built.ok) return { ok: false, reason: built.reason, ...facts };
+  const stillHand = built.sequence.hands === "both" && (["left", "right"] as const).some((side) => handTravel(landmarks, side) < MIN_TRAVEL);
+  return { ok: true, sequence: built.sequence, stillHand, ...facts };
+}
+
+const PALM = [0, 1, 5, 9, 13, 17];
+const middle = (values: readonly number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const at = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[at]! : (sorted[at - 1]! + sorted[at]!) / 2;
+};
+
+/**
+ * How far one hand got from where it was first seen, in shoulder widths
+ * (without shoulders: three hand lengths, as the feature builder scales),
+ * on palm centres averaged over `SPEED_SPAN_MS`, so tracking jitter does not
+ * count. Infinity when the hand is not seen or nothing can be measured. An
+ * approximation of the feature builder's own "movement" for a hint only.
+ */
+export function handTravel(frames: readonly LandmarkFrame[], side: "left" | "right"): number {
+  const seen = frames.flatMap((frame) => {
+    const hand = frame[side];
+    if (hand === null || hand.length <= 17) return [];
+    const palm = PALM.map((index) => hand[index] as Point);
+    return [{ tMs: frame.tMs, at: [palm.reduce((sum, point) => sum + point[0], 0) / palm.length, palm.reduce((sum, point) => sum + point[1], 0) / palm.length] as const, hand }];
+  });
+  if (seen.length === 0) return Number.POSITIVE_INFINITY;
+  const shoulders = frames.flatMap((frame) => (frame.shoulders === null ? [] : [Math.hypot(frame.shoulders[0][0] - frame.shoulders[1][0], frame.shoulders[0][1] - frame.shoulders[1][1])]));
+  const unit = shoulders.length > 0
+    ? middle(shoulders)
+    : middle(seen.map(({ hand }) => Math.hypot(hand[0]![0] - hand[9]![0], hand[0]![1] - hand[9]![1]))) * 3;
+  if (!(unit > 0)) return Number.POSITIVE_INFINITY;
+  const smoothed = seen.map(({ tMs }) => {
+    const near = seen.filter((other) => Math.abs(other.tMs - tMs) <= SPEED_SPAN_MS / 2);
+    return [near.reduce((sum, other) => sum + other.at[0], 0) / near.length, near.reduce((sum, other) => sum + other.at[1], 0) / near.length] as const;
+  });
+  const [first] = smoothed;
+  return Math.max(...smoothed.map((point) => Math.hypot(point[0] - first![0], point[1] - first![1]))) / unit;
 }

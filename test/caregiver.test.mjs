@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { CAPTURE_BRIDGE_KEY, TEACH_MAX_RECORDING_MS, BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
+import { CAPTURE_BRIDGE_KEY, TEACH_COUNTDOWN_S, TEACH_MAX_RECORDING_MS, BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
 import { resolveBoard, setBoardConcepts, setWording } from "../dist/board-data.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
@@ -1670,7 +1670,7 @@ test("auto-close: the idle period of an earlier opening touches neither a hold i
 const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt.";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name, die ausgewählten Begriffe, eigene Texte dazu und beigebrachte Gebärden werden nur in diesem Browser auf diesem Gerät gespeichert. "
-  + "Von einer Gebärde werden nur Zahlen zur Bewegung der Hände gespeichert, kein Bild und kein Video. "
+  + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -5573,9 +5573,11 @@ test("leaving: Escape does nothing while an input method composes a character", 
 
 // --- Teaching a gesture (card NG-19) ---
 
-const TEACH_INTRO = "Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“, mache die Gebärde einmal und tippe auf „Aufnahme beenden“. "
-  + "Nach 8 Sekunden endet die Aufnahme von selbst. Am besten mindestens 3 Beispiele aufnehmen, so wie das Kind später vor dem Gerät sitzt. "
-  + "Gespeichert werden nur Zahlen zur Bewegung der Hände, kein Bild und kein Video.";
+const TEACH_INTRO = "Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“: Das Gerät zählt 3 Sekunden herunter, damit deine Hand aus dem Bild kommt. "
+  + "Dann die Gebärde einmal machen und auf „Aufnahme beenden“ tippen. Nach 8 Sekunden endet die Aufnahme von selbst. "
+  + "Am besten steht das Gerät fest, oder eine zweite Person hält es. "
+  + "Am besten mindestens 3 Beispiele aufnehmen, so wie das Kind später vor dem Gerät sitzt. "
+  + "Gespeichert werden nur Zahlen zu Bewegung und Handform, kein Bild und kein Video.";
 
 /** A tracker hand: 21 normalised points around a wrist at (x, y); synthetic numbers. */
 function trackerHand(x, y, label) {
@@ -5650,6 +5652,11 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
       for (let i = 0; i < 5; i += 1) await turn();
     },
     get running() { return log.cameraRequests > log.tracksStopped; },
+    /** The camera stops delivering frames, as when another app takes it. */
+    fail() {
+      for (const resolve of waiting) resolve(null);
+      waiting = [];
+    },
   };
 }
 
@@ -5671,6 +5678,8 @@ function teachViewOf(region) {
     live: byClass(view, "caregiver-teach-live")?.textContent ?? null,
     camera: byClass(view, "caregiver-teach-camera")?.textContent ?? null,
     count: byClass(view, "caregiver-teach-count")?.textContent ?? null,
+    note: byClass(view, "caregiver-teach-note")?.textContent ?? null,
+    hint: byClass(view, "caregiver-teach-hint")?.textContent ?? null,
     examples: tree(view).filter((element) => hasClass(element, "caregiver-example-text")).map((element) => element.textContent),
   };
 }
@@ -5692,9 +5701,17 @@ async function teachWithCamera(area, camera, name = "Trinken") {
   await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
 }
 
-/** Records `count` frames of `hands(i)` between "Aufnahme starten" and "Aufnahme beenden". */
-async function record(area, camera, count, hands) {
+/** "Aufnahme starten" and the countdown after it: resolves when frames are kept. */
+async function startRecording(area) {
   await area.act(() => area.button("Aufnahme starten").click());
+  area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+  await area.handle.settled();
+  assert.notEqual(area.button("Aufnahme beenden"), undefined, "recording after the countdown");
+}
+
+/** Records `count` frames of `hands(i)` between "Aufnahme starten" (and its countdown) and "Aufnahme beenden". */
+async function record(area, camera, count, hands) {
+  await startRecording(area);
   for (let i = 0; i < count; i += 1) await camera.feed(hands(i));
   await area.act(() => area.button("Aufnahme beenden").click());
 }
@@ -5753,7 +5770,7 @@ test("teach: the camera starts only on 'Kamera starten'; the live line shows han
     await camera.feed(bothHands(0));
     assert.equal(teachViewOf(caregiverRegion).live, "Zwei Hände im Bild. Schultern zu sehen.");
 
-    await act(() => area.button("Aufnahme starten").click());
+    await startRecording(area);
     let view = teachViewOf(caregiverRegion);
     assert.deepEqual(view.buttons, ["Aufnahme beenden", "Zurück"]);
     assert.equal(view.camera, "Die Aufnahme läuft. Jetzt die Gebärde machen.");
@@ -5765,7 +5782,8 @@ test("teach: the camera starts only on 'Kamera starten'; the live line shows han
     // Nothing is stored before "Behalten".
     assert.equal((await listExamples(await store(), seeded.id)).examples.length, 0);
     await act(() => area.button("Behalten").click());
-    assert.equal(status(), "Das Beispiel wurde gespeichert. Für diese Taste ist jetzt 1 Beispiel gespeichert.");
+    assert.equal(teachViewOf(caregiverRegion).note, "Das Beispiel wurde gespeichert. Für diese Taste ist jetzt 1 Beispiel gespeichert.");
+    assert.equal(status(), "");
     view = teachViewOf(caregiverRegion);
     assert.equal(view.count, "1 Beispiel gespeichert. Empfohlen sind mindestens 3.");
     assert.equal(view.examples.length, 1);
@@ -5794,11 +5812,11 @@ test("teach: a two-hand example is kept with both hands; 'Verwerfen' stores noth
     await act(() => area.button("Behalten").click());
     await record(area, camera, 20, rightHand);
     await act(() => area.button("Verwerfen").click());
-    assert.equal(status(), "Die Aufnahme wurde verworfen. Es wurde nichts gespeichert.");
+    assert.equal(teachViewOf(caregiverRegion).note, "Die Aufnahme wurde verworfen. Es wurde nichts gespeichert.");
     assert.equal(teachViewOf(caregiverRegion).result, null);
     await record(area, camera, 25, bothHands);
     await act(() => area.button("Behalten").click());
-    assert.equal(status(), "Das Beispiel wurde gespeichert. Für diese Taste sind jetzt 2 Beispiele gespeichert.");
+    assert.equal(teachViewOf(caregiverRegion).note, "Das Beispiel wurde gespeichert. Für diese Taste sind jetzt 2 Beispiele gespeichert.");
     const listing = await listExamples(await store(), seeded.id, "hilfe");
     assert.deepEqual(listing.examples.map((example) => example.record.hands), ["both", "both"]);
     assert.ok(teachViewOf(caregiverRegion).examples.every((line) => line.includes("mit beiden Händen")));
@@ -5840,7 +5858,7 @@ test("teach: a recording stops by itself after the maximum time and is then judg
     const { caregiverRegion, clock, handle } = area;
     await teachWithCamera(area, camera);
     assert.equal(TEACH_MAX_RECORDING_MS, 8000);
-    await area.act(() => area.button("Aufnahme starten").click());
+    await startRecording(area);
     for (let i = 0; i < 20; i += 1) await camera.feed(rightHand(i));
     clock.advance(TEACH_MAX_RECORDING_MS - 1);
     await handle.settled();
@@ -5858,10 +5876,10 @@ test("teach: a recording stops by itself after the maximum time and is then judg
     assert.ok(!before.includes("von selbst"));
     // The time of a recording stopped by hand does not end the next one early.
     await area.act(() => area.button("Verwerfen").click());
-    await area.act(() => area.button("Aufnahme starten").click());
+    await startRecording(area);
     clock.advance(TEACH_MAX_RECORDING_MS - 1000);
     await area.act(() => area.button("Aufnahme beenden").click());
-    await area.act(() => area.button("Aufnahme starten").click());
+    await startRecording(area);
     clock.advance(2000);
     await handle.settled();
     assert.notEqual(area.button("Aufnahme beenden"), undefined);
@@ -5896,7 +5914,7 @@ test("teach: leaving stops the camera on every way out: 'Zurück', Escape, 'Fert
       await area.act(() => area.concept("Trinken").teach.click());
       await area.act(() => area.button("Kamera starten").click());
       await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
-      await area.act(() => area.button("Aufnahme starten").click());
+      await startRecording(area);
       await camera.feed(rightHand(0));
       assert.equal(camera.running, true, name);
       await leave(area);
@@ -6004,7 +6022,7 @@ test("teach: deleting an example or all of a tile takes over the body, has 'Abbr
     await act(() => deletes[1].click());
     assert.equal(camera.running, false);
     let confirm = confirmation();
-    assert.deepEqual(confirm.texts.slice(0, 2), ["Beispiel 2 von „Trinken“ löschen?", "Das kann nicht rückgängig gemacht werden. Die Gebärde kann danach neu aufgenommen werden."]);
+    assert.deepEqual(confirm.texts.slice(0, 2), ["Beispiel 2 von „Trinken“ auf der Tafel von „Mia“ löschen?", "Das kann nicht rückgängig gemacht werden. Die Gebärde kann danach neu aufgenommen werden."]);
     assert.deepEqual(buttonsIn(confirm.view).map((element) => element.textContent), ["Abbrechen", "Endgültig löschen"]);
     assert.equal(focused.current, confirm.cancel);
     assert.equal(teachViewOf(caregiverRegion), null);
@@ -6018,7 +6036,7 @@ test("teach: deleting an example or all of a tile takes over the body, has 'Abbr
     const names = (await listExamples(await store(), seeded.id)).examples.map((example) => example.name);
     await act(() => buttonsIn(teachViewOf(caregiverRegion).view).find((element) => element["aria-label"] === "Beispiel 2 löschen").click());
     await confirmDelete();
-    assert.equal(status(), "Beispiel 2 wurde gelöscht.");
+    assert.equal(teachViewOf(caregiverRegion).note, "Beispiel 2 wurde gelöscht.");
     assert.deepEqual((await listExamples(await store(), seeded.id)).examples.map((example) => example.name), [names[0], names[2]]);
     view = teachViewOf(caregiverRegion);
     assert.equal(view.count, "2 Beispiele gespeichert. Empfohlen sind mindestens 3.");
@@ -6027,12 +6045,12 @@ test("teach: deleting an example or all of a tile takes over the body, has 'Abbr
     // All of the tile.
     await act(() => area.button("Alle Beispiele löschen").click());
     confirm = confirmation();
-    assert.equal(confirm.texts[0], "Alle 2 Beispiele von „Trinken“ löschen?");
+    assert.equal(confirm.texts[0], "Alle 2 Beispiele von „Trinken“ auf der Tafel von „Mia“ löschen?");
     await act(() => confirm.cancel.click());
     assert.equal(focused.current, area.button("Alle Beispiele löschen"));
     await act(() => area.button("Alle Beispiele löschen").click());
     await confirmDelete();
-    assert.equal(status(), "2 Beispiele wurden gelöscht.");
+    assert.equal(teachViewOf(caregiverRegion).note, "2 Beispiele wurden gelöscht.");
     assert.equal(teachViewOf(caregiverRegion).count, "Noch kein Beispiel gespeichert. Empfohlen sind mindestens 3.");
     assert.deepEqual(await (await store()).data(seeded.id).names(), ["concept.hilfe", "concept.trinken"]);
   });
@@ -6046,9 +6064,13 @@ test("teach: nothing can be deleted while a recording runs or waits for 'Behalte
       await record(area, camera, 20, rightHand);
       await area.act(() => area.button("Behalten").click());
     }
+    // Not during the countdown, and not while recording.
     await area.act(() => area.button("Aufnahme starten").click());
     assert.equal(area.button("Löschen"), undefined);
     assert.equal(area.button("Alle Beispiele löschen"), undefined);
+    area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await area.handle.settled();
+    assert.equal(area.button("Löschen"), undefined);
     for (let i = 0; i < 20; i += 1) await camera.feed(rightHand(i));
     await area.act(() => area.button("Aufnahme beenden").click());
     assert.equal(area.button("Löschen"), undefined);
@@ -6117,8 +6139,8 @@ test("teach: a write the store refuses for size is reported in German, the recor
     await (await app.store()).data(area.seeded.id).set("filler", "x".repeat(190 * 1024));
     const before = writes.count;
     await area.act(() => area.button("Behalten").click());
-    assert.equal(area.status(), "Das Profil ist voll. Das Beispiel wurde nicht gespeichert. Bitte nicht mehr gebrauchte Beispiele löschen.");
-    assert.equal(statusElement(area.caregiverRegion).className, "caregiver-status caregiver-status-error");
+    assert.equal(teachViewOf(area.caregiverRegion).note, "Das Profil ist voll. Das Beispiel wurde nicht gespeichert. Bitte nicht mehr gebrauchte Beispiele löschen.");
+    assert.equal(byClass(area.caregiverRegion, "caregiver-teach-note").className, "caregiver-teach-note caregiver-warning");
     const view = teachViewOf(area.caregiverRegion);
     assert.equal(view.result, null);
     assert.deepEqual(view.buttons, ["Zurück"]);
@@ -6134,7 +6156,7 @@ test("teach: a write the store refuses for size is reported in German, the recor
   });
 });
 
-test("teach: the press shield covers the view: a tap that lands on 'Aufnahme beenden' as it appears does nothing", async () => {
+test("teach: the press shield covers the view: a tap that lands on 'Abbrechen' or 'Aufnahme beenden' as it appears does nothing", async () => {
   const wall = wallClock();
   const camera = fakeCamera();
   await withArea({ seed: seedTeach, capture: camera.bridge, now: wall.now }, async (area) => {
@@ -6146,7 +6168,13 @@ test("teach: the press shield covers the view: a tap that lands on 'Aufnahme bee
     await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
     wall.t += 1000;
     await area.act(() => area.button("Aufnahme starten").click());
-    // A second tap 100 ms later, where "Aufnahme beenden" now is: swallowed.
+    // A second tap 100 ms later, where "Abbrechen" of the countdown now is: swallowed, the countdown goes on.
+    wall.t += 100;
+    await area.act(() => area.button("Abbrechen").click());
+    assert.notEqual(area.button("Abbrechen"), undefined);
+    area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await area.handle.settled();
+    // The same when the recording begins and "Aufnahme beenden" appears under a finger.
     wall.t += 100;
     await area.act(() => area.button("Aufnahme beenden").click());
     assert.notEqual(area.button("Aufnahme beenden"), undefined);
@@ -6170,7 +6198,7 @@ test("teach: the live line is written in place and does not count as a swap: a p
     const startButton = area.button("Aufnahme starten");
     for (let i = 0; i < 5; i += 1) await camera.feed(i % 2 === 0 ? rightHand(i) : bothHands(i));
     await area.act(() => startButton.click());
-    assert.notEqual(area.button("Aufnahme beenden"), undefined);
+    assert.notEqual(area.button("Abbrechen"), undefined);
   });
 });
 
@@ -6185,5 +6213,237 @@ test("teach: a profile with examples says so before it is deleted, and deleting 
     assert.ok(area.confirmation().texts.includes("Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht."));
     await area.confirmDelete();
     assert.deepEqual(Object.keys(area.backend.snapshot()).filter((entry) => entry.includes("gesture.")), []);
+  });
+});
+
+// --- Second build of card NG-19: review findings ---
+
+test("teach: a redraw that cannot read the store while the camera runs stops the camera; the notice is all that is left", async () => {
+  const camera = fakeCamera();
+  const backend = new MemoryBackend();
+  const keys = backend.keys.bind(backend);
+  let failing = false;
+  backend.keys = (prefix) => (failing ? Promise.reject(new Error("read failed")) : keys(prefix));
+  await withArea({ seed: seedTeach, backend, capture: camera.bridge }, async (area) => {
+    await teachWithCamera(area, camera);
+    await startRecording(area);
+    for (let i = 0; i < 5; i += 1) await camera.feed(rightHand(i));
+    failing = true;
+    await area.act(() => area.button("Aufnahme beenden").click());
+    assert.equal(teachViewOf(area.caregiverRegion), null);
+    assert.ok(area.texts().includes("Die gespeicherten Profile können gerade nicht gelesen werden. Deshalb kann hier im Moment nichts geändert werden."));
+    assert.equal(camera.running, false);
+    assert.equal(camera.log.trackerClosed, 1);
+    // Also during the countdown: its timer goes with the camera.
+    failing = false;
+    await area.act(() => area.button("Tafel neu laden").click());
+    await area.act(() => area.concept("Trinken").teach.click());
+    await area.act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    failing = true;
+    await area.act(() => area.button("Aufnahme starten").click());
+    assert.equal(camera.running, false);
+    area.clock.advance(TEACH_COUNTDOWN_S * 1000 + TEACH_MAX_RECORDING_MS);
+    await area.handle.settled();
+    assert.equal(teachViewOf(area.caregiverRegion), null);
+  });
+});
+
+/** Three examples of "Trinken", recorded through the view; leaves the view open with the camera on. */
+async function threeExamples(area, camera) {
+  await teachWithCamera(area, camera);
+  for (let n = 0; n < 3; n += 1) {
+    await record(area, camera, 20, rightHand);
+    await area.act(() => area.button("Behalten").click());
+  }
+}
+
+test("teach: a delete that fails says what is true, read from the store: none, or some of all", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    await threeExamples(area, camera);
+    const stored = async () => (await listExamples(await area.store(), area.seeded.id, "trinken")).examples.length;
+    // One example, the write fails: it is still there, and that is said.
+    await area.act(() => buttonsIn(area.caregiverRegion).find((element) => element["aria-label"] === "Beispiel 2 löschen").click());
+    area.backend.failWrite(1);
+    await area.confirmDelete();
+    assert.equal(teachViewOf(area.caregiverRegion).note, "Das konnte gerade nicht gespeichert werden. Bitte versuche es noch einmal. Beispiel 2 ist noch gespeichert.");
+    assert.equal(await stored(), 3);
+    // All of them, the second write fails: one was deleted, two are left.
+    await area.act(() => area.button("Alle Beispiele löschen").click());
+    area.backend.failWrite(2);
+    await area.confirmDelete();
+    assert.equal(teachViewOf(area.caregiverRegion).note, "Das Löschen wurde unterbrochen: 1 Beispiel wurde gelöscht, 2 sind noch gespeichert. Bitte noch einmal versuchen.");
+    assert.equal(byClass(area.caregiverRegion, "caregiver-teach-note").className, "caregiver-teach-note caregiver-warning");
+    assert.equal(await stored(), 2);
+    assert.equal(teachViewOf(area.caregiverRegion).count, "2 Beispiele gespeichert. Empfohlen sind mindestens 3.");
+  });
+});
+
+test("teach: when the examples cannot be read, the view does not claim a count", async () => {
+  const backend = new MemoryBackend();
+  const get = backend.get.bind(backend);
+  let failing = false;
+  backend.get = (key) => (failing && key.includes("/data/gesture.") ? Promise.reject(new Error("read failed")) : get(key));
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, backend, capture: camera.bridge }, async (area) => {
+    await teachWithCamera(area, camera);
+    await record(area, camera, 20, rightHand);
+    await area.act(() => area.button("Behalten").click());
+    failing = true;
+    await area.act(() => area.button("Zurück").click());
+    await area.act(() => area.concept("Trinken").teach.click());
+    const view = teachViewOf(area.caregiverRegion);
+    assert.equal(view.count, null);
+    assert.ok(view.texts.includes("Die gespeicherten Beispiele können gerade nicht gelesen werden."));
+    assert.ok(!view.texts.some((text) => text.includes("Noch kein Beispiel")));
+  });
+});
+
+test("teach: the row on the board and the view count the same entries; unusable ones are said apart in the view", async () => {
+  const seed = async (store) => {
+    const mia = await seedTeach(store);
+    await store.data(mia.id).set("gesture.trinken.00000000000a", { version: 1, broken: true });
+    return mia;
+  };
+  const camera = fakeCamera();
+  await withArea({ seed, capture: camera.bridge }, async (area) => {
+    await area.holdOpen();
+    assert.equal(area.concept("Trinken").gesture, "Gebärde: 1 Beispiel");
+    await area.act(() => area.concept("Trinken").teach.click());
+    assert.equal(teachViewOf(area.caregiverRegion).count, "1 Beispiel gespeichert, davon 1 nicht verwendbar. Empfohlen sind mindestens 3.");
+    await area.act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    await record(area, camera, 20, rightHand);
+    await area.act(() => area.button("Behalten").click());
+    assert.equal(teachViewOf(area.caregiverRegion).count, "2 Beispiele gespeichert, davon 1 nicht verwendbar. Empfohlen sind mindestens 3.");
+    await area.act(() => area.button("Zurück").click());
+    assert.equal(area.concept("Trinken").gesture, "Gebärde: 2 Beispiele");
+  });
+});
+
+test("teach: the controls stay one block right under the heading, with the live line first and the main button first in its row, in every state", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const seen = [];
+    const look = (state) => {
+      const view = byClass(area.caregiverRegion, "caregiver-teach");
+      const [heading, controls] = view.children;
+      assert.equal(heading.tagName, "h2", state);
+      assert.equal(controls.className, "caregiver-teach-controls", state);
+      assert.deepEqual(controls.children.map((child) => child.className.split(" ")[0]), ["caregiver-teach-live", "caregiver-teach-camera", "caregiver-profile-actions"], state);
+      const actions = controls.children[2].children.map((child) => child.textContent);
+      assert.equal(actions.at(-1), "Zurück", state);
+      seen.push(actions[0]);
+      // Nothing about the teaching goes to the status line, which would move the block from above.
+      assert.equal(area.status(), "", state);
+    };
+    await area.holdOpen();
+    await area.act(() => area.concept("Trinken").teach.click());
+    look("camera off");
+    await area.act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    for (let n = 0; n < 3; n += 1) {
+      look(`ready ${n}`);
+      await area.act(() => area.button("Aufnahme starten").click());
+      look(`countdown ${n}`);
+      area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+      await area.handle.settled();
+      look(`recording ${n}`);
+      for (let i = 0; i < 20; i += 1) await camera.feed(rightHand(i));
+      await area.act(() => area.button("Aufnahme beenden").click());
+      look(`result ${n}`);
+      await area.act(() => area.button("Behalten").click());
+    }
+    look("after three");
+    assert.deepEqual([...new Set(seen)], ["Kamera starten", "Aufnahme starten", "Abbrechen", "Aufnahme beenden", "Behalten"]);
+  });
+});
+
+test("teach: after 'Aufnahme starten' a countdown runs; frames are kept only after it; 'Abbrechen' ends it and records nothing", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const { clock, handle, caregiverRegion } = area;
+    await teachWithCamera(area, camera);
+    assert.equal(TEACH_COUNTDOWN_S, 3);
+    await area.act(() => area.button("Aufnahme starten").click());
+    assert.equal(teachViewOf(caregiverRegion).camera, "Gleich geht’s los: 3");
+    assert.deepEqual(teachViewOf(caregiverRegion).buttons.slice(0, 2), ["Abbrechen", "Zurück"]);
+    // Frames during the countdown (the hand that tapped, leaving) are not kept.
+    for (let i = 0; i < 20; i += 1) await camera.feed(rightHand(i));
+    clock.advance(1000);
+    await handle.settled();
+    assert.equal(teachViewOf(caregiverRegion).camera, "Gleich geht’s los: 3 … 2");
+    clock.advance(1000);
+    await handle.settled();
+    assert.equal(teachViewOf(caregiverRegion).camera, "Gleich geht’s los: 3 … 2 … 1");
+    assert.equal(area.button("Aufnahme beenden"), undefined);
+    clock.advance(1000);
+    await handle.settled();
+    assert.equal(teachViewOf(caregiverRegion).camera, "Die Aufnahme läuft. Jetzt die Gebärde machen.");
+    await area.act(() => area.button("Aufnahme beenden").click());
+    assert.match(teachViewOf(caregiverRegion).result, /Von der Kamera kam kein Bild an\./);
+    // "Abbrechen": back to "Aufnahme starten", and the time passing starts nothing.
+    await area.act(() => area.button("Aufnahme starten").click());
+    await area.act(() => area.button("Abbrechen").click());
+    assert.notEqual(area.button("Aufnahme starten"), undefined);
+    clock.advance(TEACH_COUNTDOWN_S * 1000 + TEACH_MAX_RECORDING_MS);
+    await handle.settled();
+    assert.notEqual(area.button("Aufnahme starten"), undefined);
+    assert.equal(camera.running, true);
+  });
+});
+
+test("teach: the countdown ends with every way out ('Zurück', Escape, a hidden page): the camera stops and nothing starts later", async () => {
+  const ways = {
+    "Zurück": async (area) => area.act(() => area.button("Zurück").click()),
+    Escape: async (area) => { area.key("Escape"); await area.handle.settled(); },
+    "hidden page": async (area) => { area.page.hide(); await area.handle.settled(); },
+  };
+  for (const [name, leave] of Object.entries(ways)) {
+    const camera = fakeCamera();
+    await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+      await teachWithCamera(area, camera);
+      await area.act(() => area.button("Aufnahme starten").click());
+      area.clock.advance(1000);
+      await leave(area);
+      assert.equal(camera.running, false, name);
+      area.clock.advance(TEACH_COUNTDOWN_S * 1000 + TEACH_MAX_RECORDING_MS);
+      await area.handle.settled();
+      assert.equal(area.button("Aufnahme beenden"), undefined, name);
+      assert.equal(teachViewOf(area.caregiverRegion), null, name);
+    });
+  }
+});
+
+test("teach: a two-hand recording with one hand lying still gets a hint; what is stored is unchanged", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    await teachWithCamera(area, camera);
+    await record(area, camera, 20, (i) => [trackerHand(0.3 + i * 0.01, 0.5, "Right"), trackerHand(0.7, 0.5, "Left")]);
+    const view = teachViewOf(area.caregiverRegion);
+    assert.equal(view.result, "Die Aufnahme kann verwendet werden: Gebärde mit beiden Händen. Behalten oder verwerfen?");
+    assert.equal(view.hint, "Eine Hand lag still im Bild. Wenn die Gebärde mit einer Hand gemacht wird, lieber ohne die zweite Hand im Bild aufnehmen.");
+    await area.act(() => area.button("Behalten").click());
+    const [example] = (await listExamples(await area.store(), area.seeded.id, "trinken")).examples;
+    assert.equal(example.record.hands, "both");
+    // Both hands moving: no hint.
+    await record(area, camera, 20, bothHands);
+    assert.equal(teachViewOf(area.caregiverRegion).hint, null);
+  });
+});
+
+test("teach: a camera that fails during the countdown ends it: the problem is shown, and nothing starts later", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    await teachWithCamera(area, camera);
+    await area.act(() => area.button("Aufnahme starten").click());
+    camera.fail();
+    await untilTaught(area.handle, () => area.button("Kamera starten") !== undefined);
+    assert.equal(teachViewOf(area.caregiverRegion).camera, CAPTURE_TEXT.problems.busy);
+    area.clock.advance(TEACH_COUNTDOWN_S * 1000 + TEACH_MAX_RECORDING_MS);
+    await area.handle.settled();
+    assert.equal(teachViewOf(area.caregiverRegion).camera, CAPTURE_TEXT.problems.busy);
+    assert.equal(area.button("Aufnahme beenden"), undefined);
   });
 });

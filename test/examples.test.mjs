@@ -8,7 +8,7 @@ import { calibrateMaxDistance, DEFAULT_MIN_MARGIN, matchGesture } from "../dist/
 import { createGesture, createSession, renderGesture } from "../dist/recognition/synthetic.js";
 import {
   EXAMPLE_BYTES_ESTIMATE, EXAMPLE_DECIMALS, EXAMPLE_RECORD_VERSION, ExampleFormatError, countExamples, createExampleRecord, deleteExample, deleteExamples,
-  exampleConceptOf, exampleName, isExampleConceptId, listExamples, parseExampleRecord, roundFeature, saveExample, sequenceFromRecording, usageLevel,
+  exampleConceptOf, exampleName, handTravel, isExampleConceptId, listExamples, parseExampleRecord, roundFeature, saveExample, sequenceFromRecording, usageLevel,
 } from "../dist/recognition/examples.js";
 
 // All data here is synthetic: generated gestures and made-up tracker numbers.
@@ -363,4 +363,29 @@ test("recording: what the matcher cannot use comes back with its reason", () => 
   assert.equal(sequenceFromRecording(recording(30, (i) => [trackerHand(0.3 + i * 0.005, 0.5, "Right"), ...(i < 10 ? [trackerHand(0.7, 0.5, "Left")] : [])])).reason, "hands_unclear");
   // The hand gone for a second in the middle.
   assert.equal(sequenceFromRecording(recording(30, (i) => (i >= 10 && i < 20 ? [] : [trackerHand(0.3 + i * 0.005, 0.5, "Right")]))).reason, "hand_lost");
+});
+
+test("recording: a two-hand recording in which one hand lies still is marked, by the hand's own travel; one moving a little is not", () => {
+  const still = sequenceFromRecording(recording(20, (i) => [trackerHand(0.3 + i * 0.01, 0.5, "Right"), trackerHand(0.7, 0.5, "Left")]));
+  assert.equal(still.ok, true, still.reason);
+  assert.equal(still.sequence.hands, "both");
+  assert.equal(still.stillHand, true);
+  const moving = sequenceFromRecording(recording(20, (i) => [trackerHand(0.3 + i * 0.01, 0.5, "Right"), trackerHand(0.7 - i * 0.01, 0.5, "Left")]));
+  assert.equal(moving.stillHand, false);
+  // One hand only: never marked.
+  assert.equal(sequenceFromRecording(recording(20, (i) => [trackerHand(0.3 + i * 0.01, 0.5, "Right")])).stillHand, false);
+  // The measure: shoulder widths (here 0.24 x 640 px), on palm centres averaged over 200 ms.
+  const frames = recording(20, (i) => [trackerHand(0.3 + i * 0.01, 0.5, "Right")]).map((frame) => ({
+    tMs: frame.timestampMs - 5000,
+    right: frame.hands[0].landmarks.map((point) => [point.x * WIDTH, point.y * HEIGHT]),
+    left: null,
+    shoulders: [[0.62 * WIDTH, 0.55 * HEIGHT], [0.38 * WIDTH, 0.55 * HEIGHT]],
+  }));
+  const travel = handTravel(frames, "right");
+  // 0.19 of the width minus half a step of smoothing at each end (the first and last averages take one neighbour), over 0.24.
+  assert.ok(Math.abs(travel - 0.18 / 0.24) < 0.001, String(travel));
+  assert.equal(handTravel(frames, "left"), Number.POSITIVE_INFINITY);
+  // Jitter of a resting hand (0.002 of the width, 3 px) stays under the movement floor.
+  const jitter = frames.map((frame, i) => ({ ...frame, right: frames[0].right.map(([x, y]) => [x + (i % 2 === 0 ? 3 : -3), y]) }));
+  assert.ok(handTravel(jitter, "right") < 0.1);
 });

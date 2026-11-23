@@ -40,6 +40,13 @@ Status: second slice (cards NG-29 and NG-31), rewording (NG-33) and teaching ges
   the looping video, were refused as hands unclear. The stored IndexedDB entries held exactly the
   record's fields; after "Zurück" no video element was left; the row showed "Gebärde: 2
   Beispiele"; no console error and no request left the origin. The probe clicks with a mouse.
+- Second build of card NG-19, the same kind of probe with `trinken_main_trinken.mp4`, three
+  examples each at 360 x 640 and 640 x 360, measured in 16 states (camera off; per example ready,
+  countdown, recording, result; after the third): the record button ("Kamera starten", "Aufnahme
+  starten", "Abbrechen", "Aufnahme beenden", "Behalten", always in one place) at y = 270 to 314 and
+  the live line at y = 167 to 214 at 360 x 640, and at y = 226 to 270 and 122 to 169 at 640 x 360,
+  in every state, all inside the window. Two of the three recordings were usable, one was refused
+  (no hand in the part of the looping video that was recorded); no console error.
 - **Not** tested: a real phone or tablet, a real touch screen and a finger (the scripts use a
   mouse and emulated taps), an on-screen keyboard, a screen reader or switch access, text
   enlarged by the user, an installed app, and
@@ -516,10 +523,19 @@ entry a newer app wrote: teaching does not write the entry). It opens a view tha
 body, like the rewording:
 
 - the heading "Gebärde für „<label>“ beibringen – Tafel von „<name>“" (it gets the focus);
-- the instruction: "Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“, mache die
-  Gebärde einmal und tippe auf „Aufnahme beenden“. Nach 8 Sekunden endet die Aufnahme von selbst.
-  Am besten mindestens 3 Beispiele aufnehmen, so wie das Kind später vor dem Gerät sitzt.
-  Gespeichert werden nur Zahlen zur Bewegung der Hände, kein Bild und kein Video.";
+- **right under it, the controls, one block that stays in the same place for the whole session**
+  (second build of the card: in the first, "Aufnahme starten" moved by up to 240 px between
+  examples, and the live line fell below the window): the live line ("Eine Hand im Bild.
+  Schultern zu sehen.", as in the camera test, [capture.md](capture.md): the only feedback on
+  framing, there is no preview), the camera's line (preparing, asking, a problem, the countdown,
+  or "Die Aufnahme läuft. Jetzt die Gebärde machen."), both with a fixed height, then one button
+  and "Zurück". The button is "Kamera starten"; once the camera runs "Aufnahme starten"; during the
+  countdown "Abbrechen"; while recording "Aufnahme beenden"; after a usable recording "Behalten"
+  and "Verwerfen";
+- below the controls, in this order, what changes in length: what the last action came to (a
+  line of the view, not the status line, so that the block at the top does not grow and move the
+  controls; refusals and failures in the colour of the warnings), the verdict on the recording,
+  the size warning, the count, the notes on unusable examples, the instruction, and the list.
 - **the size of the profile, before anything is recorded.** Opening the view calls `store.usage`
   once (it reads the whole profile; not on every redraw). Near the limit (90% of bytes or names):
   "Der Platz für dieses Profil ist fast voll. Es passen nur noch wenige Beispiele hinein. Lösche
@@ -527,14 +543,20 @@ body, like the rewording:
   "Der Platz für dieses Profil ist voll. Neue Beispiele können erst gespeichert werden, wenn
   Beispiele gelöscht sind.", and there is no "Kamera starten". When `usage` fails, a line says
   that the room could not be checked;
-- "N Beispiele gespeichert." (or "Noch kein Beispiel gespeichert."), with "Empfohlen sind
-  mindestens 3." while there are fewer; a line for examples a newer app wrote, and one for
-  examples that cannot be used and have to be recorded again;
-- one button and "Zurück": "Kamera starten"; once the camera runs "Aufnahme starten"; while
-  recording "Aufnahme beenden"; after a usable recording "Behalten" and "Verwerfen";
-- under them the camera's line (preparing, asking, a problem, or "Die Aufnahme läuft. Jetzt die
-  Gebärde machen.") and the live line "Eine Hand im Bild. Schultern zu sehen." as in the camera
-  test ([capture.md](capture.md));
+- the count: "N Beispiele gespeichert." (or "Noch kein Beispiel gespeichert."), with ", davon M
+  nicht verwendbar" when stored entries of the tile cannot be used, and "Empfohlen sind mindestens
+  3." while fewer than 3 can be used. It counts every stored entry of the tile, as the row on the
+  board does ("Gebärde: N Beispiele", from the data names alone). When the examples cannot be
+  read, no count is shown, only "Die gespeicherten Beispiele können gerade nicht gelesen werden.";
+  a line for examples a newer app wrote, and one for examples that cannot be used and have to be
+  recorded again;
+- the instruction: "Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“: Das Gerät
+  zählt 3 Sekunden herunter, damit deine Hand aus dem Bild kommt. Dann die Gebärde einmal machen
+  und auf „Aufnahme beenden“ tippen. Nach 8 Sekunden endet die Aufnahme von selbst. Am besten steht
+  das Gerät fest, oder eine zweite Person hält es. Am besten mindestens 3 Beispiele aufnehmen, so
+  wie das Kind später vor dem Gerät sitzt. Gespeichert werden nur Zahlen zu Bewegung und Handform,
+  kein Bild und kein Video." (The stored features hold the shape of the hand's joints as well as
+  where the hands are; the first build said "Bewegung der Hände" only.);
 - "Gespeicherte Beispiele": one row per example, oldest first, "Beispiel 2: mit beiden Händen,
   23.11.2026, 10:30 Uhr", each with "Löschen", and "Alle Beispiele löschen" from two examples on
   (or when unusable ones are stored).
@@ -544,15 +566,25 @@ real tracker and camera, card NG-3) through its bridge (below); before that tap 
 requested. While it starts, a second tap does nothing. A problem (refused, no camera, tracker
 download) is said with the capture module's own German sentence, and "Kamera starten" is the retry.
 
-**Recording.** "Aufnahme starten" keeps the tracked frames of the running camera in memory
-(`startRecording`); "Aufnahme beenden", or `TEACH_MAX_RECORDING_MS` (8 s) by itself, ends it
-(`stopRecording`), and the camera keeps running. The frames go through `sequenceFromRecording`
-(tracker adapter, then the matcher's `buildFeatureSequence`). Nothing is stored yet:
+**Countdown, then recording.** The hand that taps "Aufnahme starten" is in the picture, and rest
+is not trimmed from a gesture (recognition.md), so a phone held in one hand would often give
+"hands unclear". So "Aufnahme starten" first counts `TEACH_COUNTDOWN_S` (3) seconds down, in the
+camera's line: "Gleich geht’s los: 3", "… 3 … 2", "… 3 … 2 … 1", written in place (the line keeps
+its height). Nothing is kept meanwhile. "Abbrechen" (in the button's place) ends it and records
+nothing; so does every way out of the view (below), because the countdown's timer belongs to the
+camera. Then the tracked frames are kept in memory (`startRecording`) until "Aufnahme beenden", or
+`TEACH_MAX_RECORDING_MS` (8 s from the end of the countdown) by itself (`stopRecording`); the camera
+keeps running. The frames go through `sequenceFromRecording` (tracker adapter, then the matcher's
+`buildFeatureSequence`). Nothing is stored yet:
 
 - usable: "Die Aufnahme kann verwendet werden: Gebärde mit einer Hand (rechts)." (or "(links)",
   or "mit beiden Händen"), when no shoulders were seen also "Die Schultern waren nicht zu sehen. Am
   besten so aufnehmen, dass die Schultern im Bild sind.", then "Behalten oder verwerfen?"; after the
-  8 s it starts with "Die Aufnahme hat nach 8 Sekunden von selbst geendet.";
+  8 s it starts with "Die Aufnahme hat nach 8 Sekunden von selbst geendet.". A two-hand recording
+  in which one hand stayed within the matcher's movement floor (`MIN_TRAVEL`, 0.1 shoulder widths,
+  on palm centres averaged over 200 ms: `handTravel` in `examples.ts`) gets the line "Eine Hand
+  lag still im Bild. Wenn die Gebärde mit einer Hand gemacht wird, lieber ohne die zweite Hand im
+  Bild aufnehmen." It is a hint only: the example is stored as recorded, with both hands;
 - not usable: "Diese Aufnahme kann nicht verwendet werden." with the reason and what to do, and
   "Es wurde nichts gespeichert.": no hand seen ("Es war keine Hand zu sehen. Bitte so sitzen, dass
   die Hände gut im Bild sind, …"), too short ("… Bitte erst „Aufnahme starten“ tippen, dann die
@@ -561,29 +593,37 @@ download) is said with the capture module's own German sentence, and "Kamera sta
   Bitte die Hände der Gebärde die ganze Zeit im Bild lassen, andere Hände aus dem Bild nehmen …"),
   a hand lost, no frames, a faulty recording. "Aufnahme starten" is then the next try.
 
-"Behalten" is one queued write (`saveExample`, one data name per example) and says "Das Beispiel
-wurde gespeichert. Für diese Taste sind jetzt 3 Beispiele gespeichert."; the focus goes to
-"Aufnahme starten" for the next one. "Verwerfen" forgets the recording ("Die Aufnahme wurde
-verworfen. Es wurde nichts gespeichert."). A refusal for size (`ProfileSizeError`) says "Das Profil
-ist voll. Das Beispiel wurde nicht gespeichert. Bitte nicht mehr gebrauchte Beispiele löschen." as an error; the recording is dropped, the camera stops, the view is treated as
-full, and nothing is tried again. A write that failed otherwise keeps the recording and says so;
-a second tap on "Behalten" is the caregiver's retry.
+"Behalten" is one queued write (`saveExample`, one data name per example) and says, under the
+controls, "Das Beispiel wurde gespeichert. Für diese Taste sind jetzt 3 Beispiele gespeichert.";
+the focus goes to "Aufnahme starten" for the next one. "Verwerfen" forgets the recording ("Die
+Aufnahme wurde verworfen. Es wurde nichts gespeichert."). A refusal for size (`ProfileSizeError`)
+says "Das Profil ist voll. Das Beispiel wurde nicht gespeichert. Bitte nicht mehr gebrauchte
+Beispiele löschen." as an error; the recording is dropped, the camera stops, the view is treated
+as full, and nothing is tried again. A write that failed otherwise keeps the recording and says
+so; a second tap on "Behalten" is the caregiver's retry.
 
-**Deleting examples** follows rule 12: "Löschen" (one example) or "Alle Beispiele löschen" stops the
-camera and replaces the body by a confirmation ("Beispiel 2 von „Trinken“ löschen?" or "Alle 3
-Beispiele von „Trinken“ löschen?", "Das kann nicht rückgängig gemacht werden. Die Gebärde kann
-danach neu aufgenommen werden.", "Abbrechen" first and focused, "Endgültig löschen" held for 2 s
-and carried out on the release, with the same bar and line as for a profile). "Abbrechen" and
-Escape go back to the view, to the button that opened it. After a delete the size is read again,
-the view is back, and the status line says "Beispiel 2 wurde gelöscht." Deleting is not offered
-while a recording runs or waits for "Behalten". An example a newer app wrote is never deleted.
+**Deleting examples** follows rules 12 and 17: "Löschen" (one example) or "Alle Beispiele löschen"
+stops the camera and replaces the body by a confirmation ("Beispiel 2 von „Trinken“ auf der Tafel
+von „Mia“ löschen?" or "Alle 3 Beispiele von „Trinken“ auf der Tafel von „Mia“ löschen?", "Das
+kann nicht rückgängig gemacht werden. Die Gebärde kann danach neu aufgenommen werden.",
+"Abbrechen" first and focused, "Endgültig löschen" held for 2 s and carried out on the release,
+with the same bar and line as for a profile). "Abbrechen" and Escape go back to the view, to the
+button that opened it. After a delete the size is read again, the view is back, and the line
+under the controls says "Beispiel 2 wurde gelöscht." A delete that fails says what the store
+holds afterwards, read again: "… Beispiel 2 ist noch gespeichert." for one; for all, which are
+deleted one write each, "Das Löschen wurde unterbrochen: 1 Beispiel wurde gelöscht, 2 sind noch
+gespeichert. Bitte noch einmal versuchen."; when that cannot be read either, that it cannot. Deleting
+is not offered while a countdown or a recording runs or a recording waits for "Behalten". An
+example a newer app wrote is never deleted.
 
 **Leaving stops the camera**, at whatever step it is (tracker loading, permission asked, running,
 recording), through the capture's cancel signal and `stop`: "Zurück" (focus back on that row's
 "Gebärde beibringen"), Escape, "Fertig", the area closing by itself (hidden page, idle time),
-"Rückgängig" in the block at the top, and any redraw that does not show this view any more (for
-example when the tile was taken off the board in another tab). A recording that was not kept is
-dropped then.
+"Rückgängig" in the block at the top, and any redraw that does not show this view's controls:
+another view, its own delete confirmation, the tile taken off the board in another tab, and a
+redraw that cannot read the store (the body is then the notice that the profiles cannot be read;
+in the first build the camera ran on under that notice, with no way to stop it on screen). A
+countdown or a recording that was not kept is dropped then.
 
 **The bridge.** `src/caregiver.ts` is part of the board's module graph and does not import
 `capture/capture.js`: `index.html` loads that module on its own, so that a failure in it can never
@@ -594,10 +634,11 @@ werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera." The
 element goes into the caregiver region, which is emptied on closing.
 
 **Press rules in the view.** Every button of the view is covered by the shield (rule A): a tap
-that lands on "Aufnahme beenden" or "Behalten" as it appears does nothing. The live line is
-written in place on every camera frame and does **not** count as a swap (it would keep every
-button dead while the camera runs); it sits below the buttons and keeps its height
-(`min-height`), so it moves nothing that can be pressed. The camera's step line counts as a swap.
+that lands on "Abbrechen", "Aufnahme beenden" or "Behalten" as it appears does nothing. The live
+line is written in place on every camera frame and does **not** count as a swap (it would keep
+every button dead while the camera runs); it keeps its height (`min-height`, two lines), so the
+buttons under it do not move. The countdown is written in place in a line of fixed height as
+well. The camera's step line counts as a swap.
 
 Rules for later slices: wording is written only through `setWording` and `clearWording`, as one
 queued write, with text that went through `cleanWordingText` and `checkedWording`; no English
@@ -762,7 +803,12 @@ countdown. None of this was checked with assistive technology.
   shown nowhere; putting the concept back shows them again.
 - The examples of a tile are not compared with each other: a mislabelled or very different
   example is not pointed out (the matcher's limits, recognition.md, decide what it costs).
-- The live line follows each frame; on a slow phone it may lag. The frame rate is not shown.
+- The live line follows each frame; on a slow phone it may lag. The frame rate is not shown. With
+  enlarged text it can wrap to a third line and then moves the buttons under it.
+- The countdown is a fixed 3 seconds; whether a parent's hand is out of the picture by then, and
+  whether a child waits for it, is untried.
+- The still-hand hint uses the matcher's movement floor on made-up data; a real tracker's jitter
+  may give it for a hand that moved a little, or not give it.
 - **Open for this card:** `recognition/examples.js` (imported by the area) has to be in the board's
   pre-cache in `public/sw.js`, which was outside the card's scope. Without it `main.js`, which
   imports the area, cannot load offline, so the installed app shows no board offline; and
@@ -839,5 +885,7 @@ countdown. None of this was checked with assistive technology.
     name per example, one queued write per action. `store.usage` is read when a teaching view
     opens (and after a delete), not on a redraw; a refused write is reported, never retried by
     the app. Nothing of a picture is stored.
-24. Something written in place many times a second (the live line) does not call `markSwap`, sits
-    below everything that can be pressed, and keeps its height.
+24. Something written in place many times a second (the live line) or once a second (the
+    countdown) does not call `markSwap` and keeps its height, so nothing that can be pressed moves.
+    The controls of a view used again and again (teaching) stay in one block under its heading;
+    what changes in length goes below them, and its messages go into the view, not the status line.

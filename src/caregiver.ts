@@ -32,6 +32,8 @@ import type { FeatureFailure, FeatureSequence, HandKind } from "./recognition/fe
 
 /** A recording of a gesture example stops by itself after this long (card NG-19). */
 export const TEACH_MAX_RECORDING_MS = 8000;
+/** Seconds counted down after "Aufnahme starten" before frames are kept, so that the hand that tapped can leave the picture. */
+export const TEACH_COUNTDOWN_S = 3;
 /**
  * The global name under which `capture/capture.js` leaves its bridge
  * (`CAPTURE_BRIDGE_KEY` there; a test compares the two). This module does not
@@ -236,7 +238,7 @@ const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ei
 const NAME_DETAILS = "Was wird gespeichert?";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name, die ausgewählten Begriffe, eigene Texte dazu und beigebrachte Gebärden werden nur in diesem Browser auf diesem Gerät gespeichert. "
-  + "Von einer Gebärde werden nur Zahlen zur Bewegung der Hände gespeichert, kein Bild und kein Video. "
+  + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -305,10 +307,16 @@ const REWORD_FULL = "Der Platz für dieses Profil ist voll. Der Text wurde nicht
 
 // Teaching a gesture (card NG-19).
 const TEACH = "Gebärde beibringen";
-const TEACH_INTRO = "Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“, mache die Gebärde einmal und tippe auf „Aufnahme beenden“. "
+const TEACH_INTRO = `Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“: Das Gerät zählt ${TEACH_COUNTDOWN_S} Sekunden herunter, damit deine Hand aus dem Bild kommt. `
+  + "Dann die Gebärde einmal machen und auf „Aufnahme beenden“ tippen. "
   + `Nach ${TEACH_MAX_RECORDING_MS / 1000} Sekunden endet die Aufnahme von selbst. `
+  + "Am besten steht das Gerät fest, oder eine zweite Person hält es. "
   + `Am besten mindestens ${RECOMMENDED_EXAMPLES} Beispiele aufnehmen, so wie das Kind später vor dem Gerät sitzt. `
-  + "Gespeichert werden nur Zahlen zur Bewegung der Hände, kein Bild und kein Video.";
+  + "Gespeichert werden nur Zahlen zu Bewegung und Handform, kein Bild und kein Video.";
+/** Seconds counted down after "Aufnahme starten" before frames are kept. */
+const COUNTDOWN_LINE = (left: number): string => `Gleich geht’s los: ${Array.from({ length: TEACH_COUNTDOWN_S }, (_, at) => TEACH_COUNTDOWN_S - at).filter((step) => step >= left).join(" … ")}`;
+const CANCEL_COUNTDOWN = "Abbrechen";
+const STILL_HAND = "Eine Hand lag still im Bild. Wenn die Gebärde mit einer Hand gemacht wird, lieber ohne die zweite Hand im Bild aufnehmen.";
 const CAMERA_START = "Kamera starten";
 const RECORD_START = "Aufnahme starten";
 const RECORD_STOP = "Aufnahme beenden";
@@ -421,7 +429,10 @@ interface TeachMode {
   readonly state: TeachState;
 }
 type TeachResult =
-  | { readonly usable: true; readonly sequence: FeatureSequence; readonly frames: number; readonly durationMs: number; readonly capturedAt: Date; readonly auto: boolean }
+  | {
+    readonly usable: true; readonly sequence: FeatureSequence; readonly frames: number; readonly durationMs: number; readonly capturedAt: Date; readonly auto: boolean;
+    readonly stillHand: boolean;
+  }
   | { readonly usable: false; readonly reason: FeatureFailure; readonly auto: boolean };
 type TeachConfirm = { readonly kind: "one"; readonly name: string; readonly number: number } | { readonly kind: "all"; readonly count: number };
 interface TeachState {
@@ -434,7 +445,11 @@ interface TeachState {
   /** The live line: hands and shoulders in the picture now. */
   live: string;
   recording: boolean;
+  /** Seconds left before a recording begins, or null when no countdown runs. */
+  countdown: number | null;
   result: TeachResult | null;
+  /** What the last action of the view came to; shown under the controls, not in the status line, so that nothing above them moves. */
+  note: { readonly text: string; readonly error: boolean } | null;
   confirm: TeachConfirm | null;
   /** A keep or delete is asked for and has not ended. */
   busy: boolean;
@@ -470,6 +485,8 @@ interface Built {
   readonly afterClose: string;
   /** True when the content is a delete confirmation, which is then all there is to press below the block. */
   readonly confirming?: boolean;
+  /** The teaching view whose controls are in the content (not its delete confirmation): its camera may run on. */
+  readonly teaching?: TeachMode;
 }
 
 function damagedLine(count: number): string {
@@ -881,6 +898,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const { state } = camera.mode;
     state.camera = "off";
     state.recording = false;
+    state.countdown = null;
     state.live = "";
     if (!state.cameraProblem) state.cameraLine = "";
   };
@@ -1095,9 +1113,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (!isOpen || mine !== session || body === null) return;
     // A hold dies with its button: whatever was held on the content that goes now ends here, not when its successor was built.
     dropHold();
-    // The camera belongs to the teaching view that started it: whatever took that view's place, the camera stops.
-    if (teachCamera !== null && teachCamera.mode !== mode) stopTeachCamera();
-    if (mode === null || mode.kind !== "teach") {
+    // The camera belongs to the teaching view that started it: whatever is drawn instead of that view's controls
+    // (another view, a confirmation, or a notice that the store could not be read), the camera stops.
+    if (teachCamera !== null && built.teaching !== teachCamera.mode) stopTeachCamera();
+    if (built.teaching === undefined) {
       teachLive = null;
       teachCameraLine = null;
     }
@@ -1347,7 +1366,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     stopTeachCamera();
     const open: TeachMode = {
       kind: "teach", id: profileId, conceptId,
-      state: { usage: null, camera: "off", cameraLine: "", cameraProblem: false, live: "", recording: false, result: null, confirm: null, busy: false },
+      state: {
+        usage: null, camera: "off", cameraLine: "", cameraProblem: false, live: "", recording: false, countdown: null, result: null, note: null, confirm: null, busy: false,
+      },
     };
     mode = open;
     run(async () => {
@@ -1384,6 +1405,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const ours = (): boolean => teachCamera === camera && !controller.signal.aborted;
     let shoulders = { seen: false, posesWithout: 0 };
     state.camera = "starting";
+    state.note = null;
     state.cameraLine = bridge.text.preparing;
     state.cameraProblem = false;
     state.live = "";
@@ -1395,6 +1417,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
       state.camera = "off";
       state.recording = false;
+      state.countdown = null;
       state.live = "";
       state.cameraLine = line;
       state.cameraProblem = problem;
@@ -1448,28 +1471,75 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
   };
 
-  /** "Aufnahme starten": frames are kept from now, in memory, until "Aufnahme beenden" or `TEACH_MAX_RECORDING_MS`. */
+  /** Says what an action of the teaching view came to, under its controls; only while that view is the open one. */
+  const teachSay = (open: TeachMode, text: string, error = false): void => {
+    if (acting === session && mode === open) open.state.note = text === "" ? null : { text, error };
+  };
+
+  /**
+   * "Aufnahme starten": first `TEACH_COUNTDOWN_S` seconds are counted down
+   * (the hand that tapped can leave the picture; "Abbrechen" and every way out
+   * of the view end it), then frames are kept, in memory, until "Aufnahme
+   * beenden" or `TEACH_MAX_RECORDING_MS`.
+   */
   const startTeachRecording = (open: TeachMode): void => {
     const { state } = open;
     const camera = teachCamera;
-    if (!teaching(open) || camera === null || camera.mode !== open || camera.session === null || state.recording || state.result?.usable === true) return;
+    if (!teaching(open) || camera === null || camera.mode !== open || camera.session === null) return;
+    if (state.recording || state.countdown !== null || state.result?.usable === true) return;
     clearStatus();
-    camera.session.startRecording();
-    state.recording = true;
     state.result = null;
-    const capturedAt = date();
-    let stopTimer = (): void => undefined;
-    try {
-      stopTimer = setTimer(() => stopTeachRecording(open, true, capturedAt), TEACH_MAX_RECORDING_MS);
-    } catch {
-      // Without a timer the recording ends by the tap only; the capture keeps at most MAX_RECORDED_FRAMES.
-    }
-    camera.stopTimer = stopTimer;
-    recordingStartedAt = capturedAt;
-    drawTeach(open, ["teach-stop"]);
+    state.note = null;
+    state.countdown = TEACH_COUNTDOWN_S;
+    const ours = (): boolean => teachCamera === camera && state.countdown !== null && mode === open;
+    const tick = (): void => {
+      if (!ours()) return;
+      const left = (state.countdown ?? 1) - 1;
+      if (left > 0) {
+        state.countdown = left;
+        // The line keeps its height (style sheet): written in place, nothing moves.
+        if (teachCameraLine !== null) teachCameraLine.textContent = COUNTDOWN_LINE(left);
+        schedule(tick, 1000);
+        return;
+      }
+      state.countdown = null;
+      camera.session?.startRecording();
+      state.recording = true;
+      const capturedAt = date();
+      recordingStartedAt = capturedAt;
+      schedule(() => stopTeachRecording(open, true, capturedAt), TEACH_MAX_RECORDING_MS);
+      drawTeach(open, ["teach-stop"]);
+    };
+    /** One timer at a time, on the camera: stopping the camera cancels it. */
+    const schedule = (callback: () => void, milliseconds: number): void => {
+      camera.stopTimer();
+      try {
+        camera.stopTimer = setTimer(callback, milliseconds);
+      } catch {
+        // Without a timer nothing is counted: the recording starts at once and ends by the tap only.
+        camera.stopTimer = () => undefined;
+        if (state.countdown !== null) {
+          state.countdown = 1;
+          tick();
+        }
+      }
+    };
+    schedule(tick, 1000);
+    drawTeach(open, ["teach-cancel"]);
   };
   /** When the running recording began: the capture time of the example. */
   let recordingStartedAt = new Date(0);
+
+  /** "Abbrechen" during the countdown: nothing is recorded, the camera keeps running. */
+  const cancelTeachCountdown = (open: TeachMode): void => {
+    const camera = teachCamera;
+    if (!teaching(open) || open.state.countdown === null) return;
+    clearStatus();
+    camera?.stopTimer();
+    if (camera !== null) camera.stopTimer = () => undefined;
+    open.state.countdown = null;
+    drawTeach(open, ["teach-record"]);
+  };
 
   /** "Aufnahme beenden", or the time is up: the recording goes through the matcher's feature building, nothing is stored yet. */
   const stopTeachRecording = (open: TeachMode, auto: boolean, capturedAt: Date = recordingStartedAt): void => {
@@ -1483,7 +1553,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     state.recording = false;
     const result = sequenceFromRecording(frames);
     state.result = result.ok
-      ? { usable: true, sequence: result.sequence, frames: result.frames, durationMs: result.durationMs, capturedAt, auto }
+      ? { usable: true, sequence: result.sequence, frames: result.frames, durationMs: result.durationMs, capturedAt, auto, stillHand: result.stillHand }
       : { usable: false, reason: result.reason, auto };
     drawTeach(open, result.ok ? ["teach-keep"] : ["teach-record"]);
   };
@@ -1503,7 +1573,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           writes += 1;
           state.result = null;
           const count = (await listExamples(store, open.id, open.conceptId)).examples.length;
-          say(`Das Beispiel wurde gespeichert. Für diese Taste ${count === 1 ? "ist" : "sind"} jetzt ${examplesText(count)} gespeichert.`);
+          teachSay(open, `Das Beispiel wurde gespeichert. Für diese Taste ${count === 1 ? "ist" : "sind"} jetzt ${examplesText(count)} gespeichert.`);
         } catch (error) {
           if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
             stopTeachCamera();
@@ -1517,9 +1587,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
             state.result = null;
             state.usage = "full";
             stopTeachCamera();
-            say(EXAMPLE_FULL, true);
+            teachSay(open, EXAMPLE_FULL, true);
           } else {
-            say(EXAMPLE_NOT_SAVED, true);
+            teachSay(open, EXAMPLE_NOT_SAVED, true);
           }
         }
         await draw(["teach-record", "teach-keep", "teach-camera"]);
@@ -1535,7 +1605,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     clearStatus();
     open.state.result = null;
     run(async () => {
-      say("Die Aufnahme wurde verworfen. Es wurde nichts gespeichert.");
+      teachSay(open, "Die Aufnahme wurde verworfen. Es wurde nichts gespeichert.");
       if (mode === open) await draw(["teach-record", "teach-camera"]);
     });
   };
@@ -1543,14 +1613,40 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /** Opens the delete confirmation of one example or of all of them. The camera stops: the confirmation takes over the body. */
   const confirmTeachDelete = (open: TeachMode, confirm: TeachConfirm): void => {
     const { state } = open;
-    if (!teaching(open) || state.recording || state.result !== null || state.busy) return;
+    if (!teaching(open) || state.recording || state.countdown !== null || state.result !== null || state.busy) return;
     clearStatus();
     dropHold();
     stopTeachCamera();
+    state.note = null;
     state.cameraLine = "";
     state.cameraProblem = false;
     state.confirm = confirm;
     run(() => draw(["confirm-cancel"], { toTop: true }));
+  };
+
+  /**
+   * What a delete that failed partway came to, read from the store again: it
+   * may have deleted some examples before it stopped. Never claims more than
+   * the store says.
+   */
+  const deleteFailedLine = async (current: ProfileStore, open: TeachMode, confirm: TeachConfirm): Promise<{ text: string; error: boolean }> => {
+    let listing: ExampleListing;
+    try {
+      listing = await listExamples(current, open.id, open.conceptId);
+    } catch {
+      return { text: `${WRITE_FAILED} Wie viele Beispiele noch gespeichert sind, kann gerade nicht gelesen werden.`, error: true };
+    }
+    if (confirm.kind === "one") {
+      const left = listing.examples.some((example) => example.name === confirm.name) || listing.damaged.some((entry) => entry.name === confirm.name);
+      return left ? { text: `${WRITE_FAILED} Beispiel ${confirm.number} ist noch gespeichert.`, error: true } : { text: `Beispiel ${confirm.number} wurde gelöscht.`, error: false };
+    }
+    const remaining = listing.examples.length + listing.damaged.filter((entry) => entry.kind !== "unsupported-version").length;
+    const deleted = Math.max(0, confirm.count - remaining);
+    return {
+      text: `Das Löschen wurde unterbrochen: ${deleted === 1 ? "1 Beispiel wurde" : `${deleted} Beispiele wurden`} gelöscht, `
+        + `${remaining === 1 ? "1 ist" : `${remaining} sind`} noch gespeichert. Bitte noch einmal versuchen.`,
+      error: true,
+    };
   };
 
   /** Carries out the open delete confirmation, if it is still the open one at the release and when the queue gets to it. */
@@ -1563,11 +1659,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         if (confirm.kind === "one") {
           await deleteExample(store, open.id, confirm.name);
           writes += 1;
-          say(`Beispiel ${confirm.number} wurde gelöscht.`);
+          teachSay(open, `Beispiel ${confirm.number} wurde gelöscht.`);
         } else {
           const count = await deleteExamples(store, open.id, open.conceptId);
           writes += 1;
-          say(count === 1 ? "1 Beispiel wurde gelöscht." : `${count} Beispiele wurden gelöscht.`);
+          teachSay(open, count === 1 ? "1 Beispiel wurde gelöscht." : `${count} Beispiele wurden gelöscht.`);
         }
       } catch (error) {
         if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
@@ -1576,7 +1672,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           await draw(["profiles-heading"]);
           return;
         }
-        say(error instanceof ExampleFormatError && error.kind === "unsupported-version" ? NEWER_EXAMPLE : `${WRITE_FAILED} Es wurde nichts gelöscht.`, true);
+        if (error instanceof ExampleFormatError && error.kind === "unsupported-version") teachSay(open, NEWER_EXAMPLE, true);
+        else {
+          const line = await deleteFailedLine(store, open, confirm);
+          teachSay(open, line.text, line.error);
+        }
       }
       if (acting === session && mode === open) open.state.confirm = null;
       // There may be room again: the size is read once more (a deliberate action, not a loop).
@@ -1887,11 +1987,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     : element("span", "caregiver-concept-gesture", `Gebärde: ${examplesText(count)}`));
 
   /** The two-step delete of examples: a hold and a release on "Endgültig löschen", as for a profile (rule 12). */
-  const teachConfirmView = (open: TeachMode, confirm: TeachConfirm, entry: BoardEntry, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
+  const teachConfirmView = (
+    open: TeachMode, confirm: TeachConfirm, entry: BoardEntry, profileLabel: string, register: Map<string, Focusable>, holds: HeldButton[],
+  ): HTMLElement => {
     const view = element("section", "caregiver-section caregiver-confirm");
+    // Rule 17: the board is named by its profile.
+    const board = `auf der Tafel von ${quoted(profileLabel)}`;
     const title = confirm.kind === "one"
-      ? `Beispiel ${confirm.number} von ${quoted(entry.labelDe)} löschen?`
-      : `Alle ${examplesText(confirm.count)} von ${quoted(entry.labelDe)} löschen?`;
+      ? `Beispiel ${confirm.number} von ${quoted(entry.labelDe)} ${board} löschen?`
+      : `Alle ${examplesText(confirm.count)} von ${quoted(entry.labelDe)} ${board} löschen?`;
     view.append(element("h2", "caregiver-confirm-title", title), element("p", "caregiver-confirm-text", EXAMPLE_DELETE_LOSS));
     const cancel = button(CANCEL);
     cancel.addEventListener("click", leaveMode);
@@ -1904,7 +2008,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return view;
   };
 
-  /** The teaching view of one concept. Like the rewording it is the whole body while it is open. */
+  /**
+   * The teaching view of one concept. Like the rewording it is the whole body
+   * while it is open. Its controls are one block right under the heading, in
+   * the same place for the whole session: the live line (the only feedback on
+   * framing; there is no preview), the camera's line, then the one button
+   * that changes (camera, record, stop, keep) with "Zurück". What changes in
+   * length (the result, messages, the count, the instruction, the list) is
+   * below it, so nothing above the button moves between examples.
+   */
   const teachView = (open: TeachMode, entry: BoardEntry, profileLabel: string, listing: ExampleListing | null, register: Map<string, Focusable>): HTMLElement => {
     const { state } = open;
     const view = element("section", "caregiver-section caregiver-takeover caregiver-teach");
@@ -1912,34 +2024,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     title.tabIndex = -1;
     register.set("teach-heading", title);
     register.set("anchor:teach-heading", view);
-    view.append(title, element("p", "caregiver-notice", TEACH_INTRO));
-    if (state.usage === "near" || state.usage === "full") view.append(element("p", "caregiver-notice caregiver-warning", USAGE_LINES[state.usage]));
-    else if (state.usage === "unknown") view.append(element("p", "caregiver-notice caregiver-warning", USAGE_UNKNOWN));
+    view.append(title);
 
-    const examples = listing?.examples ?? [];
-    const count = examples.length;
-    const recommend = count < RECOMMENDED_EXAMPLES ? ` Empfohlen sind mindestens ${RECOMMENDED_EXAMPLES}.` : "";
-    view.append(element("p", "caregiver-notice caregiver-teach-count", `${count === 0 ? "Noch kein Beispiel" : examplesText(count)} gespeichert.${recommend}`));
-    if (listing === null) view.append(element("p", "caregiver-notice caregiver-warning", "Die gespeicherten Beispiele können gerade nicht gelesen werden."));
-    const damaged = listing?.damaged ?? [];
-    const newer = damaged.filter((item) => item.kind === "unsupported-version").length;
-    const unreadable = damaged.length - newer;
-    if (newer > 0) view.append(element("p", "caregiver-notice caregiver-warning", `${newer === 1 ? "1 Beispiel wurde" : `${newer} Beispiele wurden`} mit einer neueren Version gespeichert. Bitte die App aktualisieren.`));
-    if (unreadable > 0) {
-      view.append(element("p", "caregiver-notice caregiver-warning", `${unreadable === 1 ? "1 Beispiel kann" : `${unreadable} Beispiele können`} nicht verwendet werden und ${unreadable === 1 ? "muss" : "müssen"} neu aufgenommen werden. „${DELETE_ALL_EXAMPLES}“ entfernt ${unreadable === 1 ? "es" : "sie"}.`));
-    }
-
-    const result = state.result;
-    if (result !== null) {
-      const auto = result.auto ? `Die Aufnahme hat nach ${TEACH_MAX_RECORDING_MS / 1000} Sekunden von selbst geendet. ` : "";
-      if (result.usable) {
-        const shoulders = result.sequence.anchor === "hands" ? " Die Schultern waren nicht zu sehen. Am besten so aufnehmen, dass die Schultern im Bild sind." : "";
-        view.append(element("p", "caregiver-teach-result", `${auto}Die Aufnahme kann verwendet werden: Gebärde ${handsText(result.sequence.hands)}.${shoulders} Behalten oder verwerfen?`));
-      } else {
-        view.append(element("p", "caregiver-teach-result caregiver-teach-refused", `${auto}Diese Aufnahme kann nicht verwendet werden. ${UNUSABLE[result.reason]} Es wurde nichts gespeichert.`));
-      }
-    }
-
+    const controls = element("div", "caregiver-teach-controls");
+    const live = element("p", "caregiver-teach-live", state.camera === "on" ? state.live : "");
+    teachLive = live;
+    let line = state.cameraLine;
+    if (state.countdown !== null) line = COUNTDOWN_LINE(state.countdown);
+    else if (state.recording) line = RECORDING;
+    const cameraLine = element("p", state.cameraProblem && state.countdown === null && !state.recording ? "caregiver-teach-camera caregiver-warning" : "caregiver-teach-camera", line);
+    teachCameraLine = cameraLine;
     const actions = element("div", "caregiver-profile-actions caregiver-teach-actions");
     const add = (key: string, text: string, onClick: () => void, className = "caregiver-button"): HTMLButtonElement => {
       const control = button(text, className);
@@ -1948,14 +2042,17 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       actions.append(control);
       return control;
     };
+    const result = state.result;
     if (result?.usable === true) {
       add("teach-keep", KEEP, () => keepTeachResult(open), "caregiver-button caregiver-primary");
       add("teach-discard", DISCARD, () => discardTeachResult(open));
     } else if (state.usage !== "full") {
       if (state.camera !== "on") {
-        const start = add("teach-camera", CAMERA_START, () => startTeachCamera(open));
+        const start = add("teach-camera", CAMERA_START, () => startTeachCamera(open), "caregiver-button caregiver-primary");
         // While the camera starts, a second tap does nothing; the button stays where it is.
         if (state.camera === "starting") start.setAttribute("aria-disabled", "true");
+      } else if (state.countdown !== null) {
+        add("teach-cancel", CANCEL_COUNTDOWN, () => cancelTeachCountdown(open));
       } else if (state.recording) {
         add("teach-stop", RECORD_STOP, () => stopTeachRecording(open, false), "caregiver-button caregiver-primary caregiver-recording");
       } else {
@@ -1963,23 +2060,54 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
     }
     add("teach-back", BACK, leaveMode);
-    view.append(actions);
-    const cameraLine = element("p", state.cameraProblem ? "caregiver-teach-camera caregiver-warning" : "caregiver-teach-camera", state.recording ? RECORDING : state.cameraLine);
-    teachCameraLine = cameraLine;
-    const live = element("p", "caregiver-teach-live", state.camera === "on" ? state.live : "");
-    teachLive = live;
-    view.append(cameraLine, live);
+    controls.append(live, cameraLine, actions);
+    view.append(controls);
 
+    if (state.note !== null) view.append(element("p", state.note.error ? "caregiver-teach-note caregiver-warning" : "caregiver-teach-note", state.note.text));
+    if (result !== null) {
+      const auto = result.auto ? `Die Aufnahme hat nach ${TEACH_MAX_RECORDING_MS / 1000} Sekunden von selbst geendet. ` : "";
+      if (result.usable) {
+        const shoulders = result.sequence.anchor === "hands" ? " Die Schultern waren nicht zu sehen. Am besten so aufnehmen, dass die Schultern im Bild sind." : "";
+        view.append(element("p", "caregiver-teach-result", `${auto}Die Aufnahme kann verwendet werden: Gebärde ${handsText(result.sequence.hands)}.${shoulders} Behalten oder verwerfen?`));
+        if (result.stillHand) view.append(element("p", "caregiver-notice caregiver-teach-hint", STILL_HAND));
+      } else {
+        view.append(element("p", "caregiver-teach-result caregiver-teach-refused", `${auto}Diese Aufnahme kann nicht verwendet werden. ${UNUSABLE[result.reason]} Es wurde nichts gespeichert.`));
+      }
+    }
+    if (state.usage === "near" || state.usage === "full") view.append(element("p", "caregiver-notice caregiver-warning", USAGE_LINES[state.usage]));
+    else if (state.usage === "unknown") view.append(element("p", "caregiver-notice caregiver-warning", USAGE_UNKNOWN));
+
+    const examples = listing?.examples ?? [];
+    const damaged = listing?.damaged ?? [];
+    const newer = damaged.filter((item) => item.kind === "unsupported-version").length;
+    const unreadable = damaged.length - newer;
+    if (listing === null) {
+      // Nothing is claimed about the count then.
+      view.append(element("p", "caregiver-notice caregiver-warning", "Die gespeicherten Beispiele können gerade nicht gelesen werden."));
+    } else {
+      // The same count as the row on the board ("Gebärde: …"): every stored entry of this tile, the unusable ones said apart.
+      const total = examples.length + damaged.length;
+      const recommend = examples.length < RECOMMENDED_EXAMPLES ? ` Empfohlen sind mindestens ${RECOMMENDED_EXAMPLES}.` : "";
+      const apart = damaged.length > 0 ? `, davon ${damaged.length} nicht verwendbar` : "";
+      view.append(element("p", "caregiver-notice caregiver-teach-count", `${total === 0 ? "Noch kein Beispiel" : examplesText(total)} gespeichert${apart}.${recommend}`));
+    }
+    if (newer > 0) view.append(element("p", "caregiver-notice caregiver-warning", `${newer === 1 ? "1 Beispiel wurde" : `${newer} Beispiele wurden`} mit einer neueren Version gespeichert. Bitte die App aktualisieren.`));
+    if (unreadable > 0) {
+      view.append(element("p", "caregiver-notice caregiver-warning", `${unreadable === 1 ? "1 Beispiel kann" : `${unreadable} Beispiele können`} nicht verwendet werden und ${unreadable === 1 ? "muss" : "müssen"} neu aufgenommen werden. „${DELETE_ALL_EXAMPLES}“ entfernt ${unreadable === 1 ? "es" : "sie"}.`));
+    }
+    view.append(element("p", "caregiver-notice", TEACH_INTRO));
+
+    const busy = state.recording || state.countdown !== null || result !== null;
+    const count = examples.length;
     if (count > 0) {
       view.append(element("h3", "", STORED_EXAMPLES));
-      // Not while a recording runs or waits for "Behalten": nothing is deleted under it.
-      const deletable = !state.recording && result === null;
       const list = element("ol", "caregiver-examples");
       examples.forEach((example, at) => {
         const row = element("li", "caregiver-example");
         const number = at + 1;
         row.append(element("span", "caregiver-example-text", `Beispiel ${number}: ${handsText(example.record.hands)}, ${shownTime(example.record.capturedAt)}`));
-        if (deletable) {
+        // Not while a recording counts down, runs or waits for "Behalten": nothing is deleted under it.
+        if (!busy) {
           const remove = button(DELETE, "caregiver-button caregiver-danger-quiet");
           remove.setAttribute("aria-label", `Beispiel ${number} löschen`);
           remove.addEventListener("click", () => confirmTeachDelete(open, { kind: "one", name: example.name, number }));
@@ -1991,13 +2119,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       view.append(list);
     }
     const all = count + unreadable;
-    if (all >= 2 || unreadable > 0) {
-      if (!state.recording && result === null) {
-        const removeAll = button(DELETE_ALL_EXAMPLES, "caregiver-button caregiver-danger-quiet");
-        removeAll.addEventListener("click", () => confirmTeachDelete(open, { kind: "all", count: all }));
-        register.set("teach-delete-all", removeAll);
-        view.append(removeAll);
-      }
+    if ((all >= 2 || unreadable > 0) && !busy) {
+      const removeAll = button(DELETE_ALL_EXAMPLES, "caregiver-button caregiver-danger-quiet");
+      removeAll.addEventListener("click", () => confirmTeachDelete(open, { kind: "all", count: all }));
+      register.set("teach-delete-all", removeAll);
+      view.append(removeAll);
     }
     return view;
   };
@@ -2294,10 +2420,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       const entry = board?.entries.find((candidate) => candidate.id === open.conceptId);
       if (owner !== undefined && entry !== undefined) {
         if (open.state.confirm !== null) {
-          return { content: [teachConfirmView(open, open.state.confirm, entry, register, holds)], afterClose: header, confirming: true };
+          return { content: [teachConfirmView(open, open.state.confirm, entry, labelOf(owner), register, holds)], afterClose: header, confirming: true };
         }
         const listing = await listExamples(current, owner.id, open.conceptId).catch(() => null);
-        return { content: [teachView(open, entry, labelOf(owner), listing, register)], afterClose: header, confirming: true };
+        return { content: [teachView(open, entry, labelOf(owner), listing, register)], afterClose: header, confirming: true, teaching: open };
       }
       mode = null;
     }
