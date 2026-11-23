@@ -1,22 +1,22 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
-    "contract_revision": 1,
-    "current_attempt": 5,
-    "current_stage_id": "build",
-    "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+    "contract_revision": 2,
+    "current_attempt": 1,
+    "current_stage_id": "correctness-review",
+    "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
     "history": [
         {
-            "accepted_at": "2026-11-22T22:35:46+00:00",
+            "accepted_at": "2026-11-23T06:15:14+00:00",
             "handoff": {
-                "accepted_at": "2026-11-22T22:35:46+00:00",
+                "accepted_at": "2026-11-23T06:15:14+00:00",
                 "artifact_references": [],
                 "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
                 "from_stage": "investigate",
                 "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
                 "schema_version": "1.0",
                 "task_id": "NG-18",
                 "to_stage": "build",
@@ -26,29 +26,29 @@
                 "artifact_references": [],
                 "attempt": 1,
                 "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
-                "context_id": "investigate-1",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "context_id": "investigate-r2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
                 "outcome": "completed",
-                "run_id": "run:NG-18:3da5f471dc313675",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
                 "stage_id": "investigate",
-                "submission_id": "submission:investigate:1:d5fdfe14",
-                "summary": "The tracker spike located the gaps: features.ts:28 and :163-181 bridge dropouts of up to 6 frames only, features.ts:218-224 lets any visible hand start or end the gesture, matcher.ts:53-68 separates one-hand from two-hand by distance only, and features.ts:111-126 with matcher.ts:56 gives no_examples when shoulders differ between examples and attempt.",
+                "submission_id": "submission:investigate:1:1ea5f904",
+                "summary": "Contract revision 2: hand membership over the whole visible capture, limits capped at the old whole-concept limit, no movement trim (every cut tried could speak a wrong concept), steps in frame order; wrong concept and unknown accepted no higher than 70bf62b in every evaluation row and reviewer probe; 475 tests pass",
                 "task_id": "NG-18",
                 "validation_references": []
             }
         },
         {
-            "accepted_at": "2026-11-22T23:12:32+00:00",
+            "accepted_at": "2026-11-23T06:15:14+00:00",
             "handoff": {
-                "accepted_at": "2026-11-22T23:12:32+00:00",
+                "accepted_at": "2026-11-23T06:15:14+00:00",
                 "artifact_references": [],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
                 "from_stage": "build",
                 "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
                 "schema_version": "1.0",
                 "task_id": "NG-18",
                 "to_stage": "correctness-review",
@@ -57,265 +57,15 @@
             "result": {
                 "artifact_references": [],
                 "attempt": 1,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
-                "context_id": "build-1",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "context_id": "build-r2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
                 "outcome": "completed",
-                "run_id": "run:NG-18:3da5f471dc313675",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
                 "stage_id": "build",
-                "submission_id": "submission:build:1:9aac3c61",
-                "summary": "Gesture cut by movement, hand kind by presence and movement, gaps bridged up to 500 ms, like compared with like, schema 2; evaluation with one-hand, two-hand and mixed profiles; wrong-concept rate 0 in every cell; 467 tests pass",
-                "task_id": "NG-18",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-22T23:16:59+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-22T23:16:59+00:00",
-                "artifact_references": [
-                    "execution-evidence:sha256:cb9f136b5bf365e11ec619ad03bd2badc1b4decea130153c95c6af58d887e2ee"
-                ],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "from_stage": "correctness-review",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "schema_version": "1.0",
-                "task_id": "NG-18",
-                "to_stage": "build",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [
-                    "execution-evidence:sha256:cb9f136b5bf365e11ec619ad03bd2badc1b4decea130153c95c6af58d887e2ee"
-                ],
-                "attempt": 1,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
-                "context_id": "correctness-review-1",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "outcome": "changes_required",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "stage_id": "correctness-review",
-                "submission_id": "submission:correctness-review:1:2f4bc137",
-                "summary": "A signing hand that does not move is dropped when the other hand moves (features.ts:311-313): with one contaminated example, known signs are spoken as the wrong concept in 80 of 80 attempts, 0 before. Fail closed and add the case to tests and evaluation.",
-                "task_id": "NG-18",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-23T00:08:05+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-23T00:08:05+00:00",
-                "artifact_references": [],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "from_stage": "build",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "schema_version": "1.0",
-                "task_id": "NG-18",
-                "to_stage": "correctness-review",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [],
-                "attempt": 2,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
-                "context_id": "build-2",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "outcome": "completed",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "stage_id": "build",
-                "submission_id": "submission:build:2:eed2790d",
-                "summary": "Second build: presence decides hand membership, 20-50 percent band and still-hand-with-other-hand fail closed as hands_unclear; wrong-concept cases from both reviews in tests and evaluation; 472 tests pass",
-                "task_id": "NG-18",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-23T00:12:35+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-23T00:12:35+00:00",
-                "artifact_references": [
-                    "execution-evidence:sha256:bfcee80e29a0678c57fd00cdb4575e97135448a99129a0170d202506a4b22a2f",
-                    "execution-evidence:sha256:c937e59a2215e43e48571e69112cfe02be9fe8b629b15e573b91a15c07edad8e"
-                ],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "from_stage": "correctness-review",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "schema_version": "1.0",
-                "task_id": "NG-18",
-                "to_stage": "build",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [
-                    "execution-evidence:sha256:bfcee80e29a0678c57fd00cdb4575e97135448a99129a0170d202506a4b22a2f",
-                    "execution-evidence:sha256:c937e59a2215e43e48571e69112cfe02be9fe8b629b15e573b91a15c07edad8e"
-                ],
-                "attempt": 2,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
-                "context_id": "correctness-review-2",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "outcome": "changes_required",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "stage_id": "correctness-review",
-                "submission_id": "submission:correctness-review:2:08fadeb4",
-                "summary": "A one-hand reading measures the other hand only over the kept hand's own movement span (features.ts:442-448): a second hand that moved and left just before or after is ignored and a two-hand sign is spoken as its one-hand twin, 0 before, 40 of 40 now. One doc figure is not printed by the harness.",
-                "task_id": "NG-18",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-23T04:47:20+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-23T04:47:20+00:00",
-                "artifact_references": [],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "from_stage": "build",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "schema_version": "1.0",
-                "task_id": "NG-18",
-                "to_stage": "correctness-review",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [],
-                "attempt": 3,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
-                "context_id": "build-3",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "outcome": "completed",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "stage_id": "build",
-                "submission_id": "submission:build:3:4dd7d4ae",
-                "summary": "Third build: hand membership decided over the common span of all counted movement; one-hand reading fails when the other hand moved anywhere; crossing cases added with 0 wrong; no_hands with shoulders fixed; npm test 12 s; 474 tests pass",
-                "task_id": "NG-18",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-23T04:54:39+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-23T04:54:39+00:00",
-                "artifact_references": [
-                    "execution-evidence:sha256:7e557ef02aa2d103959fb51c37eecd474f176458e11ab37c18b5c8ec116ac3be",
-                    "execution-evidence:sha256:8bf90a8d2d9364a38281d0de596479952a7d129445e82527c34cc1bf5b132c25",
-                    "execution-evidence:sha256:0db7864fb89167ab19226236f232f30c85fdd5626beebb35195b617e19004228"
-                ],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "from_stage": "correctness-review",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "schema_version": "1.0",
-                "task_id": "NG-18",
-                "to_stage": "build",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [
-                    "execution-evidence:sha256:7e557ef02aa2d103959fb51c37eecd474f176458e11ab37c18b5c8ec116ac3be",
-                    "execution-evidence:sha256:8bf90a8d2d9364a38281d0de596479952a7d129445e82527c34cc1bf5b132c25",
-                    "execution-evidence:sha256:0db7864fb89167ab19226236f232f30c85fdd5626beebb35195b617e19004228"
-                ],
-                "attempt": 3,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
-                "context_id": "correctness-review-3",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "outcome": "changes_required",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "stage_id": "correctness-review",
-                "submission_id": "submission:correctness-review:3:ed85f14d",
-                "summary": "Hand membership is decided only inside the movement span: a still second hand seen in the rests before or after makes a two-hand sign its one-hand twin (0 old, 40 of 40 new). Tracker jitter on a resting hand counts as movement and cuts shape-only signs to the wrong part (0 old, up to 49 percent wrong). Calibration ignores which hands an example has. Doc claims about both are false.",
-                "task_id": "NG-18",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-23T05:24:32+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-23T05:24:32+00:00",
-                "artifact_references": [],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "from_stage": "build",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "schema_version": "1.0",
-                "task_id": "NG-18",
-                "to_stage": "correctness-review",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [],
-                "attempt": 4,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
-                "context_id": "build-4",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "outcome": "completed",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "stage_id": "build",
-                "submission_id": "submission:build:4:4e9d6f6c",
-                "summary": "Fourth build: membership over the whole visible capture, movement trims rest only above a travel floor, calibration per concept, anchor and hands; 54 jitter rows and rest rows at 0 wrong; 476 tests pass",
-                "task_id": "NG-18",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-23T05:34:27+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-23T05:34:27+00:00",
-                "artifact_references": [
-                    "execution-evidence:sha256:04a572747d883df69ac10b22dab7a1fb192ea73abec802c47361d26a6f1b64bf",
-                    "execution-evidence:sha256:0ddf2a1d59e74388567fd6b54086c0a4be3d868c45908b1bed9654f6203d0435",
-                    "execution-evidence:sha256:0e676a9c7078c0b544a01115848c177c2f66294cbc22203e5bacb1b446782d3b"
-                ],
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "from_stage": "correctness-review",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "schema_version": "1.0",
-                "task_id": "NG-18",
-                "to_stage": "build",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [
-                    "execution-evidence:sha256:04a572747d883df69ac10b22dab7a1fb192ea73abec802c47361d26a6f1b64bf",
-                    "execution-evidence:sha256:0ddf2a1d59e74388567fd6b54086c0a4be3d868c45908b1bed9654f6203d0435",
-                    "execution-evidence:sha256:0e676a9c7078c0b544a01115848c177c2f66294cbc22203e5bacb1b446782d3b"
-                ],
-                "attempt": 4,
-                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
-                "context_id": "correctness-review-4",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
-                "outcome": "changes_required",
-                "run_id": "run:NG-18:3da5f471dc313675",
-                "stage_id": "correctness-review",
-                "submission_id": "submission:correctness-review:4:663e9b69",
-                "summary": "Per-hands calibration can widen a limit beyond the old whole-concept limit (old 120, new 340 wrong). A one-frame tracker jump or jitter above 0.02 lets the movement cut trim shape-only signs to rest frames (old 0, new up to 25 of 1200 wrong). Look-alikes accepted rise from 2.5 to 5 percent and from 0 to 1 percent at 7 fps; one doc cell names the wrong profile.",
+                "submission_id": "submission:build:1:b240f95c",
+                "summary": "Contract revision 2: hand membership over the whole visible capture, limits capped at the old whole-concept limit, no movement trim (every cut tried could speak a wrong concept), steps in frame order; wrong concept and unknown accepted no higher than 70bf62b in every evaluation row and reviewer probe; 475 tests pass",
                 "task_id": "NG-18",
                 "validation_references": []
             }
@@ -324,7 +74,7 @@
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
-    "run_id": "run:NG-18:3da5f471dc313675",
+    "run_id": "run:NG-18:7f5011adee9b0b31",
     "schema_version": "1.0",
     "task_id": "NG-18"
 }
