@@ -4,10 +4,14 @@
  * request. The caregiver area (card NG-13) gets the store from here and calls
  * `refreshBoard()` after it changed a profile.
  */
-import { createBoardHost } from "./board.js";
+import { createBoardHost, mountBoard } from "./board.js";
 import type { CatalogueConcept } from "./board-data.js";
+import type { CaptureBridge } from "./capture/capture.js";
 import type { KeyValueBackend } from "./profiles/backend.js";
 import { ProfileStore } from "./profiles/store.js";
+import { listExamples } from "./recognition/examples.js";
+import type { GestureExample } from "./recognition/matcher.js";
+import { attachRecognise } from "./recognise/recognise.js";
 import { STARTUP_WAIT_MS, STORAGE_UNAVAILABLE, mountStartupView, mountView, resolveStartupView, runStartup } from "./startup.js";
 import type { StartupHost, StartupView } from "./startup.js";
 
@@ -21,6 +25,10 @@ export interface AppOptions {
   readonly waitMs?: number;
   /** Replaces the timer of the board host; for tests. */
   readonly setTimer?: StartupHost["setTimer"];
+  /** The camera for recognising gestures; default the capture module's bridge. For tests. */
+  readonly capture?: CaptureBridge | null;
+  /** Milliseconds from a steady clock for the board and the gesture view; for tests. */
+  readonly now?: () => number;
 }
 
 export interface App {
@@ -56,9 +64,59 @@ export function createApp(boardRegion: HTMLElement, options: AppOptions): App {
       // Reporting is best effort.
     }
   };
-  const host: StartupHost = options.setTimer === undefined
-    ? createBoardHost(boardRegion)
-    : { ...createBoardHost(boardRegion), setTimer: options.setTimer };
+  const boardHost = createBoardHost(boardRegion);
+  /**
+   * The examples of a view's profile that recognising can use: those of
+   * concepts on its board. Read with the view (`readView`), so the gesture
+   * control is there when the board is drawn and nothing moves later. A view
+   * without an entry here gets no gesture control.
+   */
+  const gestureExamples = new WeakMap<object, readonly GestureExample[]>();
+  /** Ends the gesture view of the board on screen (its camera too); called before anything replaces that board. */
+  let detachGesture = (): void => undefined;
+  const leaveBoard = (): void => {
+    const detach = detachGesture;
+    detachGesture = () => undefined;
+    try {
+      detach();
+    } catch (error) {
+      report(error);
+    }
+  };
+  const host: StartupHost = {
+    ...boardHost,
+    showLoading: () => {
+      leaveBoard();
+      boardHost.showLoading();
+    },
+    showFailure: () => {
+      leaveBoard();
+      boardHost.showFailure();
+    },
+    mount: (view) => {
+      leaveBoard();
+      const examples = gestureExamples.get(view) ?? [];
+      const now = options.now === undefined ? {} : { now: options.now };
+      if (examples.length === 0 || view.kind !== "profile") return mountBoard(boardRegion, view, now);
+      let open = (): void => undefined;
+      const board = mountBoard(boardRegion, view, { ...now, gesture: { onStart: () => open() } });
+      try {
+        const attached = attachRecognise({
+          root: boardRegion, board, entries: view.entries, examples,
+          ...(options.capture === undefined ? {} : { capture: options.capture }),
+          ...now,
+        });
+        open = attached.open;
+        detachGesture = attached.dispose;
+        return board;
+      } catch (error) {
+        // Recognising is an addition: the board without it.
+        report(error);
+        return mountBoard(boardRegion, view, now);
+      }
+    },
+    ...(options.setTimer === undefined ? {} : { setTimer: options.setTimer }),
+  };
 
   const opened: Promise<ProfileStore | null> = Promise.resolve()
     .then(() => options.openBackend())
@@ -71,12 +129,28 @@ export function createApp(boardRegion: HTMLElement, options: AppOptions): App {
   const readView = async (): Promise<StartupView> => {
     const store = await opened;
     if (store === null) return STORAGE_UNAVAILABLE;
+    let view: StartupView;
     try {
-      return await resolveStartupView(store, options.catalogue);
+      view = await resolveStartupView(store, options.catalogue);
     } catch (error) {
       report(error);
       return STORAGE_UNAVAILABLE;
     }
+    if (view.kind === "profile" && view.entries.length > 0) {
+      // Read on every start and refresh, so examples taught or deleted in the caregiver area count when it closes.
+      try {
+        const onBoard = new Set(view.entries.map((entry) => entry.id));
+        const listing = await listExamples(store, view.profileId);
+        const usable = listing.examples
+          .filter((example) => onBoard.has(example.record.conceptId))
+          .map((example) => ({ conceptId: example.record.conceptId, sequence: example.sequence }));
+        if (usable.length > 0) gestureExamples.set(view, usable);
+      } catch (error) {
+        // Without examples the board is the board: no gesture control.
+        report(error);
+      }
+    }
+    return view;
   };
 
   const waitMs = options.waitMs ?? STARTUP_WAIT_MS;

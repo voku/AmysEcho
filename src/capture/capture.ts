@@ -693,13 +693,15 @@ export function browserEnvironment(host: HTMLElement, options: BrowserCaptureOpt
 }
 
 // ---------------------------------------------------------------------------
-// The bridge for the caregiver area (card NG-19). The area is part of the
+// The bridge for the caregiver area (card NG-19) and for recognising on the
+// board (card NG-20, src/recognise/recognise.ts). Both are part of the
 // board's module graph and must not import this module: a failure here (it is
 // loaded by index.html as a module of its own) must never stop the board. So
-// this module, when the page loads it, leaves what the area needs under one
-// global name, and the area looks for it when "Kamera starten" is tapped.
+// this module, when the page loads it, leaves what they need under one global
+// name, and they look for it when the camera is to start ("Kamera starten" in
+// the area, "Gebärde" on the board).
 
-/** The global name of the bridge. `src/caregiver.ts` has the same string; a test compares them. */
+/** The global name of the bridge. `src/caregiver.ts` and `src/recognise/recognise.ts` have the same string; tests compare them. */
 export const CAPTURE_BRIDGE_KEY = "amysEchoCapture";
 
 export interface CaptureBridge {
@@ -719,8 +721,8 @@ export function captureBridge(options: BrowserCaptureOptions = {}): CaptureBridg
 
 // ---------------------------------------------------------------------------
 // The capture entry: `index.html#kamera-testen` (card NG-3). Teaching is in
-// the caregiver area through the bridge above (card NG-19); recognising comes
-// with card NG-20.
+// the caregiver area through the bridge above (card NG-19); recognising on
+// the child's board uses the same bridge (card NG-20, src/recognise/recognise.ts).
 
 export const CAPTURE_ROUTE = "#kamera-testen";
 
