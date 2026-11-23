@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
     "history": [
         {
@@ -68,6 +68,136 @@
                 "summary": "Cause: pose runs on every fifth frame and the live line read the other frames' null pose as no shoulders. Frames now carry poseRan; nextShoulders holds the state between pose results and hides shoulders after two pose results in a row without them; tested; verify passes",
                 "task_id": "NG-41",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T11:27:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T11:27:55+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6f8d5b17766c98fe4fe8566c2615840863f0e5dfe5958c7982d4d897779d82aa",
+                    "execution-evidence:sha256:bb0cecb40bd1fe69acf03d788d1eaa944af9e2c54e129cf4f03d5275a7377070",
+                    "execution-evidence:sha256:179141e8cc2c8bd9f3020fe084b785bbd2a32f23d86066916edcffd3b9ce0a74",
+                    "execution-evidence:sha256:99ed0bb13e28691b19af57461151fc9458c2097ca614e42fa9f38598d7091a4d"
+                ],
+                "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-41:47ffaa81a7f4329a",
+                "schema_version": "1.0",
+                "task_id": "NG-41",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6f8d5b17766c98fe4fe8566c2615840863f0e5dfe5958c7982d4d897779d82aa",
+                    "execution-evidence:sha256:bb0cecb40bd1fe69acf03d788d1eaa944af9e2c54e129cf4f03d5275a7377070",
+                    "execution-evidence:sha256:179141e8cc2c8bd9f3020fe084b785bbd2a32f23d86066916edcffd3b9ce0a74",
+                    "execution-evidence:sha256:99ed0bb13e28691b19af57461151fc9458c2097ca614e42fa9f38598d7091a4d"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
+                "observations": [
+                    "The live line's use of poseRan is not covered by a test (mountCaptureEntry untested); with the pose option off every fifth frame says poseRan true; idle() does not clear dataset.shoulders (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-41:47ffaa81a7f4329a",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:745b1ba2",
+                "summary": "Flicker gone for any hand count; matcher input unchanged; state resets on start; mutation of the hold fails the new test",
+                "task_id": "NG-41",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T11:27:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T11:27:55+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:874b9fe5f9448ab126c5b3cece07718929c98fbf988a5d0dd9716cccdbcd82da",
+                    "execution-evidence:sha256:2ae7d552c9980027e284a0d3d50d07da97c51b89b689c00e042fd92e03d7a8c9",
+                    "execution-evidence:sha256:824b07d905b3891077d0fe39513230b5aaaebf42d773b41c875169e801f3cfcf",
+                    "execution-evidence:sha256:8398c6d7f5e3ae4f1015ae295c6fde16de83a86ec02916c529add97a28dd9bb6"
+                ],
+                "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-41:47ffaa81a7f4329a",
+                "schema_version": "1.0",
+                "task_id": "NG-41",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:874b9fe5f9448ab126c5b3cece07718929c98fbf988a5d0dd9716cccdbcd82da",
+                    "execution-evidence:sha256:2ae7d552c9980027e284a0d3d50d07da97c51b89b689c00e042fd92e03d7a8c9",
+                    "execution-evidence:sha256:824b07d905b3891077d0fe39513230b5aaaebf42d773b41c875169e801f3cfcf",
+                    "execution-evidence:sha256:8398c6d7f5e3ae4f1015ae295c6fde16de83a86ec02916c529add97a28dd9bb6"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
+                "context_id": "blindspot-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
+                "observations": [
+                    "Shoulders leaving take 0.7 to 1.4 s to show; the hand count line is not smoothed and can flicker on tracker misses (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-41:47ffaa81a7f4329a",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:00bca1d7",
+                "summary": "Fix correct and not misleading; recognition unaffected",
+                "task_id": "NG-41",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T11:30:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T11:30:29+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-41:47ffaa81a7f4329a",
+                "schema_version": "1.0",
+                "task_id": "NG-41",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:a00811deccf3131dddca34f128401a82016fa02f06fdd7141695b44b63704aa5",
+                    "execution-evidence:sha256:504e8a6e6f496445b87cf1077cdddf8c20e9ce2519925ddaf5c73960508ffb2d"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
+                "consistency_references": [
+                    "execution-evidence:sha256:922746a283a7810da198f3349c8c1b3bf691c2b4edc827207a9f39b8cdbba311"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
+                "outcome": "pass",
+                "run_id": "run:NG-41:47ffaa81a7f4329a",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:c9f9847a669980b4be095176efa89985fc53ff2fdb0e843dcc8b444a03125d8f",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-41: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-41 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-41:47ffaa81a7f4329a binds active Session 2026-11-23-ng-41-r1-e41dea5f to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-41 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-41",
+                "validation_references": [
+                    "execution-evidence:sha256:a00811deccf3131dddca34f128401a82016fa02f06fdd7141695b44b63704aa5",
+                    "execution-evidence:sha256:504e8a6e6f496445b87cf1077cdddf8c20e9ce2519925ddaf5c73960508ffb2d"
+                ]
             }
         }
     ],

@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:15d9e1d836d76daa8d3ee94f096bddf7e1be9f47:e09912bde7e28b6c1855f8586feee282936ac2b9",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:b41e6288fb126fcd87d4a67cff1bd2705c343e52ef1ab513a77dc746d93df2fa",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-23T11:27:55+00:00",
+    "reference": "execution-evidence:sha256:bb0cecb40bd1fe69acf03d788d1eaa944af9e2c54e129cf4f03d5275a7377070",
+    "run_id": "run:NG-41:47ffaa81a7f4329a",
+    "schema_version": "1.0",
+    "source_digest": "sha256:8a9c41783a1d934dedfd2db33623c9692be949cb1977a7740c2f077d9c1c7609",
+    "source_reference": "workspace-file:src/recognition/tracker-adapter.ts",
+    "stage_id": "correctness-review",
+    "task_id": "NG-41"
+}
