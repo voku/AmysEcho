@@ -1,0 +1,14 @@
+{
+    "actor": "Lars Moelleken (delegated to Claude for this session)",
+    "attempt": 2,
+    "attention_id": "attention:bd438d018c83d27f",
+    "contract_revision": 3,
+    "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+    "kind": "execution_attention_resolution",
+    "resolved_at": "2026-11-23T15:05:10+00:00",
+    "response": "Fixed in the test: Stopp is pressed after its 700 ms guard and must end the recording within 1.5 s, otherwise the attempt counts as cut and the test fails. Continue with a fresh review of this test change.",
+    "run_id": "run:NG-20:6dbed2dff2320d38",
+    "schema_version": "1.0",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-20"
+}

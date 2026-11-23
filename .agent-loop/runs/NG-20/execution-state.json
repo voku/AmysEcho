@@ -1,17 +1,9 @@
 {
-    "attention": {
-        "created_at": "2026-11-23T15:02:06+00:00",
-        "id": "attention:bd438d018c83d27f",
-        "kind": "review_changes_required",
-        "message": "Review requested changes in 3 rounds; a human decides how to continue. every(!cut) cannot catch a broken Stopp: Stopp ignores presses within 700 ms of the recording view, the click still succeeds, and the time limit then ends the attempt with cut false.",
-        "run_id": "run:NG-20:6dbed2dff2320d38",
-        "stage_id": "blindspot-review",
-        "task_id": "NG-20"
-    },
-    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+    "attention": null,
+    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
     "contract_revision": 3,
-    "current_attempt": 2,
-    "current_stage_id": "blindspot-review",
+    "current_attempt": 4,
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
     "history": [
         {
@@ -374,6 +366,38 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:2:82bca97f",
                 "summary": "every(!cut) cannot catch a broken Stopp: Stopp ignores presses within 700 ms of the recording view, the click still succeeds, and the time limit then ends the attempt with cut false.",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:05:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:05:25+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:77048e7a6d104b2ee0104075844de27acec87a28",
+                "context_id": "build-r3-4",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "completed",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:62801278",
+                "summary": "Browser test presses Stopp at least 1 s after the recording view (past the 700 ms guard) and requires the state to leave recording within 1.5 s, else the attempt counts as cut and every(!cut) fails; verify passes with 0 cuts",
                 "task_id": "NG-20",
                 "validation_references": []
             }
