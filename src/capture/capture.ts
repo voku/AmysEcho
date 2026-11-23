@@ -5,13 +5,16 @@
  * - The camera is requested only by `startCapture`, which only a tap on the
  *   capture path calls. Loading this module requests nothing.
  * - No picture is kept: each frame is turned into an `ImageBitmap`, handed to
- *   the worker and closed there after tracking. What stays, and only in
+ *   the worker and closed there after tracking. A caller may ask for a live
+ *   preview (`preview`, card NG-42): a second, mirrored `<video>` on the same
+ *   stream with the tracked points drawn over it; it is emptied when the
+ *   camera stops and keeps nothing. What stays, and only in
  *   memory, is landmark numbers, and only when the caller asks for them
  *   (`record`). Nothing is stored and nothing is sent.
  * - The tracker files have their own cache (`TRACKER_CACHE_PREFIX`), filled and
  *   checked here on the first start, never by the board's install.
  */
-import { frameSummary, type TrackerFrame, type TrackerHand, type TrackerPoint } from "../recognition/tracker-adapter.js";
+import { frameSummary, shouldersOf, toLandmarkFrame, type TrackerFrame, type TrackerHand, type TrackerPoint } from "../recognition/tracker-adapter.js";
 import type { Delegate, TrackerFiles, TrackerReply, TrackerRequest } from "./tracker-worker.js";
 
 /** Pose (for the shoulders) runs on every this many frames; the matcher takes the median shoulders of a capture. */
@@ -174,6 +177,19 @@ export interface CaptureOptions {
    * cancel is stopped at once.
    */
   readonly signal?: AbortSignal;
+  /**
+   * Shows the camera while it runs (card NG-42): `show` once the camera is
+   * open, `draw` with every tracked frame, `close` when the capture ends, by
+   * whatever way. A failure in it never stops the capture.
+   */
+  readonly preview?: PreviewSink;
+}
+
+/** What `startCapture` needs from a live preview; `createCapturePreview` is the browser's. */
+export interface PreviewSink {
+  show(stream: CameraStream): void;
+  draw(frame: TrackerFrame): void;
+  close(): void;
 }
 
 export type CaptureEnd = { readonly kind: "stopped" } | { readonly kind: "problem"; readonly problem: CaptureProblem };
@@ -259,6 +275,15 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
     return cancelled;
   }
 
+  /** The preview only shows; whatever goes wrong in it, the capture goes on. */
+  const preview = (call: (sink: PreviewSink) => void): void => {
+    if (options.preview === undefined) return;
+    try {
+      call(options.preview);
+    } catch {
+      // Nothing: the live line still says what is seen.
+    }
+  };
   const limit = Math.max(1, options.maxRecordedFrames ?? MAX_RECORDED_FRAMES);
   let recorded: TrackerFrame[] = [];
   let keeping = options.record === true;
@@ -271,6 +296,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
     for (const track of stream.getTracks()) track.stop();
     source.close();
     tracker.close();
+    preview((sink) => sink.close());
     const frames = recorded;
     recorded = [];
     options.onStep?.("stopped");
@@ -279,6 +305,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
   };
 
   signal?.addEventListener("abort", () => shutDown({ kind: "stopped" }), { once: true });
+  preview((sink) => sink.show(stream));
   options.onStep?.("running");
   void (async () => {
     let index = 0;
@@ -317,6 +344,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
         if (recorded.length > limit) recorded.splice(0, recorded.length - limit);
       }
       options.onFrame?.(tracked);
+      if (running) preview((sink) => sink.draw(tracked));
     }
   })();
 
@@ -548,6 +576,200 @@ export function trackerFiles(directory: string): TrackerFiles {
 }
 
 // ---------------------------------------------------------------------------
+// The live preview (card NG-42): the camera's picture, mirrored like a mirror,
+// with the tracked hand points and the shoulders drawn over it, so that the
+// caregiver sees whether a sign is in the picture. Only the displayed video is
+// mirrored (CSS); the tracker keeps getting the unflipped frames of the hidden
+// source video. Nothing of the picture is kept, copied or sent.
+
+/** The bones of a MediaPipe hand: pairs of its 21 point indices. */
+export const HAND_CONNECTIONS: readonly (readonly [number, number])[] = [
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  [5, 9], [9, 10], [10, 11], [11, 12],
+  [9, 13], [13, 14], [14, 15], [15, 16],
+  [13, 17], [17, 18], [18, 19], [19, 20], [0, 17],
+];
+
+/** Colours of the child's own left and right hand and of the shoulders; far apart, and visible on a dark or light picture. */
+export const PREVIEW_COLOURS = { left: "#ff8c1a", right: "#1ad1ff", shoulders: "#ffe14d" } as const;
+
+/**
+ * Where a tracker point (x and y normalised to the unflipped camera picture)
+ * is on the mirrored preview: the picture of `imageWidth` × `imageHeight` is
+ * fitted whole into a box of `boxWidth` × `boxHeight` (CSS `object-fit:
+ * contain`, centred) and flipped left to right, so x becomes 1 − x.
+ */
+export function previewPoint(x: number, y: number, imageWidth: number, imageHeight: number, boxWidth: number, boxHeight: number): [number, number] {
+  const scale = Math.min(boxWidth / imageWidth, boxHeight / imageHeight);
+  const width = imageWidth * scale;
+  const height = imageHeight * scale;
+  return [(boxWidth - width) / 2 + (1 - x) * width, (boxHeight - height) / 2 + y * height];
+}
+
+export type PreviewPoint = readonly [number, number];
+
+/** What the preview draws for one frame, in box pixels. No hands: nothing at all (the canvas is cleared). */
+export interface PreviewShapes {
+  /** The child's own hands; "L" and "R" in the drawing. */
+  readonly hands: readonly { readonly side: "left" | "right"; readonly points: readonly PreviewPoint[] }[];
+  readonly shoulders: readonly [PreviewPoint, PreviewPoint] | null;
+}
+
+/**
+ * The shapes of one tracked frame on a box of `boxWidth` × `boxHeight`.
+ * Hands are sided as on the live line (`toLandmarkFrame`: the child's own
+ * left and right). `shoulders` are those to draw, normalised to the picture
+ * (the last ones pose saw; pose runs on every POSE_EVERY-th frame only).
+ */
+export function previewShapes(frame: TrackerFrame, shoulders: readonly [TrackerPoint, TrackerPoint] | null, boxWidth: number, boxHeight: number): PreviewShapes {
+  if (!(frame.imageWidth > 0 && frame.imageHeight > 0 && boxWidth > 0 && boxHeight > 0)) return { hands: [], shoulders: null };
+  const sided = toLandmarkFrame(frame, frame.timestampMs);
+  const place = (x: number, y: number): PreviewPoint => previewPoint(x, y, frame.imageWidth, frame.imageHeight, boxWidth, boxHeight);
+  const hands: { side: "left" | "right"; points: PreviewPoint[] }[] = [];
+  for (const side of ["left", "right"] as const) {
+    const points = sided[side];
+    // toLandmarkFrame gives pixels of the tracker's picture; back to 0..1 for the box.
+    if (points !== null) hands.push({ side, points: points.map(([x, y]) => place(x / frame.imageWidth, y / frame.imageHeight)) });
+  }
+  if (hands.length === 0) return { hands: [], shoulders: null };
+  return { hands, shoulders: shoulders === null ? null : [place(shoulders[0].x, shoulders[0].y), place(shoulders[1].x, shoulders[1].y)] };
+}
+
+/** The shoulders of a frame for the preview, normalised, or null; a frame without a pose result keeps `held`. */
+function previewShoulders(frame: TrackerFrame, held: readonly [TrackerPoint, TrackerPoint] | null): readonly [TrackerPoint, TrackerPoint] | null {
+  if (frame.poseRan === false) return held;
+  const sided = shouldersOf(frame);
+  if (sided === null) return null;
+  const [left, right] = sided;
+  return [{ x: left[0] / frame.imageWidth, y: left[1] / frame.imageHeight }, { x: right[0] / frame.imageWidth, y: right[1] / frame.imageHeight }];
+}
+
+/** The 2D drawing calls the preview uses; a test passes a recorder. */
+type PreviewContext = Pick<CanvasRenderingContext2D,
+  "clearRect" | "beginPath" | "moveTo" | "lineTo" | "stroke" | "arc" | "fill" | "fillText" | "strokeText"
+  | "strokeStyle" | "fillStyle" | "lineWidth" | "lineJoin" | "lineCap" | "font" | "textAlign" | "textBaseline">;
+
+/** Clears the canvas and draws `shapes` on it: bones and joints of each hand in its colour with "L"/"R", and the shoulder line. */
+export function drawPreviewShapes(context: PreviewContext, shapes: PreviewShapes, width: number, height: number): void {
+  context.clearRect(0, 0, width, height);
+  if (shapes.hands.length === 0) return;
+  const unit = Math.max(1.5, Math.min(width, height) / 150);
+  context.lineJoin = "round";
+  context.lineCap = "round";
+  const dot = (point: PreviewPoint, radius: number): void => {
+    context.beginPath();
+    context.arc(point[0], point[1], radius, 0, Math.PI * 2);
+    context.fill();
+  };
+  if (shapes.shoulders !== null) {
+    const [left, right] = shapes.shoulders;
+    context.strokeStyle = PREVIEW_COLOURS.shoulders;
+    context.fillStyle = PREVIEW_COLOURS.shoulders;
+    context.lineWidth = unit * 1.5;
+    context.beginPath();
+    context.moveTo(left[0], left[1]);
+    context.lineTo(right[0], right[1]);
+    context.stroke();
+    dot(left, unit * 3);
+    dot(right, unit * 3);
+  }
+  for (const hand of shapes.hands) {
+    const colour = PREVIEW_COLOURS[hand.side];
+    context.strokeStyle = colour;
+    context.fillStyle = colour;
+    context.lineWidth = unit * 1.5;
+    context.beginPath();
+    for (const [from, to] of HAND_CONNECTIONS) {
+      const a = hand.points[from];
+      const b = hand.points[to];
+      if (a === undefined || b === undefined) continue;
+      context.moveTo(a[0], a[1]);
+      context.lineTo(b[0], b[1]);
+    }
+    context.stroke();
+    for (const point of hand.points) dot(point, unit * 1.8);
+    const wrist = hand.points[0];
+    if (wrist !== undefined) {
+      context.font = `700 ${Math.round(unit * 9)}px system-ui, sans-serif`;
+      context.textAlign = "center";
+      context.textBaseline = "top";
+      context.lineWidth = unit * 2;
+      context.strokeStyle = "#000000";
+      const label = hand.side === "left" ? "L" : "R";
+      context.strokeText(label, wrist[0], wrist[1] + unit * 3);
+      context.fillText(label, wrist[0], wrist[1] + unit * 3);
+    }
+  }
+}
+
+/** A live preview in the page: `element` is a box of fixed size (set by the page's CSS) that holds the video and the canvas while the camera runs. */
+export interface CapturePreview extends PreviewSink {
+  readonly element: HTMLElement;
+}
+
+/**
+ * The browser's preview. `show` puts a muted `<video>` on the camera's stream
+ * (mirrored by the CSS of `.capture-preview-video`) and a canvas over it into
+ * `element`; `draw` draws the points of a frame; `close` stops the video and
+ * empties `element`. The box keeps its size either way, so nothing around it
+ * moves when the camera starts or stops.
+ */
+export function createCapturePreview(doc: Document): CapturePreview {
+  const element = doc.createElement("div");
+  element.className = "capture-preview";
+  element.dataset["camera"] = "off";
+  // The picture is for seeing the framing; the live line says the same in words.
+  element.setAttribute("aria-hidden", "true");
+  let video: HTMLVideoElement | null = null;
+  let canvas: HTMLCanvasElement | null = null;
+  let shoulders: readonly [TrackerPoint, TrackerPoint] | null = null;
+  const close = (): void => {
+    if (video !== null) {
+      video.pause();
+      video.srcObject = null;
+    }
+    video = null;
+    canvas = null;
+    shoulders = null;
+    element.replaceChildren();
+    element.dataset["camera"] = "off";
+  };
+  return {
+    element,
+    show(stream) {
+      close();
+      video = doc.createElement("video");
+      video.className = "capture-preview-video";
+      video.muted = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      video.srcObject = stream as MediaStream;
+      canvas = doc.createElement("canvas");
+      canvas.className = "capture-preview-points";
+      element.replaceChildren(video, canvas);
+      element.dataset["camera"] = "on";
+      void video.play().catch(() => undefined);
+    },
+    draw(frame) {
+      if (canvas === null) return;
+      shoulders = previewShoulders(frame, shoulders);
+      // The canvas covers the box; its pixels follow the box's size on screen.
+      const ratio = doc.defaultView?.devicePixelRatio ?? 1;
+      const width = Math.round(canvas.clientWidth * ratio);
+      const height = Math.round(canvas.clientHeight * ratio);
+      if (!(width > 0 && height > 0)) return;
+      if (canvas.width !== width) canvas.width = width;
+      if (canvas.height !== height) canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (context === null) return;
+      drawPreviewShapes(context, previewShapes(frame, shoulders, width, height), width, height);
+    },
+    close,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // The browser environment.
 
 export interface BrowserCaptureOptions {
@@ -644,7 +866,7 @@ async function startWorkerTracker(options: BrowserCaptureOptions, signal?: Abort
 }
 
 async function videoFrames(stream: CameraStream, host: HTMLElement): Promise<FrameSource> {
-  // The video is only a frame source and is never shown: no preview, no picture on screen.
+  // The video is only a frame source and is never shown; a preview (card NG-42) has its own, mirrored video.
   const video = document.createElement("video");
   video.muted = true;
   video.playsInline = true;
@@ -709,6 +931,8 @@ export interface CaptureBridge {
   start(host: HTMLElement, options: CaptureOptions): Promise<CaptureStart>;
   readonly text: typeof CAPTURE_TEXT;
   readonly nextShoulders: typeof nextShoulders;
+  /** A live preview for `start`'s `preview` (card NG-42); absent in an older bridge or a test's. */
+  readonly createPreview?: (doc: Document) => CapturePreview;
 }
 
 export function captureBridge(options: BrowserCaptureOptions = {}): CaptureBridge {
@@ -716,6 +940,7 @@ export function captureBridge(options: BrowserCaptureOptions = {}): CaptureBridg
     start: (host, captureOptions) => startCapture(browserEnvironment(host, options), captureOptions),
     text: CAPTURE_TEXT,
     nextShoulders,
+    createPreview: createCapturePreview,
   };
 }
 
@@ -735,8 +960,9 @@ function element<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, c
 
 /**
  * Shows the capture test in `region` while the address ends in
- * `CAPTURE_ROUTE`: a start button, a live line with 0, 1 or 2 hands, a stop
- * button and a way back to the board. The board is not touched.
+ * `CAPTURE_ROUTE`: a start button, the mirrored camera picture with the
+ * tracked points while the camera runs (card NG-42), a live line with 0, 1 or
+ * 2 hands, a stop button and a way back to the board. The board is not touched.
  */
 export function mountCaptureEntry(doc: Document, region: HTMLElement, options: BrowserCaptureOptions = {}): void {
   /** Ends the current attempt at whatever step it is: tracker loading, permission request, or running. */
@@ -763,6 +989,8 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
     status.setAttribute("role", "status");
     const seen = element(doc, "p", "capture-seen");
     seen.dataset["hands"] = "";
+    /** Holds the preview of the current attempt; empty (and not shown) while the camera is off. */
+    const previewHolder = element(doc, "div", "capture-preview-holder");
     const start = element(doc, "button", "capture-start", CAPTURE_TEXT.start);
     start.type = "button";
     const stopButton = element(doc, "button", "capture-stop", CAPTURE_TEXT.stop);
@@ -794,9 +1022,16 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
       // The pose model runs on every POSE_EVERY-th frame only: the shoulder line holds the last pose
       // result and turns to "not seen" only after SHOULDERS_LOST_AFTER pose results in a row without them.
       let shoulders: ShoulderState = { seen: false, posesWithout: 0 };
+      // The camera's picture with the tracked points (card NG-42); emptied and taken out on every end of this attempt.
+      const preview = createCapturePreview(doc);
+      const dropPreview = (): void => {
+        preview.close();
+        preview.element.remove();
+      };
       const ownCancel = (): void => {
         controller.abort();
         session?.stop();
+        dropPreview();
       };
       cancel = ownCancel;
       const finished = (): void => {
@@ -804,8 +1039,10 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
       };
       start.disabled = true;
       seen.textContent = "";
+      previewHolder.replaceChildren(preview.element);
       void startCapture(browserEnvironment(region, options), {
         signal: controller.signal,
+        preview,
         onStep: (step) => {
           if (mine !== generation || controller.signal.aborted || step === "stopped") return;
           region.dataset["captureStep"] = step;
@@ -822,6 +1059,7 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
       }).then((started) => {
         if (!started.ok) {
           finished();
+          dropPreview();
           if ("problem" in started) idle(CAPTURE_TEXT.problems[started.problem], started.problem);
           else idle(CAPTURE_TEXT.stopped, null);
           return;
@@ -834,6 +1072,7 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
         }
         void started.session.ended.then((end) => {
           finished();
+          dropPreview();
           idle(end.kind === "problem" ? CAPTURE_TEXT.problems[end.problem] : CAPTURE_TEXT.stopped, end.kind === "problem" ? end.problem : null);
         });
       });
@@ -845,7 +1084,7 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
       if (view !== null) view.history.replaceState(null, "", `${view.location.pathname}${view.location.search}`);
       render();
     });
-    region.replaceChildren(heading, intro, start, stopButton, status, seen, back);
+    region.replaceChildren(heading, intro, start, stopButton, status, seen, previewHolder, back);
     region.hidden = false;
   };
   const view = doc.defaultView;

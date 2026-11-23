@@ -11,7 +11,7 @@ import {
 } from "../dist/recognition/tracker-adapter.js";
 import { buildFeatureSequence, HAND_POINTS } from "../dist/recognition/features.js";
 import {
-  CAPTURE_BRIDGE_KEY, CAPTURE_TEXT, POSE_EVERY, captureBridge, SHOULDERS_LOST_AFTER, TRACKER_CACHE_PREFIX, nextShoulders, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
+  CAPTURE_BRIDGE_KEY, CAPTURE_TEXT, HAND_CONNECTIONS, POSE_EVERY, PREVIEW_COLOURS, captureBridge, createCapturePreview, drawPreviewShapes, previewPoint, previewShapes, SHOULDERS_LOST_AFTER, TRACKER_CACHE_PREFIX, nextShoulders, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
 } from "../dist/capture/capture.js";
 import { createTrackerHost } from "../dist/capture/tracker-worker.js";
 
@@ -357,6 +357,7 @@ test("capture bridge: what the caregiver area gets without importing this module
   assert.equal(typeof bridge.start, "function");
   assert.equal(bridge.text, CAPTURE_TEXT);
   assert.equal(bridge.nextShoulders, nextShoulders);
+  assert.equal(bridge.createPreview, createCapturePreview);
 });
 
 test("capture: a tracker that cannot load never asks for the camera", async () => {
@@ -909,4 +910,233 @@ test("live line: the shoulders stay shown between pose results and go only after
   // Unknown whether pose ran (older frames): counted as a pose result.
   assert.equal(nextShoulders(nextShoulders({ seen: true, posesWithout: 0 }, false, undefined), false, undefined).seen, false);
   assert.equal(SHOULDERS_LOST_AFTER, 2);
+});
+
+// ---------------------------------------------------------------------------
+// The live preview (card NG-42): the mirrored picture with the tracked points.
+
+/** A preview sink that records what the capture asks of it. */
+function recordingPreview({ throws = false } = {}) {
+  const log = { shown: [], drawn: [], closed: 0 };
+  const sink = {
+    show(stream) { log.shown.push(stream); if (throws) throw new Error("no video"); },
+    draw(entry) { log.drawn.push(entry); if (throws) throw new Error("no canvas"); },
+    close() { log.closed += 1; },
+  };
+  return { sink, log };
+}
+
+test("preview point: the picture is fitted whole into the box, centred, and flipped left to right", () => {
+  // Same aspect: corners map to the box's corners, x mirrored.
+  assert.deepEqual(previewPoint(0, 0, 640, 480, 400, 300), [400, 0]);
+  assert.deepEqual(previewPoint(1, 1, 640, 480, 400, 300), [0, 300]);
+  assert.deepEqual(previewPoint(0.25, 0.5, 640, 480, 400, 300), [300, 150]);
+  // A 4:3 picture in a square box: bars above and below (object-fit: contain).
+  assert.deepEqual(previewPoint(0, 0, 640, 480, 300, 300), [300, 37.5]);
+  assert.deepEqual(previewPoint(1, 1, 640, 480, 300, 300), [0, 262.5]);
+  // A picture held upright (3:4) in a 4:3 box: bars left and right.
+  assert.deepEqual(previewPoint(0, 0, 480, 640, 400, 300), [312.5, 0]);
+  assert.deepEqual(previewPoint(1, 1, 480, 640, 400, 300), [87.5, 300]);
+  assert.deepEqual(previewPoint(0.5, 0.5, 480, 640, 400, 300), [200, 150]);
+});
+
+test("preview shapes: the child's left hand shows on the left of the mirrored picture in its own colour; no hand draws nothing", () => {
+  // Unflipped: the child's left hand is on the right of the camera picture, labelled "Left".
+  const both = frame(0, [hand(0.7, 0.6, "Left"), hand(0.3, 0.6, "Right")], pose());
+  const shoulders = [{ x: 0.62, y: 0.55 }, { x: 0.38, y: 0.55 }];
+  const shapes = previewShapes(both, shoulders, 400, 300);
+  assert.deepEqual(shapes.hands.map((entry) => entry.side), ["left", "right"]);
+  const [left, right] = shapes.hands;
+  assert.equal(left.points.length, HAND_POINTS);
+  assert.ok(Math.abs(left.points[0][0] - 120) < 1e-9 && Math.abs(left.points[0][1] - 180) < 1e-9, "left wrist at 1 - 0.7 of the width");
+  assert.ok(Math.abs(right.points[0][0] - 280) < 1e-9);
+  assert.ok(left.points[0][0] < right.points[0][0], "as in a mirror: the child's left hand on the left");
+  // The child's left shoulder (pose 11, on the right of the camera picture) is on the left too.
+  assert.ok(Math.abs(shapes.shoulders[0][0] - 152) < 1e-9 && Math.abs(shapes.shoulders[1][0] - 248) < 1e-9);
+  assert.notEqual(PREVIEW_COLOURS.left, PREVIEW_COLOURS.right);
+  // No hand: nothing to draw, not even the shoulders.
+  assert.deepEqual(previewShapes(frame(0, [], pose()), shoulders, 400, 300), { hands: [], shoulders: null });
+  // An unusable hand (not 21 points) is not drawn; a frame of no size draws nothing.
+  assert.deepEqual(previewShapes(frame(0, [{ landmarks: [{ x: 0.5, y: 0.5 }], label: "Left", score: 1 }]), null, 400, 300).hands, []);
+  assert.deepEqual(previewShapes({ ...both, imageWidth: 0 }, null, 400, 300).hands, []);
+  // The bones are 21 pairs of the 21 points.
+  assert.equal(HAND_CONNECTIONS.length, 21);
+  assert.ok(HAND_CONNECTIONS.flat().every((index) => index >= 0 && index < HAND_POINTS));
+});
+
+/** A 2D context that records every call and every property it is given. */
+function recordingContext() {
+  const calls = [];
+  const context = new Proxy({}, {
+    get: (target, name) => (name in target ? target[name] : (...args) => calls.push([name, ...args])),
+    set: (target, name, value) => { target[name] = value; calls.push([`${String(name)}=`, value]); return true; },
+  });
+  return { context, calls };
+}
+
+test("drawing: the canvas is cleared first; hands are drawn in two colours with L and R; without hands it is only cleared", () => {
+  const { context, calls } = recordingContext();
+  const shapes = previewShapes(frame(0, [hand(0.7, 0.6, "Left"), hand(0.3, 0.6, "Right")]), [{ x: 0.62, y: 0.55 }, { x: 0.38, y: 0.55 }], 400, 300);
+  drawPreviewShapes(context, shapes, 400, 300);
+  assert.deepEqual(calls[0], ["clearRect", 0, 0, 400, 300]);
+  const colours = calls.filter(([name]) => name === "strokeStyle=").map(([, value]) => value);
+  assert.ok(colours.includes(PREVIEW_COLOURS.left) && colours.includes(PREVIEW_COLOURS.right) && colours.includes(PREVIEW_COLOURS.shoulders));
+  assert.deepEqual(calls.filter(([name]) => name === "fillText").map(([, text]) => text), ["L", "R"]);
+  // Every bone of both hands and the shoulder line.
+  assert.equal(calls.filter(([name]) => name === "lineTo").length, 2 * HAND_CONNECTIONS.length + 1);
+  const empty = recordingContext();
+  drawPreviewShapes(empty.context, previewShapes(frame(0, []), null, 400, 300), 400, 300);
+  assert.deepEqual(empty.calls, [["clearRect", 0, 0, 400, 300]]);
+});
+
+test("capture with a preview: shown once the camera is open, every tracked frame drawn unchanged, closed when the capture stops", async () => {
+  const { environment, log } = fakeEnvironment();
+  const preview = recordingPreview();
+  const seen = [];
+  const images = [];
+  const detect = environment.startTracker;
+  environment.startTracker = async () => {
+    const tracker = await detect();
+    return { ...tracker, detect: (image, ...rest) => { images.push(image); return tracker.detect(image, ...rest); } };
+  };
+  const started = await startCapture(environment, { record: true, preview: preview.sink, onFrame: (entry) => seen.push(entry) });
+  assert.equal(preview.log.shown.length, 1);
+  assert.equal(typeof preview.log.shown[0].getTracks, "function", "the camera's own stream");
+  await until(() => seen.length >= 6);
+  const frames = started.session.stop();
+  assert.equal(preview.log.closed, 1);
+  // The tracker frames are the same objects, with the same keys, as without a preview; the preview gets those, nothing more.
+  assert.deepEqual(preview.log.drawn, seen.slice(0, preview.log.drawn.length));
+  assert.ok(preview.log.drawn.every((entry, index) => entry === seen[index]));
+  assert.deepEqual(Object.keys(frames[0]).sort(), ["hands", "imageHeight", "imageWidth", "pose", "poseRan", "timestampMs"]);
+  // The tracker still gets the camera's frames as they come (unflipped): the preview takes nothing from them.
+  assert.ok(images.length >= 6 && images.every((image) => typeof image.close === "function" && Object.keys(image).join() === "close"));
+  // No frame is drawn after the end.
+  const drawn = preview.log.drawn.length;
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(preview.log.drawn.length, drawn);
+  started.session.stop();
+  assert.equal(preview.log.closed, 1);
+});
+
+test("capture with a preview: closed on every end (signal, tracker failure, ended camera); never shown when the camera did not open", async () => {
+  const aborted = fakeEnvironment();
+  const byAbort = recordingPreview();
+  const controller = new AbortController();
+  let frames = 0;
+  await startCapture(aborted.environment, { signal: controller.signal, preview: byAbort.sink, onFrame: () => { frames += 1; } });
+  await until(() => frames >= 2);
+  controller.abort();
+  assert.equal(byAbort.log.closed, 1);
+
+  for (const options of [{ detectFails: true }, { framesUntilEnd: 3 }]) {
+    const failing = fakeEnvironment(options);
+    const preview = recordingPreview();
+    const started = await startCapture(failing.environment, { preview: preview.sink });
+    assert.equal((await started.session.ended).kind, "problem");
+    assert.deepEqual([preview.log.shown.length, preview.log.closed], [1, 1], JSON.stringify(options));
+  }
+
+  const denied = fakeEnvironment({ cameraError: "NotAllowedError" });
+  const unseen = recordingPreview();
+  assert.deepEqual(await startCapture(denied.environment, { preview: unseen.sink }), { ok: false, problem: "denied" });
+  const cancelled = fakeEnvironment();
+  cancelled.environment.isVisible = () => false;
+  await startCapture(cancelled.environment, { preview: unseen.sink });
+  assert.deepEqual(unseen.log, { shown: [], drawn: [], closed: 0 });
+});
+
+test("capture with a preview: a failing preview never stops the capture", async () => {
+  const { environment, log } = fakeEnvironment();
+  const preview = recordingPreview({ throws: true });
+  let frames = 0;
+  const started = await startCapture(environment, { preview: preview.sink, onFrame: () => { frames += 1; } });
+  await until(() => frames >= 5);
+  assert.equal(log.tracksStopped, 0);
+  started.session.stop();
+  assert.equal(preview.log.closed, 1);
+});
+
+/** Just enough of a document for the preview: elements with children, a video and a canvas that record what is done to them. */
+function previewDocument({ width = 400, height = 300 } = {}) {
+  const made = { videos: [], canvases: [] };
+  const doc = {
+    defaultView: { devicePixelRatio: 2 },
+    createElement(tag) {
+      const created = {
+        tagName: tag, className: "", dataset: {}, children: [], attributes: {},
+        setAttribute(name, value) { this.attributes[name] = value; },
+        replaceChildren(...nodes) { this.children = nodes; },
+      };
+      if (tag === "video") {
+        Object.assign(created, { paused: true, srcObject: null, play() { this.paused = false; return Promise.resolve(); }, pause() { this.paused = true; } });
+        made.videos.push(created);
+      }
+      if (tag === "canvas") {
+        const drawing = recordingContext();
+        Object.assign(created, { clientWidth: width, clientHeight: height, width: 300, height: 150, calls: drawing.calls, getContext: () => drawing.context });
+        made.canvases.push(created);
+      }
+      return created;
+    },
+  };
+  return { doc, made };
+}
+
+test("browser preview: a mirrored video on the camera's stream and a canvas while it runs; points drawn per frame; emptied when closed", () => {
+  const { doc, made } = previewDocument();
+  const preview = createCapturePreview(doc);
+  assert.equal(preview.element.className, "capture-preview");
+  assert.deepEqual(preview.element.children, []);
+  assert.equal(preview.element.dataset.camera, "off");
+  const stream = { getTracks: () => [] };
+  preview.show(stream);
+  const [video] = made.videos;
+  const [canvas] = made.canvases;
+  assert.deepEqual(preview.element.children, [video, canvas]);
+  assert.equal(preview.element.dataset.camera, "on");
+  assert.equal(video.className, "capture-preview-video", "the class the stylesheet mirrors");
+  assert.equal(video.srcObject, stream);
+  assert.equal(video.muted, true);
+  assert.equal(video.paused, false);
+  // A frame with a hand: the canvas takes the box's size in device pixels, is cleared and drawn on.
+  preview.draw(frame(0, [hand(0.3, 0.6, "Right")], pose()));
+  assert.deepEqual([canvas.width, canvas.height], [800, 600]);
+  assert.deepEqual(canvas.calls[0], ["clearRect", 0, 0, 800, 600]);
+  assert.ok(canvas.calls.some(([name]) => name === "stroke"));
+  // A frame without a pose result keeps the shoulders of the last one.
+  canvas.calls.length = 0;
+  preview.draw({ ...frame(100, [hand(0.3, 0.6, "Right")]), poseRan: false });
+  assert.ok(canvas.calls.some(([name, value]) => name === "strokeStyle=" && value === PREVIEW_COLOURS.shoulders));
+  // No hand: the canvas is only cleared.
+  canvas.calls.length = 0;
+  preview.draw(frame(200, [], pose()));
+  assert.deepEqual(canvas.calls, [["clearRect", 0, 0, 800, 600]]);
+  // Closed: the video lets go of the stream, and the box is empty.
+  preview.close();
+  assert.equal(video.srcObject, null);
+  assert.equal(video.paused, true);
+  assert.deepEqual(preview.element.children, []);
+  assert.equal(preview.element.dataset.camera, "off");
+  canvas.calls.length = 0;
+  preview.draw(frame(300, [hand(0.3, 0.6, "Right")]));
+  assert.deepEqual(canvas.calls, [], "nothing is drawn after the end");
+  // A box with no size yet draws nothing and does not fail.
+  const hidden = previewDocument({ width: 0, height: 0 });
+  const unsized = createCapturePreview(hidden.doc);
+  unsized.show(stream);
+  unsized.draw(frame(0, [hand(0.3, 0.6, "Right")]));
+  assert.deepEqual(hidden.made.canvases[0].calls, []);
+});
+
+test("the stylesheet mirrors only the shown video, keeps the whole picture, and gives the preview boxes a fixed aspect", async () => {
+  const css = await readFile(new URL("styles.css", DIST), "utf8");
+  const rule = (selector) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
+  // Mirrored with the transform property `scale` (the same as scaleX(-1); the board's stylesheet test keeps "transform" for motion only).
+  assert.match(rule(".capture-preview-video"), /object-fit: contain; scale: -1 1;/);
+  // The canvas is not mirrored: the points are mapped with x → 1 − x, so "L" and "R" read the right way round.
+  assert.doesNotMatch(css, /capture-preview-points[^}]*(scale|transform)/);
+  assert.match(rule(".capture-preview-video, .capture-preview-points"), /position: absolute; top: 0; left: 0; width: 100%; height: 100%;/);
+  assert.match(rule(".caregiver-teach-preview"), /aspect-ratio: 4 \/ 3;/);
+  assert.match(rule(".capture-preview-holder"), /aspect-ratio: 4 \/ 3;/);
 });

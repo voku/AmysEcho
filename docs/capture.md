@@ -23,7 +23,8 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
 
 - **Entry.** `index.html#kamera-testen` shows a small German section "Kamera testen" under the
   board: "Kamera starten", a live line "Keine Hand / Eine Hand / Zwei Hände im Bild" plus whether
-  shoulders are seen, "Kamera stoppen", and "Zurück zur Tafel". Without that address the section
+  shoulders are seen, the live preview while the camera runs (below), "Kamera stoppen", and
+  "Zurück zur Tafel". Without that address the section
   stays hidden and empty, so a child on the board never sees it. It is a test entry for caregivers
   and developers. Teaching gestures is in the caregiver area since card NG-19 (below, "Teaching");
   recognising on the board is card NG-20 ([recognise.md](recognise.md)), through the same bridge.
@@ -42,8 +43,9 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   permission is asked: no camera request (loading) or no live track (asking), no video element and
   no worker left.
 - **Nothing is kept or sent.** Each camera frame becomes an `ImageBitmap`, is transferred to the
-  worker and closed there as soon as it is tracked. The `<video>` element is hidden and only a
-  frame source; there is no preview. The camera test keeps no frames at all. A caller that asks
+  worker and closed there as soon as it is tracked. The `<video>` element that feeds the tracker is
+  hidden and only a frame source; the preview (below) is a second element on the same stream and
+  copies no picture. The camera test keeps no frames at all. A caller that asks
   (`record: true`, used by the browser test, or `startRecording` / `stopRecording`, used by
   teaching) gets landmark numbers of one capture in memory, at most `MAX_RECORDED_FRAMES` (600). Leaving the page, hiding it, "Kamera stoppen" and "Zurück zur
   Tafel" stop every camera track and close the tracker.
@@ -56,6 +58,26 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   not match its checksum, a worker that fails to load: `tracker_unavailable`), and a tracker that
   fails while running. Each says the board works without the camera where that is true;
   "Kamera starten" is enabled again (the retry) and "Zurück zur Tafel" is always there.
+- **Live preview** (card NG-42; owner feedback: "hand detected" alone does not show whether the
+  sign is in the picture). In the camera test and in the teaching view
+  ([caregiver.md](caregiver.md)) the caregiver sees the camera's picture while it runs, mirrored
+  like a mirror, with the tracked points over it. `startCapture` takes an optional `preview`
+  (`PreviewSink`: `show(stream)` once the camera is open, `draw(frame)` after `onFrame` with the
+  very tracker frame, `close()` in the capture's one shut-down, so on every end: stop, signal,
+  tracker failure, camera lost). A preview that throws never stops the capture. The browser's
+  preview is `createCapturePreview(document)` (also `createPreview` on the bridge): a box
+  (`.capture-preview`) that holds, while the camera runs, a muted `<video>` on the camera's stream
+  (`.capture-preview-video`: `object-fit: contain`, `scale: -1 1`, the transform property that
+  equals `scaleX(-1)`, written so because the board's stylesheet test keeps the word `transform`
+  for motion; so only the shown video is mirrored; the tracker still gets unflipped frames) and a canvas over it. Per tracked
+  frame the canvas is cleared and, when a hand is seen, each hand is drawn as its 21 points joined
+  by `HAND_CONNECTIONS`, the child's own left hand orange with "L", the right one cyan with "R"
+  (sided by `toLandmarkFrame`, as the live line), and the two shoulders (pose 11 and 12, held
+  between pose results) as a yellow line. Without a hand the canvas is only cleared. Points are
+  placed by `previewPoint(x, y, imageWidth, imageHeight, boxWidth, boxHeight)`: the whole picture
+  fitted and centred in the box (as `contain`), x mirrored to 1 − x; the canvas is not mirrored, so
+  the letters read the right way round. `close` pauses the video, drops the stream and empties the
+  box. Nothing is stored or sent, and no request is made for it.
 - **Tracking.** In a module worker: the hand landmarker with `numHands: 2` on every frame, the pose
   landmarker (lite) on every 5th frame (`POSE_EVERY`) for the shoulders, delegate `CPU`. GPU is an
   option of the code (`delegate: "GPU"`) but not the default: headless Chromium has only a
@@ -73,7 +95,9 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   not import this module: `index.html` loads it on its own so that a failure here cannot stop
   the board. So this module, when a page loads it (there is a `document`), defines
   `globalThis.amysEchoCapture` (`CAPTURE_BRIDGE_KEY`) as `captureBridge()`: `start(host, options)`
-  (`startCapture` with `browserEnvironment(host)`), `CAPTURE_TEXT` and `nextShoulders`. The area
+  (`startCapture` with `browserEnvironment(host)`), `CAPTURE_TEXT`, `nextShoulders` and
+  `createPreview` (card NG-42; optional, an older bridge has none and the area teaches without a
+  picture). The area
   looks for it when "Kamera starten" is tapped, passes the caregiver region as `host` for the
   hidden video element, and stops the capture through the signal and `stop()` on every way out
   ([caregiver.md](caregiver.md), "Teaching a gesture"). Importing the module in Node defines
@@ -206,8 +230,9 @@ should send the same policy as a header (decision record).
    to the board; offline reload: the board starts. No request leaves the origin.
 2. **Camera test with Chromium's fake camera** (a synthetic picture): no camera request before the
    tap; after "Kamera starten" the tracker cache `amysecho-tracker-0.10.35-…` exists, the live line
-   says "Keine Hand im Bild. Schultern nicht zu sehen.", the video element is hidden; after
-   "Kamera stoppen" the camera track is `ended` and the video element is gone; no console error
+   says "Keine Hand im Bild. Schultern nicht zu sehen.", the video element that feeds the tracker
+   is hidden; after "Kamera stoppen" the camera track is `ended` and no video element is left
+   (card NG-42 adds the shown preview video: the test's count of video elements has to follow); no console error
    except the wasm's own "INFO:" start-up lines.
 3. **Leaving while loading or asking**: for "Zurück zur Tafel", clearing the address, a hidden
    page and `pagehide`, each while the tracker download is held back and while the camera request

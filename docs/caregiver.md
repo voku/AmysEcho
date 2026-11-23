@@ -525,10 +525,10 @@ body, like the rewording:
 - the heading "Gebärde für „<label>“ beibringen – Tafel von „<name>“" (it gets the focus);
 - **right under it, the controls, one block that stays in the same place for the whole session**
   (second build of the card: in the first, "Aufnahme starten" moved by up to 240 px between
-  examples, and the live line fell below the window): the live line ("Eine Hand im Bild.
-  Schultern zu sehen.", as in the camera test, [capture.md](capture.md): the only feedback on
-  framing, there is no preview), the camera's line (preparing, asking, a problem, the countdown,
-  or "Die Aufnahme läuft. Jetzt die Gebärde machen."), both with a fixed height, then one button
+  examples, and the live line fell below the window): the box of the camera's preview (card
+  NG-42, below), the live line ("Eine Hand im Bild. Schultern zu sehen.", as in the camera test,
+  [capture.md](capture.md)), the camera's line (preparing, asking, a problem, the countdown, or
+  "Die Aufnahme läuft. Jetzt die Gebärde machen."), both with a fixed height, then one button
   and "Zurück". The button is "Kamera starten"; once the camera runs "Aufnahme starten"; during the
   countdown "Abbrechen"; while recording "Aufnahme beenden"; after a usable recording "Behalten"
   and "Verwerfen";
@@ -565,6 +565,31 @@ body, like the rewording:
 real tracker and camera, card NG-3) through its bridge (below); before that tap nothing is
 requested. While it starts, a second tap does nothing. A problem (refused, no camera, tracker
 download) is said with the capture module's own German sentence, and "Kamera starten" is the retry.
+
+**The camera's picture** (card NG-42; owner: "Sure, it says hand detected, but without a camera
+video it's really difficult to see whether you captured the picture you wanted"). The first thing
+in the controls is a box of fixed aspect (4:3) whose size depends on the window only, never on the
+state: empty and grey while the camera is off, the live picture while it runs. The picture is
+mirrored like a mirror, and the tracked hand points (the child's own left hand orange "L", right
+hand cyan "R") and the shoulders (yellow) are drawn over it on every tracked frame, so the
+caregiver sees whether the sign is in the picture ([capture.md](capture.md), "Live preview"). In
+a window held upright the box is above the live line; in a wide one it is left of the lines and
+the buttons. Its height is `clamp(6rem, 100dvh − 25rem, 22.5rem)` upright and
+`clamp(6rem, 100dvh − 12rem, 22.5rem)` wide (at most half the width), so the block fits in the
+window. Because the box is there in every state, "Kamera starten", "Aufnahme starten",
+"Abbrechen", "Aufnahme beenden" and "Behalten" stay in one place. The bridge's `createPreview`
+makes one preview per camera start; each redraw of the view moves it into the new box in the same
+task as the swap (a video taken out of the page until a later task would be paused). Every way
+that stops the camera (below) closes it: the video lets go of the stream, the box is emptied.
+Measured in Chromium with the fake camera (DGS video), the main button's position in all five
+states:
+
+| Window | Box (CSS px) | Main button (x, y), every state | Off-screen |
+| --- | --- | --- | --- |
+| 360 × 640 | 298 × 224 above | 31, 504 | nothing |
+| 640 × 360 | 224 × 168 left | 268, 243 | nothing |
+| 320 × 480 | 128 × 96 above | 31, 376 | nothing |
+| 820 × 1180 | 480 × 360 above | 31, 606 | nothing |
 
 **Countdown, then recording.** The hand that taps "Aufnahme starten" is in the picture, and rest
 is not trimmed from a gesture (recognition.md), so a phone held in one hand would often give
@@ -627,11 +652,12 @@ countdown or a recording that was not kept is dropped then.
 
 **The bridge.** `src/caregiver.ts` is part of the board's module graph and does not import
 `capture/capture.js`: `index.html` loads that module on its own, so that a failure in it can never
-stop the board. When the page loads it, it leaves `{ start, text, nextShoulders }` under the global
+stop the board. When the page loads it, it leaves `{ start, text, nextShoulders, createPreview }` under the global
 name `amysEchoCapture` (`CAPTURE_BRIDGE_KEY` in both modules; a test compares them), and the area
 looks for it at the tap. Without it the view says "Die Kamera kann hier gerade nicht gestartet
 werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera." The hidden video
-element goes into the caregiver region, which is emptied on closing.
+element goes into the caregiver region, which is emptied on closing; the preview's video is in
+the view's box. A bridge without `createPreview` teaches without a picture.
 
 **Press rules in the view.** Every button of the view is covered by the shield (rule A): a tap
 that lands on "Abbrechen", "Aufnahme beenden" or "Behalten" as it appears does nothing. The live

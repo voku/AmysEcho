@@ -1,14 +1,14 @@
 {
-    "contract_revision": 1,
+    "contract_revision": 2,
     "contract_source": {
         "path": ".agent-loop/contracts/NG-42/contract.json",
-        "sha256": "sha256:8d935d475611cf32d142cc45cba604bc330d00f7ef36d2bebf66a2dee7eb96f1"
+        "sha256": "sha256:5ecac1132e2a4a942513844ddd064ac817be9fe116565e15022e76a1640edce5"
     },
     "kind": "governed_run",
     "learning_root": ".agent-loop/learning",
-    "prepared_at": "2026-11-23T16:15:25+00:00",
-    "run_id": "run:NG-42:2fdc31ea5732ac8c",
+    "prepared_at": "2026-11-23T16:40:01+00:00",
+    "run_id": "run:NG-42:687b23eb37b093eb",
     "schema_version": "1.0",
-    "session_id": "2026-11-23-ng-42-r1-eeaf51b5",
+    "session_id": "2026-11-23-ng-42-r2-b4fdc335",
     "task_id": "NG-42"
 }
