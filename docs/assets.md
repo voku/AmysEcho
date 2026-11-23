@@ -13,8 +13,8 @@ the institution is licensed to use (card NG-8673323346005092805).
 Why:
 
 - **METACOM** (© Annette Kitzinger) is sold as a licence to use. Its terms
-  ([Nutzungsbedingungen](https://metacom-symbole.de/webextra/Nutzungsbedingungen.pdf), checked
-  2026-11-23) allow copying, editing, passing on and publishing only as far as they expressly
+  ([Nutzungsbedingungen](https://metacom-symbole.de/webextra/Nutzungsbedingungen.pdf), version of
+  November 2022 as found on 2026-11-23; read again before relying on this) allow copying, editing, passing on and publishing only as far as they expressly
   say. This repository and the app hosted from it are public, so bundling METACOM would publish the
   symbols. A family with a personal licence, or a kindergarten or school with a Pro licence, may
   use the symbols for their own child; whether a given use is covered is for the licensee to check
@@ -29,26 +29,27 @@ Why:
 
 Every file in `public/icons/` has an entry in `public/icons/licences.json` with what it shows,
 its source and its licence. `test/assets.test.mjs` fails when a file has no entry, when an entry
-names a file that does not exist, or when an entry lacks a source or licence. A new bundled
-picture therefore needs a licence record in the same change. Only licences that allow
-redistribution in a public MIT repository may be added without an owner decision on the card.
+names a file that does not exist, when an entry lacks a source or licence, or when its licence
+file is missing. A new bundled picture therefore needs a licence record in the same change. Only
+MIT pictures may be added without an owner decision; any other licence, even one that allows
+redistribution, needs a decision recorded on card NG-15 and a change of that test.
 
 | Files | Source | Licence |
 | --- | --- | --- |
-| `public/icons/*.svg` | Drawn by hand for this repository | MIT ([LICENSE](../LICENSE)) |
+| `public/icons/*.svg` | Written as SVG markup for this repository | MIT ([LICENSE](../LICENSE)) |
 
 ## Pictures a caregiver imports
 
-Rules for pictures that do not come with the app (the import itself is card
-NG-8673323346005092805):
+Rules for pictures that do not come with the app. The import is card NG-8673323346005092805 and
+is not built yet; these are its requirements:
 
-- They stay on the device, in the profile of the child they were chosen for. The app sends
-  nothing. They leave the device only in a backup the family makes itself.
-- They never enter this repository, a test fixture, an issue, CI or a log. Public fixtures are
+- They must stay on the device, in the profile of the child they were chosen for. The app must send
+  nothing. They may leave the device only in a backup the family makes itself.
+- They must never enter this repository, a test fixture, an issue, CI or a log. Public fixtures are
   synthetic.
 - The family or institution is responsible for having the right to use them (for example a
-  METACOM licence). The caregiver area says so where a picture is chosen.
-- A concept stays usable without its picture: the board falls back to the app's picture or to
+  METACOM licence). The caregiver area must say so where a picture is chosen.
+- A concept must stay usable without its picture: the board must fall back to the app's picture or to
   text.
 - A photo of a child or of anything that identifies a child is personal data of that child, with
   the same retention and deletion rules as the rest of the profile (card NG-7).

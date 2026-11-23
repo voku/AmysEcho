@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";
 
 const iconsDir = new URL("../public/icons/", import.meta.url);
@@ -18,6 +18,8 @@ test("every bundled icon has a source and licence record, and every record names
       assert.equal(typeof entry[field], "string", `${entry.file} has no ${field}`);
       assert.ok(entry[field].trim().length > 0, `${entry.file} has an empty ${field}`);
     }
+    assert.equal(typeof entry.licenceFile, "string", `${entry.file} names no licence file`);
+    await access(new URL(`../${entry.licenceFile}`, import.meta.url));
   }
 });
 

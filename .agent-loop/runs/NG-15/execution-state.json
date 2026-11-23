@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:2373b0fd443e1bfd63e1ce509f8b51ab9107862e",
+    "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
     "contract_revision": 1,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
     "history": [
         {
@@ -125,6 +125,46 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:2e52b155",
                 "summary": "VERIFIED defect: public/icons/licences.json:43 records sprechen.svg as 'Drawn ... (commit 5fd5bfd, 2026-11-22)', but git ls-tree 5fd5bfd public/icons has no sprechen.svg; it was added in 85dcded (NG-30). The machine-checked provenance record the task exists to create is wrong for one file; fix: cite commit 85dcded for sprechen.svg. Second: docs/assets.md:33-34 says any licence that allows redistribution in a public MIT repository may be added without an owner decision, while test/assets.test.mjs:24-25 rejects every non-MIT licence; align the doc sentence with the test (only MIT without an owner decision) or relax the test. Non-blocking: docs/assets.md:50-52 states in present tense that the caregiver area warns and the board falls back, though the import (NG-8673323346005092805) is unbuilt; the test does not check licenceFile. Otherwise acceptance criteria met: assets.md states the 2026-11-23 owner decision, METACOM/ARASAAC reasons and on-device import rules; test/assets.test.mjs:12-15 deepEquals sorted readdir (minus licences.json) to the listed files, so it fails for missing, extra and duplicate entries; README links docs/assets.md and names MIT. Shipping dist/icons/licences.json is harmless: public/sw.js precache list is hand-written and excludes it, scripts/offline-smoke.mjs fetches only sw.js plus that list, and test/bootstrap.test.mjs:217 excludes it from the icons-must-be-precached check.",
+                "task_id": "NG-15",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:07:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:07:39+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0d525061d2c1ddf813fd02ebb5f57f9bad0204dc07d8babcb3c26891ced0caef",
+                    "execution-evidence:sha256:8f3bf8e5700a2b0b9511de88165801fd51484429e5cb3f88372de10ec8384584",
+                    "execution-evidence:sha256:137f60676c45782d3d14a74e5ee4d4b791321bce716b4cdc4d47e02ae41cd050"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0d525061d2c1ddf813fd02ebb5f57f9bad0204dc07d8babcb3c26891ced0caef",
+                    "execution-evidence:sha256:8f3bf8e5700a2b0b9511de88165801fd51484429e5cb3f88372de10ec8384584",
+                    "execution-evidence:sha256:137f60676c45782d3d14a74e5ee4d4b791321bce716b4cdc4d47e02ae41cd050"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "outcome": "completed",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:f6f86019",
+                "summary": "Fixed review findings: sprechen.svg provenance now 85dcded (NG-30); source wording 'Written as SVG markup'; docs/assets.md now says only MIT without an owner decision, matching the test; caregiver-import rules stated as requirements of the unbuilt card; METACOM terms version stated; test checks licenceFile exists. npm run verify passed (620 node tests; browser 4 pass, 2 skipped).",
                 "task_id": "NG-15",
                 "validation_references": []
             }
