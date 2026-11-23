@@ -1,0 +1,15 @@
+{
+    "schema_version": "1.0",
+    "kind": "run_learning_decision",
+    "run_id": "run:NG-18:7f5011adee9b0b31",
+    "decision": "follow_up_required",
+    "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+    "decided_at": "2026-11-23T06:55:20+00:00",
+    "reason": null,
+    "finding_ids": [],
+    "follow_up_ref": "NG-37",
+    "contract_revision": 2,
+    "implementation_snapshot": "sha256:ebeb605afec2261ad20d8ce70b091b7cd71609c278a50fe93a1f3c6e80a49d8a",
+    "validation_evidence_sha256": "sha256:e25d6377df9beadbd5502dcb075b173f6346774fae39a0cfdbbc8dd4e6b0a02f",
+    "review_evidence_sha256": "sha256:b39d43bdb2dd4f8088210e45b833c32a19e8fda3f10cbf3004d3d494b2d84b34"
+}
