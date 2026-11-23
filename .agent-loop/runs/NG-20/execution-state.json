@@ -1,16 +1,8 @@
 {
-    "attention": {
-        "created_at": "2026-11-23T14:35:32+00:00",
-        "id": "attention:a206ae2757cd4068",
-        "kind": "runner_failed",
-        "message": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-20: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-20 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-20:e8e98ad451e8b421 binds active Session 2026-11-23-ng-20-r2-d5d26687 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-20 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[FAIL] npm run verify (exit 1)\nond pass: top1\n    trinken_var_trinken_1.mp4: wrong as oma; second pass: top1\n✔ DGS sign videos through the app's capture and the real matcher (CI subset) (113625.695339ms)\n✖ recognising on the board: DGS videos taught as examples, attempted through the board's own flow; nothing is spoken without 'Ja, sagen' (83922.935099ms)\nℹ tests 6\nℹ suites 0\nℹ pass 5\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 146086.230811\n\n✖ failing tests:\n\ntest at test/browser/recognise.test.mjs:213:1\n✖ recognising on the board: DGS videos taught as examples, attempted through the board's own flow; nothing is spoken without 'Ja, sagen' (83922.935099ms)\n  locator.click: Timeout 30000ms exceeded.\n  Call log:\n  \u001b[2m  - waiting for getByRole('button', { name: 'Stopp' })\u001b[22m\n  \u001b[2m    - locator resolved to <button type=\"button\" aria-label=\"Stopp\" class=\"recognise-action recognise-finish\">…</button>\u001b[22m\n  \u001b[2m  - attempting click action\u001b[22m\n  \u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n  \u001b[2m    - element is not stable\u001b[22m\n  \u001b[2m  - retrying click action\u001b[22m\n  \u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n  \u001b[2m  - element was detached from the DOM, retrying\u001b[22m\n  \n      at attempt (/home/user/AmysEcho/test/browser/recognise.test.mjs:318:67)\n      at async handle (/home/user/AmysEcho/test/browser/recognise.test.mjs:337:22)\n      at async TestContext.<anonymous> (/home/user/AmysEcho/test/browser/recognise.test.mjs:387:66) {\n    name: 'TimeoutError',\n    log: [ \"  - waiting for getByRole('button', { name: 'Stopp' })\", '    - locator resolved to <button type=\"button\" aria-label=\"Stopp\" class=\"recognise-action recognise-finish\">…</button>', '  - attempting click action', '    - waiting for element to be visible, enabled and stable', '    - element is not stable', '  - retrying click action', '    - waiting for element to be visible, enabled and stable', '  - element was detached from the DOM, retrying' ]\n  }",
-        "run_id": "run:NG-20:e8e98ad451e8b421",
-        "stage_id": "verify",
-        "task_id": "NG-20"
-    },
+    "attention": null,
     "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:8d6b200ed67ff54e05f3ba0c5612240aed626b98",
     "contract_revision": 2,
-    "current_attempt": 1,
+    "current_attempt": 2,
     "current_stage_id": "verify",
     "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
     "history": [
@@ -375,7 +367,7 @@
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": null,
+    "last_attention_id": "attention:a206ae2757cd4068",
     "recovery_history": [],
     "run_id": "run:NG-20:e8e98ad451e8b421",
     "schema_version": "1.0",

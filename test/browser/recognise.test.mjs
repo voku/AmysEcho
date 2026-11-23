@@ -314,8 +314,15 @@ test("recognising on the board: DGS videos taught as examples, attempted through
       await page.evaluate((list) => window.__feed(list), frames);
       await page.waitForFunction(({ until }) => window.__camera.tracked >= until
         || document.querySelector("#board-region .recognise")?.dataset.state !== "recording", { until: before + frames.length }, { timeout: 60_000 });
-      const cut = (await panelState()).state !== "recording";
-      if (!cut) await page.getByRole("button", { name: "Stopp" }).click();
+      let cut = (await panelState()).state !== "recording";
+      if (!cut) {
+        // The 5 s limit can end the recording between that check and the click (slow tracking on a busy
+        // machine): the button is then gone, which is a cut, not a failure.
+        await page.getByRole("button", { name: "Stopp" }).click({ timeout: 3_000 }).catch(async (error) => {
+          if ((await panelState())?.state === "recording") throw error;
+          cut = true;
+        });
+      }
       await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state !== "recording", undefined, { timeout: 10_000 });
       const camera = await page.evaluate(() => window.__camera);
       assert.equal(camera.stops, camera.starts, `${name}: the camera is still on after the attempt`);
