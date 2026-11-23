@@ -11,9 +11,9 @@ import {
 } from "../dist/recognition/tracker-adapter.js";
 import { buildFeatureSequence, HAND_POINTS } from "../dist/recognition/features.js";
 import {
-  CAPTURE_TEXT, POSE_EVERY, TRACKER_CACHE_PREFIX, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture,
+  CAPTURE_TEXT, POSE_EVERY, TRACKER_CACHE_PREFIX, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
 } from "../dist/capture/capture.js";
-import { createTrackerHost, trackerFiles } from "../dist/capture/tracker-worker.js";
+import { createTrackerHost } from "../dist/capture/tracker-worker.js";
 
 const DIST = new URL("../dist/", import.meta.url);
 const WIDTH = 640;
@@ -164,7 +164,7 @@ test("handedness flicker: each followed hand keeps the majority label, also when
   assert.ok(single.every((entry) => entry.left === null && entry.right !== null));
 });
 
-test("hands that cross keep their slots, and a ghost hand seen in a single frame is removed", () => {
+test("hands that cross keep their slots; a hand seen in single frames is kept unless asked otherwise", () => {
   // The hands swap sides of the picture over 40 frames.
   const raw = capture(40, (i) => [hand(0.7 - i * 0.01, 0.5, "Left"), hand(0.3 + i * 0.01, 0.5 + 0.002 * i, "Right")]);
   const frames = toLandmarkFrames(raw);
@@ -173,10 +173,19 @@ test("hands that cross keep their slots, and a ghost hand seen in a single frame
   frames.forEach((entry, i) => assert.equal(entry.left[0][0], (0.7 - i * 0.01) * WIDTH));
 
   // A false second hand in one frame next to a still one-hand sign.
-  const ghost = capture(30, (i) => (i === 12 ? [hand(0.4, 0.5, "Right"), hand(0.8, 0.3, "Left", 0.6)] : [hand(0.4, 0.5, "Right")]));
-  assert.equal(MIN_TRACK_FRAMES, 2);
-  assert.ok(toLandmarkFrames(ghost).every((entry) => entry.left === null));
-  assert.equal(toLandmarkFrames(ghost, { minTrackFrames: 1 })[12].left === null, false);
+  // A second hand caught only in single frames more than 500 ms apart (a real hand the tracker keeps losing,
+  // or false detections): it is kept, so the matcher's visit rules decide (here: hands_unclear, no answer).
+  const flicker = capture(45, (i) => ([5, 14, 23, 32, 41].includes(i)
+    ? [hand(0.4, 0.5 + i * 0.002, "Right"), hand(0.75, 0.45, "Left", 0.6)]
+    : [hand(0.4, 0.5 + i * 0.002, "Right")]));
+  assert.equal(MIN_TRACK_FRAMES, 1);
+  const kept = toLandmarkFrames(flicker);
+  assert.deepEqual(kept.flatMap((entry, i) => (entry.left === null ? [] : [i])), [5, 14, 23, 32, 41]);
+  const built = buildFeatureSequence(kept);
+  assert.deepEqual(built, { ok: false, reason: "hands_unclear" });
+  // Removing single-frame hands (possible on request) turns that into a one-hand sequence the matcher would compare.
+  const removed = buildFeatureSequence(toLandmarkFrames(flicker, { minTrackFrames: 2 }));
+  assert.ok(removed.ok && removed.sequence.hands === "right");
 });
 
 test("a hand that leaves and comes back, and a hand that enters during the capture", () => {
@@ -297,6 +306,98 @@ test("capture: a tracker that cannot load never asks for the camera", async () =
   const { environment, log } = fakeEnvironment({ trackerFails: true });
   assert.deepEqual(await startCapture(environment), { ok: false, problem: "tracker_unavailable" });
   assert.equal(log.cameraRequests, 0);
+  for (const [error, problem] of [
+    [new TrackerStartError("tracker_download", "x"), "tracker_download"],
+    [new TypeError("Failed to fetch"), "tracker_download"],
+    [new DOMException("full", "QuotaExceededError"), "tracker_storage"],
+    [new DOMException("stalled", "TimeoutError"), "tracker_timeout"],
+    [new Error("checksum"), "tracker_unavailable"],
+  ]) {
+    assert.equal(trackerProblem(error), problem);
+    const failing = fakeEnvironment();
+    failing.environment.startTracker = async () => { throw error; };
+    assert.deepEqual(await startCapture(failing.environment), { ok: false, problem });
+    assert.equal(failing.log.cameraRequests, 0);
+  }
+});
+
+/** A promise and the function that settles it. */
+function gate() {
+  let open;
+  const opened = new Promise((resolve) => { open = resolve; });
+  return { opened, open };
+}
+
+test("capture: cancelled while the tracker loads, the camera is never requested and the tracker is closed", async () => {
+  const { environment, log } = fakeEnvironment();
+  const loading = gate();
+  const original = environment.startTracker;
+  let sawSignal = null;
+  environment.startTracker = async (signal) => { sawSignal = signal; await loading.opened; return original(); };
+  const controller = new AbortController();
+  const result = startCapture(environment, { signal: controller.signal });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  controller.abort();
+  loading.open();
+  assert.deepEqual(await result, { ok: false, cancelled: true });
+  assert.equal(sawSignal, controller.signal, "the tracker start gets the signal, to stop its download and worker");
+  assert.equal(log.cameraRequests, 0);
+  assert.equal(log.trackerClosed, 1);
+});
+
+test("capture: cancelled while the permission is asked, a camera granted afterwards is stopped at once", async () => {
+  const { environment, log } = fakeEnvironment();
+  const asking = gate();
+  const original = environment.getUserMedia;
+  environment.getUserMedia = async (constraints) => { const stream = await original(constraints); await asking.opened; return stream; };
+  const controller = new AbortController();
+  const steps = [];
+  const result = startCapture(environment, { signal: controller.signal, onStep: (step) => steps.push(step) });
+  await until(() => log.cameraRequests === 1);
+  controller.abort();
+  asking.open();
+  assert.deepEqual(await result, { ok: false, cancelled: true });
+  assert.equal(log.tracksStopped, 1);
+  assert.equal(log.trackerClosed, 1);
+  assert.equal(log.sourceClosed, 0);
+  assert.deepEqual(steps, ["preparing", "asking"]);
+});
+
+test("capture: a hidden page never requests the camera, and a camera granted while hidden is stopped", async () => {
+  const hiddenFirst = fakeEnvironment();
+  hiddenFirst.environment.isVisible = () => false;
+  assert.deepEqual(await startCapture(hiddenFirst.environment), { ok: false, cancelled: true });
+  assert.equal(hiddenFirst.log.cameraRequests, 0);
+
+  const loading = fakeEnvironment();
+  let visible = true;
+  loading.environment.isVisible = () => visible;
+  const original = loading.environment.startTracker;
+  loading.environment.startTracker = async () => { visible = false; return original(); };
+  assert.deepEqual(await startCapture(loading.environment), { ok: false, cancelled: true });
+  assert.equal(loading.log.cameraRequests, 0);
+  assert.equal(loading.log.trackerClosed, 1);
+
+  const asking = fakeEnvironment();
+  visible = true;
+  asking.environment.isVisible = () => visible;
+  const gum = asking.environment.getUserMedia;
+  asking.environment.getUserMedia = async (constraints) => { const stream = await gum(constraints); visible = false; return stream; };
+  assert.deepEqual(await startCapture(asking.environment), { ok: false, cancelled: true });
+  assert.equal(asking.log.tracksStopped, 1);
+  assert.equal(asking.log.trackerClosed, 1);
+});
+
+test("capture: the signal also stops a running capture", async () => {
+  const { environment, log } = fakeEnvironment();
+  const controller = new AbortController();
+  let frames = 0;
+  const started = await startCapture(environment, { signal: controller.signal, onFrame: () => { frames += 1; } });
+  await until(() => frames >= 2);
+  controller.abort();
+  assert.deepEqual(await started.session.ended, { kind: "stopped" });
+  assert.equal(log.tracksStopped, 1);
+  assert.equal(log.trackerClosed, 1);
 });
 
 test("capture: denied, missing and busy cameras are told apart, and the tracker is closed again", async () => {
@@ -327,6 +428,11 @@ test("every user-facing capture text is German and says how to go on", () => {
   }
   assert.match(CAPTURE_TEXT.problems.denied, /Tafel funktioniert auch ohne Kamera/);
   assert.match(CAPTURE_TEXT.problems.no_camera, /Tafel funktioniert auch ohne Kamera/);
+  // Only a failed download speaks of the network; full storage and a stalled download say what they are.
+  assert.match(CAPTURE_TEXT.problems.tracker_download, /Internet/);
+  for (const problem of ["tracker_storage", "tracker_timeout", "tracker_unavailable"]) assert.doesNotMatch(CAPTURE_TEXT.problems[problem], /Internet/);
+  assert.match(CAPTURE_TEXT.problems.tracker_storage, /Speicher/);
+  assert.match(CAPTURE_TEXT.problems.tracker_timeout, /noch einmal/);
   assert.match(CAPTURE_TEXT.intro, /nicht gespeichert und nicht gesendet/);
   assert.equal(CAPTURE_TEXT.back, "Zurück zur Tafel");
 });
@@ -360,21 +466,24 @@ function fakeVision(log) {
 test("tracker worker protocol: init, frames with and without pose, images closed, close", async () => {
   const log = [];
   const replies = [];
-  const files = trackerFiles("https://app.example/echo/capture/tracker-worker.js");
+  const files = trackerFiles("https://app.example/echo/vendor/mediapipe/0.10.35-abc/");
   assert.deepEqual(files, {
-    wasm: "https://app.example/echo/vendor/mediapipe/wasm",
-    handModel: "https://app.example/echo/vendor/mediapipe/models/hand_landmarker.task",
-    poseModel: "https://app.example/echo/vendor/mediapipe/models/pose_landmarker_lite.task",
+    bundle: "https://app.example/echo/vendor/mediapipe/0.10.35-abc/vision_bundle.mjs",
+    wasm: "https://app.example/echo/vendor/mediapipe/0.10.35-abc/wasm",
+    handModel: "https://app.example/echo/vendor/mediapipe/0.10.35-abc/models/hand_landmarker.task",
+    poseModel: "https://app.example/echo/vendor/mediapipe/0.10.35-abc/models/pose_landmarker_lite.task",
   });
-  const handle = createTrackerHost(async () => fakeVision(log), files, (reply) => replies.push(reply));
+  const loaded = [];
+  const handle = createTrackerHost(async (bundle) => { loaded.push(bundle); return fakeVision(log); }, "https://app.example", (reply) => replies.push(reply));
   // A frame before init is an error, and its picture is still closed.
   let closed = 0;
   await handle({ type: "frame", id: 0, image: { close() { closed += 1; } }, timestampMs: 1, pose: false });
   assert.deepEqual(replies.shift(), { type: "error", id: 0, message: "tracker not ready" });
   assert.equal(closed, 1);
 
-  await handle({ type: "init", delegate: "CPU", pose: true });
+  await handle({ type: "init", delegate: "CPU", pose: true, files });
   assert.deepEqual(replies.shift(), { type: "ready" });
+  assert.deepEqual(loaded, [files.bundle]);
   assert.deepEqual(log.slice(0, 3), [
     ["fileset", files.wasm, true],
     ["create", "hand", `${files.wasm}/vision_wasm_module_internal.js`, files.handModel, 2, "VIDEO"],
@@ -399,14 +508,23 @@ test("tracker worker protocol: init, frames with and without pose, images closed
   await handle({ type: "close" });
   assert.deepEqual(replies.shift(), { type: "closed" });
   assert.deepEqual(log.filter((entry) => entry[0] === "close"), [["close", "hand"], ["close", "pose"]]);
-  await handle({ type: "init", delegate: "CPU", pose: false });
+  await handle({ type: "init", delegate: "CPU", pose: false, files });
   assert.equal(replies.shift().type, "error");
+});
+
+test("tracker worker: files from another origin are refused before anything loads", async () => {
+  const replies = [];
+  const loaded = [];
+  const handle = createTrackerHost(async (bundle) => { loaded.push(bundle); return fakeVision([]); }, "https://app.example", (reply) => replies.push(reply));
+  await handle({ type: "init", delegate: "CPU", pose: false, files: { ...trackerFiles("https://app.example/v/"), bundle: "https://cdn.example/vision_bundle.mjs" } });
+  assert.deepEqual(loaded, []);
+  assert.equal(replies[0].type, "error");
 });
 
 test("tracker worker: a failing load is reported, not thrown", async () => {
   const replies = [];
-  const handle = createTrackerHost(async () => { throw new Error("wasm blocked"); }, trackerFiles("https://a.example/capture/tracker-worker.js"), (reply) => replies.push(reply));
-  await handle({ type: "init", delegate: "CPU", pose: false });
+  const handle = createTrackerHost(async () => { throw new Error("wasm blocked"); }, "https://a.example", (reply) => replies.push(reply));
+  await handle({ type: "init", delegate: "CPU", pose: false, files: trackerFiles("https://a.example/vendor/mediapipe/x/") });
   assert.deepEqual(replies, [{ type: "error", id: null, message: "wasm blocked" }]);
 });
 
@@ -429,6 +547,7 @@ function fakeCaches(initial = {}) {
         };
       },
       async keys() { return [...stores.keys()]; },
+      async has(name) { return stores.has(name); },
       async delete(name) { return stores.delete(name); },
     },
   };
@@ -453,42 +572,157 @@ const MANIFEST_URL = `${BASE}manifest.json`;
 const FILE_A = new TextEncoder().encode("bundle");
 const FILE_B = new TextEncoder().encode("model");
 const hex = (bytes) => createHash("sha256").update(bytes).digest("hex");
-const MANIFEST = {
-  package: "@mediapipe/tasks-vision",
-  version: "0.10.35",
-  cache: `${TRACKER_CACHE_PREFIX}0.10.35-abc`,
-  files: [{ path: "vision_bundle.mjs", sha256: hex(FILE_A), bytes: FILE_A.byteLength }, { path: "models/m.task", sha256: hex(FILE_B), bytes: FILE_B.byteLength }],
-};
+function manifestOf(directory, files) {
+  return {
+    package: "@mediapipe/tasks-vision",
+    version: "0.10.35",
+    directory,
+    cache: `${TRACKER_CACHE_PREFIX}${directory}`,
+    files: Object.entries(files).map(([path, bytes]) => ({ path: `${directory}/${path}`, sha256: hex(bytes), bytes: bytes.byteLength })),
+  };
+}
+const MANIFEST = manifestOf("0.10.35-abc", { "vision_bundle.mjs": FILE_A, "models/m.task": FILE_B });
+const URL_A = `${BASE}0.10.35-abc/vision_bundle.mjs`;
+const URL_B = `${BASE}0.10.35-abc/models/m.task`;
 
 test("tracker cache: filled in its own cache, each file checked, the manifest last; older tracker caches removed, board cache kept", async () => {
-  const caches = fakeCaches({ "amysecho-ng-capture-v1": { x: "board" }, [`${TRACKER_CACHE_PREFIX}old`]: { y: "old" } });
-  const network = served({ [MANIFEST_URL]: JSON.stringify(MANIFEST), [`${BASE}vision_bundle.mjs`]: FILE_A, [`${BASE}models/m.task`]: FILE_B });
+  const caches = fakeCaches({ "amysecho-ng-capture-v2": { x: "board" }, [`${TRACKER_CACHE_PREFIX}old`]: { y: "old" } });
+  const network = served({ [MANIFEST_URL]: JSON.stringify(MANIFEST), [URL_A]: FILE_A, [URL_B]: FILE_B });
   let persisted = 0;
   const result = await prepareTrackerFiles(MANIFEST_URL, { caches: caches.api, fetch: network.fetch, sha256, persist: async () => { persisted += 1; return true; } });
-  assert.equal(result, "cached");
+  assert.deepEqual(result, MANIFEST);
   assert.equal(persisted, 1);
-  assert.deepEqual(caches.puts, [[MANIFEST.cache, `${BASE}vision_bundle.mjs`], [MANIFEST.cache, `${BASE}models/m.task`], [MANIFEST.cache, MANIFEST_URL]]);
-  assert.deepEqual([...caches.stores.keys()].sort(), ["amysecho-ng-capture-v1", MANIFEST.cache].sort());
+  assert.deepEqual(caches.puts, [[MANIFEST.cache, URL_A], [MANIFEST.cache, URL_B], [MANIFEST.cache, MANIFEST_URL]]);
+  assert.deepEqual([...caches.stores.keys()].sort(), ["amysecho-ng-capture-v2", MANIFEST.cache].sort());
   // A second start finds the complete cache and downloads nothing but the manifest.
   network.fetched.length = 0;
-  assert.equal(await prepareTrackerFiles(MANIFEST_URL, { caches: caches.api, fetch: network.fetch, sha256 }), "cached");
+  assert.deepEqual(await prepareTrackerFiles(MANIFEST_URL, { caches: caches.api, fetch: network.fetch, sha256 }), MANIFEST);
   assert.deepEqual(network.fetched, [MANIFEST_URL]);
   // Offline, the complete cache from earlier still serves.
   const offline = async () => { throw new TypeError("Failed to fetch"); };
-  assert.equal(await prepareTrackerFiles(MANIFEST_URL, { caches: caches.api, fetch: offline, sha256 }), "cached");
+  assert.deepEqual(await prepareTrackerFiles(MANIFEST_URL, { caches: caches.api, fetch: offline, sha256 }), MANIFEST);
 });
 
-test("tracker cache: a file that does not match its checksum, or a failed download, leaves the cache incomplete and throws", async () => {
+test("tracker cache: a wrong checksum, a failed download, full storage or a stalled download leave the cache incomplete and say which", async () => {
   const caches = fakeCaches();
-  const wrong = served({ [MANIFEST_URL]: JSON.stringify(MANIFEST), [`${BASE}vision_bundle.mjs`]: FILE_A, [`${BASE}models/m.task`]: new TextEncoder().encode("other") });
-  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: caches.api, fetch: wrong.fetch, sha256 }), /does not match its checksum/);
-  assert.ok(!caches.puts.some(([, url]) => url === MANIFEST_URL || url.endsWith("m.task")));
-  const missing = served({ [MANIFEST_URL]: JSON.stringify(MANIFEST), [`${BASE}vision_bundle.mjs`]: FILE_A });
-  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: fakeCaches().api, fetch: missing.fetch, sha256 }), /HTTP 404/);
-  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: fakeCaches().api, fetch: async () => { throw new TypeError("offline"); }, sha256 }), /offline/);
-  assert.equal(await prepareTrackerFiles(MANIFEST_URL, { caches: undefined, fetch: missing.fetch, sha256 }), "no-cache");
+  const wrong = served({ [MANIFEST_URL]: JSON.stringify(MANIFEST), [URL_A]: FILE_A, [URL_B]: new TextEncoder().encode("other") });
+  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: caches.api, fetch: wrong.fetch, sha256 }),
+    (error) => /does not match its checksum/.test(error.message) && trackerProblem(error) === "tracker_unavailable");
+  assert.ok(!caches.puts.some(([, url]) => url === MANIFEST_URL || url === URL_B));
+  const missing = served({ [MANIFEST_URL]: JSON.stringify(MANIFEST), [URL_A]: FILE_A });
+  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: fakeCaches().api, fetch: missing.fetch, sha256 }),
+    (error) => /HTTP 404/.test(error.message) && trackerProblem(error) === "tracker_download");
+  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: fakeCaches().api, fetch: async () => { throw new TypeError("offline"); }, sha256 }),
+    (error) => trackerProblem(error) === "tracker_download");
+  // Without a Cache API the current manifest is returned and nothing is cached.
+  assert.deepEqual(await prepareTrackerFiles(MANIFEST_URL, { caches: undefined, fetch: missing.fetch, sha256 }), MANIFEST);
+  // Full storage.
+  const full = fakeCaches();
+  const realOpen = full.api.open;
+  full.api.open = async (name) => ({ ...(await realOpen(name)), put: async () => { throw new DOMException("quota", "QuotaExceededError"); } });
+  const all = served({ [MANIFEST_URL]: JSON.stringify(MANIFEST), [URL_A]: FILE_A, [URL_B]: FILE_B });
+  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: full.api, fetch: all.fetch, sha256 }), (error) => trackerProblem(error) === "tracker_storage");
+  // A download that stops sending: given up after the stall time, not waited for forever.
+  const stalling = async (url, init) => {
+    if (url === MANIFEST_URL) return new Response(JSON.stringify(MANIFEST));
+    let pull = 0;
+    const body = new ReadableStream({ pull(controller) { if (pull++ === 0) controller.enqueue(new Uint8Array([1])); return new Promise(() => undefined); } });
+    init?.signal?.addEventListener("abort", () => undefined);
+    return new Response(body);
+  };
+  const started = Date.now();
+  await assert.rejects(prepareTrackerFiles(MANIFEST_URL, { caches: fakeCaches().api, fetch: stalling, sha256 }, { stallMs: 50 }),
+    (error) => trackerProblem(error) === "tracker_timeout");
+  assert.ok(Date.now() - started < 2000);
+  // A cancelled download ends with the cancel, not with a problem.
+  const controller = new AbortController();
+  const cancelled = prepareTrackerFiles(MANIFEST_URL, { caches: fakeCaches().api, fetch: stalling, sha256 }, { signal: controller.signal, stallMs: 10_000 });
+  setTimeout(() => controller.abort(new DOMException("cancelled", "AbortError")), 20);
+  await assert.rejects(cancelled, (error) => error.name === "AbortError");
   assert.throws(() => parseTrackerManifest({ ...MANIFEST, cache: "amysecho-ng-x" }), /malformed/);
-  assert.throws(() => parseTrackerManifest({ ...MANIFEST, files: [{ path: "../sw.js", sha256: hex(FILE_A), bytes: 1 }] }), /malformed/);
+  assert.throws(() => parseTrackerManifest({ ...MANIFEST, files: [{ path: "0.10.35-abc/../sw.js", sha256: hex(FILE_A), bytes: 1 }] }), /malformed/);
+  assert.throws(() => parseTrackerManifest({ ...MANIFEST, files: [{ path: "other/vision_bundle.mjs", sha256: hex(FILE_A), bytes: 1 }] }), /malformed/);
+});
+
+/** The built service worker, run against a fake Cache Storage that, like the browser's, matches across all caches. */
+async function serviceWorker(stores, network) {
+  const source = await readFile(new URL("sw.js", DIST), "utf8");
+  const listeners = {};
+  const self = {
+    registration: { scope: "https://app.example/echo/" },
+    location: { origin: "https://app.example" },
+    addEventListener(type, listener) { listeners[type] = listener; },
+  };
+  const strip = (url, options) => { const parsed = new URL(url); if (options?.ignoreSearch) parsed.search = ""; return parsed.href; };
+  const cacheOf = (name) => ({
+    async match(request, options) { const body = stores.get(name).get(strip(request.url ?? request, options)); return body === undefined ? undefined : new Response(body); },
+    async put(url, response) { stores.get(name).set(url, new Uint8Array(await response.arrayBuffer())); },
+  });
+  const caches = {
+    async open(name) { if (!stores.has(name)) stores.set(name, new Map()); return cacheOf(name); },
+    async has(name) { return stores.has(name); },
+    async keys() { return [...stores.keys()]; },
+    async delete(name) { return stores.delete(name); },
+    async match(request, options) {
+      for (const name of stores.keys()) { const found = await cacheOf(name).match(request, options); if (found !== undefined) return found; }
+      return undefined;
+    },
+  };
+  new Function("self", "caches", "fetch", source)(self, caches, network);
+  const fetchThrough = async (url, init) => {
+    let response;
+    listeners.fetch({ request: new Request(url, init), respondWith(promise) { response = promise; } });
+    return response ?? network(new Request(url, init));
+  };
+  return { caches, fetchThrough };
+}
+
+test("tracker update: a new build over a complete cache of the old one gets its own files, works at once, and the old cache goes", async () => {
+  const oldBytes = new TextEncoder().encode("bundle v1");
+  const newBytes = new TextEncoder().encode("bundle v2");
+  const oldManifest = manifestOf("0.10.35-old", { "vision_bundle.mjs": oldBytes });
+  const newManifest = manifestOf("0.10.35-new", { "vision_bundle.mjs": newBytes });
+  const stores = new Map([[oldManifest.cache, new Map([
+    [`${BASE}0.10.35-old/vision_bundle.mjs`, oldBytes],
+    [MANIFEST_URL, new TextEncoder().encode(JSON.stringify(oldManifest))],
+  ])]]);
+  const server = { [MANIFEST_URL]: JSON.stringify(newManifest), [`${BASE}0.10.35-new/vision_bundle.mjs`]: newBytes };
+  const requests = [];
+  const network = async (request) => {
+    const url = request.url ?? request;
+    requests.push(url);
+    return url in server ? new Response(server[url]) : new Response("", { status: 404 });
+  };
+  const { caches, fetchThrough } = await serviceWorker(stores, network);
+  const ready = await prepareTrackerFiles(MANIFEST_URL, { caches, fetch: fetchThrough, sha256 });
+  assert.deepEqual(ready, newManifest);
+  assert.deepEqual([...stores.keys()], [newManifest.cache], "the old tracker cache is still there");
+  assert.ok(requests.includes(`${BASE}0.10.35-new/vision_bundle.mjs`));
+  // The worker's request for the new file is answered from the new cache.
+  requests.length = 0;
+  const served = await fetchThrough(`${BASE}0.10.35-new/vision_bundle.mjs`);
+  assert.equal(await served.text(), "bundle v2");
+  assert.deepEqual(requests, []);
+  // A second start needs only the manifest.
+  assert.deepEqual(await prepareTrackerFiles(MANIFEST_URL, { caches, fetch: fetchThrough, sha256 }), newManifest);
+  assert.deepEqual(requests, [MANIFEST_URL]);
+});
+
+test("the service worker answers a tracker file only from the cache its path names, never from another", async () => {
+  const stores = new Map([
+    // A stale copy under the new URL in another tracker cache, and one in a board cache: neither may answer.
+    [`${TRACKER_CACHE_PREFIX}0.10.35-old`, new Map([[`${BASE}0.10.35-new/vision_bundle.mjs`, new TextEncoder().encode("stale")]])],
+    ["amysecho-ng-capture-v2", new Map([[`${BASE}0.10.35-new/wasm/loader.js`, new TextEncoder().encode("stale")]])],
+    [`${TRACKER_CACHE_PREFIX}0.10.35-new`, new Map([[`${BASE}0.10.35-new/wasm/loader.js`, new TextEncoder().encode("loader")]])],
+  ]);
+  const network = async (request) => new Response(`network ${new URL(request.url ?? request).pathname}`);
+  const { fetchThrough } = await serviceWorker(stores, network);
+  assert.equal(await (await fetchThrough(`${BASE}0.10.35-new/vision_bundle.mjs`)).text(), "network /echo/vendor/mediapipe/0.10.35-new/vision_bundle.mjs");
+  // The second URL of the wasm loader is found without its query, in the right cache.
+  assert.equal(await (await fetchThrough(`${BASE}0.10.35-new/wasm/loader.js?task=pose`)).text(), "loader");
+  // A directory without a cache goes to the network and creates no cache.
+  assert.equal(await (await fetchThrough(`${BASE}0.10.35-gone/x.task`)).text(), "network /echo/vendor/mediapipe/0.10.35-gone/x.task");
+  assert.ok(!stores.has(`${TRACKER_CACHE_PREFIX}0.10.35-gone`));
 });
 
 // ---------------------------------------------------------------------------
@@ -503,10 +737,15 @@ test("the built tracker: pinned 0.10.35 files with their checksums, the one wasm
   const manifest = parseTrackerManifest(JSON.parse(await readFile(new URL("vendor/mediapipe/manifest.json", DIST), "utf8")));
   assert.equal(manifest.package, "@mediapipe/tasks-vision");
   assert.equal(manifest.version, "0.10.35");
+  // Every file sits in a directory named after the contents of all of them, and the cache is named the same.
+  assert.match(manifest.directory, /^0\.10\.35-[0-9a-f]{16}$/);
+  assert.equal(manifest.cache, `${TRACKER_CACHE_PREFIX}${manifest.directory}`);
   assert.deepEqual(manifest.files.map((file) => file.path), [
     "vision_bundle.mjs", "wasm/vision_wasm_module_internal.js", "wasm/vision_wasm_module_internal.wasm",
     "models/hand_landmarker.task", "models/pose_landmarker_lite.task",
-  ]);
+  ].map((path) => `${manifest.directory}/${path}`));
+  const digest = createHash("sha256").update(manifest.files.map((file) => `${file.path.slice(manifest.directory.length + 1)} ${file.sha256}`).join("\n")).digest("hex").slice(0, 16);
+  assert.equal(manifest.directory, `0.10.35-${digest}`);
   for (const file of manifest.files) {
     const bytes = await readFile(new URL(`vendor/mediapipe/${file.path}`, DIST));
     assert.equal(bytes.byteLength, file.bytes, file.path);
@@ -552,7 +791,8 @@ test("the vendored tracker names no network host except documentation links, and
   // The check itself catches what 1.x ships.
   assert.match('fetch("https://odml.pa.googleapis.com/v1/log",{method:"POST"})', FORBIDDEN);
   // The bundle of 0.10.35 names no URL at all.
-  assert.equal(/https?:\/\//.test(await readFile(new URL("vision_bundle.mjs", vendor), "utf8")), false);
+  const { directory } = JSON.parse(await readFile(new URL("manifest.json", vendor), "utf8"));
+  assert.equal(/https?:\/\//.test(await readFile(new URL(`${directory}/vision_bundle.mjs`, vendor), "utf8")), false);
 });
 
 test("the service worker keeps the tracker out of the board's install and never deletes the tracker cache", async () => {
@@ -570,7 +810,7 @@ test("the service worker keeps the tracker out of the board's install and never 
   const matched = [];
   const caches = {
     open: async () => ({ addAll: async (requests) => { added.push(...requests.map((request) => request.url)); } }),
-    keys: async () => ["amysecho-ng-caregiver-ux-v6", "amysecho-ng-capture-v1", `${TRACKER_CACHE_PREFIX}0.10.35-abc`, "other-app"],
+    keys: async () => ["amysecho-ng-capture-v1", "amysecho-ng-capture-v2", `${TRACKER_CACHE_PREFIX}0.10.35-abc`, "other-app"],
     delete: async (name) => { deleted.push(name); return true; },
     match: async (request, options) => { matched.push([request.url, options]); return new Response("cached"); },
   };
@@ -582,15 +822,10 @@ test("the service worker keeps the tracker out of the board's install and never 
   assert.ok(!added.some((url) => url.includes("/vendor/")), "tracker files in the board's pre-cache");
   listeners.activate({ waitUntil(promise) { pending = promise; } });
   await pending;
-  assert.deepEqual(deleted, ["amysecho-ng-caregiver-ux-v6"]);
-  // The wasm loader under its second URL is found without the query; app files are matched exactly.
-  for (const url of ["https://app.example/echo/vendor/mediapipe/wasm/vision_wasm_module_internal.js?task=pose", "https://app.example/echo/board.js"]) {
-    let response;
-    listeners.fetch({ request: new Request(url), respondWith(promise) { response = promise; } });
-    await response;
-  }
-  assert.deepEqual(matched, [
-    ["https://app.example/echo/vendor/mediapipe/wasm/vision_wasm_module_internal.js?task=pose", { ignoreSearch: true }],
-    ["https://app.example/echo/board.js", undefined],
-  ]);
+  assert.deepEqual(deleted, ["amysecho-ng-capture-v1"]);
+  // App files are matched in all caches, exactly (tracker files: the test above).
+  let response;
+  listeners.fetch({ request: new Request("https://app.example/echo/board.js"), respondWith(promise) { response = promise; } });
+  await response;
+  assert.deepEqual(matched, [["https://app.example/echo/board.js", undefined]]);
 });

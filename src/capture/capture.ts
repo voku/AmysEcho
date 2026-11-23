@@ -12,18 +12,22 @@
  *   checked here on the first start, never by the board's install.
  */
 import { frameSummary, type TrackerFrame, type TrackerHand, type TrackerPoint } from "../recognition/tracker-adapter.js";
-import type { Delegate, TrackerReply, TrackerRequest } from "./tracker-worker.js";
+import type { Delegate, TrackerFiles, TrackerReply, TrackerRequest } from "./tracker-worker.js";
 
 /** Pose (for the shoulders) runs on every this many frames; the matcher takes the median shoulders of a capture. */
 export const POSE_EVERY = 5;
 /** A recording keeps at most this many frames, the newest; about a minute at 10 frames per second. */
 export const MAX_RECORDED_FRAMES = 600;
-/** How long the tracker may take to load and start. */
+/** How long the tracker worker may take to start once its files are there. */
 export const TRACKER_START_TIMEOUT_MS = 60_000;
+/** A tracker download that receives nothing for this long is given up ("tracker_timeout"); the next tap tries again. */
+export const TRACKER_STALL_MS = 30_000;
 /** Cache names of the tracker files start with this; the board's service worker never deletes them. */
 export const TRACKER_CACHE_PREFIX = "amysecho-tracker-";
 
-export type CaptureProblem = "denied" | "no_camera" | "busy" | "unsupported" | "tracker_unavailable" | "tracker_failed";
+export type CaptureProblem =
+  | "denied" | "no_camera" | "busy" | "unsupported"
+  | "tracker_download" | "tracker_storage" | "tracker_timeout" | "tracker_unavailable" | "tracker_failed";
 export type CaptureStep = "preparing" | "asking" | "running" | "stopped";
 
 /** All user-facing text of the capture path. German, as everything the child and caregiver see. */
@@ -44,7 +48,10 @@ export const CAPTURE_TEXT = {
     no_camera: "Es wurde keine Kamera gefunden. Die Tafel funktioniert auch ohne Kamera.",
     busy: "Die Kamera kann gerade nicht starten. Vielleicht benutzt eine andere App sie. Bitte die andere App schließen und noch einmal versuchen.",
     unsupported: "Dieser Browser kann die Kamera hier nicht benutzen. Die Tafel funktioniert auch ohne Kamera.",
-    tracker_unavailable: "Die Handerkennung konnte nicht geladen werden. Beim ersten Mal braucht sie Internet (etwa 25 MB). Die Tafel funktioniert auch ohne.",
+    tracker_download: "Die Handerkennung konnte nicht geladen werden. Beim ersten Mal braucht sie Internet (etwa 25 MB). Bitte mit Internet noch einmal auf „Kamera starten“ tippen. Die Tafel funktioniert auch ohne.",
+    tracker_storage: "Auf diesem Gerät ist nicht genug Speicher frei für die Handerkennung (etwa 25 MB). Bitte Speicher freigeben und noch einmal versuchen. Die Tafel funktioniert auch ohne.",
+    tracker_timeout: "Die Handerkennung lädt nicht weiter. Bitte noch einmal auf „Kamera starten“ tippen. Die Tafel funktioniert auch ohne.",
+    tracker_unavailable: "Die Handerkennung konnte nicht gestartet werden. Die Tafel funktioniert auch ohne.",
     tracker_failed: "Die Handerkennung ist ausgefallen. Die Kamera ist aus.",
   } satisfies Record<CaptureProblem, string>,
 } as const;
@@ -67,6 +74,31 @@ export function cameraProblem(error: unknown): CaptureProblem {
       return "busy";
     default:
       return "unsupported";
+  }
+}
+
+export type TrackerProblem = "tracker_download" | "tracker_storage" | "tracker_timeout" | "tracker_unavailable";
+
+/** A tracker start that failed for a reason the person can act on. */
+export class TrackerStartError extends Error {
+  constructor(readonly problem: TrackerProblem, message: string) {
+    super(message);
+  }
+}
+
+/** What a failed tracker start means: no network, no storage, a stalled download, or anything else. */
+export function trackerProblem(error: unknown): TrackerProblem {
+  if (error instanceof TrackerStartError) return error.problem;
+  switch ((error as { name?: unknown } | null)?.name) {
+    case "QuotaExceededError":
+      return "tracker_storage";
+    case "TimeoutError":
+      return "tracker_timeout";
+    case "TypeError": // fetch without a network
+    case "NetworkError":
+      return "tracker_download";
+    default:
+      return "tracker_unavailable";
   }
 }
 
@@ -100,9 +132,12 @@ export interface TrackerClient {
 
 /** What capture needs from the browser; a test passes fakes. */
 export interface CaptureEnvironment {
-  startTracker(): Promise<TrackerClient>;
+  /** Loads and starts the tracker; `signal` cancels the download and ends a worker that is starting. */
+  startTracker(signal?: AbortSignal): Promise<TrackerClient>;
   getUserMedia(constraints: MediaStreamConstraints): Promise<CameraStream>;
   openFrames(stream: CameraStream): Promise<FrameSource>;
+  /** False while the page is not visible. The camera is never requested then. */
+  isVisible?(): boolean;
 }
 
 export interface CaptureOptions {
@@ -112,6 +147,12 @@ export interface CaptureOptions {
   readonly onStep?: (step: CaptureStep) => void;
   /** Every tracked frame, as it arrives. */
   readonly onFrame?: (frame: TrackerFrame) => void;
+  /**
+   * Cancels the start at any step (tracker loading, permission request,
+   * camera opening) and stops a running capture. A camera obtained after the
+   * cancel is stopped at once.
+   */
+  readonly signal?: AbortSignal;
 }
 
 export type CaptureEnd = { readonly kind: "stopped" } | { readonly kind: "problem"; readonly problem: CaptureProblem };
@@ -125,7 +166,9 @@ export interface CaptureSession {
 
 export type CaptureStart =
   | { readonly ok: true; readonly session: CaptureSession }
-  | { readonly ok: false; readonly problem: CaptureProblem };
+  | { readonly ok: false; readonly problem: CaptureProblem }
+  /** Cancelled by `signal`, or the page was hidden before the camera was requested or opened. */
+  | { readonly ok: false; readonly cancelled: true };
 
 export const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
   audio: false,
@@ -134,15 +177,27 @@ export const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
 
 /**
  * Starts a capture: first the tracker (so that a tracker that cannot load
- * never costs a camera prompt), then the camera, then the frame loop.
+ * never costs a camera prompt), then the camera, then the frame loop. Before
+ * the camera is requested, and again when it was granted and when it is open,
+ * the start gives up if it was cancelled or the page is not visible; a camera
+ * granted after that is stopped at once.
  */
 export async function startCapture(environment: CaptureEnvironment, options: CaptureOptions = {}): Promise<CaptureStart> {
+  const signal = options.signal;
+  const cancelled = { ok: false, cancelled: true } as const;
+  const givenUp = (): boolean => signal?.aborted === true || environment.isVisible?.() === false;
+  if (givenUp()) return cancelled;
   options.onStep?.("preparing");
   let tracker: TrackerClient;
   try {
-    tracker = await environment.startTracker();
-  } catch {
-    return { ok: false, problem: "tracker_unavailable" };
+    tracker = await environment.startTracker(signal);
+  } catch (error) {
+    if (signal?.aborted === true) return cancelled;
+    return { ok: false, problem: trackerProblem(error) };
+  }
+  if (givenUp()) {
+    tracker.close();
+    return cancelled;
   }
   options.onStep?.("asking");
   let stream: CameraStream;
@@ -150,15 +205,29 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
     stream = await environment.getUserMedia(CAMERA_CONSTRAINTS);
   } catch (error) {
     tracker.close();
+    if (signal?.aborted === true) return cancelled;
     return { ok: false, problem: cameraProblem(error) };
+  }
+  const release = (): void => {
+    for (const track of stream.getTracks()) track.stop();
+    tracker.close();
+  };
+  if (givenUp()) {
+    release();
+    return cancelled;
   }
   let source: FrameSource;
   try {
     source = await environment.openFrames(stream);
   } catch {
-    for (const track of stream.getTracks()) track.stop();
-    tracker.close();
+    release();
+    if (signal?.aborted === true) return cancelled;
     return { ok: false, problem: "busy" };
+  }
+  if (givenUp()) {
+    source.close();
+    release();
+    return cancelled;
   }
 
   const limit = Math.max(1, options.maxRecordedFrames ?? MAX_RECORDED_FRAMES);
@@ -179,6 +248,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
     return frames;
   };
 
+  signal?.addEventListener("abort", () => shutDown({ kind: "stopped" }), { once: true });
   options.onStep?.("running");
   void (async () => {
     let index = 0;
@@ -233,19 +303,23 @@ function closeImage(image: unknown): void {
 export interface TrackerManifest {
   readonly package: string;
   readonly version: string;
-  /** Name of the cache that holds exactly these files; starts with `TRACKER_CACHE_PREFIX`. */
+  /** Directory of this build's files below `vendor/mediapipe/`, named after their contents ("<version>-<digest>"). */
+  readonly directory: string;
+  /** Name of the cache that holds exactly these files: `TRACKER_CACHE_PREFIX` + `directory`. */
   readonly cache: string;
   readonly files: readonly { readonly path: string; readonly sha256: string; readonly bytes: number }[];
 }
 
 export function parseTrackerManifest(value: unknown): TrackerManifest {
   const manifest = value as Partial<TrackerManifest> | null;
-  if (manifest === null || typeof manifest !== "object" || typeof manifest.cache !== "string"
-    || !manifest.cache.startsWith(TRACKER_CACHE_PREFIX) || !Array.isArray(manifest.files) || manifest.files.length === 0) {
+  if (manifest === null || typeof manifest !== "object" || typeof manifest.directory !== "string"
+    || !/^[a-z0-9._-]+$/i.test(manifest.directory) || manifest.directory.startsWith(".")
+    || manifest.cache !== TRACKER_CACHE_PREFIX + manifest.directory || !Array.isArray(manifest.files) || manifest.files.length === 0) {
     throw new Error("tracker manifest is malformed");
   }
   for (const file of manifest.files) {
     if (typeof file?.path !== "string" || !/^[a-z0-9_./-]+$/i.test(file.path) || file.path.includes("..")
+      || !file.path.startsWith(`${manifest.directory}/`)
       || typeof file.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(file.sha256) || !Number.isInteger(file.bytes)) {
       throw new Error("tracker manifest entry is malformed");
     }
@@ -271,31 +345,123 @@ export interface TrackerFileEnvironment {
   readonly persist?: () => Promise<boolean>;
 }
 
-/**
- * Makes sure the tracker cache holds every file of the manifest, each checked
- * against its sha256 before it is put in, and then the manifest itself, which
- * marks the cache complete. Older tracker caches are removed afterwards.
- * Returns "cached", or "no-cache" where the browser has no Cache API (the
- * tracker then loads from the network). Throws when a file cannot be fetched
- * or does not match; the board is not affected either way.
- */
-export async function prepareTrackerFiles(manifestUrl: string, environment: TrackerFileEnvironment): Promise<"cached" | "no-cache"> {
-  if (environment.caches === undefined) return "no-cache";
-  let manifestResponse: Response;
+export interface TrackerFileOptions {
+  readonly signal?: AbortSignal;
+  /** Give a download up when nothing arrives for this long (default `TRACKER_STALL_MS`). */
+  readonly stallMs?: number;
+}
+
+function never<T>(signal: AbortSignal | undefined): Promise<T> {
+  const waiting = new Promise<T>((_, reject) => {
+    if (signal === undefined) return;
+    if (signal.aborted) reject(signal.reason);
+    else signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+  });
+  waiting.catch(() => undefined);
+  return waiting;
+}
+
+/** Fetches one file; gives up when nothing arrives for `stallMs` (TimeoutError) or `signal` aborts. */
+async function download(environment: TrackerFileEnvironment, url: string, options: TrackerFileOptions): Promise<{ bytes: ArrayBuffer; type: string | null }> {
+  const stallMs = options.stallMs ?? TRACKER_STALL_MS;
+  const controller = new AbortController();
+  const forward = (): void => controller.abort(options.signal?.reason);
+  options.signal?.addEventListener("abort", forward, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stall: (error: Error) => void = () => undefined;
+  const stalled = new Promise<never>((_, reject) => { stall = reject; });
+  stalled.catch(() => undefined);
+  const arm = (): void => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const error = new DOMException(`tracker download stalled: ${url}`, "TimeoutError");
+      controller.abort(error);
+      stall(error);
+    }, stallMs);
+  };
+  const cancelled = never<never>(options.signal);
+  const guarded = <T>(promise: Promise<T>): Promise<T> => Promise.race([promise, stalled, cancelled]);
   try {
-    manifestResponse = await environment.fetch(manifestUrl, { cache: "no-cache" });
-    if (!manifestResponse.ok) throw new Error(`HTTP ${manifestResponse.status}`);
-  } catch (error) {
-    // Offline and not controlled by the service worker: a complete cache from earlier still works.
-    for (const name of await environment.caches.keys()) {
-      if (!name.startsWith(TRACKER_CACHE_PREFIX)) continue;
-      const cached = await (await environment.caches.open(name)).match(manifestUrl);
-      if (cached !== undefined) return "cached";
+    arm();
+    const response = await guarded(environment.fetch(url, { cache: "no-cache", signal: controller.signal }));
+    if (!response.ok) throw new TrackerStartError("tracker_download", `${url}: HTTP ${response.status}`);
+    const type = response.headers.get("content-type");
+    if (response.body === null) return { bytes: await guarded(response.arrayBuffer()), type };
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+    try {
+      for (;;) {
+        arm();
+        const { done, value } = await guarded(reader.read());
+        if (done) break;
+        chunks.push(value);
+        length += value.byteLength;
+      }
+    } catch (error) {
+      void reader.cancel().catch(() => undefined);
+      throw error;
     }
-    throw error;
+    const bytes = new Uint8Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return { bytes: bytes.buffer, type };
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener("abort", forward);
   }
-  const manifestBytes = await manifestResponse.arrayBuffer();
-  const manifest = parseTrackerManifest(JSON.parse(new TextDecoder().decode(manifestBytes)));
+}
+
+/** The manifest of a complete tracker cache (one that holds its manifest), or null. */
+async function cachedManifest(manifestUrl: string, caches: CacheStorageLike): Promise<TrackerManifest | null> {
+  for (const name of await caches.keys()) {
+    if (!name.startsWith(TRACKER_CACHE_PREFIX)) continue;
+    const cached = await (await caches.open(name)).match(manifestUrl);
+    if (cached === undefined) continue;
+    try {
+      const manifest = parseTrackerManifest(await cached.json());
+      if (manifest.cache === name) return manifest;
+    } catch {
+      // A damaged manifest does not make a cache complete.
+    }
+  }
+  return null;
+}
+
+/**
+ * Makes sure the cache named in the current manifest holds every file of it,
+ * each checked against its size and sha256 before it is put in, and then the
+ * manifest itself, which marks the cache complete. The files of each build
+ * have their own URLs (`<version>-<digest>/...`), so an older cache can never
+ * stand in for a newer file. Once the current cache is complete, every other
+ * tracker cache is deleted. Offline, a complete cache from earlier is used.
+ * Returns the manifest whose files are ready (without a Cache API: the current
+ * one, loaded from the network). Throws a `TrackerStartError`, a
+ * `QuotaExceededError` (storage full), a `TimeoutError` (stalled download) or
+ * the abort reason; the board is not affected either way.
+ */
+export async function prepareTrackerFiles(manifestUrl: string, environment: TrackerFileEnvironment, options: TrackerFileOptions = {}): Promise<TrackerManifest> {
+  let manifestBytes: ArrayBuffer;
+  try {
+    manifestBytes = (await download(environment, manifestUrl, options)).bytes;
+  } catch (error) {
+    if (options.signal?.aborted === true) throw options.signal.reason;
+    const earlier = environment.caches === undefined ? null : await cachedManifest(manifestUrl, environment.caches);
+    if (earlier !== null) return earlier;
+    throw error instanceof TrackerStartError || (error as { name?: unknown } | null)?.name === "TimeoutError"
+      ? error
+      : new TrackerStartError("tracker_download", `${manifestUrl}: ${String((error as Error)?.message ?? error)}`);
+  }
+  let manifest: TrackerManifest;
+  try {
+    manifest = parseTrackerManifest(JSON.parse(new TextDecoder().decode(manifestBytes)));
+  } catch (error) {
+    throw new TrackerStartError("tracker_unavailable", String((error as Error)?.message ?? error));
+  }
+  if (environment.caches === undefined) return manifest;
   const cache = await environment.caches.open(manifest.cache);
   if (await cache.match(manifestUrl) === undefined) {
     // The tracker files are large; ask the browser not to evict them under storage pressure.
@@ -303,21 +469,36 @@ export async function prepareTrackerFiles(manifestUrl: string, environment: Trac
     for (const file of manifest.files) {
       const url = new URL(file.path, manifestUrl).href;
       if (await cache.match(url) !== undefined) continue;
-      const response = await environment.fetch(url, { cache: "no-cache" });
-      if (!response.ok) throw new Error(`tracker file ${file.path}: HTTP ${response.status}`);
-      const bytes = await response.arrayBuffer();
-      if (bytes.byteLength !== file.bytes || await environment.sha256(bytes) !== file.sha256) {
-        throw new Error(`tracker file ${file.path} does not match its checksum`);
+      let fetched: { bytes: ArrayBuffer; type: string | null };
+      try {
+        fetched = await download(environment, url, options);
+      } catch (error) {
+        if (options.signal?.aborted === true) throw options.signal.reason;
+        if (error instanceof TrackerStartError || (error as { name?: unknown } | null)?.name === "TimeoutError") throw error;
+        throw new TrackerStartError("tracker_download", `${url}: ${String((error as Error)?.message ?? error)}`);
       }
-      const type = response.headers.get("content-type");
-      await cache.put(url, new Response(bytes, type === null ? {} : { headers: { "content-type": type } }));
+      if (fetched.bytes.byteLength !== file.bytes || await environment.sha256(fetched.bytes) !== file.sha256) {
+        throw new TrackerStartError("tracker_unavailable", `tracker file ${file.path} does not match its checksum`);
+      }
+      // A full storage throws QuotaExceededError here ("tracker_storage").
+      await cache.put(url, new Response(fetched.bytes, fetched.type === null ? {} : { headers: { "content-type": fetched.type } }));
     }
     await cache.put(manifestUrl, new Response(manifestBytes, { headers: { "content-type": "application/json" } }));
   }
   for (const name of await environment.caches.keys()) {
     if (name.startsWith(TRACKER_CACHE_PREFIX) && name !== manifest.cache) await environment.caches.delete(name);
   }
-  return "cached";
+  return manifest;
+}
+
+/** The tracker files of one build, in its directory `vendor/mediapipe/<version>-<digest>/` (a URL ending in "/"). */
+export function trackerFiles(directory: string): TrackerFiles {
+  return {
+    bundle: new URL("vision_bundle.mjs", directory).href,
+    wasm: new URL("wasm", directory).href,
+    handModel: new URL("models/hand_landmarker.task", directory).href,
+    poseModel: new URL("models/pose_landmarker_lite.task", directory).href,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -373,35 +554,45 @@ function workerTracker(worker: Worker): TrackerClient {
   };
 }
 
-async function startWorkerTracker(options: BrowserCaptureOptions): Promise<TrackerClient> {
+async function startWorkerTracker(options: BrowserCaptureOptions, signal?: AbortSignal): Promise<TrackerClient> {
   const manifestUrl = new URL("../vendor/mediapipe/manifest.json", import.meta.url).href;
-  await prepareTrackerFiles(manifestUrl, {
+  const manifest = await prepareTrackerFiles(manifestUrl, {
     caches: typeof caches === "undefined" ? undefined : caches,
     fetch: (url, init) => fetch(url, init),
     sha256: async (bytes) => hex(await crypto.subtle.digest("SHA-256", bytes)),
     persist: async () => (await navigator.storage?.persist?.()) ?? false,
-  });
+  }, signal === undefined ? {} : { signal });
+  if (signal?.aborted === true) throw signal.reason;
   const worker = new Worker(new URL("./tracker-worker.js", import.meta.url), { type: "module" });
   await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("tracker start timed out")), TRACKER_START_TIMEOUT_MS);
-    const done = (error: Error | null): void => {
+    const timer = setTimeout(() => done(new DOMException("tracker start timed out", "TimeoutError")), TRACKER_START_TIMEOUT_MS);
+    const onAbort = (): void => done(signal?.reason ?? new DOMException("cancelled", "AbortError"));
+    const done = (error: unknown): void => {
       clearTimeout(timer);
       worker.removeEventListener("message", onMessage);
       worker.removeEventListener("error", onError);
+      signal?.removeEventListener("abort", onAbort);
       if (error === null) resolve();
       else {
+        // A cancelled or failed start leaves no worker behind.
         worker.terminate();
         reject(error);
       }
     };
     const onMessage = (event: MessageEvent<TrackerReply>): void => {
       if (event.data.type === "ready") done(null);
-      else if (event.data.type === "error") done(new Error(event.data.message));
+      else if (event.data.type === "error") done(new TrackerStartError("tracker_unavailable", event.data.message));
     };
-    const onError = (): void => done(new Error("tracker worker failed to load"));
+    const onError = (): void => done(new TrackerStartError("tracker_unavailable", "tracker worker failed to load"));
     worker.addEventListener("message", onMessage);
     worker.addEventListener("error", onError);
-    worker.postMessage({ type: "init", delegate: options.delegate ?? "CPU", pose: options.pose ?? true } satisfies TrackerRequest);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    worker.postMessage({
+      type: "init",
+      delegate: options.delegate ?? "CPU",
+      pose: options.pose ?? true,
+      files: trackerFiles(new URL(`${manifest.directory}/`, manifestUrl).href),
+    } satisfies TrackerRequest);
   });
   return workerTracker(worker);
 }
@@ -443,7 +634,7 @@ async function videoFrames(stream: CameraStream, host: HTMLElement): Promise<Fra
 /** The real browser: camera through `getUserMedia`, tracker in `tracker-worker.js`. `host` receives the hidden video element. */
 export function browserEnvironment(host: HTMLElement, options: BrowserCaptureOptions = {}): CaptureEnvironment {
   return {
-    startTracker: () => startWorkerTracker(options),
+    startTracker: (signal) => startWorkerTracker(options, signal),
     getUserMedia: async (constraints) => {
       if (typeof navigator === "undefined" || navigator.mediaDevices?.getUserMedia === undefined) {
         throw Object.assign(new Error("no getUserMedia"), { name: "NotSupportedError" });
@@ -451,6 +642,7 @@ export function browserEnvironment(host: HTMLElement, options: BrowserCaptureOpt
       return navigator.mediaDevices.getUserMedia(constraints);
     },
     openFrames: (stream) => videoFrames(stream, host),
+    isVisible: () => typeof document === "undefined" || document.visibilityState === "visible",
   };
 }
 
@@ -473,18 +665,22 @@ function element<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, c
  * button and a way back to the board. The board is not touched.
  */
 export function mountCaptureEntry(doc: Document, region: HTMLElement, options: BrowserCaptureOptions = {}): void {
-  let session: CaptureSession | null = null;
-  let attempt = 0;
+  /** Ends the current attempt at whatever step it is: tracker loading, permission request, or running. */
+  let cancel: (() => void) | null = null;
+  let generation = 0;
   const stop = (): void => {
-    attempt += 1;
-    session?.stop();
-    session = null;
+    const current = cancel;
+    cancel = null;
+    current?.();
   };
   const render = (): void => {
     stop();
+    const mine = ++generation;
     if (doc.defaultView?.location.hash !== CAPTURE_ROUTE) {
       region.replaceChildren();
       region.hidden = true;
+      delete region.dataset["captureStep"];
+      delete region.dataset["captureProblem"];
       return;
     }
     const heading = element(doc, "h2", "capture-title", CAPTURE_TEXT.title);
@@ -501,55 +697,69 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
     const back = element(doc, "button", "capture-back", CAPTURE_TEXT.back);
     back.type = "button";
     const show = (text: string, problem: CaptureProblem | null): void => {
+      if (mine !== generation) return;
       status.textContent = text;
       if (problem === null) delete region.dataset["captureProblem"];
       else region.dataset["captureProblem"] = problem;
     };
+    /** Back to the start state, with `text`. Also the retry: "Kamera starten" works again. */
+    const idle = (text: string, problem: CaptureProblem | null): void => {
+      if (mine !== generation) return;
+      region.dataset["captureStep"] = "stopped";
+      start.hidden = false;
+      start.disabled = false;
+      stopButton.hidden = true;
+      seen.textContent = "";
+      seen.dataset["hands"] = "";
+      show(text, problem);
+    };
     start.addEventListener("click", () => {
-      if (session !== null) return;
-      const mine = ++attempt;
+      if (cancel !== null) return;
+      const controller = new AbortController();
+      let session: CaptureSession | null = null;
+      const ownCancel = (): void => {
+        controller.abort();
+        session?.stop();
+      };
+      cancel = ownCancel;
+      const finished = (): void => {
+        if (cancel === ownCancel) cancel = null;
+      };
       start.disabled = true;
       seen.textContent = "";
       void startCapture(browserEnvironment(region, options), {
+        signal: controller.signal,
         onStep: (step) => {
-          if (mine !== attempt) return;
+          if (mine !== generation || controller.signal.aborted || step === "stopped") return;
           region.dataset["captureStep"] = step;
-          if (step !== "stopped") show(CAPTURE_TEXT[step], null);
+          show(CAPTURE_TEXT[step], null);
         },
         onFrame: (frame) => {
-          if (mine !== attempt) return;
+          if (mine !== generation || controller.signal.aborted) return;
           const summary = frameSummary(frame);
           seen.dataset["hands"] = String(summary.hands);
           seen.textContent = `${CAPTURE_TEXT.hands[summary.hands]} ${CAPTURE_TEXT.shoulders[summary.shoulders ? 1 : 0]}`;
         },
       }).then((started) => {
-        if (mine !== attempt) {
-          if (started.ok) started.session.stop();
-          return;
-        }
         if (!started.ok) {
-          start.disabled = false;
-          show(CAPTURE_TEXT.problems[started.problem], started.problem);
+          finished();
+          if ("problem" in started) idle(CAPTURE_TEXT.problems[started.problem], started.problem);
+          else idle(CAPTURE_TEXT.stopped, null);
           return;
         }
         session = started.session;
-        start.hidden = true;
-        stopButton.hidden = false;
+        if (controller.signal.aborted) session.stop();
+        else {
+          start.hidden = true;
+          stopButton.hidden = false;
+        }
         void started.session.ended.then((end) => {
-          if (mine !== attempt && end.kind === "stopped") return;
-          session = null;
-          start.hidden = false;
-          start.disabled = false;
-          stopButton.hidden = true;
-          seen.textContent = "";
-          seen.dataset["hands"] = "";
-          show(end.kind === "problem" ? CAPTURE_TEXT.problems[end.problem] : CAPTURE_TEXT.stopped, end.kind === "problem" ? end.problem : null);
+          finished();
+          idle(end.kind === "problem" ? CAPTURE_TEXT.problems[end.problem] : CAPTURE_TEXT.stopped, end.kind === "problem" ? end.problem : null);
         });
       });
     });
-    stopButton.addEventListener("click", () => {
-      session?.stop();
-    });
+    stopButton.addEventListener("click", stop);
     back.addEventListener("click", () => {
       stop();
       const view = doc.defaultView;
@@ -561,11 +771,13 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
   };
   const view = doc.defaultView;
   view?.addEventListener("hashchange", render);
-  // The camera never runs in the background: hiding the page ends the capture.
+  // The camera never runs in the background and never starts there: hiding
+  // the page ends the attempt at any step, also while the tracker loads or
+  // the permission is asked.
   doc.addEventListener("visibilitychange", () => {
-    if (doc.visibilityState === "hidden") session?.stop();
+    if (doc.visibilityState !== "visible") stop();
   });
-  view?.addEventListener("pagehide", () => session?.stop());
+  view?.addEventListener("pagehide", stop);
   render();
 }
 

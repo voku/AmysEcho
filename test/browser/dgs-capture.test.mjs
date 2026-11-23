@@ -152,7 +152,7 @@ test("the board never requests the camera or the tracker, and starts offline whe
     await page.goto(new URL("./#kamera-testen", origin).href);
     await page.getByRole("button", { name: "Kamera starten" }).click();
     await page.waitForFunction(() => document.querySelector("#capture-region")?.dataset.captureProblem !== undefined);
-    assert.equal(await page.locator("#capture-region").getAttribute("data-capture-problem"), "tracker_unavailable");
+    assert.equal(await page.locator("#capture-region").getAttribute("data-capture-problem"), "tracker_download");
     assert.match(await page.locator("#capture-region [role=status]").textContent(), /Handerkennung konnte nicht geladen werden/);
     assert.equal(await page.evaluate(() => window.__cameraRequests), 0, "the camera was requested although the tracker failed");
     assert.ok(!(await page.evaluate(() => caches.keys())).some((name) => name.startsWith("amysecho-tracker-")),
@@ -194,6 +194,85 @@ test("the camera test: a tap starts the camera, the live line shows the hands, s
     assert.deepEqual(foreign, []);
     // The wasm writes its own start-up lines ("INFO: Created TensorFlow Lite XNNPACK delegate") to the error console.
     assert.deepEqual(errors.filter((text) => !/^INFO: /.test(text)), []);
+  } finally {
+    await browser.close();
+  }
+});
+
+/** Holds the camera request until the page calls `window.__releaseCamera()`, as a permission prompt does. */
+function holdCameraRequests() {
+  window.__cameraRequests = 0;
+  window.__cameraStreams = [];
+  let release;
+  const released = new Promise((resolve) => { release = resolve; });
+  window.__releaseCamera = () => release();
+  const devices = navigator.mediaDevices;
+  const original = devices.getUserMedia.bind(devices);
+  devices.getUserMedia = async (constraints) => {
+    window.__cameraRequests += 1;
+    await released;
+    const stream = await original(constraints);
+    window.__cameraStreams.push(stream);
+    return stream;
+  };
+}
+
+const LEAVE = {
+  back: (page) => page.getByRole("button", { name: "Zurück zur Tafel" }).click(),
+  "hash cleared": (page) => page.evaluate(() => { location.hash = ""; }),
+  hidden: (page) => page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { get: () => "hidden", configurable: true });
+    Object.defineProperty(document, "hidden", { get: () => true, configurable: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }),
+  pagehide: (page) => page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: false }))),
+};
+
+test("leaving while the tracker loads or the permission is asked: no camera request, or the camera stopped at once, and no worker left", async () => {
+  const browser = await chromium.launch({ args: [...FAKE_CAMERA, `--use-file-for-fake-video-capture=${syntheticCamera}`] });
+  try {
+    for (const step of ["preparing", "asking"]) {
+      for (const [how, leave] of Object.entries(LEAVE)) {
+        const label = `${how} while ${step}`;
+        let releaseDownload = () => undefined;
+        const downloadHeld = new Promise((resolve) => { releaseDownload = resolve; });
+        const { context, page, foreign } = await openApp(browser, origin, "./#kamera-testen", {
+          initScript: step === "asking" ? holdCameraRequests : countCameraRequests,
+        });
+        if (step === "preparing") {
+          // Tracker files (not the manifest) wait until released: the start stays in "preparing".
+          await context.route(/\/vendor\/mediapipe\/[^/]+\//, async (route) => {
+            await downloadHeld;
+            await route.continue().catch(() => undefined);
+          });
+        }
+        await boardStarted(page);
+        await page.getByRole("button", { name: "Kamera starten" }).click();
+        if (step === "preparing") {
+          await page.waitForFunction(() => document.querySelector("#capture-region")?.dataset.captureStep === "preparing");
+        } else {
+          await page.waitForFunction(() => window.__cameraRequests === 1, undefined, { timeout: 60_000 });
+        }
+        await leave(page);
+        releaseDownload();
+        if (step === "asking") await page.evaluate(() => window.__releaseCamera());
+        // Long enough for a start that was not cancelled to reach the camera, and for a closed worker to end.
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        const state = await page.evaluate(() => ({
+          requests: window.__cameraRequests,
+          live: window.__cameraStreams.flatMap((stream) => stream.getTracks()).filter((track) => track.readyState === "live").length,
+          step: document.querySelector("#capture-region")?.dataset.captureStep ?? null,
+          videos: document.querySelectorAll("video").length,
+        }));
+        assert.equal(state.requests, step === "asking" ? 1 : 0, `${label}: camera requests`);
+        assert.equal(state.live, 0, `${label}: a camera is running`);
+        assert.notEqual(state.step, "running", label);
+        assert.equal(state.videos, 0, `${label}: a video element is left`);
+        assert.equal(page.workers().length, 0, `${label}: a tracker worker is left`);
+        assert.deepEqual(foreign, []);
+        await context.close();
+      }
+    }
   } finally {
     await browser.close();
   }

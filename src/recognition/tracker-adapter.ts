@@ -76,19 +76,21 @@ export interface AdapterOptions {
 
 export interface CaptureAdapterOptions extends AdapterOptions {
   /**
-   * A followed hand seen in fewer frames than this is a tracking ghost and is
-   * removed (default 2: a hand that appears in one single frame). A single
-   * false frame of a second hand otherwise makes a still one-hand sign
-   * `hands_unclear` (docs/recognition.md, "Follow-ups for the UI and the
-   * camera task"). 1 keeps everything.
+   * A followed hand seen in fewer frames than this is removed. Default 1:
+   * nothing is removed. A hand seen only in single frames may be a false
+   * detection, but it may also be a real second hand that the tracker keeps
+   * losing; removing it can turn the matcher's `hands_unclear` (safe: no
+   * answer) into a one-hand match or `too_far`. Kept, the matcher's own visit
+   * rules decide, as they were designed and evaluated to (docs/capture.md,
+   * "Ghost hands").
    */
   readonly minTrackFrames?: number;
 }
 
 export const POSE_LEFT_SHOULDER = 11;
 export const POSE_RIGHT_SHOULDER = 12;
-/** Default for `minTrackFrames`. */
-export const MIN_TRACK_FRAMES = 2;
+/** Default for `minTrackFrames`: keep every sighting. */
+export const MIN_TRACK_FRAMES = 1;
 /** A followed hand not seen for longer than this ends; the matcher does not bridge longer gaps either. */
 export const MAX_TRACK_GAP_MS = MAX_BRIDGED_GAP_MS;
 /**
@@ -227,7 +229,7 @@ function pairHands(open: readonly Track[], hands: readonly { points: Point[] }[]
  * A whole capture to matcher frames: timestamps from the first frame, pixels,
  * one side per followed hand (score-weighted label majority; of two hands seen
  * at the same time the one seen longer chooses first, the other takes the
- * other side), ghosts of fewer than `minTrackFrames` frames removed.
+ * other side); followed hands of fewer than `minTrackFrames` frames removed (none by default).
  */
 export function toLandmarkFrames(capture: readonly TrackerFrame[], options: CaptureAdapterOptions = {}): LandmarkFrame[] {
   const mirrored = options.inputMirrored ?? false;

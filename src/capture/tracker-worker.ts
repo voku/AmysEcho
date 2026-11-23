@@ -2,7 +2,9 @@
  * The hand tracker in a module worker (card NG-3, docs/capture.md).
  *
  * Runs MediaPipe Tasks Vision 0.10.35 from the app's own origin
- * (`vendor/mediapipe/`, filled by `scripts/assemble.mjs`): the hand landmarker
+ * (`vendor/mediapipe/<version>-<digest>/`, filled by `scripts/assemble.mjs`;
+ * the page names the files in `init`, and only files of this origin are
+ * loaded): the hand landmarker
  * with two hands on every frame, the pose landmarker (for the shoulders) only
  * on the frames the page asks for. Each frame arrives as an `ImageBitmap`, is
  * tracked and closed at once; only landmark numbers go back. Nothing is
@@ -16,7 +18,7 @@ import type { TrackerHand, TrackerPoint } from "../recognition/tracker-adapter.j
 export type Delegate = "CPU" | "GPU";
 
 export type TrackerRequest =
-  | { readonly type: "init"; readonly delegate: Delegate; readonly pose: boolean }
+  | { readonly type: "init"; readonly delegate: Delegate; readonly pose: boolean; readonly files: TrackerFiles }
   | { readonly type: "frame"; readonly id: number; readonly image: unknown; readonly timestampMs: number; readonly pose: boolean }
   | { readonly type: "close" };
 
@@ -51,19 +53,12 @@ export interface VisionModule {
 }
 
 export interface TrackerFiles {
+  /** The tasks-vision bundle. */
+  readonly bundle: string;
   /** Directory of the wasm loader and binary. */
   readonly wasm: string;
   readonly handModel: string;
   readonly poseModel: string;
-}
-
-/** The files under `vendor/mediapipe/`, relative to this module. */
-export function trackerFiles(base: string): TrackerFiles {
-  return {
-    wasm: new URL("../vendor/mediapipe/wasm", base).href,
-    handModel: new URL("../vendor/mediapipe/models/hand_landmarker.task", base).href,
-    poseModel: new URL("../vendor/mediapipe/models/pose_landmarker_lite.task", base).href,
-  };
 }
 
 function closeImage(image: unknown): void {
@@ -82,8 +77,8 @@ function plainPoints(points: readonly TrackerPoint[]): TrackerPoint[] {
  * be driven in Node with a fake vision module. `post` sends a reply.
  */
 export function createTrackerHost(
-  loadVision: () => Promise<VisionModule>,
-  files: TrackerFiles,
+  loadVision: (bundle: string) => Promise<VisionModule>,
+  origin: string,
   post: (reply: TrackerReply) => void,
 ): (request: TrackerRequest) => Promise<void> {
   let hands: Landmarker | null = null;
@@ -105,7 +100,11 @@ export function createTrackerHost(
     if (request.type === "init") {
       try {
         if (closed || hands !== null) throw new Error("tracker already started or closed");
-        const vision = await loadVision();
+        const files = request.files;
+        for (const url of [files.bundle, files.wasm, files.handModel, files.poseModel]) {
+          if (new URL(url).origin !== origin) throw new Error("tracker files must come from the app's own origin");
+        }
+        const vision = await loadVision(files.bundle);
         // In a module worker the wasm loader is an ES module, evaluated once
         // per URL, and the bundle clears the factory it publishes after the
         // first task: a second task needs the loader under a second URL
@@ -166,10 +165,9 @@ interface WorkerScope {
 const scope = globalThis as unknown as Partial<WorkerScope> & { WorkerGlobalScope?: unknown; document?: unknown };
 if (typeof scope.WorkerGlobalScope === "function" && scope.document === undefined && typeof scope.postMessage === "function") {
   const worker = scope as WorkerScope;
-  const bundle = new URL("../vendor/mediapipe/vision_bundle.mjs", import.meta.url).href;
   const handle = createTrackerHost(
-    async () => (await import(bundle)) as VisionModule,
-    trackerFiles(import.meta.url),
+    async (bundle) => (await import(bundle)) as VisionModule,
+    new URL(import.meta.url).origin,
     (reply) => worker.postMessage(reply),
   );
   // Requests are handled one after the other, in the order they arrive.

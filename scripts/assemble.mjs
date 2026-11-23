@@ -15,7 +15,7 @@ await cp(
  * URL. Every file is checked against the sha256 below; a mismatch fails the
  * build. The models are kept in node_modules/.cache/ so that a rebuild does
  * not download them again. The browser never contacts any of these hosts:
- * it gets the files from the app's own origin (dist/vendor/mediapipe/).
+ * it gets the files from the app's own origin (dist/vendor/mediapipe/<version>-<digest>/).
  *
  * Whoever changes the version repeats the network check of the decision
  * record (docs/tracker-decision.md, "Metrics upload in 1.x") and the host
@@ -80,19 +80,26 @@ if (installed.version !== VERSION) {
   throw new Error(`assemble: ${PACKAGE} ${installed.version} is installed, the app is pinned to ${VERSION}; run npm ci --ignore-scripts`);
 }
 
-await rm(vendor, { recursive: true, force: true });
-await mkdir(new URL("wasm/", vendor), { recursive: true });
-await mkdir(new URL("models/", vendor), { recursive: true });
-const files = [];
+const contents = [];
 for (const file of PACKAGE_FILES) {
-  const bytes = checked(await readFile(new URL(file.from, packageDir)), file.sha256, `${PACKAGE}/${file.from}`);
-  await writeFile(new URL(file.path, vendor), bytes);
-  files.push({ path: file.path, sha256: file.sha256, bytes: bytes.byteLength });
+  contents.push({ path: file.path, sha256: file.sha256, bytes: checked(await readFile(new URL(file.from, packageDir)), file.sha256, `${PACKAGE}/${file.from}`) });
 }
-for (const entry of MODELS) {
-  const bytes = await model(entry);
-  await writeFile(new URL(entry.path, vendor), bytes);
-  files.push({ path: entry.path, sha256: entry.sha256, bytes: bytes.byteLength });
+for (const entry of MODELS) contents.push({ path: entry.path, sha256: entry.sha256, bytes: await model(entry) });
+
+// The files live in a directory named after their contents, and the cache that
+// holds them carries the same name (TRACKER_CACHE_PREFIX + directory). When any
+// file changes, every URL changes: an old cache can never answer for a new
+// file, and the service worker answers a tracker request only from the cache
+// named in its path (public/sw.js).
+const digest = sha256(contents.map((file) => `${file.path} ${file.sha256}`).join("\n")).slice(0, 16);
+const directory = `${VERSION}-${digest}`;
+await rm(vendor, { recursive: true, force: true });
+const files = [];
+for (const file of contents) {
+  const target = new URL(`${directory}/${file.path}`, vendor);
+  await mkdir(new URL("./", target), { recursive: true });
+  await writeFile(target, file.bytes);
+  files.push({ path: `${directory}/${file.path}`, sha256: file.sha256, bytes: file.bytes.byteLength });
 }
 
 // The package ships no licence file of its own; its package.json says Apache-2.0.
@@ -114,11 +121,10 @@ await writeFile(new URL("NOTICE.txt", vendor), [
   "",
 ].join("\n"));
 
-// The cache name changes whenever any file changes, so a new build fills a new cache.
-const digest = sha256(files.map((file) => `${file.path} ${file.sha256}`).join("\n")).slice(0, 16);
 await writeFile(new URL("manifest.json", vendor), `${JSON.stringify({
   package: PACKAGE,
   version: VERSION,
-  cache: `amysecho-tracker-${VERSION}-${digest}`,
+  directory,
+  cache: `amysecho-tracker-${directory}`,
   files,
 }, null, 2)}\n`);
