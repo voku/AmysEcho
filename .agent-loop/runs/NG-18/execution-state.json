@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
     "contract_revision": 2,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
     "history": [
         {
@@ -227,6 +227,38 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:1:71e34151",
                 "summary": "A caregiver's moving hand in view for half the capture or more is held at its first and last position outside its visit and makes a one-hand sign speak a two-hand concept: old 0, new 14 to 31 percent wrong. Old recorded the hand as missing outside its visit.",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:49:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:49:51+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "context_id": "build-r2-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "completed",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:371f58f5",
+                "summary": "Seventh build: outside a hand's visit it is encoded as missing as in 70bf62b; caregiver-reach rows added at 0 wrong; full earlier probe set unchanged with no row above old; 476 tests pass",
                 "task_id": "NG-18",
                 "validation_references": []
             }
