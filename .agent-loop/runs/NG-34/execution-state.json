@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+    "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
     "history": [
         {
@@ -33,6 +33,54 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:6399c01d",
                 "summary": "caregiver.ts: editableIds limits move/remove to catalogue; 'Weitere Begriffe' lists catalogue only; putCustomConcept/removeCustomConcept/listCustomConcepts exist in board-data.ts; listCustomConcepts.unreadableIds has no damage kind; examples.deleteExamples exists to drop taught gestures of a deleted concept; mixed-board tests in test/caregiver.test.mjs assert custom concepts are locked and will change.",
+                "task_id": "NG-34",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:15:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:15:34+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:31348540e15a437c43a536a0bf90f959d57d5eb105f96e6617df4aacc6254c7e",
+                    "execution-evidence:sha256:d2ab3b10e01228decf15f1e84a5c2950e1341df589bb57d262da2f2a15535f6e",
+                    "execution-evidence:sha256:e232b3269abe7aec81ef1d0597e9a00714e2f46432156e49eb6795b1933b9b49",
+                    "execution-evidence:sha256:0b7b1327925e6ea3262c065e1fd773877980284356a6b610040dcbafcbfbc744",
+                    "execution-evidence:sha256:1be2bc21a00499997e85e1fa14dfc31a0acc5fe03e8f0d3d0670b8dd606f67e7",
+                    "execution-evidence:sha256:f00b1e34f985ff70ff1b7fa432c3ba2970199f02f2c62e6dc2ea03fee7608224",
+                    "execution-evidence:sha256:b2306053d8f72318de955f991c4a5090ead9dd4540413f630a9aca200e0c4bf0"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "schema_version": "1.0",
+                "task_id": "NG-34",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:31348540e15a437c43a536a0bf90f959d57d5eb105f96e6617df4aacc6254c7e",
+                    "execution-evidence:sha256:d2ab3b10e01228decf15f1e84a5c2950e1341df589bb57d262da2f2a15535f6e",
+                    "execution-evidence:sha256:e232b3269abe7aec81ef1d0597e9a00714e2f46432156e49eb6795b1933b9b49",
+                    "execution-evidence:sha256:0b7b1327925e6ea3262c065e1fd773877980284356a6b610040dcbafcbfbc744",
+                    "execution-evidence:sha256:1be2bc21a00499997e85e1fa14dfc31a0acc5fe03e8f0d3d0670b8dd606f67e7",
+                    "execution-evidence:sha256:f00b1e34f985ff70ff1b7fa432c3ba2970199f02f2c62e6dc2ea03fee7608224",
+                    "execution-evidence:sha256:b2306053d8f72318de955f991c4a5090ead9dd4540413f630a9aca200e0c4bf0"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "outcome": "completed",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:e152755d",
+                "summary": "Own concepts: 'Eigenen Begriff anlegen' (takeover form, generated eigen-<8hex> id, putCustomConcept then setBoardConcepts, cap checked before writing); own concepts editable (move, remove, undo) except under a catalogue id; list 'Eigene Begriffe, nicht auf der Tafel' with Hinzufügen and Endgültig löschen (hold confirmation, deletes examples then concept); listCustomConcepts reports damage kind. Docs caregiver.md, storage.md, README. npm run verify passed: 628 node tests, browser 4 pass 2 skipped.",
                 "task_id": "NG-34",
                 "validation_references": []
             }
