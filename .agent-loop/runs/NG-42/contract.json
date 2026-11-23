@@ -1,0 +1,43 @@
+{
+    "acceptance_criteria": [
+        "The teach view and the camera test show the live camera picture while the camera runs, mirrored like a mirror, in a fixed-size area that does not move the controls",
+        "The detected hand points and the shoulders are drawn over the picture for each tracked frame, on the correct side of the mirrored picture",
+        "Nothing is stored or sent; the frames given to the tracker are unchanged and stay unflipped; the preview stops and is removed with the camera",
+        "Layout stays within the window at 360x640 and 640x360 with the preview shown"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-23T16:40:00+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "6963b5be29a4a23599dc6ed8712b9fbccbfb88d5",
+    "behavior_anchors": [],
+    "created_at": "2026-11-23T16:40:00+00:00",
+    "goal": "While teaching and in the camera test, the caregiver sees the live camera picture with the detected hands drawn on it.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 2,
+    "schema_version": "1.0",
+    "scope": [
+        "src/capture/capture.ts",
+        "src/caregiver.ts",
+        "public/styles.css",
+        "test/capture.test.mjs",
+        "test/caregiver.test.mjs",
+        "docs/capture.md",
+        "docs/caregiver.md",
+        "test/browser/dgs-capture.test.mjs"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-42",
+    "updated_at": "2026-11-23T16:40:00+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

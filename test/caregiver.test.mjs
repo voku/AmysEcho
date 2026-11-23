@@ -6,7 +6,7 @@ import { CAPTURE_BRIDGE_KEY, TEACH_COUNTDOWN_S, TEACH_MAX_RECORDING_MS, BOARD_CO
 import { resolveBoard, setBoardConcepts, setWording } from "../dist/board-data.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
-import { CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, nextShoulders, startCapture } from "../dist/capture/capture.js";
+import { CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, PREVIEW_COLOURS, createCapturePreview, nextShoulders, startCapture } from "../dist/capture/capture.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
 import { listExamples } from "../dist/recognition/examples.js";
 import { ProfileStore } from "../dist/profiles/store.js";
@@ -5595,7 +5595,7 @@ const POSE = Array.from({ length: 33 }, (_, index) => ({ x: index === 11 ? 0.62 
  * tracker "sees" in it) with `feed`. `holdTracker` keeps the tracker loading until `releaseTracker`.
  */
 function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
-  const log = { trackerStarts: 0, cameraRequests: 0, tracksStopped: 0, trackerClosed: 0, sourceClosed: 0, signals: [], hosts: [] };
+  const log = { trackerStarts: 0, cameraRequests: 0, tracksStopped: 0, trackerClosed: 0, sourceClosed: 0, signals: [], hosts: [], streams: [], previews: [] };
   let waiting = [];
   let queued = [];
   let t = 0;
@@ -5618,7 +5618,9 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
     async getUserMedia() {
       log.cameraRequests += 1;
       if (cameraError !== null) throw Object.assign(new Error("camera"), { name: cameraError });
-      return { getTracks: () => [{ stop() { log.tracksStopped += 1; } }] };
+      const stream = { getTracks: () => [{ stop() { log.tracksStopped += 1; } }] };
+      log.streams.push(stream);
+      return stream;
     },
     async openFrames() {
       return {
@@ -5638,6 +5640,12 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
     },
     text: CAPTURE_TEXT,
     nextShoulders,
+    // The capture module's own preview, on the fake document with what it uses of a video and a canvas.
+    createPreview(doc) {
+      const preview = createCapturePreview(mediaDocument(doc));
+      log.previews.push(preview);
+      return preview;
+    },
   };
   return {
     bridge, log,
@@ -5656,6 +5664,32 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
     fail() {
       for (const resolve of waiting) resolve(null);
       waiting = [];
+    },
+  };
+}
+
+/**
+ * The fake document with a video that plays and pauses and a canvas of 400 × 300 whose 2D
+ * context records every call (`canvas.calls`, not enumerable).
+ */
+function mediaDocument(doc) {
+  return {
+    defaultView: { devicePixelRatio: 1 },
+    createElement(tag) {
+      const created = doc.createElement(tag);
+      if (tag === "video") {
+        Object.assign(created, { paused: true, play() { this.paused = false; return Promise.resolve(); }, pause() { this.paused = true; } });
+      }
+      if (tag === "canvas") {
+        const calls = [];
+        const context = new Proxy({}, {
+          get: (target, name) => (name in target ? target[name] : (...args) => calls.push([name, ...args])),
+          set: (target, name, value) => { target[name] = value; calls.push([`${String(name)}=`, value]); return true; },
+        });
+        Object.defineProperty(created, "calls", { value: calls, enumerable: false });
+        Object.assign(created, { clientWidth: 400, clientHeight: 300, width: 300, height: 150, getContext: () => context });
+      }
+      return created;
     },
   };
 }
@@ -5917,8 +5951,13 @@ test("teach: leaving stops the camera on every way out: 'Zurück', Escape, 'Fert
       await startRecording(area);
       await camera.feed(rightHand(0));
       assert.equal(camera.running, true, name);
+      const [preview] = camera.log.previews;
+      assert.equal(preview.element.children.length, 2, name);
       await leave(area);
       assert.equal(camera.running, false, name);
+      // The camera's picture goes with it: the video lets go of the stream and the box is emptied.
+      assert.deepEqual(preview.element.children, [], name);
+      assert.equal(preview.element.dataset.camera, "off", name);
       assert.equal(camera.log.trackerClosed, 1, name);
       assert.equal(camera.log.sourceClosed, 1, name);
       assert.equal(teachViewOf(area.caregiverRegion), null, name);
@@ -6184,6 +6223,72 @@ test("teach: the press shield covers the view: a tap that lands on 'Abbrechen' o
   });
 });
 
+test("teach: the camera's picture shows in a fixed box above the live line while the camera runs, with the points of each frame; the box stays when it stops", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const box = () => byClass(byClass(area.caregiverRegion, "caregiver-teach"), "caregiver-teach-preview");
+    await area.holdOpen();
+    await area.act(() => area.concept("Trinken").teach.click());
+    // Before the camera: the box is there, empty, so nothing moves when the picture comes.
+    assert.deepEqual(box().children, []);
+    assert.equal(camera.log.previews.length, 0, "no preview before the tap");
+    await area.act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    const [preview] = camera.log.previews;
+    assert.deepEqual(box().children, [preview.element]);
+    const [video, canvas] = preview.element.children;
+    assert.equal(video.tagName, "video");
+    assert.equal(video.className, "capture-preview-video");
+    assert.equal(video.srcObject, camera.log.streams[0], "the camera's own stream, no other");
+    assert.equal(video.paused, false);
+    assert.equal(canvas.tagName, "canvas");
+    // A frame with the child's right hand: drawn in the right hand's colour.
+    await camera.feed(rightHand(0));
+    assert.deepEqual(canvas.calls[0], ["clearRect", 0, 0, 400, 300]);
+    assert.ok(canvas.calls.some(([name, value]) => name === "strokeStyle=" && value === PREVIEW_COLOURS.right));
+    assert.ok(!canvas.calls.some(([name, value]) => name === "strokeStyle=" && value === PREVIEW_COLOURS.left));
+    assert.equal(teachViewOf(area.caregiverRegion).live, "Eine Hand im Bild. Schultern zu sehen.");
+    // No hand: the canvas is only cleared.
+    canvas.calls.length = 0;
+    await camera.feed([]);
+    assert.deepEqual(canvas.calls, [["clearRect", 0, 0, 400, 300]]);
+    // The same picture through countdown, recording and the result: each redraw puts it into the new box.
+    await startRecording(area);
+    assert.deepEqual(box().children, [preview.element]);
+    for (let i = 0; i < 20; i += 1) await camera.feed(rightHand(i));
+    await area.act(() => area.button("Aufnahme beenden").click());
+    assert.deepEqual(teachViewOf(area.caregiverRegion).buttons, ["Behalten", "Verwerfen", "Zurück"]);
+    assert.deepEqual(box().children, [preview.element]);
+    assert.equal(preview.element.children[0], video, "the video is not made again");
+    assert.equal(camera.log.previews.length, 1);
+    await area.act(() => area.button("Verwerfen").click());
+    assert.deepEqual(box().children, [preview.element]);
+    // The camera fails: the picture goes, the box stays.
+    camera.fail();
+    await untilTaught(area.handle, () => area.button("Kamera starten") !== undefined);
+    assert.deepEqual(preview.element.children, []);
+    assert.equal(video.srcObject, null);
+    assert.deepEqual(box().children, []);
+    // A new start makes a new preview.
+    await area.act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    assert.equal(camera.log.previews.length, 2);
+    assert.deepEqual(box().children, [camera.log.previews[1].element]);
+  });
+});
+
+test("teach: a bridge without a preview still teaches with the live line; the box stays empty", async () => {
+  const camera = fakeCamera();
+  const { createPreview, ...older } = camera.bridge;
+  assert.equal(typeof createPreview, "function");
+  await withArea({ seed: seedTeach, capture: older }, async (area) => {
+    await teachWithCamera(area, camera);
+    await camera.feed(rightHand(0));
+    assert.equal(teachViewOf(area.caregiverRegion).live, "Eine Hand im Bild. Schultern zu sehen.");
+    assert.deepEqual(byClass(area.caregiverRegion, "caregiver-teach-preview").children, []);
+  });
+});
+
 test("teach: the live line is written in place and does not count as a swap: a press during frames still counts", async () => {
   const wall = wallClock();
   const camera = fakeCamera();
@@ -6322,7 +6427,7 @@ test("teach: the row on the board and the view count the same entries; unusable 
   });
 });
 
-test("teach: the controls stay one block right under the heading, with the live line first and the main button first in its row, in every state", async () => {
+test("teach: the controls stay one block right under the heading, with the preview box first, then the live line, and the main button first in its row, in every state", async () => {
   const camera = fakeCamera();
   await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
     const seen = [];
@@ -6331,8 +6436,8 @@ test("teach: the controls stay one block right under the heading, with the live 
       const [heading, controls] = view.children;
       assert.equal(heading.tagName, "h2", state);
       assert.equal(controls.className, "caregiver-teach-controls", state);
-      assert.deepEqual(controls.children.map((child) => child.className.split(" ")[0]), ["caregiver-teach-live", "caregiver-teach-camera", "caregiver-profile-actions"], state);
-      const actions = controls.children[2].children.map((child) => child.textContent);
+      assert.deepEqual(controls.children.map((child) => child.className.split(" ")[0]), ["caregiver-teach-preview", "caregiver-teach-live", "caregiver-teach-camera", "caregiver-profile-actions"], state);
+      const actions = controls.children[3].children.map((child) => child.textContent);
       assert.equal(actions.at(-1), "Zurück", state);
       seen.push(actions[0]);
       // Nothing about the teaching goes to the status line, which would move the block from above.

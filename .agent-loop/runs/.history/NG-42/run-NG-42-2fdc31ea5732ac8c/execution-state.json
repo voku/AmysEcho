@@ -1,0 +1,48 @@
+{
+    "attention": null,
+    "candidate_revision": "6963b5be29a4a23599dc6ed8712b9fbccbfb88d5",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:03b9a9cfbe80ae37804fe304cfd4bc294e733083687778636db3d5a45215fa18",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T16:15:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T16:15:25+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6963b5be29a4a23599dc6ed8712b9fbccbfb88d5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03b9a9cfbe80ae37804fe304cfd4bc294e733083687778636db3d5a45215fa18",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-42:2fdc31ea5732ac8c",
+                "schema_version": "1.0",
+                "task_id": "NG-42",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6963b5be29a4a23599dc6ed8712b9fbccbfb88d5",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03b9a9cfbe80ae37804fe304cfd4bc294e733083687778636db3d5a45215fa18",
+                "outcome": "completed",
+                "run_id": "run:NG-42:2fdc31ea5732ac8c",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:c79a8841",
+                "summary": "capture.ts keeps a hidden video element for the camera stream and gives tracker frames to onFrame; the teach view in caregiver.ts has a fixed control block with the live line; the camera test page in capture.ts shows only text. A preview can show that same video element mirrored with CSS and draw the tracker's points on a canvas from onFrame.",
+                "task_id": "NG-42",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-42:2fdc31ea5732ac8c",
+    "schema_version": "1.0",
+    "task_id": "NG-42"
+}

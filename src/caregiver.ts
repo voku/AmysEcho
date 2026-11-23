@@ -21,7 +21,7 @@ import type { ProfileV1 } from "./profiles/profile.js";
 import { ProfileSizeError, UnknownProfileError } from "./profiles/store.js";
 import type { ProfileStore } from "./profiles/store.js";
 import { STARTUP_WAIT_MS } from "./startup.js";
-import type { CaptureBridge, CaptureSession } from "./capture/capture.js";
+import type { CaptureBridge, CapturePreview, CaptureSession } from "./capture/capture.js";
 import { frameSummary } from "./recognition/tracker-adapter.js";
 import {
   ExampleFormatError, RECOMMENDED_EXAMPLES, countExamples, deleteExample, deleteExamples, isExampleConceptId, listExamples, saveExample,
@@ -428,6 +428,15 @@ interface TeachMode {
   readonly conceptId: string;
   readonly state: TeachState;
 }
+/** The camera of a teaching view, from "Kamera starten" until it stops. */
+interface TeachCamera {
+  readonly mode: TeachMode;
+  readonly controller: AbortController;
+  session: CaptureSession | null;
+  stopTimer: () => void;
+  /** The mirrored picture with the tracked points (card NG-42); null when the bridge has none. */
+  readonly preview: CapturePreview | null;
+}
 type TeachResult =
   | {
     readonly usable: true; readonly sequence: FeatureSequence; readonly frames: number; readonly durationMs: number; readonly capturedAt: Date; readonly auto: boolean;
@@ -699,10 +708,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /** The held buttons of the body that is on screen. Only these can act; they are cancelled when the body is swapped. */
   let bodyHolds: HeldButton[] = [];
   /** The camera of the open teaching view, if it runs or starts: ended whenever that view is left, the area closes or another view opens. */
-  let teachCamera: { readonly mode: TeachMode; readonly controller: AbortController; session: CaptureSession | null; stopTimer: () => void } | null = null;
+  let teachCamera: TeachCamera | null = null;
   /** The live line of the teaching view on screen; written on every camera frame without a redraw. */
   let teachLive: HTMLElement | null = null;
   let teachCameraLine: HTMLElement | null = null;
+  /** The fixed-size box of the teaching view on screen that holds the camera's preview while the camera runs (card NG-42). */
+  let teachPreviewSlot: HTMLElement | null = null;
   const date = options.date ?? (() => new Date());
   /** What was typed into the create field, kept while a view without that field is shown. */
   let createDraft = "";
@@ -895,6 +906,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     camera.stopTimer();
     camera.controller.abort();
     camera.session?.stop();
+    // The session's end empties the preview; a camera stopped before it ran has none to end.
+    camera.preview?.close();
     const { state } = camera.mode;
     state.camera = "off";
     state.recording = false;
@@ -1119,7 +1132,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (built.teaching === undefined) {
       teachLive = null;
       teachCameraLine = null;
+      teachPreviewSlot = null;
     }
+    // The running preview moves into the new view's box in the same task as the swap: a video taken
+    // out of the page and not put back before the task ends is paused by the browser.
+    const shown = teachCamera?.preview ?? null;
+    if (shown !== null && teachPreviewSlot !== null && built.teaching === teachCamera?.mode) teachPreviewSlot.append(shown.element);
     body.replaceChildren(...built.content);
     bodyHolds = nextHolds;
     markSwap();
@@ -1398,9 +1416,13 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       return;
     }
     const controller = new AbortController();
-    const camera: { readonly mode: TeachMode; readonly controller: AbortController; session: CaptureSession | null; stopTimer: () => void } = {
-      mode: open, controller, session: null, stopTimer: () => undefined,
-    };
+    let preview: CapturePreview | null = null;
+    try {
+      preview = bridge.createPreview?.(document) ?? null;
+    } catch {
+      // Without a preview the live line is still there.
+    }
+    const camera: TeachCamera = { mode: open, controller, session: null, stopTimer: () => undefined, preview };
     teachCamera = camera;
     const ours = (): boolean => teachCamera === camera && !controller.signal.aborted;
     let shoulders = { seen: false, posesWithout: 0 };
@@ -1415,6 +1437,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         teachCamera = null;
         camera.stopTimer();
       }
+      preview?.close();
       state.camera = "off";
       state.recording = false;
       state.countdown = null;
@@ -1427,6 +1450,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     try {
       started = bridge.start(caregiverRegion, {
         signal: controller.signal,
+        ...(preview === null ? {} : { preview }),
         onStep: (step) => {
           if (!ours() || step === "stopped" || step === "running") return;
           state.cameraLine = bridge.text[step];
@@ -2011,9 +2035,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /**
    * The teaching view of one concept. Like the rewording it is the whole body
    * while it is open. Its controls are one block right under the heading, in
-   * the same place for the whole session: the live line (the only feedback on
-   * framing; there is no preview), the camera's line, then the one button
-   * that changes (camera, record, stop, keep) with "Zurück". What changes in
+   * the same place for the whole session: the box of the camera's preview (the
+   * mirrored picture with the tracked points while the camera runs, card
+   * NG-42; the same size when it is off), the live line, the camera's line,
+   * then the one button that changes (camera, record, stop, keep) with
+   * "Zurück". What changes in
    * length (the result, messages, the count, the instruction, the list) is
    * below it, so nothing above the button moves between examples.
    */
@@ -2027,6 +2053,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     view.append(title);
 
     const controls = element("div", "caregiver-teach-controls");
+    // The box is there in every state of the session, camera on or off, so the buttons never move because of it.
+    teachPreviewSlot = state.usage === "full" ? null : element("div", "caregiver-teach-preview");
     const live = element("p", "caregiver-teach-live", state.camera === "on" ? state.live : "");
     teachLive = live;
     let line = state.cameraLine;
@@ -2060,6 +2088,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
     }
     add("teach-back", BACK, leaveMode);
+    if (teachPreviewSlot !== null) controls.append(teachPreviewSlot);
     controls.append(live, cameraLine, actions);
     view.append(controls);
 
@@ -2484,6 +2513,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     stopTeachCamera();
     teachLive = null;
     teachCameraLine = null;
+    teachPreviewSlot = null;
     mode = null;
     createDraft = "";
     dropHold();

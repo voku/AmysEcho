@@ -1,0 +1,30 @@
+{
+    "contract_revision": 2,
+    "contract_sha256": "sha256:5ecac1132e2a4a942513844ddd064ac817be9fe116565e15022e76a1640edce5",
+    "implementation_snapshot": "sha256:d17897589696dd1bbc13f9b1bb26be7b2333f45a78a4673734b3194429db611a",
+    "kind": "run_verification_receipt",
+    "obligations": [
+        {
+            "command": "npm ci --ignore-scripts",
+            "duration_ms": 841,
+            "executed_at": "2026-11-23T17:02:04+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        },
+        {
+            "command": "npm run verify",
+            "duration_ms": 159297,
+            "executed_at": "2026-11-23T17:04:43+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        }
+    ],
+    "run_id": "run:NG-42:687b23eb37b093eb",
+    "schema_version": "1.1",
+    "source_session_id": "2026-11-23-ng-42-r2-b4fdc335",
+    "task_id": "NG-42",
+    "verdict": "satisfied",
+    "verified_at": "2026-11-23T17:04:44+00:00"
+}
