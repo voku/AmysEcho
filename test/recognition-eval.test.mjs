@@ -160,7 +160,7 @@ test("the hand that does not sign is in view, fidgets, trembles or belongs to so
       ? `${name}: ${percent(report.top1)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)} (${report.examples} examples, ${report.knownAttempts} attempts)`
       : `${name}: spoken as a concept ${percent(report.falseAccept)} (${report.examples} examples, ${report.unknownAttempts} attempts)`);
   }
-  assert.equal(cases.length, 115);
+  assert.equal(cases.length, 122);
   // The rows in which the matcher of schema version 1 (commit 70bf62b) speaks a wrong concept, measured on the same
   // captures: there the device may do so no more often. A second hand seen for under a fifth of the time, in one visit
   // and without a movement of its own, is taken for a hand passing through (docs/recognition.md); a held hand seen

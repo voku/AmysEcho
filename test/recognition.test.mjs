@@ -312,11 +312,17 @@ test("hand kind: seen for half of the gesture a hand belongs to it, seen for und
   const alone = built(capture(1000, 50, (t) => ({ right: [100 + t / 10, 100] })));
   assert.deepEqual(brief, alone);
   assert.ok(brief.steps.every((step) => step.slice(0, STEP_VALUES / 2).every((value) => value === 0)));
-  assert.ok(above.steps.every((step) => step[STEP_VALUES / 2 - 1] === 1), "a hand that belongs is filled in where it was not seen");
-  // A hand that joins late is filled in before its first sighting as well.
+  // A hand that belongs is missing (all zero) after its last sighting, as in schema version 1, never held where it was
+  // last seen: a hand that came and went must not look like a hand held still.
+  const present = (sequence) => sequence.steps.map((step) => step[STEP_VALUES / 2 - 1]);
+  assert.deepEqual(present(above).slice(0, 15), new Array(15).fill(1));
+  assert.deepEqual(present(above).slice(19), new Array(13).fill(0));
+  assert.ok(above.steps.slice(19).every((step) => step.slice(0, STEP_VALUES / 2).every((value) => value === 0)));
+  // A hand that joins late is missing before its first sighting.
   const late = built(capture(1000, 50, (t) => ({ right: [100 + t / 10, 100], left: t >= 500 ? [20 - t / 10, 100] : null })));
   assert.equal(late.hands, "both");
-  assert.ok(late.steps.every((step) => step[STEP_VALUES / 2 - 1] === 1));
+  assert.deepEqual(present(late).slice(0, 14), new Array(14).fill(0));
+  assert.deepEqual(present(late).slice(18), new Array(14).fill(1));
   // The same the other way round.
   assert.equal(built(capture(1000, 50, (t) => ({ left: [100 + t / 10, 100], right: t <= 150 ? [220 - t / 10, 100] : null }))).hands, "left");
   assert.deepEqual(buildFeatureSequence(capture(1000, 50, (t) => ({ left: [100 + t / 10, 100], right: t <= 450 ? [220 - t / 10, 100] : null }))), unclear);

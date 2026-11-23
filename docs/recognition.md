@@ -58,9 +58,11 @@ The hand-tracker decision, with what was measured and what only the phone can an
      two hands as well; see "Input contract".
    - **A hand that belongs and is lost for a moment** is filled in between the frames around the
      gap, in proportion to the time, up to `MAX_BRIDGED_GAP_MS` (500 ms between two sightings,
-     whether the frames in between show no hand or no frames arrived at all); before its first
-     and after its last sighting it is held where it was seen. A longer gap is not guessed over:
-     no sequence is built (`hand_lost`).
+     whether the frames in between show no hand or no frames arrived at all). Before its first
+     and after its last sighting it is missing (all zero), as in schema version 1: the build
+     before this one held it where it was seen, and a caregiver's hand that reached in for half
+     of the capture then looked like the held hand of a two-hand sign (table "Somebody's hand
+     reaches in" below). A longer gap is not guessed over: no sequence is built (`hand_lost`).
    - Position, zoom and tilt of the camera are removed using the shoulders: those seen during
      the gesture, or else those seen anywhere in the capture. Without any shoulders the sequence
      is anchored to the centre of the hand movement and is only compared with other sequences
@@ -271,12 +273,12 @@ percent, before → after.
 | Same path, second hand crosses from +300 to +1400 ms when taught, from +1050 to +1450 ms in the attempts | 0 → 0 | 63 → 0 | 38 → 100 |
 | Same path, second hand crosses from +1000 to +1400 ms, shifted by up to 150 ms either way, taught and attempted alike (200 attempts) | 100 → 0 | 0 → 0 | 0 → 100 |
 | Same path, second hand held still: seen throughout when taught, only until the right hand starts in the attempts | 0 → 0 | 100 → 0 | 0 → 100 |
-| Same path, held hand of the two-hand sign seen only in a rest of 2 s before the movement | 0 → 100 | 0 → 0 | 100 → 0 |
-| Same path, … only in a rest of 2 s after it | 0 → 100 | 0 → 0 | 100 → 0 |
+| Same path, held hand of the two-hand sign seen only in a rest of 2 s before the movement | 0 → 0 | 0 → 0 | 100 → 100 |
+| Same path, … only in a rest of 2 s after it | 0 → 0 | 0 → 0 | 100 → 100 |
 | Same path, … only in rests of 1.5 s before and after it | 100 → 0 | 0 → 0 | 0 → 100 |
-| Same path, … only in a rest before it: 0.3 s when taught, 2 s in the attempts | 0 → 100 | 0 → 0 | 100 → 0 |
-| Same path, … only in a rest of 2 s before it, at 7 frames per second | 0 → 100 | 0 → 0 | 100 → 0 |
-| Same path, … the same at 12 frames per second | 0 → 100 | 0 → 0 | 100 → 0 |
+| Same path, … only in a rest before it: 0.3 s when taught, 2 s in the attempts | 0 → 0 | 0 → 0 | 100 → 100 |
+| Same path, … only in a rest of 2 s before it, at 7 frames per second | 0 → 0 | 0 → 0 | 100 → 100 |
+| Same path, … the same at 12 frames per second | 0 → 0 | 0 → 0 | 100 → 100 |
 
 - No row is spoken as a wrong concept more often than before. Three earlier builds of this
   card did: the first dropped a hand that did not move; the second measured the shares for a
@@ -300,9 +302,10 @@ percent, before → after.
 - The rows "seen for 75% when taught, for 40% in the attempts", "75%" and "60%" (shares of the
   movement, which are about a third of the capture) and the "crosses" rows were recognised by
   one of the earlier builds and are `unknown` now: the price of the band in which nothing is
-  built and of never dropping a hand that moved. The rows "held hand seen only in a rest
-  before" and "after" are recognised: the held hand belongs (it is in view for more than half
-  of the capture) and is held, through the movement, where it was last seen.
+  built and of never dropping a hand that moved. The rows "held hand seen only in a rest" are
+  `unknown`, as with version 1: the held hand belongs (it is in view for more than half of the
+  capture) but is missing during the movement, where the examples show it. The build before
+  this one held it where it was last seen and recognised them.
 
 **Tracker jitter** (card NG-18). The resting hand in the cases above jitters by 0.004 shoulder
 widths per frame; a real tracker shows 0.01 to 0.02 (3 to 5 pixels). The six cases below are
@@ -315,13 +318,13 @@ as a wrong concept, before or after**; every miss is `unknown`.
 | Signs without travel, no other hand | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 |
 | Signs without travel, lap hand in view and still | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 | 100 → 100 |
 | Signs without travel; somebody's hand reaches in (one example of X, the attempts) | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 |
-| Same path, held hand seen only in a rest of 2 s before | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 |
-| … only in a rest of 2 s after | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 | 0 → 100 |
+| Same path, held hand seen only in a rest of 2 s before | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 |
+| … only in a rest of 2 s after | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 |
 | … only in rests of 1.5 s before and after | 97 → 0 | 100 → 0 | 100 → 0 | 97 → 0 | 100 → 0 | 100 → 0 | 97 → 0 | 100 → 0 | 100 → 0 |
 
 - Signs that only change or hold a shape are not cut down by jitter: nothing is trimmed.
-- Held hand seen only in both rests: it belongs, but is lost for the whole movement, longer
-  than half a second, so the attempt fails (`hand_lost`).
+- Held hand seen only in the rests: it belongs, but is missing during the movement, so the
+  attempt is `unknown` (in both rests, lost for longer than half a second: `hand_lost`).
 
 **Stronger jitter and wrong frames** (card NG-18). Signs without travel (X, Y, Z), lap hand in
 view and still, 30 attempts per sign. In the first six rows examples and attempts have the
@@ -345,6 +348,28 @@ per second and the attempts also have frames in which the tracker shows the whol
 The build before this one cut the gesture by movement; in reviewer probes like these rows a
 wrong frame or strong jitter at a low frame rate cut a sign without travel down to its rest, and
 some of those attempts were spoken as a wrong concept. Without a trim, none is here.
+
+**Somebody's hand reaches in** (card NG-18). A profile of five one-hand signs (A, B, C, X, Y)
+and four two-hand signs that share their right-hand paths (A and B with a held hand, C with a
+second hand that moves and with one held where that one ends). In the attempts of A, B and C,
+somebody's hand reaches into the picture and out again, still open, 20 attempts per sign.
+Cells are percent, before → after.
+
+| Reaches in | Top-1 | Spoken as a wrong concept | Answered "unknown" |
+| --- | --- | --- | --- |
+| 2 times for 600 ms, 0.5 shoulder widths | 0 → 0 | 0 → 0 | 100 → 100 |
+| once for 900 ms, 0.5 shoulder widths | 0 → 0 | 0 → 0 | 100 → 100 |
+| once for 1200 ms, 0.5 shoulder widths | 0 → 0 | 0 → 0 | 100 → 100 |
+| once for 1500 ms, 0.5 shoulder widths | 0 → 0 | 0 → 0 | 100 → 100 |
+| 2 times for 600 ms, 0.1 shoulder widths | 0 → 0 | 0 → 0 | 100 → 100 |
+| once for 1200 ms, 0.1 shoulder widths | 0 → 0 | 0 → 0 | 100 → 100 |
+| 2 times for 600 ms, 0.5 shoulder widths, 7 to 15 frames per second, unsteady | 0 → 0 | 0 → 0 | 100 → 100 |
+
+- Reaching in for half of the capture or more, the hand belongs, and the attempt is a two-hand
+  capture. The build before this one held the hand, outside its visit, where it was first and
+  last seen, which made it look like the held hand of TA or the end of M1: it spoke up to 67%
+  of these attempts as a two-hand sign. Missing outside its visit, as in version 1, it is far
+  from them.
 
 **A held hand seen in scattered frames** (card NG-18). The two-hand sign with a held hand and
 its one-hand twin, as in the "same path" rows; in the attempts of the two-hand sign the tracker
@@ -413,8 +438,8 @@ more.
 - **A second hand that moves on its own (half of 0.1 shoulder widths over 0.3 s or more) and
   leaves, before, during or after the gesture, gives no answer** (`hands_unclear`), however
   briefly it was seen.
-- **A hand that belongs and was last seen before the movement is held there** for the rest of
-  the gesture, however long; only a gap between two sightings is limited to 0.5 s.
+- **A hand that belongs is missing before its first and after its last sighting.** A held hand
+  of a two-hand sign that the tracker sees only before or after the movement gives `unknown`.
 - **A child who makes a gesture with the other hand, or with the other hand resting in view when
   it was taught without, gets `unknown`** (`other_hands`) and an empty correction list, until an
   example with those hands exists.

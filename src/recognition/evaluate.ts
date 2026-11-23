@@ -368,6 +368,43 @@ const anchorsMixed: HandCase = {
   attempts: [[null, "Av", absent, { shoulders: false }], [null, "Ao", absent, { shoulders: false }]],
 };
 
+/**
+ * Somebody's hand that reaches into the picture `count` times, for `lengthMs`
+ * each, spread over the capture, `size` shoulder widths in and out again.
+ */
+const reaches = (count: number, lengthMs: number, size: number): OtherHand => (_, { endMs }) => {
+  const durationMs = endMs + 700;
+  return (tMs) => {
+    for (let reach = 0; reach < count; reach += 1) {
+      const from = (durationMs / (count + 1)) * (reach + 1) - lengthMs / 2;
+      if (tMs >= from && tMs < from + lengthMs) return { wrist: [-0.9 + size * Math.sin((Math.PI * (tMs - from)) / lengthMs), 0.2], curls: OPEN };
+    }
+    return null;
+  };
+};
+const REACHES: readonly (readonly [number, number, number, Tracking, string])[] = [
+  [2, 600, 0.5, {}, ""], [1, 900, 0.5, {}, ""], [1, 1200, 0.5, {}, ""], [1, 1500, 0.5, {}, ""],
+  [2, 600, 0.1, {}, ""], [1, 1200, 0.1, {}, ""],
+  [2, 600, 0.5, { frameMs: 100, frameJitter: 0.45 }, ", 7 to 15 frames per second, unsteady"],
+];
+
+/**
+ * A profile of one-hand signs and two-hand signs that share their paths (a
+ * held hand, or one that moves); in the attempts of the one-hand signs
+ * somebody's hand reaches into the picture.
+ */
+const reachCase = (count: number, lengthMs: number, size: number, tracking: Tracking, rate: string): HandCase => ({
+  name: `one-hand and two-hand signs; attempts of the one-hand signs: somebody's hand reaches in ${count === 1 ? "once" : `${count} times`} for ${lengthMs} ms, ${size} shoulder widths${rate}`,
+  taught: tracking,
+  examples: [
+    ["A", "A", clean(absent)], ["B", "B", clean(absent)], ["C", "C", clean(absent)], ["X", "X", clean(absent)], ["Y", "Y", clean(absent)],
+    ["TA", "A", clean(held(OPEN))], ["TB", "B", clean(held(FIST))], ["M1", "C", clean(joins(1))],
+    ["M2", "C", clean((nudge) => scriptedHand({ from: [-0.2 + nudge(), 0.2 + nudge()], curls: OPEN }))],
+  ],
+  attempts: (["A", "B", "C"] as const).map((id) => [id, id, reaches(count, lengthMs, size), tracking] as const),
+  attemptsPerKind: 20,
+});
+
 /** Jitter beyond what the rows above allow for, and frames in which the tracker puts the hand somewhere else. */
 const STRONG_JITTER: readonly Tracking[] = [0.025, 0.03].flatMap((noise) => [143, 100, 67].map((frameMs) => ({ noise, frameMs })));
 const JUMPS: readonly Tracking[] = [1, 3].flatMap((jumps) => [0.2, 0.4].map((jumpSize) => ({ noise: 0.02, frameMs: 67, jumps, jumpSize })));
@@ -478,6 +515,7 @@ const HAND_CASES: readonly HandCase[] = [
   ...JUMPS.map((tracking) => shapesWithLap(tracking, `; attempts: ${tracking.jumps} frame${tracking.jumps === 1 ? "" : "s"} with the hand ${tracking.jumpSize} shoulder widths off (jitter 0.02, 15 frames per second)`, { noise: 0.02, frameMs: 67 })),
   ...[0.1, 0.15, 0.2, 0.25, 0.3].flatMap((chance) => SCATTER_RATES.map(([rate, tracking]) => scattered(chance, rate, tracking))),
   anchorsMixed,
+  ...REACHES.map(([count, lengthMs, size, tracking, rate]) => reachCase(count, lengthMs, size, tracking, rate)),
 ];
 
 const ATTEMPTS_PER_KIND = 40;

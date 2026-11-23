@@ -400,11 +400,12 @@ function writeHand(target: number[], offset: number, hand: readonly Point[] | nu
 }
 
 /**
- * Fills the frames in which a hand of the gesture is missing: between the
- * frames around a gap in proportion to the time, and before its first or after
- * its last sighting with the nearest one. False when two sightings are
- * farther apart in time than `MAX_BRIDGED_GAP_MS`, with or without frames in
- * between.
+ * Fills the frames in which a hand of the gesture is missing between two
+ * sightings, in proportion to the time. Before its first and after its last
+ * sighting it stays missing (all zero), as in schema version 1: holding it
+ * there made a hand that came and went look like a hand held still. False
+ * when two sightings are farther apart in time than `MAX_BRIDGED_GAP_MS`,
+ * with or without frames in between.
  */
 function bridgeGaps(rows: number[][], times: readonly number[], offset: number): boolean {
   const present = (row: number[]): boolean => row[offset + HAND_SHAPE_VALUES + 2] === 1;
@@ -415,8 +416,6 @@ function bridgeGaps(rows: number[][], times: readonly number[], offset: number):
   };
   const seen = rows.flatMap((row, index) => (present(row) ? [index] : []));
   if (seen.length === 0) return false;
-  for (let index = 0; index < seen[0]!; index += 1) copy(index, seen[0]!, seen[0]!, 0);
-  for (let index = seen[seen.length - 1]! + 1; index < rows.length; index += 1) copy(index, seen[seen.length - 1]!, seen[seen.length - 1]!, 0);
   for (let at = 1; at < seen.length; at += 1) {
     const from = seen[at - 1]!;
     const to = seen[at]!;
