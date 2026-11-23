@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
     "contract_revision": 2,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
     "history": [
         {
@@ -136,6 +136,172 @@
                 "summary": "Camera stops on any redraw not showing the teach controls (failed read included); truthful delete and listing messages; one count; profile named; wording; fixed control block (positions constant over 16 states at 360x640 and 640x360); 3-2-1 countdown cancellable by every exit; still-hand hint; verify passes",
                 "task_id": "NG-19",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T13:23:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T13:23:44+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:80ffa4222f2a2ce38c31e57fa7d5a5adfee02a78347afc698d41e3e838e06f9e",
+                    "execution-evidence:sha256:9acc32d4739fb8c2ad6d5a3889911c94cdcbb981687647973904761c80a3a79c",
+                    "execution-evidence:sha256:76e0c425595e7f4d52ee3908543e7e91d96bc0703a623df829ce6356de679892",
+                    "execution-evidence:sha256:18df30b8d05c63e1d8ad87395cd0827f6e109fe4b348dc867dd578dba2e18ea6",
+                    "execution-evidence:sha256:a0a43d7d6251de4145989f41fd42d498ad9b54abef0cef9d88c74997eb328911",
+                    "execution-evidence:sha256:6cca89e1318ac3bda0c29c11427413aab074198105b35ffe6ef03b46658fc7be",
+                    "execution-evidence:sha256:11a02ea268b0666f3da2f2694283a9d15a3e5291e7a30a7caca1677fc7d55d21",
+                    "execution-evidence:sha256:c10c0342497d6adef2dc89676bf735f533997054ffda356815d7347a875d8772",
+                    "execution-evidence:sha256:0b81c212566da564d591210988176004f1e652000bbc60a5ffeab9f4861abb91",
+                    "execution-evidence:sha256:5ce497461f69d4598cc1348e34ca4b6f8f325e2fb557a7bf87f5692d8b3bed2d",
+                    "execution-evidence:sha256:7fa82432c9b90d81e96b9bd88e8525314e9c2a4023f54f62930a3fa7b0e25880",
+                    "execution-evidence:sha256:d4da7091ed98f1eb9371bc3b8446ba5f685f5cbc4c8f01c2265c864c8fd4dad9",
+                    "execution-evidence:sha256:bab4c8bcb9b612df3e6379f61b847386e318914617dcb23cbe3b0867aa27cd18"
+                ],
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "schema_version": "1.0",
+                "task_id": "NG-19",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:80ffa4222f2a2ce38c31e57fa7d5a5adfee02a78347afc698d41e3e838e06f9e",
+                    "execution-evidence:sha256:9acc32d4739fb8c2ad6d5a3889911c94cdcbb981687647973904761c80a3a79c",
+                    "execution-evidence:sha256:76e0c425595e7f4d52ee3908543e7e91d96bc0703a623df829ce6356de679892",
+                    "execution-evidence:sha256:18df30b8d05c63e1d8ad87395cd0827f6e109fe4b348dc867dd578dba2e18ea6",
+                    "execution-evidence:sha256:a0a43d7d6251de4145989f41fd42d498ad9b54abef0cef9d88c74997eb328911",
+                    "execution-evidence:sha256:6cca89e1318ac3bda0c29c11427413aab074198105b35ffe6ef03b46658fc7be",
+                    "execution-evidence:sha256:11a02ea268b0666f3da2f2694283a9d15a3e5291e7a30a7caca1677fc7d55d21",
+                    "execution-evidence:sha256:c10c0342497d6adef2dc89676bf735f533997054ffda356815d7347a875d8772",
+                    "execution-evidence:sha256:0b81c212566da564d591210988176004f1e652000bbc60a5ffeab9f4861abb91",
+                    "execution-evidence:sha256:5ce497461f69d4598cc1348e34ca4b6f8f325e2fb557a7bf87f5692d8b3bed2d",
+                    "execution-evidence:sha256:7fa82432c9b90d81e96b9bd88e8525314e9c2a4023f54f62930a3fa7b0e25880",
+                    "execution-evidence:sha256:d4da7091ed98f1eb9371bc3b8446ba5f685f5cbc4c8f01c2265c864c8fd4dad9",
+                    "execution-evidence:sha256:bab4c8bcb9b612df3e6379f61b847386e318914617dcb23cbe3b0867aa27cd18"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "context_id": "correctness-review-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "observations": [
+                    "Teaching notes and the countdown are not in a live region, so screen readers do not hear save, delete or refusal messages; focus lands on Zurück if the countdown timer fails; rule 22 wording (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:eaa4564e",
+                "summary": "Blocker fixed and probed; countdown cancelled by every exit; press shield holds; docs and texts true",
+                "task_id": "NG-19",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T13:23:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T13:23:45+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:b3c604d165de0266476d63f4208e46eb3fc5d106a5206a19be404f4a9b47bccb",
+                    "execution-evidence:sha256:a235ac4519ab2056db7c2f14afdce99ac75b1092a4a0650908558b04164c90be",
+                    "execution-evidence:sha256:7d8a00ee65aba3a34b9354cd22ba35bfe090c0c1f227af0193a54453eeae02a5",
+                    "execution-evidence:sha256:41d4fed3d6c9054d8ee24ecd3c10a7ced969ecaf3aa5682d5ee189614a7fcc70",
+                    "execution-evidence:sha256:739fd895976f8f150c00af994b086fcea176ce817c95c63acb05ecf1c2697522",
+                    "execution-evidence:sha256:7b8cb3e5e5caf36cfac78e2571b9987717da945b3b83be2955ece5f40feb91ae",
+                    "execution-evidence:sha256:7d4015eb83cb85cc545b3c8e4ed9b8748a752bc3a4d8dc4d69e7541e7e4cb484",
+                    "execution-evidence:sha256:451c20799160256ec270d12bb2d9ad838eedb50b91f42f753bb592b1472a84ce",
+                    "execution-evidence:sha256:fd46d2cab68d917ab6078b7cdf7125f1a53fea7f77f6517e507ea841c2606367",
+                    "execution-evidence:sha256:faecedc53ccf07fc4b61d95bb0edaa1048a81ca39f706bdddf0d287d9e809932",
+                    "execution-evidence:sha256:b6367b37eb37a128f46c3468efd64c599ed0106cf1360fe6545c3b1662067702",
+                    "execution-evidence:sha256:f0488403b3c240b13c6de7c23c95135bbf379e0edd26742f5027cc4b015745e1",
+                    "execution-evidence:sha256:1ccc038a6214cb04d49d55d9b2f2487218525f052a1938434a4095832e174b71"
+                ],
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "schema_version": "1.0",
+                "task_id": "NG-19",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:b3c604d165de0266476d63f4208e46eb3fc5d106a5206a19be404f4a9b47bccb",
+                    "execution-evidence:sha256:a235ac4519ab2056db7c2f14afdce99ac75b1092a4a0650908558b04164c90be",
+                    "execution-evidence:sha256:7d8a00ee65aba3a34b9354cd22ba35bfe090c0c1f227af0193a54453eeae02a5",
+                    "execution-evidence:sha256:41d4fed3d6c9054d8ee24ecd3c10a7ced969ecaf3aa5682d5ee189614a7fcc70",
+                    "execution-evidence:sha256:739fd895976f8f150c00af994b086fcea176ce817c95c63acb05ecf1c2697522",
+                    "execution-evidence:sha256:7b8cb3e5e5caf36cfac78e2571b9987717da945b3b83be2955ece5f40feb91ae",
+                    "execution-evidence:sha256:7d4015eb83cb85cc545b3c8e4ed9b8748a752bc3a4d8dc4d69e7541e7e4cb484",
+                    "execution-evidence:sha256:451c20799160256ec270d12bb2d9ad838eedb50b91f42f753bb592b1472a84ce",
+                    "execution-evidence:sha256:fd46d2cab68d917ab6078b7cdf7125f1a53fea7f77f6517e507ea841c2606367",
+                    "execution-evidence:sha256:faecedc53ccf07fc4b61d95bb0edaa1048a81ca39f706bdddf0d287d9e809932",
+                    "execution-evidence:sha256:b6367b37eb37a128f46c3468efd64c599ed0106cf1360fe6545c3b1662067702",
+                    "execution-evidence:sha256:f0488403b3c240b13c6de7c23c95135bbf379e0edd26742f5027cc4b015745e1",
+                    "execution-evidence:sha256:1ccc038a6214cb04d49d55d9b2f2487218525f052a1938434a4095832e174b71"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "context_id": "blindspot-review-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "observations": [
+                    "Zurück moves left during the countdown so a late second tap on the record spot can close the view; at 640x360 a refusal's end and the still-hand hint can sit below the fold (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:bfaced8c",
+                "summary": "Controls steady across examples at 360x640 and 640x360; countdown works and is cancelled by every exit; nothing stored or sent but counts and features",
+                "task_id": "NG-19",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T13:26:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T13:26:18+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "schema_version": "1.0",
+                "task_id": "NG-19",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:23801ba1d2cde6e2b3086f041b861f7cb67926ee3508fd4523c39a1ebd0ade3b",
+                    "execution-evidence:sha256:ebf70ced2d59325d6b76f14c7422819ab06c59d98c65305ce6eeb6a4d668d3d3"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:08ce523902df26088e84298e697470c0a6e87dfa",
+                "consistency_references": [
+                    "execution-evidence:sha256:fd9048600cb1e1a8b47b017b44ff312b84ff2bdeb8c86cc85231722d09276bfe"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "outcome": "pass",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:5516551717da1d2918b3080e6a4f4dbe6abf713180fe101bc9ffa11c78526709",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-19: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-19 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-19:17b803a3977ae218 binds active Session 2026-11-23-ng-19-r2-4528a47b to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-19 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-19",
+                "validation_references": [
+                    "execution-evidence:sha256:23801ba1d2cde6e2b3086f041b861f7cb67926ee3508fd4523c39a1ebd0ade3b",
+                    "execution-evidence:sha256:ebf70ced2d59325d6b76f14c7422819ab06c59d98c65305ce6eeb6a4d668d3d3"
+                ]
             }
         }
     ],
