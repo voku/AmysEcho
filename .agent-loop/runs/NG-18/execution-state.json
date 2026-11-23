@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
     "contract_revision": 2,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
     "history": [
         {
@@ -138,6 +138,95 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:d8238490",
                 "summary": "Sixth build: cap keyed by concept as 70bf62b, brief hand dropped only for one unbroken dense visit, scattered-detection and mixed-anchor rows asserted at or below old; 476 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:39:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:39:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7242fea9607e97292622334054bce599a1b86f1ec0cff5cce5ed1130c329f6bd",
+                    "execution-evidence:sha256:f801246ee7a59d2c7d0b0c9cdd677f6665ed5dae696b23050f6639749b2f40e3",
+                    "execution-evidence:sha256:cee360f37b9449aaf0da4f4a09ef3bd5a698bd4400ab00d64680d76f3a1c4fe9",
+                    "execution-evidence:sha256:087c5e414bd46594afca837e46af45817d8d0ca759c00f50d66af064fe288400",
+                    "execution-evidence:sha256:db97fd1730b289c75bc8c1b9e57a1865107fd91869667aa5b3c8fe177477f646",
+                    "execution-evidence:sha256:2ef7eac438a628ab35fdd5bac08132754f97f8c0caf0626cc32f9d85b2ebfb59",
+                    "execution-evidence:sha256:3aaf1aee082d002ae8af52ae2cc8f55775bfe50d96b426c9cabf3ae56ecfb806"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7242fea9607e97292622334054bce599a1b86f1ec0cff5cce5ed1130c329f6bd",
+                    "execution-evidence:sha256:f801246ee7a59d2c7d0b0c9cdd677f6665ed5dae696b23050f6639749b2f40e3",
+                    "execution-evidence:sha256:cee360f37b9449aaf0da4f4a09ef3bd5a698bd4400ab00d64680d76f3a1c4fe9",
+                    "execution-evidence:sha256:087c5e414bd46594afca837e46af45817d8d0ca759c00f50d66af064fe288400",
+                    "execution-evidence:sha256:db97fd1730b289c75bc8c1b9e57a1865107fd91869667aa5b3c8fe177477f646",
+                    "execution-evidence:sha256:2ef7eac438a628ab35fdd5bac08132754f97f8c0caf0626cc32f9d85b2ebfb59",
+                    "execution-evidence:sha256:3aaf1aee082d002ae8af52ae2cc8f55775bfe50d96b426c9cabf3ae56ecfb806"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "context_id": "correctness-review-r2-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "observations": [
+                    "Scattered held-hand detections at 10 percent and 7-15 fps still speak the one-hand twin in 55 percent (old 78); exempt held-share row and known limit."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:28bedff1",
+                "summary": "Sixth build passes correctness: no probe row NEW above OLD for wrong concept or unknown accepted, no loosened limit, doc numbers match",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:39:19+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:39:19+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:fd4faa8f19fb209623c5a24fef5023a4ef300156bc183df520848bee65d63307",
+                    "execution-evidence:sha256:641483382117688301e197f1cb8af13ea819c99c3664a05e4e2fb24d0966d5a9"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:fd4faa8f19fb209623c5a24fef5023a4ef300156bc183df520848bee65d63307",
+                    "execution-evidence:sha256:641483382117688301e197f1cb8af13ea819c99c3664a05e4e2fb24d0966d5a9"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "context_id": "blindspot-review-r2-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:71e34151",
+                "summary": "A caregiver's moving hand in view for half the capture or more is held at its first and last position outside its visit and makes a one-hand sign speak a two-hand concept: old 0, new 14 to 31 percent wrong. Old recorded the hand as missing outside its visit.",
                 "task_id": "NG-18",
                 "validation_references": []
             }
