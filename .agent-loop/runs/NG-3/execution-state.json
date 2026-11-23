@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:62e11a89e9cc264952119124569cf25a2e4048f3",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
     "history": [
         {
@@ -66,6 +66,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:36887c28",
                 "summary": "Capture controller and tracker worker, tracker adapter, tracker cache separate from the board, CSP wasm-unsafe-eval, Kamera testen entry, DGS browser test with fixed frame times through the app's capture path; verify passes 3 of 3",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T09:00:36+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T09:00:36+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7fbc1f757e32923e4377f3c78f11437931b6466af1f0f27c691a0a0057063eac",
+                    "execution-evidence:sha256:d76a32c06f583c471005c15f04fe067cfac5f1cf1479de3da6ebf15869a0bfc3",
+                    "execution-evidence:sha256:40fdd88cc9c97f8c777d023f0727112148ba2ac6cdd5daf2fd12c0a0d7a19302"
+                ],
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:62e11a89e9cc264952119124569cf25a2e4048f3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7fbc1f757e32923e4377f3c78f11437931b6466af1f0f27c691a0a0057063eac",
+                    "execution-evidence:sha256:d76a32c06f583c471005c15f04fe067cfac5f1cf1479de3da6ebf15869a0bfc3",
+                    "execution-evidence:sha256:40fdd88cc9c97f8c777d023f0727112148ba2ac6cdd5daf2fd12c0a0d7a19302"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:62e11a89e9cc264952119124569cf25a2e4048f3",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "outcome": "changes_required",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:24d83aa0",
+                "summary": "A tracker update makes the camera fail for good: the service worker answers tracker paths from the old cache and the checksum fails on every start. Leaving or hiding the page while the tracker prepares still turns the camera on later (on the board, or in the background). Docs claim a new build fills a new cache.",
                 "task_id": "NG-3",
                 "validation_references": []
             }
