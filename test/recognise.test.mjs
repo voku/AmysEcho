@@ -624,8 +624,8 @@ test("view: the gesture view covers the board in its own frame; 'Ja, sagen' spea
     const actionsRow = tree(panel()).find((element) => hasClass(element, "recognise-actions"));
     assert.deepEqual(actionsRow.children.map((element) => element.attributes["aria-label"]), ["Nein", "Ja, sagen"]);
     const [noButton, yesButton] = actionsRow.children;
-    assert.deepEqual(noButton.children.map((element) => element.textContent || element.tagName), ["\u2717", "Nein"]);
-    assert.deepEqual(yesButton.children.map((element) => element.textContent || element.tagName), ["\u2713", "img", "Ja, sagen"]);
+    assert.deepEqual(noButton.children.map((element) => element.textContent || element.tagName), ["✗", "Nein"]);
+    assert.deepEqual(yesButton.children.map((element) => element.textContent || element.tagName), ["✓", "img", "Ja, sagen"]);
     assert.equal(yesButton.children[1].src, "./icons/trinken.svg");
     assert.equal(yesButton.children[0].attributes["aria-hidden"], "true");
     time.advance(RECOGNISE_GUARD_MS);
@@ -890,4 +890,151 @@ test("view: the gesture view has no camera control and draws every state the sam
   }
   assert.equal(drawn.user.length, 7);
   assert.deepEqual(drawn.environment, drawn.user);
+});
+
+// --- The live preview in the gesture view (card NG-44) ---
+
+/** A bridge's `createPreview` that records what the capture asks of it; its element is a fake element. */
+function recordingPreviews({ failShow = false } = {}) {
+  const made = [];
+  const createPreview = (doc) => {
+    const preview = {
+      element: doc.createElement("div"), shown: [], drawn: [], closed: 0,
+      show(stream, facing) {
+        if (failShow) throw new Error("no picture");
+        this.shown.push(facing);
+      },
+      draw(frame) { this.drawn.push(frame); },
+      close() { this.closed += 1; },
+    };
+    preview.element.className = "capture-preview";
+    made.push(preview);
+    return preview;
+  };
+  return { made, createPreview };
+}
+const slotOf = (panel) => tree(panel).find((element) => hasClass(element, "recognise-preview")) ?? null;
+
+test("preview: the gesture view shows the live preview of the front camera during the countdown and the recording, with every tracked frame", async () => {
+  await withView(async (context) => {
+    const { panel, buttonNamed, time, camera } = context;
+    const previews = recordingPreviews();
+    camera.bridge.createPreview = previews.createPreview;
+    context.gestureButton().click();
+    assert.equal(slotOf(panel()), null, "no picture while the tracker loads and the camera is asked for");
+    await settle();
+    assert.equal(panel().dataset.state, "countdown");
+    assert.equal(previews.made.length, 1, "one preview per camera start");
+    const [preview] = previews.made;
+    assert.deepEqual(preview.shown, ["user"], "the front camera: the picture is mirrored");
+    const slot = slotOf(panel());
+    assert.deepEqual(slot.children.map((element) => element.className), ["capture-preview", "recognise-count"], "the count large over the picture");
+    assert.equal(slot.children[0], preview.element);
+    assert.equal(slot.children[1].textContent, "3");
+    const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
+    assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-preview"], "the line above the picture");
+    time.advance(1000);
+    assert.equal(slotOf(panel()), slot);
+    assert.deepEqual(slot.children.map((element) => element.textContent), ["", "2"]);
+    await camera.feed(MOVES_RIGHT(0));
+    assert.equal(preview.drawn.length, 1, "frames of the countdown are drawn, not kept");
+    time.advance((RECOGNISE_COUNTDOWN_S - 1) * 1000);
+    assert.equal(panel().dataset.state, "recording");
+    assert.equal(slotOf(panel()), slot, "the same box in the recording: the picture does not jump");
+    assert.deepEqual(slot.children, [preview.element]);
+    await camera.feedAll(MOVES_RIGHT);
+    assert.equal(preview.drawn.length, 21);
+    assert.equal(preview.drawn.at(-1).hands[0].label, "Right", "the tracker's own frame, as in teaching");
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(slotOf(panel()), null, "no picture with the answer");
+    assert.deepEqual(slot.children, [], "the box is emptied");
+    assert.ok(preview.closed >= 1, "the preview is closed with the camera");
+    assert.equal(camera.running, false);
+    // "Nein", then a new attempt: a new preview.
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nein").click();
+    time.advance(GESTURE_SHIELD_MS);
+    context.gestureButton().click();
+    await settle();
+    assert.equal(previews.made.length, 2);
+    assert.equal(slotOf(panel()).children[0], previews.made[1].element);
+  });
+});
+
+test("preview: every way out closes the preview and takes it off the screen", async () => {
+  for (const way of ["back-countdown", "back-recording", "hidden-page", "pagehide", "board-hidden", "dispose", "camera-lost"]) {
+    await withView(async (context) => {
+      const { panel, buttonNamed, time, camera, doc, win, root } = context;
+      const previews = recordingPreviews();
+      camera.bridge.createPreview = previews.createPreview;
+      context.gestureButton().click();
+      await settle();
+      if (way !== "back-countdown") time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+      const [preview] = previews.made;
+      const slot = slotOf(panel());
+      assert.equal(slot.children[0], preview.element);
+      if (way === "back-countdown" || way === "back-recording") buttonNamed(RECOGNISE_TEXT.back).click();
+      else if (way === "hidden-page") { doc.visibilityState = "hidden"; doc.dispatch("visibilitychange"); }
+      else if (way === "pagehide") win.dispatch("pagehide");
+      else if (way === "board-hidden") { root.hidden = true; await camera.feed(MOVES_RIGHT(0)); }
+      else if (way === "dispose") context.attached.dispose();
+      else { camera.fail(); await settle(); }
+      assert.equal(camera.running, false, way);
+      assert.ok(preview.closed >= 1, `${way}: closed`);
+      if (way !== "dispose") assert.deepEqual(slot.children, [], `${way}: the box is emptied`);
+      if (way === "camera-lost") {
+        assert.equal(panel().dataset.state, "problem");
+        assert.equal(slotOf(panel()), null);
+      }
+    });
+  }
+});
+
+test("preview: a bridge without one, or a preview that fails, leaves the gesture view working as before", async () => {
+  // Without createPreview (an older bridge): no box at all.
+  await withView(async (context) => {
+    const { panel, buttonNamed, time, camera } = context;
+    assert.equal(camera.bridge.createPreview, undefined);
+    await viewToRecording(context);
+    assert.equal(slotOf(panel()), null);
+    await camera.feedAll(MOVES_RIGHT);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "confirm");
+  });
+  // createPreview that throws, and a preview whose show throws: the attempt is recognised all the same.
+  for (const failure of ["create", "show"]) {
+    await withView(async (context) => {
+      const { panel, buttonNamed, time, camera } = context;
+      const previews = recordingPreviews({ failShow: failure === "show" });
+      camera.bridge.createPreview = failure === "create" ? () => { throw new Error("no canvas"); } : previews.createPreview;
+      await viewToRecording(context);
+      await camera.feedAll(MOVES_RIGHT);
+      time.advance(RECOGNISE_GUARD_MS);
+      buttonNamed("Stopp").click();
+      assert.equal(panel().dataset.state, "confirm", failure);
+      assert.equal(panel().dataset.concept, "trinken");
+      assert.equal(camera.running, false);
+    });
+  }
+});
+
+test("preview: the controller passes one preview per start to the capture and closes it when the start is cancelled before the camera opened", async () => {
+  const camera = fakeCamera({ holdTracker: true });
+  const made = [];
+  const context = setup({ camera, outcome: MATCH });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined,
+    preview: () => { const sink = { closed: 0, show() {}, draw() {}, close() { this.closed += 1; } }; made.push(sink); return sink; },
+  });
+  recogniser.start();
+  await settle();
+  assert.equal(made.length, 1);
+  recogniser.back();
+  await settle();
+  assert.equal(camera.log.cameraRequests, 0);
+  assert.equal(made[0].closed >= 1, true, "closed although it never showed");
 });
