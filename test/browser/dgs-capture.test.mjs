@@ -183,8 +183,10 @@ test("the camera test: a tap starts the camera, the live line shows the hands, s
     await page.waitForFunction(() => document.querySelector("#capture-region .capture-seen")?.dataset.hands === "0", undefined, { timeout: 60_000 });
     assert.equal(await page.locator("#capture-region .capture-seen").textContent(), "Keine Hand im Bild. Schultern nicht zu sehen.");
     assert.equal(await page.evaluate(() => window.__cameraRequests), 1);
-    assert.equal(await page.locator("#capture-region video").count(), 1);
-    assert.ok(await page.locator("#capture-region video").isHidden(), "the camera picture is shown");
+    // The video that feeds the tracker stays hidden; the preview (card NG-42) is a second, mirrored video on the same stream.
+    assert.equal(await page.locator("#capture-region video").count(), 2);
+    assert.ok(await page.locator("#capture-region video:not(.capture-preview-video)").isHidden(), "the frame source is shown");
+    assert.ok(await page.locator("#capture-region .capture-preview-video").isVisible(), "no preview");
     assert.ok((await page.evaluate(() => caches.keys())).some((name) => name.startsWith("amysecho-tracker-0.10.35-")), "no tracker cache");
     await page.getByRole("button", { name: "Kamera stoppen" }).click();
     await page.waitForFunction(() => document.querySelector("#capture-region")?.dataset.captureStep === "stopped");

@@ -21,8 +21,9 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
 
 ## What it does
 
-- **Entry.** `index.html#kamera-testen` shows a small German section "Kamera testen" under the
-  board: "Kamera starten", a live line "Keine Hand / Eine Hand / Zwei Hände im Bild" plus whether
+- **Entry.** `index.html#kamera-testen` shows a small German section "Kamera testen" that covers
+  the window while that address is open (card NG-42: it used to sit under the board and overlap it
+  in a small window; the board itself is unchanged): "Kamera starten", a live line "Keine Hand / Eine Hand / Zwei Hände im Bild" plus whether
   shoulders are seen, the live preview while the camera runs (below), "Kamera stoppen", and
   "Zurück zur Tafel". Without that address the section
   stays hidden and empty, so a child on the board never sees it. It is a test entry for caregivers
@@ -77,7 +78,10 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   placed by `previewPoint(x, y, imageWidth, imageHeight, boxWidth, boxHeight)`: the whole picture
   fitted and centred in the box (as `contain`), x mirrored to 1 − x; the canvas is not mirrored, so
   the letters read the right way round. `close` pauses the video, drops the stream and empties the
-  box. Nothing is stored or sent, and no request is made for it.
+  box. Nothing is stored or sent, and no request is made for it. In the camera test the preview is
+  below the live line in a window held upright and left of everything else in a wide one, sized so
+  that "Kamera starten"/"Kamera stoppen", the live line and "Zurück zur Tafel" stay in the window
+  (measured at 320 × 480, 360 × 640, 640 × 360 and 820 × 1180).
 - **Tracking.** In a module worker: the hand landmarker with `numHands: 2` on every frame, the pose
   landmarker (lite) on every 5th frame (`POSE_EVERY`) for the shoulders, delegate `CPU`. GPU is an
   option of the code (`delegate: "GPU"`) but not the default: headless Chromium has only a
@@ -232,7 +236,7 @@ should send the same policy as a header (decision record).
    tap; after "Kamera starten" the tracker cache `amysecho-tracker-0.10.35-…` exists, the live line
    says "Keine Hand im Bild. Schultern nicht zu sehen.", the video element that feeds the tracker
    is hidden; after "Kamera stoppen" the camera track is `ended` and no video element is left
-   (card NG-42 adds the shown preview video: the test's count of video elements has to follow); no console error
+   (card NG-42: two video elements while it runs, the hidden frame source and the visible preview); no console error
    except the wasm's own "INFO:" start-up lines.
 3. **Leaving while loading or asking**: for "Zurück zur Tafel", clearing the address, a hidden
    page and `pagehide`, each while the tracker download is held back and while the camera request
