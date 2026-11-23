@@ -58,8 +58,6 @@ export const MAX_BRIDGED_GAP_MS = 500;
  */
 export const REST_SPEED = 0.25;
 export const SPEED_SPAN_MS = 200;
-/** Kept before the first and after the last moving frame, so the start and end posture are part of the gesture. */
-export const SEGMENT_PAD_MS = 100;
 /**
  * A movement shorter than this is not a gesture, and a hand that looks fast
  * for less than this is not moving: tracking jitter of a resting hand does
@@ -73,8 +71,7 @@ export const MOVEMENT_GAP_MS = 200;
  * movement started, in shoulder widths (without shoulders: three hand
  * lengths), measured on positions averaged over `SPEED_SPAN_MS`: five times
  * the tracking jitter of a resting hand that the evaluation allows for (0.02
- * shoulder widths from frame to frame). A hand held still while only its shape
- * changes is then never cut down to a jittered fragment.
+ * shoulder widths from frame to frame), so jitter is no movement of its own.
  */
 export const MIN_TRAVEL = 0.1;
 
@@ -341,26 +338,17 @@ function frameWeights(frames: readonly LandmarkFrame[], first: number, last: num
 }
 
 /**
- * The gesture inside a capture, as first and last frame index: from the first
- * to the last frame in which one of `sides` moves, with `SEGMENT_PAD_MS` on
- * each side as long as one of them is visible there. Rest before and after is
- * left out. If none of them moves (a posture that is only held, or a shape
- * that changes in place), it is the whole time one of them is visible. At least
- * one frame must show one of them.
+ * The gesture inside a capture, as first and last frame index: the whole time
+ * one of `sides` is in view, rest before and after included, as by the
+ * feature builder of schema version 1. (Cutting rest away, by movement and
+ * later by a resting pose, was tried in card NG-18; each time reviewers found
+ * signs spoken as a wrong concept that version 1 did not speak, and the
+ * synthetic evaluation gained nothing from it. See docs/recognition.md.) At
+ * least one frame must show one of them.
  */
-function segment(frames: readonly LandmarkFrame[], sides: readonly Side[], moves: Readonly<Record<Side, boolean[]>>): [number, number] {
+function segment(frames: readonly LandmarkFrame[], sides: readonly Side[]): [number, number] {
   const visible = frames.map((frame) => sides.some((side) => frame[side] !== null));
-  const moving = frames.map((_, index) => sides.some((side) => moves[side][index]!));
-  if (!moving.includes(true)) {
-    return [visible.indexOf(true), visible.lastIndexOf(true)];
-  }
-  let first = moving.indexOf(true);
-  let last = moving.lastIndexOf(true);
-  const start = frames[first]!.tMs;
-  const end = frames[last]!.tMs;
-  while (first > 0 && visible[first - 1] && start - frames[first - 1]!.tMs <= SEGMENT_PAD_MS) first -= 1;
-  while (last < frames.length - 1 && visible[last + 1] && frames[last + 1]!.tMs - end <= SEGMENT_PAD_MS) last += 1;
-  return [first, last];
+  return [visible.indexOf(true), visible.lastIndexOf(true)];
 }
 
 /**
@@ -426,18 +414,19 @@ function bridgeGaps(rows: number[][], times: readonly number[], offset: number):
   return true;
 }
 
-/** `steps` rows at even distances in time, so neither the speed of the gesture nor an unsteady frame rate matters. */
-function resample(rows: readonly number[][], times: readonly number[], steps: number): number[][] {
-  const start = times[0]!;
-  const duration = times[times.length - 1]! - start;
+/**
+ * `steps` rows at even distances in frame order, as by the feature builder of
+ * schema version 1. (Spacing them evenly in time was tried in card NG-18: on
+ * the synthetic captures it gained nothing at low or unsteady frame rates and
+ * let one more look-alike through; see docs/recognition.md.)
+ */
+function resample(rows: readonly number[][], steps: number): number[][] {
   const result: number[][] = [];
-  let low = 0;
   for (let step = 0; step < steps; step += 1) {
-    const time = start + (duration * step) / (steps - 1);
-    while (low < rows.length - 2 && times[low + 1]! <= time) low += 1;
+    const position = (step * (rows.length - 1)) / (steps - 1);
+    const low = Math.floor(position);
     const high = Math.min(low + 1, rows.length - 1);
-    const between = times[high]! - times[low]!;
-    const weight = between > 0 ? Math.min(Math.max((time - times[low]!) / between, 0), 1) : 0;
+    const weight = position - low;
     result.push(rows[low]!.map((value, index) => value * (1 - weight) + rows[high]![index]! * weight));
   }
   return result;
@@ -451,13 +440,11 @@ function resample(rows: readonly number[][], times: readonly number[], steps: nu
  *    seen for less than `HAND_BRIEF_SHARE` of it and did not move on its own
  *    (`wanders`), and the hand that stays has a movement of its own if the
  *    other was in view. Otherwise nothing is built ("hands_unclear").
- * 2. The gesture is cut out of the capture by the movements of those hands
- *    (`segment`), so rest before and after is left out; without a movement
- *    that clears `MIN_TRAVEL` it is the whole time they are in view.
+ * 2. The gesture is the whole time those hands are in view (`segment`).
  * 3. Gaps of those hands up to `MAX_BRIDGED_GAP_MS` are filled; a longer one
  *    fails with "hand_lost".
  * 4. Positions are made relative to the body, and the result is resampled to
- *    `SEQUENCE_STEPS` steps evenly in time.
+ *    `SEQUENCE_STEPS` steps evenly in frame order.
  */
 export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureResult {
   if (frames.length === 0) {
@@ -481,7 +468,7 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
   if (!inView.includes(true)) {
     return { ok: false, reason: "no_hands" };
   }
-  // The speed needs a length to be measured in: that of the whole capture is good enough for cutting.
+  // Speeds need a length to be measured in: that of the whole capture is good enough for that.
   const coarse = findReference(frames, SIDES);
   if (coarse === null || !(coarse.scale > 0) || !Number.isFinite(coarse.scale)) {
     return { ok: false, reason: "bad_landmarks" };
@@ -501,8 +488,7 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
     // A hand that stays without a movement of its own is not a gesture because another hand was in view for a moment.
     if (!moves[kept].includes(true) && frames.some((frame) => frame[other] !== null)) return { ok: false, reason: "hands_unclear" };
   }
-  // Movement only trims the rest before and after.
-  const span = segment(frames, sides, moves);
+  const span = segment(frames, sides);
   const gesture = frames.slice(span[0], span[1] + 1);
   const times = gesture.map((frame) => frame.tMs);
   const active = gesture.filter((frame) => sides.some((side) => frame[side] !== null)).length;
@@ -537,7 +523,7 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
       schemaVersion: FEATURE_SCHEMA_VERSION,
       anchor: reference.anchor,
       hands: sides.length === 2 ? "both" : sides[0]!,
-      steps: resample(rows, times, SEQUENCE_STEPS),
+      steps: resample(rows, SEQUENCE_STEPS),
     },
   };
 }

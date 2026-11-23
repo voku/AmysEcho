@@ -134,26 +134,37 @@ function median(values: number[]): number {
  * sibling, with headroom, kept between the fallback and an upper bound. The
  * median keeps one mislabelled example among several good ones from opening the
  * concept. Each kind of sequence of a concept (`limitKey`) gets its own limit
- * from its own examples; a kind with fewer than two examples gets no entry.
+ * from its own examples, and a kind with fewer than two examples gets no
+ * entry. A kind's limit is never wider than the limit of the whole concept,
+ * computed from all its examples with the anchor of that kind, whatever hands
+ * they show: so examples of one kind can make it stricter, never wider.
  */
 export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<string, number> {
-  const nearestSibling = new Map<string, number[]>();
+  const ofKind = new Map<string, number[]>();
+  const ofConcept = new Map<string, number[]>();
+  const add = (map: Map<string, number[]>, key: string, value: number): void => {
+    map.set(key, [...(map.get(key) ?? []), value]);
+  };
   for (const example of examples) {
     let nearest = Number.POSITIVE_INFINITY;
+    let nearestOfKind = Number.POSITIVE_INFINITY;
     for (const other of examples) {
-      if (other !== example && other.conceptId === example.conceptId && comparable(other.sequence, example.sequence)) {
-        nearest = Math.min(nearest, dtwDistance(example.sequence, other.sequence));
+      if (other !== example && other.conceptId === example.conceptId && other.sequence.anchor === example.sequence.anchor) {
+        const between = dtwDistance(example.sequence, other.sequence);
+        nearest = Math.min(nearest, between);
+        if (comparable(other.sequence, example.sequence)) nearestOfKind = Math.min(nearestOfKind, between);
       }
     }
-    if (Number.isFinite(nearest)) {
-      const key = limitKey(example.conceptId, example.sequence);
-      nearestSibling.set(key, [...(nearestSibling.get(key) ?? []), nearest]);
-    }
+    const concept = JSON.stringify([example.conceptId, example.sequence.anchor]);
+    if (Number.isFinite(nearest)) add(ofConcept, concept, nearest);
+    if (Number.isFinite(nearestOfKind)) add(ofKind, limitKey(example.conceptId, example.sequence), nearestOfKind);
   }
+  const limit = (distances: readonly number[]): number =>
+    Math.min(Math.max(median([...distances]) * CALIBRATION_HEADROOM, FALLBACK_MAX_DISTANCE), MAX_CALIBRATED_MAX_DISTANCE);
   const limits = new Map<string, number>();
-  for (const [key, distances] of nearestSibling) {
-    const limit = median(distances) * CALIBRATION_HEADROOM;
-    limits.set(key, Math.min(Math.max(limit, FALLBACK_MAX_DISTANCE), MAX_CALIBRATED_MAX_DISTANCE));
+  for (const [key, distances] of ofKind) {
+    const [conceptId, anchor] = JSON.parse(key) as [string, string];
+    limits.set(key, Math.min(limit(distances), limit(ofConcept.get(JSON.stringify([conceptId, anchor]))!)));
   }
   return limits;
 }

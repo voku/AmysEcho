@@ -23,6 +23,16 @@ const FULL = process.env.EVAL_FULL === "1";
 const FIRST_CARD_SIZE = FULL ? { attemptsPerGesture: 5, unknownsPerGesture: 4 } : { attemptsPerGesture: 2, unknownsPerGesture: 2 };
 const CONDITION_SIZE = FULL ? { attemptsPerGesture: 5, unknownsPerGesture: 4 } : { attemptsPerGesture: 2, unknownsPerGesture: 1 };
 
+/**
+ * Unknown movements spoken as a concept by the matcher of schema version 1 (commit 70bf62b) on the same captures, at
+ * either size (docs/recognition.md says how it was measured). An unknown movement spoken as a concept is as bad as a
+ * wrong concept: the device may never do it more often than that matcher did.
+ */
+const OLD_UNKNOWN_ACCEPTED = FULL
+  ? { unrelated: 1 / 120, "other-fingers": 3 / 120, "ends-elsewhere": 1 }
+  : { unrelated: 0, "other-fingers": 3 / 60, "ends-elsewhere": 1 };
+const noMoreThanOld = (kind, report) => assert.ok(report.falseAccept <= OLD_UNKNOWN_ACCEPTED[kind] + 1e-12, `${line(kind, report)}; schema version 1: ${percent(OLD_UNKNOWN_ACCEPTED[kind])}`);
+
 const GESTURES = 15;
 /** The profile of the first cards: right-hand gestures, some with the left hand as well; examples recorded without a rest. */
 const simulate = (sloppiness, unknownKind) => simulateProfile({ hands: "default", gestures: GESTURES, sloppiness, unknownKind, examples: {}, ...FIRST_CARD_SIZE });
@@ -40,6 +50,7 @@ test("synthetic profile, sloppy repetitions, unrelated unknown movements", (t) =
   assert.ok(report.top3 >= 0.98, line("unrelated", report));
   assert.ok(report.wrongAccept <= 0.02, line("unrelated", report));
   assert.ok(report.falseAccept <= 0.05, line("unrelated", report));
+  noMoreThanOld("unrelated", report);
 });
 
 test("synthetic profile, look-alikes with two fingers held differently are rejected", (t) => {
@@ -47,6 +58,7 @@ test("synthetic profile, look-alikes with two fingers held differently are rejec
   t.diagnostic(line("other-fingers", report));
   assert.ok(report.top1 >= 0.95, line("other-fingers", report));
   assert.ok(report.unknownRecall >= 0.9, line("other-fingers", report));
+  noMoreThanOld("other-fingers", report);
 });
 
 test("synthetic profile, look-alikes that end elsewhere: known limit, measured and reported", (t) => {
@@ -56,6 +68,7 @@ test("synthetic profile, look-alikes that end elsewhere: known limit, measured a
   // asserted on purpose; a floor here would only pin the weakness in place.
   assert.ok(report.top1 >= 0.95, line("ends-elsewhere", report));
   assert.ok(Number.isFinite(report.unknownRecall));
+  noMoreThanOld("ends-elsewhere", report);
 });
 
 test("attempts are never scored against examples from their own session", () => {
@@ -96,21 +109,23 @@ const CONDITIONS = [
 ];
 const PROFILES = ["right", "left", "both", "mixed"];
 
-/** Runs `simulateProfileUnder` in a worker thread, so the four profiles are measured side by side. The result is the same as in this thread. */
-const simulateInWorker = (options, disturbances) => new Promise((resolve, reject) => {
+/** Runs a function of `evaluate.js` in a worker thread, so that measurements run side by side. The result is the same as in this thread. */
+const inWorker = (name, ...args) => new Promise((resolve, reject) => {
   const worker = new Worker(`
     const { parentPort, workerData } = require("node:worker_threads");
-    import(workerData.module).then(({ simulateProfileUnder }) => parentPort.postMessage(simulateProfileUnder(workerData.options, workerData.disturbances)));
-  `, { eval: true, workerData: { module: new URL("../dist/recognition/evaluate.js", import.meta.url).href, options, disturbances } });
+    import(workerData.module).then((module) => parentPort.postMessage(module[workerData.name](...workerData.args)));
+  `, { eval: true, workerData: { module: new URL("../dist/recognition/evaluate.js", import.meta.url).href, name, args } });
   worker.once("message", resolve);
   worker.once("error", reject);
   worker.once("exit", (code) => reject(new Error(`worker stopped with code ${code}`)));
 });
+const simulateInWorker = (options, disturbances) => inWorker("simulateProfileUnder", options, disturbances);
 
 test("profiles measured in a worker thread give the same reports as in this thread", async () => {
   const options = { hands: "mixed", gestures: 3, sloppiness: 1.5, unknownKind: "unrelated", attemptsPerGesture: 1, unknownsPerGesture: 1 };
   const disturbances = [{}, { strayHandMs: 450 }];
   assert.deepEqual(await simulateInWorker(options, disturbances), simulateProfileUnder(options, disturbances));
+  assert.deepEqual((await Promise.all([inWorker("simulateHandCases", 0, 2), inWorker("simulateHandCases", 2, 1)])).flat(), simulateHandCases(0, 3));
 });
 
 test("one-hand, two-hand and mixed profiles under the disturbances of a real capture: measured and reported", async (t) => {
@@ -126,24 +141,26 @@ test("one-hand, two-hand and mixed profiles under the disturbances of a real cap
     t.diagnostic(`${name}: ${PROFILES.map((hands, index) => `${hands} ${cell(reports[index])}`).join(" | ")}`);
     for (const [index, report] of reports.entries()) {
       worstWrong = Math.max(worstWrong, report.wrongAccept);
-      // The number that matters most: whatever the disturbance, a known gesture is not spoken as another concept.
-      assert.ok(report.wrongAccept <= 0.02, `${name}, ${PROFILES[index]}: ${line(name, report)}`);
-      assert.ok(report.falseAccept <= 0.05, `${name}, ${PROFILES[index]}: ${line(name, report)}`);
+      // The numbers that matter most: whatever the disturbance, a known gesture is not spoken as another concept and an
+      // unknown movement is not spoken as a concept. The matcher of schema version 1 did neither in any cell, at either size.
+      assert.equal(report.wrongAccept, 0, `${name}, ${PROFILES[index]}: ${line(name, report)}`);
+      assert.equal(report.falseAccept, 0, `${name}, ${PROFILES[index]}: ${line(name, report)}`);
       if (name === "no disturbance") assert.ok(report.top1 >= 0.95, `${PROFILES[index]}: ${line(name, report)}`);
     }
   }
   t.diagnostic(`worst "spoken as a wrong concept" over all rows: ${percent(worstWrong)}`);
 });
 
-test("the hand that does not sign is in view, fidgets, trembles or belongs to somebody else: measured and reported", (t) => {
-  const cases = simulateHandCases();
+test("the hand that does not sign is in view, fidgets, trembles or belongs to somebody else: measured and reported", async (t) => {
+  // In two halves side by side; each case has its own seeds, so the halves are the cases of one run.
+  const cases = (await Promise.all([inWorker("simulateHandCases", 0, 50), inWorker("simulateHandCases", 50)])).flat();
   t.diagnostic("per case: top-1 / spoken as a wrong concept / answered \"unknown\"; for attempts that are no sign: spoken as a concept");
   for (const { name, report } of cases) {
     t.diagnostic(report.knownAttempts > 0
       ? `${name}: ${percent(report.top1)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)} (${report.examples} examples, ${report.knownAttempts} attempts)`
       : `${name}: spoken as a concept ${percent(report.falseAccept)} (${report.examples} examples, ${report.unknownAttempts} attempts)`);
   }
-  assert.equal(cases.length, 89);
+  assert.equal(cases.length, 99);
   // A second hand seen for under a fifth of the time a hand is in view, without a movement of its own, is taken for a
   // hand passing through, by the rule (docs/recognition.md). These rows are measured and reported (the matcher of
   // schema version 1 speaks the wrong concept in them as well); a limit here would only pin the weakness in place.

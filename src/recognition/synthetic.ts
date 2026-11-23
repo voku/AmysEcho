@@ -302,6 +302,9 @@ export interface Tracking {
   readonly noise?: number;
   /** Mean time between frames; default 37 (about 27 frames per second). Each interval varies by a tenth either way. */
   readonly frameMs?: number;
+  /** In this many frames, picked at random, the whole right hand is shown `jumpSize` shoulder widths off, in a random direction: a tracker's wrong frame. */
+  readonly jumps?: number;
+  readonly jumpSize?: number;
 }
 
 /** Renders a scripted capture as landmark frames, with shoulders and tracking jitter. */
@@ -330,6 +333,14 @@ export function renderScript(capture: ScriptedCapture, variation: Pick<Variation
       right: render(capture.right, tMs),
       shoulders: [toCamera([-0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01]), toCamera([0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01])],
     });
+  }
+  for (let jump = 0; jump < (variation.jumps ?? 0); jump += 1) {
+    const shown = frames.flatMap((frame, index) => (frame.right === null ? [] : [index]));
+    if (shown.length === 0) break;
+    const index = shown[Math.floor(random() * shown.length)]!;
+    const angle = random() * 2 * Math.PI;
+    const [dx, dy] = [Math.cos(angle) * (variation.jumpSize ?? 0) * zoom, Math.sin(angle) * (variation.jumpSize ?? 0) * zoom];
+    frames[index] = { ...frames[index]!, right: frames[index]!.right!.map(([x, y]) => [x + dx, y + dy] as Point) };
   }
   return frames;
 }

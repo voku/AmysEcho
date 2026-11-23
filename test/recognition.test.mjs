@@ -224,23 +224,36 @@ test("DTW rejects empty sequences and invalid bands", () => {
   for (const band of [-1, 0.5, Number.NaN]) assert.throws(() => dtwDistance(a, a, band), RangeError);
 });
 
-test("limits are per concept and kind of sequence: examples made with other hands never widen a concept", () => {
+test("limits are per concept and kind of sequence, and never wider than the limit of the whole concept", () => {
   // Sequences that are one constant apart in a single value are that far apart by DTW.
   const flat = (hands, value) => ({ schemaVersion: 2, anchor: "shoulders", hands, steps: Array.from({ length: SEQUENCE_STEPS }, () => Array.from({ length: STEP_VALUES }, (_, i) => (i === 0 ? value : 0))) });
-  // Two right-hand examples of "a" far apart open its right-hand limit to the upper bound; "a" has one two-hand example.
+  const bothKey = (conceptId) => limitKey(conceptId, { anchor: "shoulders", hands: "both" });
+  // Two right-hand examples of "a" 1.2 apart would open its right-hand limit to the upper bound. Over the whole concept,
+  // as the matcher of schema version 1 calibrates it, the two-hand example lies on the first one: the median nearest
+  // distance is 0, so the concept's limit is the fallback, and so is the right-hand limit.
   const examples = [{ conceptId: "a", sequence: flat("right", 0) }, { conceptId: "a", sequence: flat("right", 1.2) }, { conceptId: "a", sequence: flat("both", 0) }];
   const limits = calibrateMaxDistance(examples);
-  assert.equal(limits.get(rightKey("a")), MAX_CALIBRATED_MAX_DISTANCE);
-  assert.equal(limits.get(limitKey("a", { anchor: "shoulders", hands: "both" })), undefined);
-  assert.equal(limits.size, 1);
+  assert.deepEqual([...limits.entries()], [[rightKey("a"), FALLBACK_MAX_DISTANCE]]);
   const options = { maxDistance: limits, minMargin: 0.15 };
-  // A two-hand attempt 1.0 from the two-hand example is beyond the single example's limit; a right-hand one is within the right-hand limit.
+  // A right-hand attempt 1.0 from its nearest example is too far; a two-hand one 0.7 from the single two-hand example is not.
+  assert.equal(matchGesture(flat("right", 2.2), examples, options).reason, "too_far");
   assert.equal(matchGesture(flat("both", 1), examples, options).reason, "too_far");
   assert.equal(matchGesture(flat("both", 0.7), examples, options).conceptId, "a");
-  assert.equal(matchGesture(flat("right", 0.6 + 1.2), examples, options).conceptId, "a");
+  // Each kind's own examples can make it stricter than the whole concept: right-hand examples 1.0 apart give 1.25; the
+  // whole concept (nearest distances 1.0, 1.0, 1.2, 1.2) gives 1.375, which also caps the two-hand limit of 1.5.
+  const wider = calibrateMaxDistance([0, 1, 5, 6.2].map((value, i) => ({ conceptId: "b", sequence: flat(i < 2 ? "right" : "both", value) })));
+  assert.equal(wider.get(rightKey("b")), 1.25);
+  assert.equal(wider.get(bothKey("b")), 1.375);
+  // Examples with another anchor are not compared, for the whole concept either: right-hand examples 1.2 apart, once
+  // anchored to the shoulders and once to the hands, give each anchor the upper bound.
+  const anchored = (anchor, value) => ({ conceptId: "c", sequence: { ...flat("right", value), anchor } });
+  const twoAnchors = calibrateMaxDistance([anchored("shoulders", 0), anchored("shoulders", 1.2), anchored("hands", 0), anchored("hands", 1.2)]);
+  assert.equal(twoAnchors.get(rightKey("c")), MAX_CALIBRATED_MAX_DISTANCE);
+  assert.equal(twoAnchors.get(limitKey("c", { anchor: "hands", hands: "right" })), MAX_CALIBRATED_MAX_DISTANCE);
   // The key tells concepts, anchors and hands apart.
   assert.notEqual(limitKey("a", { anchor: "shoulders", hands: "right" }), limitKey("a", { anchor: "hands", hands: "right" }));
   assert.notEqual(limitKey("a", { anchor: "shoulders", hands: "right" }), limitKey("b", { anchor: "shoulders", hands: "right" }));
+  assert.notEqual(rightKey("a"), bothKey("a"));
 });
 
 test("a concept with a single example gets no calibrated limit", () => {
@@ -400,41 +413,18 @@ test("hand kind: which hands belong is decided over the whole time a hand is in 
   assert.deepEqual(buildFeatureSequence(occluded), unclear);
 });
 
-test("movement: jitter of a resting hand and a change of shape in place are no movement, so they never cut the gesture", () => {
-  assert.equal(MIN_TRAVEL, 0.1);
+test("nothing is trimmed: the gesture is the whole time its hands are in view, rest, jitter and wrong frames included", () => {
   const x = (sequence, step) => sequence.steps[step][STEP_VALUES - 3];
-  // Three seconds of a resting right hand that jitters by a fiftieth of a shoulder width (two units) from frame to frame.
   const random = (seed) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647) - 0.5;
   const noise = random(7);
-  const jittered = capture(3000, 50, () => ({ right: [120 + noise() * 7, 100 + noise() * 7] }));
-  // Uncut, the sequence is the whole time the hand is in view: the first step is at the first frame.
-  const whole = built(jittered);
-  assert.ok(Math.abs(x(whole, 0) - (jittered[0].right[0][0] - 100) / 100) < 1e-9, "the gesture starts with the first frame");
-  // Stronger jitter, about 0.03 shoulder widths from frame to frame: positions averaged over 200 ms still do not get
-  // the minimum distance apart, in none of twenty captures.
-  for (let k = 0; k < 20; k += 1) {
-    const strong = capture(3000, 50, () => ({ right: [120 + noise() * 10, 100 + noise() * 10] }));
-    assert.ok(Math.abs(x(built(strong), 0) - (strong[0].right[0][0] - 100) / 100) < 1e-9, `capture ${k} was cut`);
-  }
-  // A shape that changes in place: the fingers close, the palm stays. The capture is not cut to the closing.
-  const closing = (t) => Array.from({ length: 21 }, (_, i) => {
-    const palm = [0, 1, 5, 9, 13, 17].includes(i);
-    const bend = palm ? 0 : Math.min(Math.max((t - 1000) / 400, 0), 1) * 20;
-    return [120 + (i % 5) * 2, 100 - Math.floor(i / 5) * 5 + bend];
-  });
-  const frames = Array.from({ length: 61 }, (_, i) => ({ tMs: i * 50, left: null, right: closing(i * 50), shoulders: SHOULDERS }));
-  const shape = built(frames);
-  // The mean of all 21 points travels 0.14 shoulder widths in 0.4 s here, but the palm does not move: the sequence is
-  // the whole capture, so a quarter into it the fingers are still open. Cut to the closing, they would be half closed.
-  assert.deepEqual(shape.steps[8], shape.steps[0]);
-  assert.notDeepEqual(shape.steps[31], shape.steps[0]);
-  // From 1 to 2 s the hand swings fast to and fro. Getting 5 hundredths of a shoulder width from where it started, it
-  // is not cut out (a quarter into the sequence it is still at rest); getting 15 hundredths away, it is.
-  const swings = (units, periodMs) => built(capture(3000, 50, (t) => ({
-    right: [120 + (t >= 1000 && t <= 2000 ? Math.sin((2 * Math.PI * (t - 1000)) / periodMs) * units : 0), 100],
-  })));
-  assert.ok(Math.abs(x(swings(5, 400), 4) - x(swings(5, 400), 0)) < 1e-9, "5 hundredths: the whole capture");
-  assert.ok(Math.abs(x(swings(15, 500), 4) - x(swings(15, 500), 0)) > 0.01, "15 hundredths: cut to the movement");
+  // A hand that rests for a second, travels and rests again: the first and last step are the frames at either end.
+  const frames = capture(3000, 50, (t) => ({ right: [100 + Math.min(Math.max(t - 1000, 0), 1000) / 10 + noise() * 4, 100 + noise() * 4] }));
+  const rested = built(frames);
+  assert.ok(Math.abs(x(rested, 0) - (frames[0].right[0][0] - 100) / 100) < 1e-9, "the first step is the first frame");
+  assert.ok(Math.abs(x(rested, 31) - (frames.at(-1).right[0][0] - 100) / 100) < 1e-9, "the last step is the last frame");
+  // Frames before the first and after the last sighting of a hand are not part of it, and neither is a hand that is dropped.
+  const framed = [{ ...frames[0], tMs: -100, right: null }, ...frames, { ...frames[0], tMs: 3100, right: null, left: hand(20, 60) }];
+  assert.deepEqual(built(framed), rested);
 });
 
 test("one-hand and two-hand gesture with the same path: an attempt whose second hand is seen too little is never answered with the one-hand concept by a silent drop", () => {
@@ -504,71 +494,44 @@ test("dropout: a hand of the gesture that is lost for up to 500 ms between two s
   assert.deepEqual(stalled(60000), { ok: false, reason: "hand_lost" });
 });
 
-test("segmentation: hands that rest in view before and after the movement are not part of the gesture", () => {
-  // A resting hand is never quite still: it wanders by a hundredth of a shoulder width.
-  const wobble = (t) => Math.sin(t / 37) * 0.5;
-  const moving = (t) => ({ right: [100 + t / 10, 100] });
-  const withRest = (restMs) => capture(1000 + 2 * restMs, 50, (t) => ({
-    right: t < restMs ? [100 + wobble(t), 100 + wobble(t + 9)] : t > restMs + 1000 ? [200 + wobble(t), 100 + wobble(t + 9)] : [100 + (t - restMs) / 10, 100],
-  }));
-  const plain = built(capture(1000, 50, moving));
-  for (const restMs of [500, 1000, 3000]) {
-    const rested = built(withRest(restMs));
-    assert.ok(dtwDistance(plain, rested) < 0.03, `${restMs} ms of rest: distance ${dtwDistance(plain, rested)}`);
-  }
-  // Without the cut the hand would stand still for most of the sequence.
-  const start = (sequence) => sequence.steps[0][STEP_VALUES - 3];
-  const rested = built(withRest(3000));
-  assert.ok(Math.abs(rested.steps[8][STEP_VALUES - 3] - start(rested)) > 0.15, "a quarter into the sequence the hand is well on its way");
+test("movement: slower than the rest speed, shorter than the minimum or not far enough is no movement of its own", () => {
+  assert.deepEqual([REST_SPEED, MIN_GESTURE_MS, MOVEMENT_GAP_MS, MIN_TRAVEL], [0.25, 300, 200, 0.1]);
+  // The right hand is the only hand that belongs; a second hand is seen for a moment, so the right hand needs a movement
+  // of its own. It travels from 1 s on, for `ms` at `speed` shoulder widths per second, or swings to and fro.
+  const answer = (right) => {
+    const result = buildFeatureSequence(capture(4000, 50, (t) => ({ right: right(t), left: t >= 3000 && t <= 3100 ? [20, 60] : null })));
+    return result.ok ? result.sequence.hands : result.reason;
+  };
+  const travel = (speed, ms) => (t) => [100 + Math.min(Math.max(t - 1000, 0), ms) * speed / 10, 100];
+  assert.equal(answer(travel(0.3, 1000)), "right");
+  assert.equal(answer(travel(0.2, 1000)), "hands_unclear", "slower than the rest speed");
+  assert.equal(answer(travel(1, 200)), "hands_unclear", "shorter than the minimum");
+  // A pause of 150 ms inside a movement is part of it: two pieces of 200 ms make one movement.
+  assert.equal(answer((t) => [100 + (Math.min(Math.max(t - 1000, 0), 200) + Math.min(Math.max(t - 1350, 0), 200)) / 10, 100]), "right");
+  // Fast but getting only 5 hundredths of a shoulder width from where it started is jitter; 15 hundredths is a movement.
+  const swings = (units, periodMs) => (t) => [120 + (t >= 1000 && t <= 2000 ? Math.sin((2 * Math.PI * (t - 1000)) / periodMs) * units : 0), 100];
+  assert.equal(answer(swings(5, 400)), "hands_unclear");
+  assert.equal(answer(swings(15, 500)), "right");
+  // Fingers that close in place are no movement: the palm stays, although the mean of all 21 points travels 0.14
+  // shoulder widths in 0.4 s.
+  const closing = (t) => Array.from({ length: 21 }, (_, i) => {
+    const bend = [0, 1, 5, 9, 13, 17].includes(i) ? 0 : Math.min(Math.max((t - 1000) / 400, 0), 1) * 20;
+    return [120 + (i % 5) * 2, 100 - Math.floor(i / 5) * 5 + bend];
+  });
+  const shape = Array.from({ length: 81 }, (_, i) => ({ tMs: i * 50, left: i * 50 >= 3000 && i * 50 <= 3100 ? hand(20, 60) : null, right: closing(i * 50), shoulders: SHOULDERS }));
+  assert.deepEqual(buildFeatureSequence(shape), unclear);
 });
 
-test("segmentation: slower than the rest speed is rest, a burst shorter than the minimum is not a movement, and a short pause does not end one", () => {
-  assert.deepEqual([REST_SPEED, MIN_GESTURE_MS, MOVEMENT_GAP_MS], [0.25, 300, 200]);
-  const x = (sequence, step) => sequence.steps[step][STEP_VALUES - 3];
-  // One second of rest, two seconds of travel at `speed` shoulder widths per second, one second of rest.
-  const travel = (speed) => built(capture(4000, 50, (t) => ({ right: [100 + Math.min(Math.max(t - 1000, 0), 2000) * speed / 10, 100] })));
-  const slow = travel(0.2);
-  const fast = travel(0.3);
-  // Below the rest speed nothing "moves": the gesture is the whole capture, a quarter of which is the rest before.
-  assert.ok(Math.abs(x(slow, 7) - x(slow, 0)) < 0.001, "still at rest after a fifth of the sequence");
-  assert.ok(Math.abs(x(fast, 7) - x(fast, 0)) > 0.1, "cut to the movement");
-  // A burst of 250 ms in a long rest is jitter, not a gesture: the capture stays whole.
-  const burst = (ms) => built(capture(4000, 50, (t) => ({ right: [100 + Math.min(Math.max(t - 2000, 0), ms) / 5, 100] })));
-  assert.ok(Math.abs(x(burst(150), 12) - x(burst(150), 0)) < 0.001);
-  assert.ok(Math.abs(x(burst(600), 12) - x(burst(600), 0)) > 0.3);
-  // A pause of 150 ms inside a movement is part of it; the gesture runs from the first to the last movement.
-  const paused = built(capture(4000, 50, (t) => {
-    const moved = Math.min(Math.max(t - 1000, 0), 600) + Math.min(Math.max(t - 1750, 0), 600);
-    return { right: [100 + moved / 10, 100] };
-  }));
-  assert.ok(Math.abs(x(paused, 31) - x(paused, 0)) > 1.1, "both halves of the movement are in the sequence");
-  // Two short pieces with a pause, or with the hand unseen for 300 ms, between them are one movement of more than the
-  // minimum; taken apart, neither piece would be a movement and the capture would stay whole.
-  const pieces = (between) => built(capture(4000, 50, (t) => {
-    const [piece, resume] = between === "unseen" ? [150, 1450] : [100, 1400];
-    const moved = Math.min(Math.max(t - 1000, 0), piece) + Math.min(Math.max(t - resume, 0), piece);
-    return { right: between === "unseen" && t > 1150 && t < 1450 ? null : [100 + moved / 5, 100] };
-  }));
-  for (const between of ["pause", "unseen"]) {
-    // In the whole capture the last quarter is rest; cut to the movement, the hand is still under way there.
-    assert.ok(Math.abs(x(pieces(between), 31) - x(pieces(between), 24)) > 0.05, `${between}: cut to the movement`);
-  }
-});
-
-test("time: the sequence is laid out by the timestamps, so a low or unsteady frame rate gives the same gesture", () => {
+test("time: a low frame rate gives the same gesture; the steps are spaced evenly in frame order, as in schema version 1", () => {
   const path = (t) => ({ right: [100 + (t / 1500) ** 2 * 150, 100 + t / 30] });
   const steady = built(capture(1500, 33, path));
   const slowCamera = built(capture(1500, 140, path));
-  // Frames at uneven times between 60 and 150 ms apart.
-  const uneven = [];
-  for (let t = 0, i = 0; t <= 1500; t += 60 + ((i * 37) % 90), i += 1) uneven.push({ tMs: t, left: null, right: hand(100 + (t / 1500) ** 2 * 150, 100 + t / 30), shoulders: SHOULDERS });
   assert.ok(dtwDistance(steady, slowCamera) < 0.05, `7 fps: ${dtwDistance(steady, slowCamera)}`);
-  assert.ok(dtwDistance(steady, built(uneven)) < 0.05, `uneven: ${dtwDistance(steady, built(uneven))}`);
-  // A capture whose second half has four times the frames of the first: by frame number its middle would be far off.
+  // A capture whose second half has four times the frames of the first: in frame order its middle comes late.
   const lopsided = [];
   for (let t = 0; t <= 1500; t += t < 750 ? 120 : 30) lopsided.push({ tMs: t, left: null, right: hand(100 + (t / 1500) ** 2 * 150, 100 + t / 30), shoulders: SHOULDERS });
   const y = (sequence, step) => sequence.steps[step][STEP_VALUES - 2];
-  assert.ok(Math.abs(y(built(lopsided), 16) - y(steady, 16)) < 0.03, `${y(built(lopsided), 16)} against ${y(steady, 16)}`);
+  assert.ok(y(built(lopsided), 16) - y(steady, 16) > 0.03, `${y(built(lopsided), 16)} against ${y(steady, 16)}`);
 });
 
 test("a second hand that passes through for a moment changes nothing; one that moved on its own before the gesture is never left out", () => {
@@ -586,7 +549,7 @@ test("a second hand that passes through for a moment changes nothing; one that m
   // A hand that only lay in view before the gesture, briefly, and left, is not part of it.
   const lay = built(before(false));
   assert.equal(lay.hands, "right");
-  assert.ok(dtwDistance(lay, alone) < 0.03, `distance ${dtwDistance(lay, alone)}`);
+  assert.deepEqual(lay, built(before(false).map((frame) => ({ ...frame, left: null }))));
 });
 
 test("shoulders seen only before the movement still anchor the gesture", () => {

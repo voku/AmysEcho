@@ -328,11 +328,22 @@ const restCases = (): HandCase[] => [
 ];
 
 /** Tracker jitter of a hand (shoulder widths, standard deviation per frame) and time between frames, as a real tracker may show them. */
-const TRACKERS: readonly Required<Tracking>[] = [0.01, 0.015, 0.02].flatMap((noise) => [100, 67, 33].map((frameMs) => ({ noise, frameMs })));
+const TRACKERS: readonly Required<Pick<Tracking, "noise" | "frameMs">>[] = [0.01, 0.015, 0.02].flatMap((noise) => [100, 67, 33].map((frameMs) => ({ noise, frameMs })));
 const TRACKED_ATTEMPTS = 30;
 
+/** Jitter beyond what the rows above allow for, and frames in which the tracker puts the hand somewhere else. */
+const STRONG_JITTER: readonly Tracking[] = [0.025, 0.03].flatMap((noise) => [143, 100, 67].map((frameMs) => ({ noise, frameMs })));
+const JUMPS: readonly Tracking[] = [1, 3].flatMap((jumps) => [0.2, 0.4].map((jumpSize) => ({ noise: 0.02, frameMs: 67, jumps, jumpSize })));
+
+/** Signs without travel, lap hand in view and still; recorded with `taught`, attempted with `tracking`. */
+const shapesWithLap = (tracking: Tracking, label: string, taught: Tracking = tracking): HandCase => ({
+  name: `signs without travel, lap hand in view and still${label}`, taught, attemptsPerKind: TRACKED_ATTEMPTS,
+  examples: [["X", "X", clean(lap)], ["Y", "Y", clean(lap)], ["Z", "Z", clean(lap)]],
+  attempts: (["X", "Y", "Z"] as const).map((id) => [id, id, lap, tracking] as const),
+});
+
 /** The cases most exposed to jitter, recorded and attempted with `tracking`. */
-const trackerCases = (tracking: Required<Tracking>): HandCase[] => {
+const trackerCases = (tracking: Required<Pick<Tracking, "noise" | "frameMs">>): HandCase[] => {
   const label = `; jitter ${tracking.noise} shoulder widths, ${Math.round(1000 / tracking.frameMs)} frames per second`;
   const shapes = (other: OtherHand): HandCase["attempts"] => (["X", "Y", "Z"] as const).map((id) => [id, id, other, tracking] as const);
   return [
@@ -426,6 +437,8 @@ const HAND_CASES: readonly HandCase[] = [
   sharedPath("second hand held still and seen throughout when taught, until the right hand starts in the attempts", held(OPEN), heldUntilStart),
   ...restCases(),
   ...TRACKERS.flatMap(trackerCases),
+  ...STRONG_JITTER.map((tracking) => shapesWithLap(tracking, `; jitter ${tracking.noise} shoulder widths, ${Math.round(1000 / tracking.frameMs!)} frames per second`)),
+  ...JUMPS.map((tracking) => shapesWithLap(tracking, `; attempts: ${tracking.jumps} frame${tracking.jumps === 1 ? "" : "s"} with the hand ${tracking.jumpSize} shoulder widths off (jitter 0.02, 15 frames per second)`, { noise: 0.02, frameMs: 67 })),
 ];
 
 const ATTEMPTS_PER_KIND = 40;
@@ -435,14 +448,15 @@ const ATTEMPTS_PER_KIND = 40;
  * from one session, forty attempts per kind from a later one with another
  * camera placement. Made-up movements; see `synthetic.ts`.
  */
-export function simulateHandCases(): { readonly name: string; readonly report: EvaluationReport }[] {
-  return HAND_CASES.map((handCase, caseIndex) => {
+export function simulateHandCases(first = 0, count = HAND_CASES.length): { readonly name: string; readonly report: EvaluationReport }[] {
+  return HAND_CASES.slice(first, first + count).map((handCase, offset) => {
+    const caseIndex = first + offset;
     const attempts: LabelledAttempt[] = [];
     let seed = 1000 * (caseIndex + 1);
     const add = (conceptId: string | null, sessionId: string, id: string, other: OtherHand, options: SignOptions = {}): void => {
       const random = createRandom(seed += 1);
       const capture = sign(id, () => (random() - 0.5) * 2 * NUDGE, other, options);
-      const tracking = { noise: options.noise, frameMs: options.frameMs };
+      const tracking = { noise: options.noise, frameMs: options.frameMs, jumps: options.jumps, jumpSize: options.jumpSize };
       const result = buildFeatureSequence(renderScript(capture, { seed, session: createSession(sessionId === "teach" ? 300 : 301), ...tracking }));
       attempts.push({ conceptId, sessionId, sequence: result.ok ? result.sequence : null });
     };
