@@ -60,7 +60,7 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   landmarker (lite) on every 5th frame (`POSE_EVERY`) for the shoulders, delegate `CPU`. GPU is an
   option of the code (`delegate: "GPU"`) but not the default: headless Chromium has only a
   software GPU, which was far slower in the spike; which delegate a phone gets is for the phone
-  probe.
+  probe. The pose model runs on every fifth frame only, so the shoulder part holds the last pose result and says the shoulders are gone only after two pose results in a row without them (card NG-41).
 
 ## The tracker files and their cache
 

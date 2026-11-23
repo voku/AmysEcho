@@ -51,6 +51,8 @@ export interface TrackerFrame {
   readonly hands: readonly TrackerHand[];
   /** The 33 pose landmarks of the first person, or null when pose did not run on this frame or found nobody. */
   readonly pose: readonly TrackerPoint[] | null;
+  /** Whether the pose model ran on this frame, so a null `pose` means nobody was found. Absent: unknown. */
+  readonly poseRan?: boolean;
 }
 
 export interface AdapterOptions {
