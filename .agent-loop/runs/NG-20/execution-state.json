@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
     "contract_revision": 3,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
     "history": [
         {
@@ -66,6 +66,106 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:3e577012",
                 "summary": "Second build as reviewed and passed, plus a browser-test fix: a recording ended by the 5 s limit between the state check and the Stopp click counts as a cut instead of a 30 s timeout",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:40:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:40:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:49a059d73d344fc922d77f6675cc9fcd901f0621f6979d35fbfe870e83d2dc2a",
+                    "execution-evidence:sha256:146fbd2da5db1c2168aacbbbc000b97d4ef2b36d6a681cfd60bf38f8ac624f6e",
+                    "execution-evidence:sha256:bf4885410e426c286599cf3e430df6b303f8108f5c887d0e988928f15f734ebf",
+                    "execution-evidence:sha256:6b14103f70f7fc7be7ea734a5fe987a28994fa96b5ce9e608a98334df1b9937b",
+                    "execution-evidence:sha256:dcc84d044c319cee1cca6c65130963362408d1ba4aa303a62f679a56e51da629",
+                    "execution-evidence:sha256:78f14e85eb17435d1652982d2bf3442317f3f0924fac97b5500a759881a6ebe5",
+                    "execution-evidence:sha256:750505520a351cfb21f211673416e326b4563ca1e690902533224e13a70374be",
+                    "execution-evidence:sha256:82c5e341b0f5372fcf8110ad13149909046fb7c7cc1353f66feff49d0853dc2a",
+                    "execution-evidence:sha256:8219469e1a64ef45c0396ccae77c847f1c7dc73f7dbb8b217452752682d06a20",
+                    "execution-evidence:sha256:3d0526505a270c8074e8019813421ffaeef2acadd3ae448ef4636ef25c13aa9a",
+                    "execution-evidence:sha256:45cfd1476621e01d3a1a6e050b30374bd38bdd8de4efbbf329201a29f422fca9",
+                    "execution-evidence:sha256:bdb39f570a27dce73e60cc4fe34c4024124b187c565c4ae566cc39e891d3c0a0",
+                    "execution-evidence:sha256:ca78b9fb5c7287fe66281f47c2b5a29f19698f9ff4011d14d5cdc1b8f6df73f5",
+                    "execution-evidence:sha256:22ae09b00ef693ca68ffbd85d748ccfebb031d0eb5b348fb92c18489e7a15cca",
+                    "execution-evidence:sha256:69a2141238b72532c3449fa36fc4f57a679934108c384cb904db8ae470c3997a"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:49a059d73d344fc922d77f6675cc9fcd901f0621f6979d35fbfe870e83d2dc2a",
+                    "execution-evidence:sha256:146fbd2da5db1c2168aacbbbc000b97d4ef2b36d6a681cfd60bf38f8ac624f6e",
+                    "execution-evidence:sha256:bf4885410e426c286599cf3e430df6b303f8108f5c887d0e988928f15f734ebf",
+                    "execution-evidence:sha256:6b14103f70f7fc7be7ea734a5fe987a28994fa96b5ce9e608a98334df1b9937b",
+                    "execution-evidence:sha256:dcc84d044c319cee1cca6c65130963362408d1ba4aa303a62f679a56e51da629",
+                    "execution-evidence:sha256:78f14e85eb17435d1652982d2bf3442317f3f0924fac97b5500a759881a6ebe5",
+                    "execution-evidence:sha256:750505520a351cfb21f211673416e326b4563ca1e690902533224e13a70374be",
+                    "execution-evidence:sha256:82c5e341b0f5372fcf8110ad13149909046fb7c7cc1353f66feff49d0853dc2a",
+                    "execution-evidence:sha256:8219469e1a64ef45c0396ccae77c847f1c7dc73f7dbb8b217452752682d06a20",
+                    "execution-evidence:sha256:3d0526505a270c8074e8019813421ffaeef2acadd3ae448ef4636ef25c13aa9a",
+                    "execution-evidence:sha256:45cfd1476621e01d3a1a6e050b30374bd38bdd8de4efbbf329201a29f422fca9",
+                    "execution-evidence:sha256:bdb39f570a27dce73e60cc4fe34c4024124b187c565c4ae566cc39e891d3c0a0",
+                    "execution-evidence:sha256:ca78b9fb5c7287fe66281f47c2b5a29f19698f9ff4011d14d5cdc1b8f6df73f5",
+                    "execution-evidence:sha256:22ae09b00ef693ca68ffbd85d748ccfebb031d0eb5b348fb92c18489e7a15cca",
+                    "execution-evidence:sha256:69a2141238b72532c3449fa36fc4f57a679934108c384cb904db8ae470c3997a"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "context_id": "correctness-review-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:122a2e82",
+                "summary": "Test-only fix cannot hide a missing Stopp while still recording; camera check unchanged; app code unchanged since the second build passed two reviews",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:40:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:40:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:dc325677b95c22308292eb614aab007c6e5c9ee985d8f46e36e134f8f6dd560d"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:dc325677b95c22308292eb614aab007c6e5c9ee985d8f46e36e134f8f6dd560d"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:843127a345807a0b3aa095caffef4545d9c8d8a3",
+                "context_id": "blindspot-review-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "changes_required",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:9950ae5b",
+                "summary": "The browser test can still fail by timing alone: on a slow machine the wall-clock 5 s limit cuts every attempt and the recognition assertions fail; and a broken Stopp can be hidden as a cut because nothing checks that Stopp ended at least one recording.",
                 "task_id": "NG-20",
                 "validation_references": []
             }
