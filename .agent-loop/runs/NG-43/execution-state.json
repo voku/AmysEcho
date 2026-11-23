@@ -1,0 +1,48 @@
+{
+    "attention": null,
+    "candidate_revision": "973ea927c6c904afafa780006b9fe4306b2e114f",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T17:49:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T17:49:42+00:00",
+                "artifact_references": [],
+                "candidate_revision": "973ea927c6c904afafa780006b9fe4306b2e114f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "973ea927c6c904afafa780006b9fe4306b2e114f",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "outcome": "completed",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:eaeeb77c",
+                "summary": "capture.ts requests facingMode user only (line 220); the preview mirrors with CSS; the tracker adapter keeps MediaPipe's handedness on unflipped frames; teaching and recognising go through the amysEchoCapture bridge; no device setting storage exists yet.",
+                "task_id": "NG-43",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+    "schema_version": "1.0",
+    "task_id": "NG-43"
+}

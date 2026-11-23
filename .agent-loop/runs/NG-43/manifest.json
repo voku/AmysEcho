@@ -1,0 +1,166 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-43 before calling agent-loop finish NG-43",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T17:49:41+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-43/contract.json",
+                "sha256": "sha256:2ebdc2cda7708bc343fc11d972f0946100401077fd6094dd1c8a794e8f0f1c0b"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-43",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "a551db639416fe8c9fddeca4aaa3dcb960c56d4450fdfe9fb41a6f1f5bf67332",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-43.md",
+                "sha256": "sha256:a551db639416fe8c9fddeca4aaa3dcb960c56d4450fdfe9fb41a6f1f5bf67332"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Where the camera is used (camera test, teaching, the child's gesture view) the front or the back camera can be chosen; the choice is remembered on the device and used by all three",
+                "The preview is mirrored for the front camera only; drawn hands and their L/R labels sit on the correct hand in both views",
+                "Handedness and the landmark frames given to the matcher mean the child's own left and right with either camera, so examples taught with one camera match attempts with the other (unit tests with synthetic tracker output for both cameras)",
+                "A device without the chosen camera, or a refused switch, gives a short German message and falls back to the other camera; the camera stops on every exit as before"
+            ],
+            "goal": "The caregiver can use the front or the back camera for teaching, recognising and the camera test, and left keeps meaning the child's own left hand with either camera.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-43/contract.json",
+                "sha256": "sha256:2ebdc2cda7708bc343fc11d972f0946100401077fd6094dd1c8a794e8f0f1c0b"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-43/contract.json",
+                "sha256": "sha256:2ebdc2cda7708bc343fc11d972f0946100401077fd6094dd1c8a794e8f0f1c0b"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:5b9fc9b14f8e8797291c008cc95de3b46c281242abaabc329850ea1bd0c2c1c2",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:40960b980d0da0ec6d1c9cc8c962991c0165ee84abf8e10c10819a45959ca115"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "e1cf90c08418ec16e870ed360bfe00c5ff99d7740875cb753d6a74ccab194f1b",
+            "compilation_id": "compilation.NG-43.2026-11-23-174941.af38ffa1",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "1e797ad58a899a47b7b3c6df988676e4b45daa883c1445d21710a28b84b31eaf",
+            "source": {
+                "path": ".agent-loop/recall/NG-43/meta.json",
+                "sha256": "sha256:97fd143b3327c89e310ef837f8a1cb37953e3c1f9dbb4dcc30a40af16a73e650"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-43/reviews/NG-43.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "973ea927c6c904afafa780006b9fe4306b2e114f",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-43-r1-081db8b6",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-43-r1-081db8b6/session.json",
+                "sha256": "sha256:2d047f40b67797fa47621c18486e6e6f6827cad73601424dec69586a8237d9d1"
+            },
+            "state": "active",
+            "task_id": "NG-43"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-43 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-43",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:3fa3f1a59c60bfc55e7c3386c219d46180b00e5f92d773642a06da9b2adfe615",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-43"
+}
