@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
+    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
     "contract_revision": 1,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
     "history": [
         {
@@ -172,6 +172,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:2:08fadeb4",
                 "summary": "A one-hand reading measures the other hand only over the kept hand's own movement span (features.ts:442-448): a second hand that moved and left just before or after is ignored and a two-hand sign is spoken as its one-hand twin, 0 before, 40 of 40 now. One doc figure is not printed by the harness.",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T04:47:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T04:47:20+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
+                "context_id": "build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "outcome": "completed",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:4dd7d4ae",
+                "summary": "Third build: hand membership decided over the common span of all counted movement; one-hand reading fails when the other hand moved anywhere; crossing cases added with 0 wrong; no_hands with shoulders fixed; npm test 12 s; 474 tests pass",
                 "task_id": "NG-18",
                 "validation_references": []
             }
