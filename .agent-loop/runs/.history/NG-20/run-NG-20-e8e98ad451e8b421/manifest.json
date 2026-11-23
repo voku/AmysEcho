@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-20 before calling agent-loop finish NG-20",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T13:39:38+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-20/contract.json",
+                "sha256": "sha256:4d1d83362ab64f3a641e269d73b6186fa80b2427f00143080f00e577a82a2256"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-20",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "a2b1fb7bd92313dc53cad98bf585610abc1cc77f7d61df69bb9449c1726c7faa",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-20.md",
+                "sha256": "sha256:a2b1fb7bd92313dc53cad98bf585610abc1cc77f7d61df69bb9449c1726c7faa"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A 'Gebärde' control appears on the board only when the active profile has usable examples; the camera starts only after a tap; the attempt is recorded after a short countdown until a tap or a time limit, with the same capture path as teaching",
+                "A recognised concept is shown large with its symbol and label and 'Ja, sagen' and 'Nein'; speech happens only after 'Ja, sagen', through the board's existing speech path and sentence bar",
+                "An unknown result speaks nothing, says in German that it was not understood, and shows up to three candidate tiles (tapping one speaks it like a board tile) and 'Zurück zur Tafel'; unusable recordings are refused with the reason",
+                "One- and two-hand gestures are recognised against examples of the same kind; the camera stops on every way out and after each attempt; nothing is stored or sent",
+                "A real-browser test teaches examples from DGS videos and attempts gestures from the same videos through the board's own flow, and checks that a confirmed result speaks and an unconfirmed one does not"
+            ],
+            "goal": "On the child's board a tap starts a gesture attempt; the app matches it against that child's taught examples and shows what it understood, and speaks only after a confirming tap; an unknown gesture shows up to three candidates and the way back to the board, and nothing is spoken by itself.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-20/contract.json",
+                "sha256": "sha256:4d1d83362ab64f3a641e269d73b6186fa80b2427f00143080f00e577a82a2256"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-20/contract.json",
+                "sha256": "sha256:4d1d83362ab64f3a641e269d73b6186fa80b2427f00143080f00e577a82a2256"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-20:e8e98ad451e8b421",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:57321902923f446a7ded5719b93d448d2b0aa077567a7a8bed8799d0e2658953",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:0fa53170aead1b74d8cff330989f97b98f6d9e05dbfc3ae5501ea6d5b269c6da"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-20:e8e98ad451e8b421",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "da84dad6e0d1ae579f88081c6266046d95a332535ad05a042f67de6f10f17a06",
+            "compilation_id": "compilation.NG-20.2026-11-23-133939.9307e582",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "f958fb511bc48d1723ae5223b1243c9066913fa1e93d43a18533c7108a42bd63",
+            "source": {
+                "path": ".agent-loop/recall/NG-20/meta.json",
+                "sha256": "sha256:02bc9235d84f90d63d7cf7827cd0b62b58608e1284058510e381d253b18319be"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-20/reviews/NG-20.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "99ea48f4cfac0a6cead0ec3ffe8754f9c11de451",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-20-r2-d5d26687",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-20-r2-d5d26687/session.json",
+                "sha256": "sha256:9ad05dd38cd1f58f5df1656427ca2bbc8e647899120ec7051224841c8122861b"
+            },
+            "state": "active",
+            "task_id": "NG-20"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-20 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-20",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:79f439c2a391274097d9de82ac0eb88ba45239a725919714aaf095951b2aa8cf",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-20:e8e98ad451e8b421",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-20"
+}

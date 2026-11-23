@@ -1,14 +1,14 @@
 {
-    "contract_revision": 2,
+    "contract_revision": 3,
     "contract_source": {
         "path": ".agent-loop/contracts/NG-20/contract.json",
-        "sha256": "sha256:4d1d83362ab64f3a641e269d73b6186fa80b2427f00143080f00e577a82a2256"
+        "sha256": "sha256:86014627471eab9b5d7f82bf730f300c653d5450a6f2b5a3877b1cb6b70ce8c8"
     },
     "kind": "governed_run",
     "learning_root": ".agent-loop/learning",
-    "prepared_at": "2026-11-23T13:39:39+00:00",
-    "run_id": "run:NG-20:e8e98ad451e8b421",
+    "prepared_at": "2026-11-23T14:39:08+00:00",
+    "run_id": "run:NG-20:6dbed2dff2320d38",
     "schema_version": "1.0",
-    "session_id": "2026-11-23-ng-20-r2-d5d26687",
+    "session_id": "2026-11-23-ng-20-r3-13364a20",
     "task_id": "NG-20"
 }
