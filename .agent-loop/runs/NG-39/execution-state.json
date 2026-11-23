@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:c16645269c6e26fbdec60591580a2017a5373249",
     "contract_revision": 3,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
     "history": [
         {
@@ -66,6 +66,42 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:d5024d98",
                 "summary": "Deploy runs after CI succeeded on main (workflow_run, tested commit) or by hand, permissions only on the deploy job, no cancelling a running deploy; build stamps the board cache name with a digest of the pre-cached files, tested; containment check uses relative/isAbsolute; verify passes",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:19:03+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:19:03+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:bdd0624c7e27d77cc63ebd680454d44e805d818a5f2494d27945e90b0cf19a06"
+                ],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:c16645269c6e26fbdec60591580a2017a5373249",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:bdd0624c7e27d77cc63ebd680454d44e805d818a5f2494d27945e90b0cf19a06"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:c16645269c6e26fbdec60591580a2017a5373249",
+                "context_id": "correctness-review-r3-1",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "outcome": "changes_required",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:c9236ff3",
+                "summary": "workflow_run branches filter matches a fork PR's head branch named main, so a fork's commit could be deployed with pages write; a manual run from another branch deploys that branch.",
                 "task_id": "NG-39",
                 "validation_references": []
             }
