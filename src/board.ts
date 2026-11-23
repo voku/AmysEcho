@@ -488,6 +488,9 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
       for (const element of own) element.hidden = false;
       root.replaceChildren(...own);
       shieldUntil = now() + BOARD_SHIELD_MS;
+      // Keyboard and switch users come back to the control that opened the view.
+      const control = gestureControls[0];
+      if (control !== undefined && typeof control.focus === "function") control.focus();
     },
     isCovered: () => covered,
     hasSelection: () => selection !== null,

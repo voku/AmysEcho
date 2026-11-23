@@ -4,8 +4,9 @@ How the board looks and behaves for the child (card NG-30). What the board shows
 may stand in for the child's own board, is in [storage.md](storage.md); the area for caregivers is
 in [caregiver.md](caregiver.md).
 
-Code: `mountBoard`, `mountFailure`, `boardColumns`, `SPEECH_MAX_MS` and `SPEECH_GRACE_MS` in
-`src/board.ts`; speech in `src/speech.ts`;
+Code: `mountBoard`, `mountFailure`, `boardColumns`, `SPEECH_MAX_MS`, `SPEECH_GRACE_MS` and
+`BOARD_SHIELD_MS` in `src/board.ts`; speech in `src/speech.ts`; recognising a gesture in
+`src/recognise/recognise.ts` ([recognise.md](recognise.md));
 the layout in `public/styles.css`; the page in `public/index.html`.
 
 ## Status
@@ -91,6 +92,17 @@ device needs no script.
 A board of examples keeps its dashed frame and its "Beispiele" badge. The badge has a low row of
 its own above the tiles; the frame is thin enough that five examples are still two columns on a
 360 px phone.
+
+## The gesture control (card NG-20)
+
+A profile with examples of concepts on its board gets one more control between the notice lines
+and the tiles: a wide button with a raised hand (✋) and "Gebärde", at least `--tile-min` high and
+purple, unlike a tile. It is there from the moment the board is drawn (the examples are read with
+the board), so nothing moves later. A board without such examples, and every board of examples, is
+exactly as described here, without it. A tap covers the board with the gesture view; what that
+view does, and the press shield of the board after it closed (`BOARD_SHIELD_MS`), is in
+[recognise.md](recognise.md). Speech from that view goes through the board's own tile path, so
+everything below about the sentence bar and speech holds for it.
 
 ## Sentence bar
 

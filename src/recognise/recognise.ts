@@ -3,7 +3,7 @@
  *
  * The child taps "Gebärde" on the board. Only then the camera starts, through
  * the capture module's bridge (as teaching does, card NG-19); after a short
- * countdown one attempt is recorded until "Fertig" or a time limit, the camera
+ * countdown one attempt is recorded until "Stopp" or a time limit, the camera
  * stops, and the attempt is compared with the active profile's examples.
  *
  * Speaking a wrong word is the worst failure (docs/recognition.md, "Known
@@ -32,11 +32,11 @@ import type { TrackerFrame } from "../recognition/tracker-adapter.js";
 
 /** Seconds counted down after the camera runs and before frames are kept, so the hand that tapped can leave the picture. As in teaching. */
 export const RECOGNISE_COUNTDOWN_S = 3;
-/** One attempt is recorded for at most this long; "Fertig" ends it sooner. A guess, not tried with a child. */
+/** One attempt is recorded for at most this long; "Stopp" ends it sooner. A guess, not tried with a child. */
 export const RECOGNISE_MAX_RECORDING_MS = 5000;
 /**
  * A press on a control of a view that appeared less than this long ago, or
- * that began before then, was aimed at what was there before ("Fertig" and
+ * that began before then, was aimed at what was there before ("Stopp" and
  * "Ja, sagen" can be at the same place). It is ignored. The board ignores
  * presses for as long after the view closed. A guess.
  */
@@ -58,7 +58,7 @@ export const RECOGNISE_TEXT = {
   countdown: (left: number): string =>
     `Gleich geht’s los: ${Array.from({ length: RECOGNISE_COUNTDOWN_S }, (_, at) => RECOGNISE_COUNTDOWN_S - at).filter((step) => step >= left).join(" … ")}`,
   recording: "Jetzt die Gebärde machen.",
-  finish: "Fertig",
+  finish: "Stopp",
   question: "Meinst du das?",
   yes: "Ja, sagen",
   no: "Nein",
@@ -104,8 +104,9 @@ export type RecogniseState =
   | { readonly kind: "starting"; readonly line: string }
   | { readonly kind: "countdown"; readonly left: number }
   | { readonly kind: "recording" }
-  | { readonly kind: "confirm"; readonly conceptId: string }
-  | { readonly kind: "unknown"; readonly reason: UnknownReason; readonly candidates: readonly string[] }
+  /** `hands`: which hands the attempt showed (one-hand and two-hand attempts are compared with examples of their kind only). */
+  | { readonly kind: "confirm"; readonly conceptId: string; readonly hands: HandKind }
+  | { readonly kind: "unknown"; readonly reason: UnknownReason; readonly candidates: readonly string[]; readonly hands: HandKind }
   | { readonly kind: "unusable"; readonly reason: FeatureFailure }
   /** The camera or tracker could not start or failed; `line` says why. */
   | { readonly kind: "problem"; readonly line: string };
@@ -138,7 +139,7 @@ export interface Recogniser {
   state(): RecogniseState;
   /** "Gebärde" on the board, and "Nochmal": starts the camera. `pressAt` is when the press began (default now). */
   start(pressAt?: number): void;
-  /** "Fertig": ends the recording now. */
+  /** "Stopp": ends the recording now. */
   finish(pressAt?: number): void;
   /** "Ja, sagen": back to the board, which then speaks the concept once. */
   confirm(pressAt?: number): void;
@@ -222,11 +223,11 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     if (outcome.kind === "unusable") {
       show({ kind: "unusable", reason: outcome.reason });
     } else if (outcome.kind === "match" && options.onBoard.has(outcome.conceptId)) {
-      show({ kind: "confirm", conceptId: outcome.conceptId });
+      show({ kind: "confirm", conceptId: outcome.conceptId, hands: outcome.hands });
     } else {
       const reason = outcome.kind === "unknown" ? outcome.reason : "too_far";
       const candidates = outcome.kind === "unknown" ? outcome.candidates : [];
-      show({ kind: "unknown", reason, candidates: candidates.filter((id) => options.onBoard.has(id)).slice(0, MAX_CANDIDATES) });
+      show({ kind: "unknown", reason, candidates: candidates.filter((id) => options.onBoard.has(id)).slice(0, MAX_CANDIDATES), hands: outcome.hands });
     }
   };
 
@@ -429,6 +430,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     panel.dataset["state"] = state.kind;
     delete panel.dataset["concept"];
     delete panel.dataset["reason"];
+    delete panel.dataset["hands"];
     if (state.kind === "idle") {
       board.uncover();
       return;
@@ -457,6 +459,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       }
       case "confirm": {
         panel.dataset["concept"] = state.conceptId;
+        panel.dataset["hands"] = state.hands;
         line.textContent = RECOGNISE_TEXT.question;
         const entry = byId.get(state.conceptId);
         const shown = element("div", "recognise-concept");
@@ -471,6 +474,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       }
       case "unknown": {
         panel.dataset["reason"] = state.reason;
+        panel.dataset["hands"] = state.hands;
         line.textContent = RECOGNISE_TEXT.unknown;
         if (state.candidates.length > 0) {
           content.push(element("p", "recognise-hint", RECOGNISE_TEXT.candidates));
@@ -499,7 +503,11 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     }
     main.replaceChildren(...content);
     actions.replaceChildren(...buttons);
-    if (!board.isCovered()) board.cover(panel);
+    if (!board.isCovered()) {
+      board.cover(panel);
+      // The control that opened the view is hidden now: the focus goes to the way back.
+      if (typeof back.focus === "function") back.focus();
+    }
   };
   const againButton = (): HTMLElement => {
     const again = button("recognise-action recognise-again", RECOGNISE_TEXT.again);
