@@ -542,7 +542,10 @@ interface PictureMode {
   readonly id: string;
   readonly conceptId: string;
   readonly title: string;
-  readonly draft: { picture: string | null; reading: boolean; busy: boolean };
+  /** What the concept was when the view opened: only a catalogue concept has a picture of the app to go back to. */
+  readonly source: BoardEntry["source"];
+  /** `choice` counts the files chosen; only the latest one's picture is kept. */
+  readonly draft: { picture: string | null; reading: boolean; busy: boolean; choice: number };
 }
 /** Creating an own concept for the profile `id`: like a rewording, but nothing is stored before "Speichern". */
 interface CreateConceptMode {
@@ -1633,6 +1636,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (mode !== open || file === undefined || open.draft.busy) return;
     clearStatus();
     open.draft.reading = true;
+    open.draft.choice += 1;
+    const choice = open.draft.choice;
     run(async () => {
       if (mode === open) await draw(["picture-file"], { toTop: true });
     });
@@ -1642,6 +1647,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }, (error: unknown) => ({ picture: null, line: PICTURE_REFUSED[error instanceof PictureRefusal ? error.reason : "unreadable"] }))
       .catch(() => ({ picture: null, line: PICTURE_REFUSED.unreadable }))
       .then(({ picture, line }) => {
+        // A file chosen after this one decides: this answer is dropped.
+        if (choice !== open.draft.choice) return;
         open.draft.reading = false;
         // Left meanwhile: the picture is dropped.
         if (mode !== open || !isOpen) return;
@@ -1693,7 +1700,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
   const removePicture = (): void => settlePicture(async (current, open) => {
     await clearSymbol(current, open.id, open.conceptId);
-    const known = catalogue.find((concept) => concept.id === open.conceptId);
+    const known = open.source === "catalogue" ? catalogue.find((concept) => concept.id === open.conceptId) : undefined;
     return known !== undefined ? `${quoted(open.title)} zeigt wieder das Bild der App.` : `${quoted(open.title)} hat jetzt kein Bild.`;
   });
 
@@ -2189,7 +2196,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const control = button(PICTURE);
     control.setAttribute("aria-label", `${PICTURE}: ${entry.labelDe}`);
     control.addEventListener("click", () => openMode({
-      kind: "picture", id: profileId, conceptId: entry.id, title: entry.labelDe, draft: { picture: null, reading: false, busy: false },
+      kind: "picture", id: profileId, conceptId: entry.id, title: entry.labelDe, source: entry.source,
+      draft: { picture: null, reading: false, busy: false, choice: 0 },
     }, "picture-file"));
     register.set(`picture:${entry.id}`, control);
     return control;

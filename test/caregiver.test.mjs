@@ -7099,3 +7099,73 @@ test("pictures: a picture that a newer app wrote offers no 'Bild wählen' and sa
     assert.equal(backend.snapshot()[`profile/${seeded.id}/data/symbol.hilfe`], undefined);
   });
 });
+
+test("pictures: when a second file is chosen while the first is still being read, the later choice wins; leaving or closing meanwhile stores and shows nothing", async () => {
+  const pending = new Map();
+  const slowPicture = (file) => new Promise((resolve) => pending.set(file.name, () => resolve(file.name === "second.png" ? PICTURE_PNG : PICTURE_PNG.replace("iVBOR", "iVBOx"))));
+  const settle = async (area) => {
+    await area.handle.settled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await area.handle.settled();
+  };
+  await withArea({ seed: seedThree, pictureFromFile: slowPicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, backend } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    const pick = (name) => {
+      const view = pictureViewOf(caregiverRegion);
+      view.file.files = [{ name, type: "image/png", size: 10 }];
+      view.file.dispatch("change");
+    };
+    pick("first.png");
+    await area.handle.settled();
+    assert.ok(pictureViewOf(caregiverRegion).texts.includes("Das Bild wird gelesen …"));
+    pick("second.png");
+    await area.handle.settled();
+    pending.get("second.png")();
+    await settle(area);
+    pending.get("first.png")();
+    await settle(area);
+    assert.deepEqual(pictureViewOf(caregiverRegion).images.slice(-1), [PICTURE_PNG]);
+    // Leaving while a file is read: its picture is dropped, nothing is stored.
+    const before = JSON.stringify(backend.snapshot());
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    await act(() => buttonNamed(concept("Trinken").row, "Bild wählen").click());
+    pick("third.png");
+    await area.handle.settled();
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    pending.get("third.png")();
+    await settle(area);
+    assert.equal(pictureViewOf(caregiverRegion), null);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    // And closing the area while one is read.
+    await act(() => buttonNamed(concept("Pause").row, "Bild wählen").click());
+    pick("fourth.png");
+    await area.handle.settled();
+    await area.handle.close();
+    pending.get("fourth.png")();
+    await settle(area);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+  });
+});
+
+test("pictures: an own concept under a catalogue id has no picture of the app to go back to", async () => {
+  const seed = async (store) => {
+    const mia = await store.create("Mia", ["hilfe"]);
+    await store.setActive(mia.id);
+    await store.data(mia.id).set("concept.hilfe", { version: 1, labelDe: "Hilf mir", speechDe: "Hilf mir bitte.", custom: true });
+    await store.data(mia.id).set("symbol.hilfe", { version: 1, dataUrl: PICTURE_PNG });
+    return mia;
+  };
+  await withArea({ seed, pictureFromFile: fakePicture }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilf mir").row, "Bild wählen").click());
+    const view = pictureViewOf(area.caregiverRegion);
+    assert.equal(view.reset.textContent, "Bild entfernen");
+    await area.act(() => view.reset.click());
+    assert.equal(area.status(), "„Hilf mir“ hat jetzt kein Bild.");
+    assert.equal(area.concept("Hilf mir").picture, null);
+  });
+});

@@ -3,7 +3,7 @@
     "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:92ac134c05272fb7d32f2bc0b2ac5e78bba13c16",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_stage_id": "verify",
     "execution_plan_digest": "sha256:297e8efe440092ce21771e2650c66c237e308f41cab96e7635bb1a2ea8ecffbb",
     "history": [
         {
@@ -93,6 +93,141 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:00ce21be",
                 "summary": "Own pictures: board-data symbol.<id> entries {version,dataUrl} (base64 PNG/JPEG/WebP data URL <= 256 KiB, strict reader), setSymbol/clearSymbol, resolveBoard prefers own picture (ownSymbol: true) and reports damaged-symbol; removeCustomConcept deletes the picture. Caregiver 'Bild wählen' view with file picker, preview, Speichern/Abbrechen, Bild der App wiederherstellen / Bild entfernen, German refusals, rights and on-device notice; pictureFromFile redraws via canvas to <= 256 px. CSP img-src adds data:; sw.js ASSET_REVISION so installed apps re-fetch. npm run verify passed (637 node tests; browser 4 pass 2 skipped). Hand-run headless Chromium: SVG with script flattened to PNG without running it, 1200x900 -> 256x192, refusals, end-to-end flow shows picture on child's board.",
+                "task_id": "NG-8673323346005092805",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:31:04+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:31:04+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a64cf8ff3ddb320da5cfcf86e9c6fc1c0ceff8d5c90536744f968f9d083fa2d5",
+                    "execution-evidence:sha256:9fe857e4dd009171e9b90f147da228e3478e577ac2efd4269a00a7f5ec34a23d",
+                    "execution-evidence:sha256:1454f187ae9083f3ae84dffec9ac078d1509b863a4c94758a1754608a5599222",
+                    "execution-evidence:sha256:68ef997806ab2a7ccc99bfd591f53b133c8f2356fa411a95e5fa9b98493f0e9f",
+                    "execution-evidence:sha256:16e1e8dc488cedf700b5d26bfe3af8326f3c247fccd8ed47982eca7623e4a609",
+                    "execution-evidence:sha256:362fa08bf8c9ce2ece2b755da7aee95546945f27df70252f19ac44dacd5d6305",
+                    "execution-evidence:sha256:1dc87130d4e39b014902e4b0d2ee5fb7196dd971ee0574f29d45392a8ce10695",
+                    "execution-evidence:sha256:101e7c71146602d0fca3929518463026d72956e19328a62bef4241589fa47561",
+                    "execution-evidence:sha256:0e8e95b2901b6daabc4bece28d27c76812b47d1ac80e30192c706fb7be769180",
+                    "execution-evidence:sha256:7c2f6d44eafec45939eaa6a3c64c6e251642b0ecc36d1163b0af965bef2fe744",
+                    "execution-evidence:sha256:0256cba65a46ea3967001363079a441a313dea2de4ba840a7d85c8bb98a7933f",
+                    "execution-evidence:sha256:b381e41601e73f17f2a8fdbda8bc8958942d1a067473e330f686e295141ce059",
+                    "execution-evidence:sha256:b9d20e288bb54a32ef441c8779244a02e797f1cb282b14baa41616f431ca2ef0"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:92ac134c05272fb7d32f2bc0b2ac5e78bba13c16",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:297e8efe440092ce21771e2650c66c237e308f41cab96e7635bb1a2ea8ecffbb",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+                "schema_version": "1.0",
+                "task_id": "NG-8673323346005092805",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a64cf8ff3ddb320da5cfcf86e9c6fc1c0ceff8d5c90536744f968f9d083fa2d5",
+                    "execution-evidence:sha256:9fe857e4dd009171e9b90f147da228e3478e577ac2efd4269a00a7f5ec34a23d",
+                    "execution-evidence:sha256:1454f187ae9083f3ae84dffec9ac078d1509b863a4c94758a1754608a5599222",
+                    "execution-evidence:sha256:68ef997806ab2a7ccc99bfd591f53b133c8f2356fa411a95e5fa9b98493f0e9f",
+                    "execution-evidence:sha256:16e1e8dc488cedf700b5d26bfe3af8326f3c247fccd8ed47982eca7623e4a609",
+                    "execution-evidence:sha256:362fa08bf8c9ce2ece2b755da7aee95546945f27df70252f19ac44dacd5d6305",
+                    "execution-evidence:sha256:1dc87130d4e39b014902e4b0d2ee5fb7196dd971ee0574f29d45392a8ce10695",
+                    "execution-evidence:sha256:101e7c71146602d0fca3929518463026d72956e19328a62bef4241589fa47561",
+                    "execution-evidence:sha256:0e8e95b2901b6daabc4bece28d27c76812b47d1ac80e30192c706fb7be769180",
+                    "execution-evidence:sha256:7c2f6d44eafec45939eaa6a3c64c6e251642b0ecc36d1163b0af965bef2fe744",
+                    "execution-evidence:sha256:0256cba65a46ea3967001363079a441a313dea2de4ba840a7d85c8bb98a7933f",
+                    "execution-evidence:sha256:b381e41601e73f17f2a8fdbda8bc8958942d1a067473e330f686e295141ce059",
+                    "execution-evidence:sha256:b9d20e288bb54a32ef441c8779244a02e797f1cb282b14baa41616f431ca2ef0"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:92ac134c05272fb7d32f2bc0b2ac5e78bba13c16",
+                "context_id": "reviewer-correctness-pictures",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:297e8efe440092ce21771e2650c66c237e308f41cab96e7635bb1a2ea8ecffbb",
+                "observations": [
+                    "src/caregiver.ts:1632 choosePicture has no per-choice token: if a second file is chosen while the first is still decoding, whichever decode finishes last wins, and the first one to finish clears draft.reading. An older choice can then replace a newer one in the preview (what is saved still matches the preview). Fix: keep a counter on draft and drop results that are not the latest.",
+                    "src/caregiver.ts:1694 removePicture's message checks catalogue.find without the entry source. For a custom concept that shadows a catalogue id it says 'zeigt wieder das Bild der App', but the board shows text. pictureView (caregiver.ts:2258) already checks entry.source === 'catalogue'; use the same check here.",
+                    "src/caregiver.ts:2258 an own picture that is unreadable (damaged-symbol, damage unreadable) gets no 'Bild entfernen' button and no note in the picture view, because ownSymbol is unset. It can only be replaced, and the damaged-symbol problem stays until then.",
+                    "test/caregiver.test.mjs:6952-7100 no test covers closing the area or leaving the view while a file is still decoding, or a second change event during decoding; the guards at caregiver.ts:1648 are only checked by reading the code.",
+                    "Commit 2dbcf42 also adds picture-view.png at the repository root. It is outside the Contract scope and the governed candidate tree does not contain it, but it is in the branch history. The goal says no picture enters the repository, so remove it from the branch before integration."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:b82479c3",
+                "summary": "Reviewed the full diff 681e113..2dbcf42 against Contract rev 1. VERIFIED: src/board-data.ts:63 regex accepts only base64 png/jpeg/webp data URLs, length capped at 256 KiB before the regex test (board-data.ts:262); readSymbolEntry checks version first, then the exact key set {dataUrl,version}, and reports a newer version as unsupported-version; setSymbol/clearSymbol leave a newer app's picture alone; resolveBoard puts the own picture first for catalogue, custom and retired entries and reports damaged-symbol (board-data.ts:335-351); removeCustomConcept takes the id off the board first, then the picture, then the entry, and a rerun finishes the job (board-data.ts:588-592). 'symbol.'+40-character id = 47 chars, which fits the store's DATA_NAME_PATTERN (src/profiles/store.ts:37), so pictures go into exports. caregiver.ts: pictureFromFile re-encodes through a canvas (PNG, else JPEG on white), and choosePicture drops the result when the mode changes or the area is closed. settlePicture guards busy and reading and returns focus to picture:<id> / picture-save / picture-file. ProfileSizeError and unsupported-entry give German messages. CSP adds data: only to img-src (public/index.html:6). sw.js changes its bytes, so the install re-fetches assets with cache:reload. The German strings are consistent. No blocking defect found.",
+                "task_id": "NG-8673323346005092805",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:31:30+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:31:30+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:198f9596514786c23b0b09269b9cc1b50ae997af81fbf091ec1a4f9a925f07b6",
+                    "execution-evidence:sha256:67fb2fb63769ed15a672085cfbd6e239229c261ae85e064ce7caf8d7efc7b3cf",
+                    "execution-evidence:sha256:65df55554ac0eda89cd8f0ad3bf461397fd229887f63a5ada15ece46e116f510",
+                    "execution-evidence:sha256:aa7b769ae383fb62129fba8609b9dfdd7fd9c390e8cffd4663f9301a4ade75bc",
+                    "execution-evidence:sha256:38d072aa8a3fea266a83263e7fc1440e33c32a6ce619938b608d6dd3dd6f6d99",
+                    "execution-evidence:sha256:313c8ebc9f1ea4f40aae116c7ed9bb0d353fc3df2041c84e0cda351ee7e377dc",
+                    "execution-evidence:sha256:98a5f3f8c6f878acbd73df0d968c9365f8e7c7104d0f45c263fd65c5e5d5e8a9",
+                    "execution-evidence:sha256:f3967011dafcc845c09f951184771b65fedcb1b73fad7b2cbbdfcf2de35091e0",
+                    "execution-evidence:sha256:1894ce626dd5e07659c8b75fa0efb9935bc93b168ae5a35b6a08fd8d69f248ba",
+                    "execution-evidence:sha256:437930f133c29772cc26dc047f2befad1c9b4a2e385359472d1d1183d45a9490",
+                    "execution-evidence:sha256:9645d60bbeaab0fbf5efa79417b538cde752a382324885b235d911c7909a6119",
+                    "execution-evidence:sha256:8b23ce313352e0606c8580a63e0db8d0c31f062fa8ac1d388dca8f5464e40b06",
+                    "execution-evidence:sha256:76ed274d80afbaef8595a998cc9c8718983b323b9664a8bd4d3299f059c7d94c"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:92ac134c05272fb7d32f2bc0b2ac5e78bba13c16",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:297e8efe440092ce21771e2650c66c237e308f41cab96e7635bb1a2ea8ecffbb",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+                "schema_version": "1.0",
+                "task_id": "NG-8673323346005092805",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:198f9596514786c23b0b09269b9cc1b50ae997af81fbf091ec1a4f9a925f07b6",
+                    "execution-evidence:sha256:67fb2fb63769ed15a672085cfbd6e239229c261ae85e064ce7caf8d7efc7b3cf",
+                    "execution-evidence:sha256:65df55554ac0eda89cd8f0ad3bf461397fd229887f63a5ada15ece46e116f510",
+                    "execution-evidence:sha256:aa7b769ae383fb62129fba8609b9dfdd7fd9c390e8cffd4663f9301a4ade75bc",
+                    "execution-evidence:sha256:38d072aa8a3fea266a83263e7fc1440e33c32a6ce619938b608d6dd3dd6f6d99",
+                    "execution-evidence:sha256:313c8ebc9f1ea4f40aae116c7ed9bb0d353fc3df2041c84e0cda351ee7e377dc",
+                    "execution-evidence:sha256:98a5f3f8c6f878acbd73df0d968c9365f8e7c7104d0f45c263fd65c5e5d5e8a9",
+                    "execution-evidence:sha256:f3967011dafcc845c09f951184771b65fedcb1b73fad7b2cbbdfcf2de35091e0",
+                    "execution-evidence:sha256:1894ce626dd5e07659c8b75fa0efb9935bc93b168ae5a35b6a08fd8d69f248ba",
+                    "execution-evidence:sha256:437930f133c29772cc26dc047f2befad1c9b4a2e385359472d1d1183d45a9490",
+                    "execution-evidence:sha256:9645d60bbeaab0fbf5efa79417b538cde752a382324885b235d911c7909a6119",
+                    "execution-evidence:sha256:8b23ce313352e0606c8580a63e0db8d0c31f062fa8ac1d388dca8f5464e40b06",
+                    "execution-evidence:sha256:76ed274d80afbaef8595a998cc9c8718983b323b9664a8bd4d3299f059c7d94c"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:92ac134c05272fb7d32f2bc0b2ac5e78bba13c16",
+                "context_id": "reviewer-blindspot-pictures",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:297e8efe440092ce21771e2650c66c237e308f41cab96e7635bb1a2ea8ecffbb",
+                "observations": [
+                    "src/caregiver.ts:403 PICTURE_LOCAL says 'Die App sendet es nicht', but a profile export (docs/storage.md, own pictures) carries the pictures as plain base64. When an export/import UI is built, it should warn that the backup file contains the chosen pictures (photos included), and that sharing it may be limited by the family's METACOM licence.",
+                    "src/caregiver.ts:224 MAX_PICTURE_FILE_BYTES limits the file size but not the pixel count. A 10 MB, highly compressible PNG of very large dimensions is decoded in full before the canvas downscales it, which can exhaust memory on a low-end tablet (nothing persistent is lost). Consider refusing naturalWidth*naturalHeight above a pixel budget after load.",
+                    "docs/storage.md (own pictures section): the pictures are only in the browser's origin storage, and src/ has no navigator.storage.persist() call. Eviction or clearing site data loses them together with the profile. This risk already existed, but own pictures (for example a family's METACOM exports) make it more costly. Follow-up: ask for persistent storage, or point to export.",
+                    "docs/storage.md: a concept taken off the board keeps its symbol.<id> picture by design. These hidden pictures still count toward the size limit and are in exports, and no UI lists or deletes them, except removeCustomConcept for own concepts.",
+                    "src/board-data.ts:335 resolveBoard now does a third sequential read per concept (123 reads for 40 concepts), and every refresh puts data URLs of up to 256 KiB into the DOM. The 1.5 s start-up bound remains unmeasured with pictures.",
+                    "Commit 2dbcf42 adds picture-view.png (a synthetic UI screenshot) at the repository root. It is outside the scope and not in the governed candidate tree, but the Contract goal says no picture enters the repository, so drop it from the branch before pushing or merging."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:134b28ca",
+                "summary": "Blind-spot review of the candidate against Contract rev 1. Privacy, VERIFIED: pictures are only re-encoded through a canvas (src/caregiver.ts:1663-1680), so EXIF/GPS/SVG markup are never stored; nothing is sent over the network (connect-src 'self', and no fetch in the picture path). Licensing: the German rights notice that names METACOM licences appears in the view (caregiver.ts:395) and in docs/assets.md. Export, VERIFIED: 'symbol.<id>' is a valid data name, so pictures travel in exports; docs/storage.md documents this and the size accounting. Child-facing: a damaged picture falls back to the catalogue picture or text and is reported as damaged-symbol (board-data.ts:338-340); the board never shows a broken image. Storage: pictures count toward the profile size limit, and a full profile is refused with a German message (caregiver.ts:1677). No blocking blind spot. Could not check: real devices, a real METACOM export, EXIF orientation on iOS Safari, screen readers.",
                 "task_id": "NG-8673323346005092805",
                 "validation_references": []
             }
