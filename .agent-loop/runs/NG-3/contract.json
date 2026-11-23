@@ -1,0 +1,53 @@
+{
+    "acceptance_criteria": [
+        "The camera is requested only after a tap on the capture path, never on the board path; no frame or video is stored or sent; denied or missing camera gives a German message and a way back",
+        "The tracker (tasks-vision 0.10.35) and its models are served from the app's own origin in a cache separate from the board's pre-cache; a failed tracker download never breaks the board's install or start; the only CSP change is wasm-unsafe-eval; a check fails when the bundle names an external host",
+        "Landmark frames have equal scale on both axes and left means the child's own left hand; one- and two-hand frames are produced",
+        "A real-browser test in CI plays DGS videos from main_old as the fake camera through the app's own capture code, teaches each word from some videos and attempts it from others, and prints top-1, wrong-concept and unknown rates for one-hand and two-hand signs separately; no threshold is lowered",
+        "The DGS videos are read from the main_old history at test time and are not added to the main branch"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-23T07:18:20+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "79aa1c6bbaf58a27e6c7d5550c6c562d02891c23",
+    "behavior_anchors": [],
+    "created_at": "2026-11-23T07:18:13+00:00",
+    "goal": "A tap starts the camera, a worker runs the pinned hand tracker on each frame and the app gets landmark frames in the matcher's input contract; a real-browser test feeds DGS sign videos from main_old in as the camera and shows that signs taught from some videos are recognised from other videos of the same word.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/capture/capture.ts",
+        "src/capture/tracker-worker.ts",
+        "src/recognition/tracker-adapter.ts",
+        "test/capture.test.mjs",
+        "test/browser/dgs-capture.test.mjs",
+        "docs/capture.md",
+        "public/index.html",
+        "public/sw.js",
+        "scripts/assemble.mjs",
+        "scripts/run-tests.mjs",
+        "scripts/offline-smoke.mjs",
+        "package.json",
+        "package-lock.json",
+        ".github/workflows/ci.yml",
+        "test/bootstrap.test.mjs",
+        "docs/recognition.md",
+        "tsconfig.json"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-3",
+    "updated_at": "2026-11-23T07:18:20+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

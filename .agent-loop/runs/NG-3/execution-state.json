@@ -1,0 +1,48 @@
+{
+    "attention": null,
+    "candidate_revision": "79aa1c6bbaf58a27e6c7d5550c6c562d02891c23",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T07:18:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T07:18:22+00:00",
+                "artifact_references": [],
+                "candidate_revision": "79aa1c6bbaf58a27e6c7d5550c6c562d02891c23",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "79aa1c6bbaf58a27e6c7d5550c6c562d02891c23",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "outcome": "completed",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:be7e7b4d",
+                "summary": "main_old holds 314 SignDict DGS videos with variants per word under server/data/dgs_video_examples (licence to be checked per video, so they stay in history and are not re-added); the NG-16 spike proved tasks-vision 0.10.35 runs same-origin in a module worker under the app CSP plus wasm-unsafe-eval; ffmpeg is available to turn mp4 into y4m for Chromium's fake camera; Playwright is preinstalled locally and must become a dev dependency for CI.",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-3:b7e51e8c420ee570",
+    "schema_version": "1.0",
+    "task_id": "NG-3"
+}
