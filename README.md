@@ -59,6 +59,17 @@ on a target device (card NG-14), so data entered now may not survive. A profile 
 the caregiver area, and there is no backup; clearing the site data of the browser removes all
 profiles in this browser and the offline copy of the app.
 
+## Try it
+
+The app on `main` is deployed to GitHub Pages: <https://voku.github.io/AmysEcho/>. Open it in
+Chrome on the phone; "Zum Startbildschirm hinzufügen" installs it, and after one visit it starts
+offline. The board shows the examples until a caregiver sets up a profile (hold the control at the
+bottom for three seconds).
+
+The camera test is at <https://voku.github.io/AmysEcho/#kamera-testen>: "Kamera starten" loads the
+hand tracker (about 25 MB, once), asks for the camera and shows whether no, one or two hands are
+seen. Nothing is recorded or sent. Gesture teaching and recognition are not built yet.
+
 ## Principles
 
 - **The board always works.** Camera, recognition and network are optional.
