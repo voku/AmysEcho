@@ -11,7 +11,7 @@ import {
 } from "../dist/recognition/tracker-adapter.js";
 import { buildFeatureSequence, HAND_POINTS } from "../dist/recognition/features.js";
 import {
-  CAPTURE_TEXT, POSE_EVERY, TRACKER_CACHE_PREFIX, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
+  CAPTURE_TEXT, POSE_EVERY, SHOULDERS_LOST_AFTER, TRACKER_CACHE_PREFIX, nextShoulders, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
 } from "../dist/capture/capture.js";
 import { createTrackerHost } from "../dist/capture/tracker-worker.js";
 
@@ -277,10 +277,12 @@ test("capture: tracker first, then the camera; frames flow; stop turns the camer
   // No picture is kept: every image was closed, and a frame holds numbers only.
   await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(log.imagesOpen, 0);
-  assert.deepEqual(Object.keys(frames[0]).sort(), ["hands", "imageHeight", "imageWidth", "pose", "timestampMs"]);
+  assert.deepEqual(Object.keys(frames[0]).sort(), ["hands", "imageHeight", "imageWidth", "pose", "poseRan", "timestampMs"]);
   assert.equal(JSON.stringify(frames).includes("close"), false);
   // Pose runs on every POSE_EVERY-th frame.
   log.poseFlags.forEach((flag, index) => assert.equal(flag, index % POSE_EVERY === 0));
+  // Each frame says whether pose ran on it, so a frame without a pose result is not read as "no shoulders".
+  frames.forEach((frame, index) => assert.equal(frame.poseRan, log.poseFlags[index]));
   // Stopping again changes nothing and returns nothing.
   assert.deepEqual(started.session.stop(), []);
   assert.equal(log.tracksStopped, 1);
@@ -829,4 +831,27 @@ test("the service worker keeps the tracker out of the board's install and never 
   listeners.fetch({ request: new Request("https://app.example/echo/board.js"), respondWith(promise) { response = promise; } });
   await response;
   assert.deepEqual(matched, [["https://app.example/echo/board.js", undefined]]);
+});
+
+test("live line: the shoulders stay shown between pose results and go only after two pose results without them", () => {
+  let state = { seen: false, posesWithout: 0 };
+  // Pose runs on every fifth frame: shoulders found on the first, the next four frames carry no pose.
+  const frames = [[true, true], [false, false], [false, false], [false, false], [false, false], [true, true], [false, false]];
+  for (const [shoulders, poseRan] of frames) {
+    state = nextShoulders(state, shoulders, poseRan);
+    assert.equal(state.seen, true);
+  }
+  // One pose result without shoulders (a single miss) keeps them shown; a second in a row hides them.
+  state = nextShoulders(state, false, true);
+  assert.equal(state.seen, true);
+  state = nextShoulders(state, false, false);
+  assert.equal(state.seen, true);
+  state = nextShoulders(state, false, true);
+  assert.equal(state.seen, false);
+  // Seen again: shown at once.
+  state = nextShoulders(state, true, true);
+  assert.deepEqual(state, { seen: true, posesWithout: 0 });
+  // Unknown whether pose ran (older frames): counted as a pose result.
+  assert.equal(nextShoulders(nextShoulders({ seen: true, posesWithout: 0 }, false, undefined), false, undefined).seen, false);
+  assert.equal(SHOULDERS_LOST_AFTER, 2);
 });

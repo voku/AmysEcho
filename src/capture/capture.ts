@@ -16,6 +16,27 @@ import type { Delegate, TrackerFiles, TrackerReply, TrackerRequest } from "./tra
 
 /** Pose (for the shoulders) runs on every this many frames; the matcher takes the median shoulders of a capture. */
 export const POSE_EVERY = 5;
+/** The live line says the shoulders are gone only after this many pose results in a row without them. */
+export const SHOULDERS_LOST_AFTER = 2;
+
+/** What the live line says about the shoulders, held between pose results. */
+export interface ShoulderState {
+  readonly seen: boolean;
+  /** Pose results in a row without shoulders. */
+  readonly posesWithout: number;
+}
+
+/**
+ * The next shoulder state for the live line. A frame the pose model did not run on
+ * (`poseRan` false) changes nothing; shoulders seen show at once; they are reported as
+ * gone only after SHOULDERS_LOST_AFTER pose results in a row without them.
+ */
+export function nextShoulders(state: ShoulderState, shouldersInFrame: boolean, poseRan: boolean | undefined): ShoulderState {
+  if (shouldersInFrame) return { seen: true, posesWithout: 0 };
+  if (poseRan === false) return state;
+  const posesWithout = state.posesWithout + 1;
+  return { seen: state.seen && posesWithout < SHOULDERS_LOST_AFTER, posesWithout };
+}
 /** A recording keeps at most this many frames, the newest; about a minute at 10 frames per second. */
 export const MAX_RECORDED_FRAMES = 600;
 /** How long the tracker worker may take to start once its files are there. */
@@ -272,15 +293,16 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
       const timestampMs = Math.max(frame.timestampMs, lastMs + 1);
       lastMs = timestampMs;
       let result: TrackerResult;
+      const poseRan = index % POSE_EVERY === 0;
       try {
-        result = await tracker.detect(frame.image, timestampMs, index % POSE_EVERY === 0);
+        result = await tracker.detect(frame.image, timestampMs, poseRan);
       } catch {
         if (running) shutDown({ kind: "problem", problem: "tracker_failed" });
         return;
       }
       index += 1;
       if (!running) return;
-      const tracked: TrackerFrame = { timestampMs, imageWidth: frame.width, imageHeight: frame.height, hands: result.hands, pose: result.pose };
+      const tracked: TrackerFrame = { timestampMs, imageWidth: frame.width, imageHeight: frame.height, hands: result.hands, pose: result.pose, poseRan };
       if (options.record === true) {
         recorded.push(tracked);
         if (recorded.length > limit) recorded.splice(0, recorded.length - limit);
@@ -717,6 +739,9 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
       if (cancel !== null) return;
       const controller = new AbortController();
       let session: CaptureSession | null = null;
+      // The pose model runs on every POSE_EVERY-th frame only: the shoulder line holds the last pose
+      // result and turns to "not seen" only after SHOULDERS_LOST_AFTER pose results in a row without them.
+      let shoulders: ShoulderState = { seen: false, posesWithout: 0 };
       const ownCancel = (): void => {
         controller.abort();
         session?.stop();
@@ -737,8 +762,10 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
         onFrame: (frame) => {
           if (mine !== generation || controller.signal.aborted) return;
           const summary = frameSummary(frame);
+          shoulders = nextShoulders(shoulders, summary.shoulders, frame.poseRan);
           seen.dataset["hands"] = String(summary.hands);
-          seen.textContent = `${CAPTURE_TEXT.hands[summary.hands]} ${CAPTURE_TEXT.shoulders[summary.shoulders ? 1 : 0]}`;
+          seen.dataset["shoulders"] = shoulders.seen ? "1" : "0";
+          seen.textContent = `${CAPTURE_TEXT.hands[summary.hands]} ${CAPTURE_TEXT.shoulders[shoulders.seen ? 1 : 0]}`;
         },
       }).then((started) => {
         if (!started.ok) {

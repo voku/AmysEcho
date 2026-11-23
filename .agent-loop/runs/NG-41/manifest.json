@@ -1,0 +1,165 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-41 before calling agent-loop finish NG-41",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T11:19:11+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-41/contract.json",
+                "sha256": "sha256:7672d00cbb6a5ac5e90dd054194e82ccd50180ee69aad7347e0824e2d8a28a9b"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-41",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "edabce2d90513653d495e3292d16cbb443f20c664fb7b5861ae98d70ba4644e1",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-41.md",
+                "sha256": "sha256:edabce2d90513653d495e3292d16cbb443f20c664fb7b5861ae98d70ba4644e1"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "With the shoulders in view the line keeps saying 'Schultern zu sehen' on frames where the pose model did not run",
+                "The line changes to 'Schultern nicht zu sehen' only after two pose results in a row without shoulders",
+                "Frames record whether the pose model ran, and the matcher's input is unchanged"
+            ],
+            "goal": "The camera test's shoulder line stays steady while the shoulders are in view.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-41/contract.json",
+                "sha256": "sha256:7672d00cbb6a5ac5e90dd054194e82ccd50180ee69aad7347e0824e2d8a28a9b"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-41/contract.json",
+                "sha256": "sha256:7672d00cbb6a5ac5e90dd054194e82ccd50180ee69aad7347e0824e2d8a28a9b"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-41:47ffaa81a7f4329a",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:037be04e085bfa4b4a8c0ed1b6e416eba31b4e0fedf919a20d3a86c0b1c6f52e",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:7c8e91210c42a0aa278c3dd9c71113a5421dae89d59d1e674edf7fc786cdaf84"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-41:47ffaa81a7f4329a",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "a7265573bda83ec3a035de06f057510f133cbcc3b6b6b754565c32982c7222bd",
+            "compilation_id": "compilation.NG-41.2026-11-23-111912.e2eb83d2",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "6d2847ef8bcadd17f06e1077383feb0604596c6a37f471ff3f2df95f74f60008",
+            "source": {
+                "path": ".agent-loop/recall/NG-41/meta.json",
+                "sha256": "sha256:b5c100c662798c52f0e6b5ccadfe40ad45b06ef0ca00ffc4ac3497506b976349"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-41/reviews/NG-41.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "15d9e1d836d76daa8d3ee94f096bddf7e1be9f47",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-41-r1-e41dea5f",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-41-r1-e41dea5f/session.json",
+                "sha256": "sha256:868e8a53c9b9aa42fcded40db37929e351859f7c06b0bcb99d39eeba5878dfae"
+            },
+            "state": "active",
+            "task_id": "NG-41"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-41 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-41",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:f694521000dc26b9410caaa2df648bcdc65cd598cb3a0dfd28196e844174e8b3",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-41:47ffaa81a7f4329a",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-41"
+}
