@@ -143,10 +143,11 @@ test("the hand that does not sign is in view, fidgets, trembles or belongs to so
       ? `${name}: ${percent(report.top1)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)} (${report.examples} examples, ${report.knownAttempts} attempts)`
       : `${name}: spoken as a concept ${percent(report.falseAccept)} (${report.examples} examples, ${report.unknownAttempts} attempts)`);
   }
-  assert.equal(cases.length, 29);
-  // A second hand seen for under a fifth of the movement, or only before it, is taken for a hand passing through, by
-  // the rule (docs/recognition.md). These rows are measured and reported; a limit here would only pin the weakness in place.
-  const byRule = (name) => /second hand seen for (20|10)% of the movement|until the right hand starts in the attempts/.test(name);
+  assert.equal(cases.length, 89);
+  // A second hand seen for under a fifth of the time a hand is in view, without a movement of its own, is taken for a
+  // hand passing through, by the rule (docs/recognition.md). These rows are measured and reported (the matcher of
+  // schema version 1 speaks the wrong concept in them as well); a limit here would only pin the weakness in place.
+  const byRule = (name) => /second hand seen for (30|20|10)% of the movement/.test(name);
   assert.equal(cases.filter(({ name }) => byRule(name)).length, 3);
   for (const { name, report } of cases) {
     if (byRule(name)) continue;

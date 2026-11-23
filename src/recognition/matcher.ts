@@ -15,8 +15,9 @@ export interface RankedConcept {
 
 export interface MatchOptions {
   /**
-   * Per concept: a best match farther away than this is not accepted. Concepts
-   * without an entry use `FALLBACK_MAX_DISTANCE`.
+   * Per concept and kind of sequence (`limitKey`): a best match farther away
+   * than this is not accepted. Without an entry the limit is
+   * `FALLBACK_MAX_DISTANCE`.
    */
   readonly maxDistance: ReadonlyMap<string, number>;
   /**
@@ -58,6 +59,14 @@ const CALIBRATION_HEADROOM = 1.25;
 const MIN_ABSOLUTE_MARGIN = 0.01;
 const RANKED_CONCEPTS = 3;
 
+/**
+ * The key of a concept's limit for sequences of one kind (anchor and hands):
+ * examples made with other hands, or anchored otherwise, never widen it.
+ */
+export function limitKey(conceptId: string, sequence: Pick<FeatureSequence, "anchor" | "hands">): string {
+  return JSON.stringify([conceptId, sequence.anchor, sequence.hands]);
+}
+
 /** True when two sequences can be compared: the same anchor and the same hands. */
 export function comparable(a: FeatureSequence, b: FeatureSequence): boolean {
   return a.anchor === b.anchor && a.hands === b.hands;
@@ -98,7 +107,7 @@ export function matchGesture(
     return { kind: "unknown", reason, ranked };
   }
   // Written so that a distance that is not a number is rejected, not accepted.
-  if (!(best.distance <= (options.maxDistance.get(best.conceptId) ?? FALLBACK_MAX_DISTANCE))) {
+  if (!(best.distance <= (options.maxDistance.get(limitKey(best.conceptId, query)) ?? FALLBACK_MAX_DISTANCE))) {
     return { kind: "unknown", reason: "too_far", ranked };
   }
   const runnerUp = ranked[1];
@@ -124,7 +133,8 @@ function median(values: number[]): number {
  * The limit is the typical (median) distance from an example to its nearest
  * sibling, with headroom, kept between the fallback and an upper bound. The
  * median keeps one mislabelled example among several good ones from opening the
- * concept. A concept with fewer than two comparable examples gets no entry.
+ * concept. Each kind of sequence of a concept (`limitKey`) gets its own limit
+ * from its own examples; a kind with fewer than two examples gets no entry.
  */
 export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<string, number> {
   const nearestSibling = new Map<string, number[]>();
@@ -136,13 +146,14 @@ export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<s
       }
     }
     if (Number.isFinite(nearest)) {
-      nearestSibling.set(example.conceptId, [...(nearestSibling.get(example.conceptId) ?? []), nearest]);
+      const key = limitKey(example.conceptId, example.sequence);
+      nearestSibling.set(key, [...(nearestSibling.get(key) ?? []), nearest]);
     }
   }
   const limits = new Map<string, number>();
-  for (const [conceptId, distances] of nearestSibling) {
+  for (const [key, distances] of nearestSibling) {
     const limit = median(distances) * CALIBRATION_HEADROOM;
-    limits.set(conceptId, Math.min(Math.max(limit, FALLBACK_MAX_DISTANCE), MAX_CALIBRATED_MAX_DISTANCE));
+    limits.set(key, Math.min(Math.max(limit, FALLBACK_MAX_DISTANCE), MAX_CALIBRATED_MAX_DISTANCE));
   }
   return limits;
 }

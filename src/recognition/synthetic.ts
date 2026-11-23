@@ -296,8 +296,16 @@ export function trembling(hand: HandScript, hertz: number, size: number): HandSc
   };
 }
 
-/** Renders a scripted capture as landmark frames at about 27 frames per second, with shoulders and tracking jitter. */
-export function renderScript(capture: ScriptedCapture, variation: Pick<Variation, "seed" | "session">): LandmarkFrame[] {
+/** How a tracker shows a scripted capture. */
+export interface Tracking {
+  /** How far a hand's landmarks wander together from frame to frame, in shoulder widths (standard deviation); default 0.004. */
+  readonly noise?: number;
+  /** Mean time between frames; default 37 (about 27 frames per second). Each interval varies by a tenth either way. */
+  readonly frameMs?: number;
+}
+
+/** Renders a scripted capture as landmark frames, with shoulders and tracking jitter. */
+export function renderScript(capture: ScriptedCapture, variation: Pick<Variation, "seed" | "session"> & Tracking): LandmarkFrame[] {
   const random = createRandom(variation.seed);
   const { shift, zoom, tilt } = variation.session;
   const toCamera = ([x, y]: Point): Point => [
@@ -307,14 +315,15 @@ export function renderScript(capture: ScriptedCapture, variation: Pick<Variation
   const render = (script: HandScript | null, tMs: number): Point[] | null => {
     const at = script === null ? null : script(tMs);
     if (at === null) return null;
-    const wander: Point = [gaussian(random) * REST_JITTER, gaussian(random) * REST_JITTER];
+    const noise = variation.noise ?? REST_JITTER;
+    const wander: Point = [gaussian(random) * noise, gaussian(random) * noise];
     return handShape(at.curls, 0).map(([x, y]) => toCamera([
       at.wrist[0] + wander[0] + x * HAND_SIZE + gaussian(random) * 0.003,
       at.wrist[1] + wander[1] + y * HAND_SIZE + gaussian(random) * 0.003,
     ]));
   };
   const frames: LandmarkFrame[] = [];
-  for (let tMs = 0; tMs <= capture.durationMs; tMs += FRAME_MS * (0.9 + random() * 0.2)) {
+  for (let tMs = 0; tMs <= capture.durationMs; tMs += (variation.frameMs ?? FRAME_MS) * (0.9 + random() * 0.2)) {
     frames.push({
       tMs: Math.round(tMs),
       left: render(capture.left, tMs),

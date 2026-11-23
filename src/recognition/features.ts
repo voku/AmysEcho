@@ -26,16 +26,17 @@ const POSITION_WEIGHT = 1;
 const MIN_ACTIVE_FRAMES = 3;
 /**
  * A hand belongs to the gesture when it is visible for at least this share of
- * the gesture's duration, whether it moves or not. The gesture's duration is
- * one span for both hands: from the first to the last movement of either.
- * Presence decides: a hand that is clearly in view is never left out because
- * the other hand moves more.
+ * the time a hand is in view (first to last frame with a hand), whether it
+ * moves or not. Never of a part cut out by movement: a hand seen only in the
+ * rest before or after the movement would then be left out. Presence decides:
+ * a hand that is clearly in view is never left out because the other hand
+ * moves more.
  */
 export const HAND_PRESENCE_SHARE = 0.5;
 /**
- * Only a hand visible for less than this share of the gesture's duration, and
- * without a movement of its own, is left out silently. It is a share, not a
- * time: in a gesture of 1.5 s a hand seen for 300 ms is at the limit. Between
+ * Only a hand visible for less than this share of the time a hand is in view,
+ * and without a movement of its own, is left out silently. It is a share, not
+ * a time: in a capture of 1.5 s a hand seen for 300 ms is at the limit. Between
  * the two shares nobody can say whether the hand belongs, and leaving it out
  * could turn a two-hand gesture into the one-hand gesture with the same path:
  * no sequence is built ("hands_unclear").
@@ -50,9 +51,10 @@ export const MAX_BRIDGED_GAP_MS = 500;
 /**
  * A hand is at rest while it moves slower than this, in shoulder widths per
  * second (without shoulders: three hand lengths). The speed is how far the
- * centre of the hand's 21 points travels over `SPEED_SPAN_MS`, so tracking
- * jitter of a still hand stays well below it. A hand that only changes its
- * shape does not count as moving.
+ * centre of the palm (wrist and finger bases) travels over `SPEED_SPAN_MS`. A
+ * hand that only changes its shape does not move. Tracking jitter of a still
+ * hand can exceed this speed for a moment; `MIN_TRAVEL` keeps that from
+ * counting as a movement.
  */
 export const REST_SPEED = 0.25;
 export const SPEED_SPAN_MS = 200;
@@ -66,6 +68,15 @@ export const SEGMENT_PAD_MS = 100;
 export const MIN_GESTURE_MS = 300;
 /** A hand that is seen to be slow for up to this long in the middle of a movement is still in that movement. Time in which it is not seen does not count. */
 export const MOVEMENT_GAP_MS = 200;
+/**
+ * A movement counts only when the hand gets at least this far from where the
+ * movement started, in shoulder widths (without shoulders: three hand
+ * lengths), measured on positions averaged over `SPEED_SPAN_MS`: five times
+ * the tracking jitter of a resting hand that the evaluation allows for (0.02
+ * shoulder widths from frame to frame). A hand held still while only its shape
+ * changes is then never cut down to a jittered fragment.
+ */
+export const MIN_TRAVEL = 0.1;
 
 export type Point = readonly [number, number];
 
@@ -104,11 +115,10 @@ export type FeatureSequenceV1 = FeatureSequence;
  * - "too_short": a hand of the gesture is in fewer than three of its frames, or
  *   the gesture's frames all carry one timestamp.
  * - "hands_unclear": which hands make the gesture cannot be told. A hand was in
- *   view for between `HAND_BRIEF_SHARE` and `HAND_PRESENCE_SHARE` of the
- *   gesture; or one hand belongs and the other, though seen less, made a
- *   movement of its own somewhere in the capture; or one hand belongs, shows no
- *   movement of its own, and the other was in view during the gesture; or no
- *   hand is in view for half of the gesture.
+ *   view for between `HAND_BRIEF_SHARE` and `HAND_PRESENCE_SHARE` of the time
+ *   a hand is in view; or one hand belongs and the other, though seen less,
+ *   moved on its own; or one hand belongs, shows no movement of its own, and
+ *   the other was in view; or no hand is in view for half of the time.
  * - "hand_lost": a hand of the gesture was not seen for longer than `MAX_BRIDGED_GAP_MS`.
  */
 export type FeatureFailure = "no_frames" | "bad_timestamps" | "bad_landmarks" | "no_hands" | "too_short" | "hands_unclear" | "hand_lost";
@@ -205,21 +215,32 @@ function findReference(frames: readonly LandmarkFrame[], sides: readonly Side[])
   };
 }
 
-/** The mean of a hand's points: tracking jitter of single joints mostly cancels out in it. */
+/** The wrist and the base of each finger, in MediaPipe order: they stay in place when the fingers bend. */
+const PALM = [0, 1, 5, 9, 13, 17];
+
+/** The mean of the palm points: where the hand is, whatever its fingers do; tracking jitter of single joints partly cancels out in it. */
 function centre(hand: readonly Point[]): Point {
-  return [mean(hand.map((point) => point[0])), mean(hand.map((point) => point[1]))];
+  const palm = PALM.map((index) => hand[index]!);
+  return [mean(palm.map((point) => point[0])), mean(palm.map((point) => point[1]))];
+}
+
+interface Motion {
+  /** Reference lengths per second at each frame; NaN where the hand is not visible. */
+  readonly speeds: readonly number[];
+  /** Where the hand is at each frame, averaged over `SPEED_SPAN_MS`, in reference lengths; null where it is not visible. */
+  readonly places: readonly (Point | null)[];
 }
 
 /**
- * How fast one hand moves at each frame, in reference lengths per second; NaN
- * where the hand is not visible. It is the distance between where the hand
- * was on average in the half of that time before the frame and in the half
- * after it, by the timestamps, so the frame rate does not matter and one
- * jumping frame counts for little. At a low frame rate the two halves are the
- * neighbouring frames.
+ * How one hand moves. The speed at a frame is the distance between where the
+ * hand was on average in the half of `SPEED_SPAN_MS` before the frame and in
+ * the half after it, by the timestamps, so the frame rate does not matter and
+ * one jumping frame counts for little. At a low frame rate the two halves are
+ * the neighbouring frames.
  */
-function handSpeeds(frames: readonly LandmarkFrame[], side: Side, scale: number): number[] {
+function handMotion(frames: readonly LandmarkFrame[], side: Side, scale: number): Motion {
   const speeds = new Array<number>(frames.length).fill(Number.NaN);
+  const places = new Array<Point | null>(frames.length).fill(null);
   const seen = frames.flatMap((frame, index) => (frame[side] === null ? [] : [index]));
   const centres = new Map(seen.map((index) => [index, centre(frames[index]![side]!)]));
   const average = (from: number, to: number): { point: Point; time: number } => {
@@ -235,6 +256,8 @@ function handSpeeds(frames: readonly LandmarkFrame[], side: Side, scale: number)
     while (from > 0 && time - frames[seen[from - 1]!]!.tMs <= SPEED_SPAN_MS / 2) from -= 1;
     let to = at;
     while (to < seen.length - 1 && frames[seen[to + 1]!]!.tMs - time <= SPEED_SPAN_MS / 2) to += 1;
+    const around = average(from, to).point;
+    places[index] = [around[0] / scale, around[1] / scale];
     // Frames farther apart than half that time: the neighbours, unless the hand was lost for long in between.
     if (from === at && at > 0 && time - frames[seen[at - 1]!]!.tMs <= MAX_BRIDGED_GAP_MS) from = at - 1;
     if (to === at && at < seen.length - 1 && frames[seen[at + 1]!]!.tMs - time <= MAX_BRIDGED_GAP_MS) to = at + 1;
@@ -243,17 +266,18 @@ function handSpeeds(frames: readonly LandmarkFrame[], side: Side, scale: number)
     const seconds = (after.time - before.time) / 1000;
     speeds[index] = seconds > 0 ? distance(before.point, after.point) / scale / seconds : 0;
   });
-  return speeds;
+  return { speeds, places };
 }
 
 /**
  * In which frames one hand is in a movement: frames at or above `REST_SPEED`
  * form one movement while the hand is not seen to be slow for more than
  * `MOVEMENT_GAP_MS` between them (and not lost for more than
- * `MAX_BRIDGED_GAP_MS`), and a movement counts when it lasts at least
- * `MIN_GESTURE_MS`.
+ * `MAX_BRIDGED_GAP_MS`). A movement counts when it lasts at least
+ * `MIN_GESTURE_MS` and the hand gets at least `MIN_TRAVEL` away from where it
+ * started; anything less may be tracking jitter.
  */
-function movement(frames: readonly LandmarkFrame[], speeds: readonly number[]): boolean[] {
+function movement(frames: readonly LandmarkFrame[], { speeds, places }: Motion): boolean[] {
   const moving = new Array<boolean>(frames.length).fill(false);
   const fast = speeds.flatMap((speed, index) => (speed >= REST_SPEED ? [index] : []));
   /** True when the movement goes on from one fast frame to the next. */
@@ -269,13 +293,39 @@ function movement(frames: readonly LandmarkFrame[], speeds: readonly number[]): 
     }
     return slow <= MOVEMENT_GAP_MS && unseen <= MAX_BRIDGED_GAP_MS;
   };
+  /** How far the hand gets from where it was at `first`, up to `last`. */
+  const travel = (first: number, last: number): number => {
+    const start = places[first]!;
+    let farthest = 0;
+    for (let index = first; index <= last; index += 1) {
+      const place = places[index];
+      if (place != null) farthest = Math.max(farthest, distance(start, place));
+    }
+    return farthest;
+  };
   let from = 0;
   for (let at = 0; at < fast.length; at += 1) {
     if (at < fast.length - 1 && continues(fast[at]!, fast[at + 1]!)) continue;
-    if (frames[fast[at]!]!.tMs - frames[fast[from]!]!.tMs >= MIN_GESTURE_MS) moving.fill(true, fast[from]!, fast[at]! + 1);
+    const [first, last] = [fast[from]!, fast[at]!];
+    if (frames[last]!.tMs - frames[first]!.tMs >= MIN_GESTURE_MS && travel(first, last) >= MIN_TRAVEL) moving.fill(true, first, last + 1);
     from = at + 1;
   }
   return moving;
+}
+
+/**
+ * True when a hand gets at least half of `MIN_TRAVEL` away from where it was
+ * first seen, while it is seen for at least `MIN_GESTURE_MS`, however slowly
+ * or unsteadily. Half, because the averaged positions at the ends of a short
+ * sighting fall short of where the hand really was, and because a hand that
+ * may have moved is never dropped: jitter that reaches it costs an answer, a
+ * movement that is missed can cost the wrong one.
+ */
+function wanders(frames: readonly LandmarkFrame[], { places }: Motion): boolean {
+  const seen = places.flatMap((place, index) => (place === null ? [] : [index]));
+  if (seen.length === 0 || frames[seen[seen.length - 1]!]!.tMs - frames[seen[0]!]!.tMs < MIN_GESTURE_MS) return false;
+  const start = places[seen[0]!]!;
+  return seen.some((index) => distance(start, places[index]!) >= MIN_TRAVEL / 2);
 }
 
 /** The time each frame stands for: half the way to its neighbours, inside the span. */
@@ -292,14 +342,15 @@ function frameWeights(frames: readonly LandmarkFrame[], first: number, last: num
 
 /**
  * The gesture inside a capture, as first and last frame index: from the first
- * to the last frame in which either hand moves, with `SEGMENT_PAD_MS` on each
- * side as long as a hand is visible there. Hands that rest in view before and
- * after are left out. If no hand ever moves (a posture that is only held), it
- * is the whole time a hand is visible. At least one frame must show a hand.
+ * to the last frame in which one of `sides` moves, with `SEGMENT_PAD_MS` on
+ * each side as long as one of them is visible there. Rest before and after is
+ * left out. If none of them moves (a posture that is only held, or a shape
+ * that changes in place), it is the whole time one of them is visible. At least
+ * one frame must show one of them.
  */
-function segment(frames: readonly LandmarkFrame[], moves: Readonly<Record<Side, boolean[]>>): [number, number] {
-  const visible = frames.map((frame) => SIDES.some((side) => frame[side] !== null));
-  const moving = frames.map((_, index) => SIDES.some((side) => moves[side][index]!));
+function segment(frames: readonly LandmarkFrame[], sides: readonly Side[], moves: Readonly<Record<Side, boolean[]>>): [number, number] {
+  const visible = frames.map((frame) => sides.some((side) => frame[side] !== null));
+  const moving = frames.map((_, index) => sides.some((side) => moves[side][index]!));
   if (!moving.includes(true)) {
     return [visible.indexOf(true), visible.lastIndexOf(true)];
   }
@@ -314,7 +365,8 @@ function segment(frames: readonly LandmarkFrame[], moves: Readonly<Record<Side, 
 
 /**
  * The hands that are visible for at least `HAND_PRESENCE_SHARE` of the span's
- * duration; movement plays no part. Null when a hand is visible for less than
+ * duration; movement plays no part. The span is the whole time a hand is in
+ * view. Null when a hand is visible for less than
  * that but not for less than `HAND_BRIEF_SHARE`.
  */
 function presentHands(frames: readonly LandmarkFrame[], [first, last]: readonly [number, number]): Side[] | null {
@@ -394,14 +446,14 @@ function resample(rows: readonly number[][], times: readonly number[], steps: nu
 /**
  * Turns raw landmark frames into a comparable sequence.
  *
- * 1. The gesture is cut out of the capture by the movement of its hands
- *    (`segment`), so a capture may start early and end late and hands may
- *    rest in view.
- * 2. Its hands are those visible for `HAND_PRESENCE_SHARE` of that time, moving
- *    or not. The other hand is left out only when it was seen for less than
- *    `HAND_BRIEF_SHARE` of it and made no movement of its own anywhere in the
- *    capture, and the hand that stays has a movement of its own if the other
- *    was in view. Otherwise nothing is built ("hands_unclear").
+ * 1. Its hands are those visible for `HAND_PRESENCE_SHARE` of the time a hand
+ *    is in view, moving or not. The other hand is left out only when it was
+ *    seen for less than `HAND_BRIEF_SHARE` of it and did not move on its own
+ *    (`wanders`), and the hand that stays has a movement of its own if the
+ *    other was in view. Otherwise nothing is built ("hands_unclear").
+ * 2. The gesture is cut out of the capture by the movements of those hands
+ *    (`segment`), so rest before and after is left out; without a movement
+ *    that clears `MIN_TRAVEL` it is the whole time they are in view.
  * 3. Gaps of those hands up to `MAX_BRIDGED_GAP_MS` are filled; a longer one
  *    fails with "hand_lost".
  * 4. Positions are made relative to the body, and the result is resampled to
@@ -425,7 +477,8 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
     }
   }
 
-  if (!frames.some((frame) => frame.left !== null || frame.right !== null)) {
+  const inView = frames.map((frame) => frame.left !== null || frame.right !== null);
+  if (!inView.includes(true)) {
     return { ok: false, reason: "no_hands" };
   }
   // The speed needs a length to be measured in: that of the whole capture is good enough for cutting.
@@ -433,25 +486,23 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
   if (coarse === null || !(coarse.scale > 0) || !Number.isFinite(coarse.scale)) {
     return { ok: false, reason: "bad_landmarks" };
   }
-  const moves: Record<Side, boolean[]> = {
-    left: movement(frames, handSpeeds(frames, "left", coarse.scale)),
-    right: movement(frames, handSpeeds(frames, "right", coarse.scale)),
-  };
-  // Which hands belong is decided over one span that holds the counted movements of both hands.
-  const span = segment(frames, moves);
-  const sides = presentHands(frames, span);
+  const motion: Record<Side, Motion> = { left: handMotion(frames, "left", coarse.scale), right: handMotion(frames, "right", coarse.scale) };
+  const moves: Record<Side, boolean[]> = { left: movement(frames, motion.left), right: movement(frames, motion.right) };
+  // Which hands belong is decided over the whole time a hand is in view, never over a cut by movement.
+  const sides = presentHands(frames, [inView.indexOf(true), inView.lastIndexOf(true)]);
   if (sides === null || sides.length === 0) {
     return { ok: false, reason: "hands_unclear" };
   }
   if (sides.length === 1) {
     const kept = sides[0]!;
     const other: Side = kept === "left" ? "right" : "left";
-    // A hand that moved on its own may belong to the gesture, however briefly it was seen.
-    if (moves[other].includes(true)) return { ok: false, reason: "hands_unclear" };
+    // A hand that moved on its own, beyond jitter, may belong to the gesture, however briefly it was seen.
+    if (wanders(frames, motion[other])) return { ok: false, reason: "hands_unclear" };
     // A hand that stays without a movement of its own is not a gesture because another hand was in view for a moment.
-    // (Then nothing moved, and the span is the whole time a hand was in view.)
     if (!moves[kept].includes(true) && frames.some((frame) => frame[other] !== null)) return { ok: false, reason: "hands_unclear" };
   }
+  // Movement only trims the rest before and after.
+  const span = segment(frames, sides, moves);
   const gesture = frames.slice(span[0], span[1] + 1);
   const times = gesture.map((frame) => frame.tMs);
   const active = gesture.filter((frame) => sides.some((side) => frame[side] !== null)).length;

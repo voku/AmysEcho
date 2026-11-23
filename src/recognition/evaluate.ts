@@ -2,7 +2,7 @@ import { buildFeatureSequence, type FeatureSequence } from "./features.js";
 import { calibrateMaxDistance, DEFAULT_MIN_MARGIN, matchGesture, type GestureExample } from "./matcher.js";
 import {
   createGesture, createLookAlike, createRandom, createSession, fidgeting, renderGesture, renderScript, scriptedHand, trembling,
-  type Disturbance, type HandScript, type ScriptedCapture, type SyntheticGesture, type SyntheticHands,
+  type Disturbance, type HandScript, type ScriptedCapture, type SyntheticGesture, type SyntheticHands, type Tracking,
 } from "./synthetic.js";
 
 /** One labelled attempt. `conceptId: null` means "not a gesture this profile knows". */
@@ -205,21 +205,31 @@ const SIGN_START_MS = 500;
 
 /** A small offset, different for every capture, so no two repetitions are the same. */
 type Nudge = () => number;
-type OtherHand = (nudge: Nudge) => HandScript | null;
+/** What the other hand does; `startMs` and `endMs` are when the right hand starts and stops moving. */
+type OtherHand = (nudge: Nudge, sign: { readonly startMs: number; readonly endMs: number }) => HandScript | null;
 
-interface SignOptions { readonly moveMs?: number; readonly size?: number; readonly tremor?: boolean }
+interface SignOptions extends Tracking {
+  readonly moveMs?: number;
+  readonly size?: number;
+  readonly tremor?: boolean;
+  /** Rest before the right hand moves; default `SIGN_START_MS`. */
+  readonly restBeforeMs?: number;
+  /** Rest after it; default 700 ms. */
+  readonly restAfterMs?: number;
+}
 
 function sign(id: string, nudge: Nudge, left: OtherHand, options: SignOptions = {}): ScriptedCapture {
   const [from, to, curls, curlsEnd] = SIGNS[id]!;
   const moveMs = options.moveMs ?? (from[0] === to[0] && from[1] === to[1] ? 800 : 1000);
+  const startMs = options.restBeforeMs ?? SIGN_START_MS;
   const size = options.size ?? 1;
   const middle = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2] as const;
   const end = (point: readonly [number, number]): [number, number] =>
     [middle[0] + (point[0] - middle[0]) * size + nudge(), middle[1] + (point[1] - middle[1]) * size + nudge()];
-  const right = scriptedHand({ from: end(from), to: end(to), curls, curlsEnd, startMs: SIGN_START_MS, moveMs });
-  const other = left(nudge);
+  const right = scriptedHand({ from: end(from), to: end(to), curls, curlsEnd, startMs, moveMs });
+  const other = left(nudge, { startMs, endMs: startMs + moveMs });
   return {
-    durationMs: SIGN_START_MS + moveMs + 700,
+    durationMs: startMs + moveMs + (options.restAfterMs ?? 700),
     right: options.tremor ? trembling(right, 4, 0.04) : right,
     left: other !== null && options.tremor ? trembling(other, 4, 0.04) : other,
   };
@@ -228,7 +238,7 @@ function sign(id: string, nudge: Nudge, left: OtherHand, options: SignOptions = 
 const absent: OtherHand = () => null;
 const lap: OtherHand = (nudge) => scriptedHand({ from: [-0.4 + nudge(), 0.9 + nudge()], curls: FIST });
 /** The lap hand fidgets once, 0.12 shoulder widths for 0.7 s, starting `afterMs` into the capture. */
-const lapFidgets = (afterMs: number): OtherHand => (nudge) => fidgeting(lap(nudge)!, afterMs + nudge() * 3000, 700, 0.12);
+const lapFidgets = (afterMs: number): OtherHand => (nudge, timing) => fidgeting(lap(nudge, timing)!, afterMs + nudge() * 3000, 700, 0.12);
 /** Somebody else's hand comes into the picture and stays. */
 const reachesIn: OtherHand = (nudge) =>
   scriptedHand({ from: [-1.2, 0.9], to: [-0.3 + nudge(), 0.5 + nudge()], curls: OPEN, startMs: 400, moveMs: 700, visibleFromMs: 400 });
@@ -267,6 +277,12 @@ const crosses = (fromMs: number, untilMs: number, jitterMs = 0): OtherHand => (n
 /** A second hand held still, seen only until the right hand starts to move. */
 const heldUntilStart: OtherHand = (nudge) => scriptedHand({ from: [-0.1 + nudge(), nudge()], curls: OPEN, visibleUntilMs: SIGN_START_MS });
 
+/** A second hand held still, seen only while the right hand rests before and/or after its movement. */
+const heldInRests = (before: boolean, after: boolean): OtherHand => (nudge, { startMs, endMs }) => {
+  const hand = held(OPEN)(nudge, { startMs, endMs })!;
+  return (tMs) => ((before && tMs < startMs) || (after && tMs > endMs) ? hand(tMs) : null);
+};
+
 /** One-hand sign "one" and two-hand sign "two" with the same right-hand path; the attempts are all "two". */
 const sharedPath = (name: string, taught: OtherHand, attempted: OtherHand, attemptsPerKind?: number): HandCase => ({
   name: `one-hand and two-hand sign with the same path; attempts of the two-hand sign: ${name}`,
@@ -277,6 +293,8 @@ const sharedPath = (name: string, taught: OtherHand, attempted: OtherHand, attem
 
 interface HandCase {
   readonly name: string;
+  /** How the examples are recorded; the attempts carry their own options. */
+  readonly taught?: SignOptions;
   /** Per taught sign: its concept, the sign made and what the other hand does in each of the three examples. */
   readonly examples: readonly (readonly [string, string, readonly [OtherHand, OtherHand, OtherHand]])[];
   /** Per kind of attempt: the concept it should be answered with (null: none, the child is not signing), the sign made, the other hand. */
@@ -286,6 +304,56 @@ interface HandCase {
 }
 
 const clean = (other: OtherHand): [OtherHand, OtherHand, OtherHand] => [other, other, other];
+
+/**
+ * A two-hand sign "two" whose second hand is held still, and a one-hand sign
+ * "one" with the same right-hand path, recorded with `taught`; the attempts
+ * of "two" show the held hand only while the right hand rests.
+ */
+const inRests = (name: string, taught: SignOptions, attempted: SignOptions, before: boolean, after: boolean, attemptsPerKind?: number): HandCase => ({
+  name: `one-hand and two-hand sign with the same path, the second hand held still; attempts of the two-hand sign: ${name}`,
+  taught,
+  examples: [["one", "A", clean(absent)], ["two", "A", clean(held(OPEN))]],
+  attempts: [["two", "A", heldInRests(before, after), attempted]],
+  attemptsPerKind,
+});
+
+const restCases = (): HandCase[] => [
+  inRests("2 s rest before, held hand seen only then", { restBeforeMs: 2000 }, { restBeforeMs: 2000 }, true, false),
+  inRests("2 s rest after, held hand seen only then", { restAfterMs: 2000 }, { restAfterMs: 2000 }, false, true),
+  inRests("1.5 s rest before and after, held hand seen only then", { restBeforeMs: 1500, restAfterMs: 1500 }, { restBeforeMs: 1500, restAfterMs: 1500 }, true, true),
+  inRests("taught with 0.3 s rest before, attempts with 2 s, held hand seen only then", { restBeforeMs: 300 }, { restBeforeMs: 2000 }, true, false),
+  inRests("2 s rest before, held hand seen only then, at 7 frames per second", { restBeforeMs: 2000, frameMs: 143 }, { restBeforeMs: 2000, frameMs: 143 }, true, false),
+  inRests("2 s rest before, held hand seen only then, at 12 frames per second", { restBeforeMs: 2000, frameMs: 83 }, { restBeforeMs: 2000, frameMs: 83 }, true, false),
+];
+
+/** Tracker jitter of a hand (shoulder widths, standard deviation per frame) and time between frames, as a real tracker may show them. */
+const TRACKERS: readonly Required<Tracking>[] = [0.01, 0.015, 0.02].flatMap((noise) => [100, 67, 33].map((frameMs) => ({ noise, frameMs })));
+const TRACKED_ATTEMPTS = 30;
+
+/** The cases most exposed to jitter, recorded and attempted with `tracking`. */
+const trackerCases = (tracking: Required<Tracking>): HandCase[] => {
+  const label = `; jitter ${tracking.noise} shoulder widths, ${Math.round(1000 / tracking.frameMs)} frames per second`;
+  const shapes = (other: OtherHand): HandCase["attempts"] => (["X", "Y", "Z"] as const).map((id) => [id, id, other, tracking] as const);
+  return [
+    {
+      name: `signs without travel, no other hand${label}`, taught: tracking, attemptsPerKind: TRACKED_ATTEMPTS,
+      examples: [["X", "X", clean(absent)], ["Y", "Y", clean(absent)], ["Z", "Z", clean(absent)]], attempts: shapes(absent),
+    },
+    {
+      name: `signs without travel, lap hand in view and still${label}`, taught: tracking, attemptsPerKind: TRACKED_ATTEMPTS,
+      examples: [["X", "X", clean(lap)], ["Y", "Y", clean(lap)], ["Z", "Z", clean(lap)]], attempts: shapes(lap),
+    },
+    {
+      name: `signs without travel; somebody's hand reaches in during one example of X and during the attempts${label}`, taught: tracking, attemptsPerKind: TRACKED_ATTEMPTS,
+      examples: [["X", "X", [reachesIn, absent, absent]], ["Y", "Y", clean(absent)], ["Z", "Z", clean(absent)]],
+      attempts: [["Y", "Y", reachesIn, tracking], ["Z", "Z", reachesIn, tracking]],
+    },
+    inRests(`2 s rest before, held hand seen only then${label}`, { restBeforeMs: 2000, ...tracking }, { restBeforeMs: 2000, ...tracking }, true, false, TRACKED_ATTEMPTS),
+    inRests(`2 s rest after, held hand seen only then${label}`, { restAfterMs: 2000, ...tracking }, { restAfterMs: 2000, ...tracking }, false, true, TRACKED_ATTEMPTS),
+    inRests(`1.5 s rest before and after, held hand seen only then${label}`, { restBeforeMs: 1500, restAfterMs: 1500, ...tracking }, { restBeforeMs: 1500, restAfterMs: 1500, ...tracking }, true, true, TRACKED_ATTEMPTS),
+  ];
+};
 
 const HAND_CASES: readonly HandCase[] = [
   {
@@ -356,6 +424,8 @@ const HAND_CASES: readonly HandCase[] = [
   sharedPath("second hand seen from +300 to +1400 ms when taught, from +1050 to +1450 ms in the attempts", crosses(300, 1400), crosses(1050, 1450)),
   sharedPath("second hand seen from +1000 to +1400 ms, shifted by up to 150 ms either way, taught and attempted alike", crosses(1000, 1400, 150), crosses(1000, 1400, 150), 200),
   sharedPath("second hand held still and seen throughout when taught, until the right hand starts in the attempts", held(OPEN), heldUntilStart),
+  ...restCases(),
+  ...TRACKERS.flatMap(trackerCases),
 ];
 
 const ATTEMPTS_PER_KIND = 40;
@@ -369,16 +439,18 @@ export function simulateHandCases(): { readonly name: string; readonly report: E
   return HAND_CASES.map((handCase, caseIndex) => {
     const attempts: LabelledAttempt[] = [];
     let seed = 1000 * (caseIndex + 1);
-    const add = (conceptId: string | null, sessionId: string, capture: (nudge: Nudge) => ScriptedCapture): void => {
+    const add = (conceptId: string | null, sessionId: string, id: string, other: OtherHand, options: SignOptions = {}): void => {
       const random = createRandom(seed += 1);
-      const result = buildFeatureSequence(renderScript(capture(() => (random() - 0.5) * 2 * NUDGE), { seed, session: createSession(sessionId === "teach" ? 300 : 301) }));
+      const capture = sign(id, () => (random() - 0.5) * 2 * NUDGE, other, options);
+      const tracking = { noise: options.noise, frameMs: options.frameMs };
+      const result = buildFeatureSequence(renderScript(capture, { seed, session: createSession(sessionId === "teach" ? 300 : 301), ...tracking }));
       attempts.push({ conceptId, sessionId, sequence: result.ok ? result.sequence : null });
     };
     for (const [conceptId, id, others] of handCase.examples) {
-      for (const other of others) add(conceptId, "teach", (nudge) => sign(id, nudge, other));
+      for (const other of others) add(conceptId, "teach", id, other, handCase.taught);
     }
     for (const [conceptId, id, other, options] of handCase.attempts) {
-      for (let repeat = 0; repeat < (handCase.attemptsPerKind ?? ATTEMPTS_PER_KIND); repeat += 1) add(conceptId, "use", (nudge) => sign(id, nudge, other, options));
+      for (let repeat = 0; repeat < (handCase.attemptsPerKind ?? ATTEMPTS_PER_KIND); repeat += 1) add(conceptId, "use", id, other, options);
     }
     return { name: handCase.name, report: evaluateBySession(attempts, ["teach"]) };
   });
