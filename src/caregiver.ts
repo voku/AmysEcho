@@ -21,7 +21,7 @@ import type { ProfileV1 } from "./profiles/profile.js";
 import { ProfileSizeError, UnknownProfileError } from "./profiles/store.js";
 import type { ProfileStore } from "./profiles/store.js";
 import { STARTUP_WAIT_MS } from "./startup.js";
-import type { CaptureBridge, CapturePreview, CaptureSession } from "./capture/capture.js";
+import type { CameraFacing, CaptureBridge, CapturePreview, CaptureSession, FacingStorage } from "./capture/capture.js";
 import { frameSummary } from "./recognition/tracker-adapter.js";
 import {
   ExampleFormatError, RECOMMENDED_EXAMPLES, countExamples, deleteExample, deleteExamples, isExampleConceptId, listExamples, saveExample,
@@ -40,6 +40,12 @@ export const TEACH_COUNTDOWN_S = 3;
  * import the capture module: a failure in it must never stop the board.
  */
 export const CAPTURE_BRIDGE_KEY = "amysEchoCapture";
+/**
+ * Where the camera choice "Kamera: vorne / hinten" is remembered on this
+ * device (card NG-43; `CAMERA_FACING_KEY` in the capture module, which reads
+ * it for the camera test and the child's gesture view; a test compares them).
+ */
+export const CAMERA_FACING_KEY = "amysecho-camera-facing";
 
 /** How long the opening control has to be held. A guess; not tried with a child (card NG-14). */
 export const HOLD_DURATION_MS = 3000;
@@ -196,6 +202,8 @@ export interface CaregiverOptions {
   readonly capture?: CaptureBridge | null;
   /** The wall clock for the capture time of a gesture example; for tests. Default: `new Date()`. */
   readonly date?: () => Date;
+  /** Where the camera choice is remembered; for tests. Default: the browser's `localStorage`, when it can be used. */
+  readonly cameraStorage?: () => FacingStorage | null;
 }
 
 export interface CaregiverHandle {
@@ -318,6 +326,10 @@ const COUNTDOWN_LINE = (left: number): string => `Gleich geht’s los: ${Array.f
 const CANCEL_COUNTDOWN = "Abbrechen";
 const STILL_HAND = "Eine Hand lag still im Bild. Wenn die Gebärde mit einer Hand gemacht wird, lieber ohne die zweite Hand im Bild aufnehmen.";
 const CAMERA_START = "Kamera starten";
+/** The camera choice (card NG-43): which camera teaching asks for. The same words as in the camera test. */
+const CAMERA_CHOICE = "Kamera";
+const CAMERA_CHOICE_LABEL = "Kamera:";
+const CAMERA_NAMES: Readonly<Record<CameraFacing, string>> = { user: "vorne", environment: "hinten" };
 const RECORD_START = "Aufnahme starten";
 const RECORD_STOP = "Aufnahme beenden";
 const RECORDING = "Die Aufnahme läuft. Jetzt die Gebärde machen.";
@@ -590,6 +602,14 @@ function button(text: string, className = "caregiver-button"): HTMLButtonElement
   return created;
 }
 
+function browserFacingStorage(): FacingStorage | null {
+  try {
+    return (globalThis as { localStorage?: FacingStorage }).localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function cancelRunningSpeech(): void {
   try {
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
@@ -715,6 +735,22 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /** The fixed-size box of the teaching view on screen that holds the camera's preview while the camera runs (card NG-42). */
   let teachPreviewSlot: HTMLElement | null = null;
   const date = options.date ?? (() => new Date());
+  const cameraStorage = options.cameraStorage ?? browserFacingStorage;
+  /**
+   * The camera teaching asks for (card NG-43). What the device remembers wins
+   * (the camera test may have changed it meanwhile); this copy holds a choice
+   * that a refusing storage could not remember, while the page is open.
+   */
+  let facing: CameraFacing = "user";
+  const currentFacing = (): CameraFacing => {
+    try {
+      const stored = cameraStorage()?.getItem(CAMERA_FACING_KEY);
+      if (stored === "user" || stored === "environment") facing = stored;
+    } catch {
+      // The copy holds.
+    }
+    return facing;
+  };
   /** What was typed into the create field, kept while a view without that field is shown. */
   let createDraft = "";
   /** True from a press that retires the message until the redraw for that press: the text keeps its place meanwhile. */
@@ -1416,6 +1452,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       return;
     }
     const controller = new AbortController();
+    const asked = currentFacing();
     let preview: CapturePreview | null = null;
     try {
       preview = bridge.createPreview?.(document) ?? null;
@@ -1450,6 +1487,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     try {
       started = bridge.start(caregiverRegion, {
         signal: controller.signal,
+        facing: asked,
         ...(preview === null ? {} : { preview }),
         onStep: (step) => {
           if (!ours() || step === "stopped" || step === "running") return;
@@ -1484,7 +1522,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
       camera.session = answer.session;
       state.camera = "on";
-      state.cameraLine = "";
+      // The chosen camera could not be used and the other one runs (card NG-43): said in the camera's line until the countdown.
+      state.cameraLine = answer.camera?.fellBack === true ? bridge.text.cameraFallback?.[asked] ?? "" : "";
       drawTeach(open, ["teach-record"]);
       void answer.session.ended.then((end) => {
         if (teachCamera !== camera) return;
@@ -1493,6 +1532,41 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }, () => {
       if (teachCamera === camera) ended(bridge.text.problems.tracker_unavailable, true);
     });
+  };
+
+  /** Whether the camera choice can be changed now: not while a countdown or recording runs, a recording waits, or a keep or delete runs. */
+  const facingChangeable = (state: TeachState): boolean => state.countdown === null && !state.recording && state.result?.usable !== true && !state.busy && state.confirm === null;
+
+  /**
+   * "vorne" / "hinten" (card NG-43): remembers the choice on this device. A
+   * camera that is starting or running (and records nothing) is stopped and
+   * started again with the chosen one; otherwise the next "Kamera starten"
+   * uses it.
+   */
+  const chooseTeachFacing = (open: TeachMode, chosen: CameraFacing): void => {
+    const { state } = open;
+    if (!teaching(open) || !facingChangeable(state) || state.usage === "full") return;
+    const before = currentFacing();
+    facing = chosen;
+    try {
+      cameraStorage()?.setItem(CAMERA_FACING_KEY, chosen);
+    } catch {
+      // Not remembered on the device; held while the page is open.
+    }
+    if (before === chosen) return;
+    const restart = teachCamera !== null && teachCamera.mode === open;
+    if (restart) {
+      stopTeachCamera();
+      state.cameraProblem = false;
+      startTeachCamera(open);
+      return;
+    }
+    // A problem said about the other camera no longer applies.
+    if (state.cameraProblem) {
+      state.cameraProblem = false;
+      state.cameraLine = "";
+    }
+    drawTeach(open, [`teach-facing:${chosen}`]);
   };
 
   /** Says what an action of the teaching view came to, under its controls; only while that view is the open one. */
@@ -2090,6 +2164,25 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     add("teach-back", BACK, leaveMode);
     if (teachPreviewSlot !== null) controls.append(teachPreviewSlot);
     controls.append(live, cameraLine, actions);
+    // The camera choice (card NG-43): its own row under the buttons, so "Kamera starten" and the buttons after it keep their place.
+    if (state.usage !== "full") {
+      const choice = element("div", "camera-choice caregiver-teach-facing");
+      choice.setAttribute("role", "group");
+      choice.setAttribute("aria-label", CAMERA_CHOICE);
+      choice.append(element("span", "camera-choice-label", CAMERA_CHOICE_LABEL));
+      const current = currentFacing();
+      const locked = !facingChangeable(state);
+      for (const option of ["user", "environment"] as const) {
+        const control = button(CAMERA_NAMES[option], "caregiver-button camera-choice-button");
+        control.dataset["facing"] = option;
+        control.setAttribute("aria-pressed", String(option === current));
+        if (locked) control.setAttribute("aria-disabled", "true");
+        control.addEventListener("click", () => chooseTeachFacing(open, option));
+        register.set(`teach-facing:${option}`, control);
+        choice.append(control);
+      }
+      controls.append(choice);
+    }
     view.append(controls);
 
     if (state.note !== null) view.append(element("p", state.note.error ? "caregiver-teach-note caregiver-warning" : "caregiver-teach-note", state.note.text));

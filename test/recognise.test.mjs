@@ -8,7 +8,7 @@ import {
   analyseAttempt, attachRecognise, createRecogniser,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
-import { CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, nextShoulders, startCapture } from "../dist/capture/capture.js";
+import { CAMERA_FACING_KEY, CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, captureBridge, nextShoulders, startCapture } from "../dist/capture/capture.js";
 import { sequenceFromRecording } from "../dist/recognition/examples.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
 
@@ -47,9 +47,13 @@ function example(conceptId, hands, wobble = 0) {
 
 // --- The real capture path on a fake camera and tracker ---
 
-/** `startCapture` with a fake tracker and camera; `feed` hands one frame in and waits until it is tracked. */
-function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
-  const log = { trackerStarts: 0, cameraRequests: 0, tracksStopped: 0, trackerClosed: 0, sourceClosed: 0, hosts: [] };
+/**
+ * `startCapture` with a fake tracker and camera; `feed` hands one frame in and waits until it is tracked.
+ * With `storage` (the device's camera choice, card NG-43) the bridge is the capture module's own
+ * `captureBridge` on this camera, which reads the choice; `noBackCamera`: a device with a front camera only.
+ */
+function fakeCamera({ cameraError = null, holdTracker = false, storage = null, noBackCamera = false } = {}) {
+  const log = { trackerStarts: 0, cameraRequests: 0, tracksStopped: 0, trackerClosed: 0, sourceClosed: 0, hosts: [], facings: [], asked: [] };
   let waiting = [];
   let queued = [];
   let t = 0;
@@ -68,10 +72,14 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
         close() { log.trackerClosed += 1; },
       };
     },
-    async getUserMedia() {
+    async getUserMedia(constraints) {
       log.cameraRequests += 1;
+      log.asked.push(constraints.video.facingMode);
       if (cameraError !== null) throw Object.assign(new Error("camera"), { name: cameraError });
-      return { getTracks: () => [{ stop() { log.tracksStopped += 1; } }] };
+      const back = constraints.video.facingMode?.exact === "environment";
+      if (back && noBackCamera) throw Object.assign(new Error("camera"), { name: "OverconstrainedError" });
+      const facingMode = back ? "environment" : "user";
+      return { getTracks: () => [{ stop() { log.tracksStopped += 1; }, getSettings: () => ({ facingMode }) }] };
     },
     async openFrames() {
       return {
@@ -84,14 +92,21 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
       };
     },
   };
-  const bridge = {
-    start(host, options) {
-      log.hosts.push(host);
-      return startCapture(environment, options);
-    },
-    text: CAPTURE_TEXT,
-    nextShoulders,
-  };
+  const bridge = storage === null
+    ? {
+      start(host, options) {
+        log.hosts.push(host);
+        log.facings.push(options.facing);
+        return startCapture(environment, options);
+      },
+      text: CAPTURE_TEXT,
+      nextShoulders,
+    }
+    : captureBridge({}, { storage: () => storage, environment: (host) => { log.hosts.push(host); return environment; } });
+  if (storage !== null) {
+    const start = bridge.start;
+    bridge.start = (host, options) => { log.facings.push(options.facing); return start(host, options); };
+  }
   return {
     bridge, log,
     releaseTracker: () => release(),
@@ -548,11 +563,11 @@ const ENTRIES = [
 ];
 const VIEW = { kind: "profile", profileId: "0".repeat(32), displayName: "Mia", problems: [], entries: ENTRIES };
 
-async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)] } = {}) {
+async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {} } = {}) {
   const fakes = installDocument();
   try {
     const time = fakeTime();
-    const camera = fakeCamera();
+    const camera = fakeCamera(cameraOptions);
     const root = fakeElement("section");
     let open = () => undefined;
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
@@ -771,4 +786,125 @@ test("view: dispose stops the camera and removes the page listeners", async () =
     assert.equal(doc.listeners.visibilitychange.length, 0);
     assert.equal(win.listeners.pagehide.length, 0);
   });
+});
+
+
+// --- Front or back camera (card NG-43) ---
+
+/** A `localStorage` stand-in holding the device's camera choice. */
+function choiceStorage(facing) {
+  const items = new Map(facing === undefined ? [] : [[CAMERA_FACING_KEY, facing]]);
+  return { items, getItem: (key) => items.get(key) ?? null, setItem: (key, value) => { items.set(key, String(value)); } };
+}
+
+test("camera: the child's view names no camera; the bridge uses the one chosen on this device (in the camera test or teaching), the front one by default", async () => {
+  for (const [stored, asked] of [[undefined, "user"], ["user", "user"], ["environment", { exact: "environment" }]]) {
+    const context = setup({ outcome: MATCH, camera: fakeCamera({ storage: choiceStorage(stored) }) });
+    await attempt(context);
+    assert.deepEqual(context.camera.log.facings, [undefined], "the view passes no camera of its own");
+    assert.deepEqual(context.camera.log.asked, [asked]);
+    assert.equal(context.camera.running, false, "stopped after the attempt, as before");
+    assert.equal(context.kind(), "confirm");
+  }
+});
+
+test("camera: without the chosen back camera, the countdown carries one short line for the adult and the attempt runs on the front camera", async () => {
+  const context = setup({ outcome: MATCH, camera: fakeCamera({ storage: choiceStorage("environment"), noBackCamera: true }) });
+  context.recogniser.start();
+  await settle();
+  const note = "Hintere Kamera nicht verfügbar. Es läuft die vordere.";
+  assert.deepEqual(context.recogniser.state(), { kind: "countdown", left: 3, note });
+  assert.deepEqual(context.camera.log.asked, [{ exact: "environment" }, "user"]);
+  context.time.advance(1000);
+  assert.deepEqual(context.recogniser.state(), { kind: "countdown", left: 2, note });
+  context.time.advance(2000);
+  assert.deepEqual(context.recogniser.state(), { kind: "recording" }, "the line goes when the recording starts");
+  await context.camera.feedAll(MOVES_RIGHT, 5);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  context.recogniser.finish();
+  assert.equal(context.kind(), "confirm");
+  assert.equal(context.camera.log.tracksStopped, 1, "the one camera that opened is stopped");
+  // With the chosen camera there, no line.
+  const plain = setup({ outcome: MATCH, camera: fakeCamera({ storage: choiceStorage("environment") }) });
+  plain.recogniser.start();
+  await settle();
+  assert.deepEqual(plain.recogniser.state(), { kind: "countdown", left: 3 });
+  plain.recogniser.back();
+  assert.equal(plain.camera.running, false);
+});
+
+test("camera: an example taught with the front camera is recognised in an attempt made with the back camera", async () => {
+  // The examples are tracker frames as the front camera gives them; the attempt comes from the back camera.
+  // Both cameras look at the child and deliver unflipped frames, so the tracker answers the same
+  // (test/capture.test.mjs, "handedness"); nothing on the way from the camera to the matcher depends on the camera.
+  const examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("hilfe", MOVES_UP), example("hilfe", MOVES_UP, 0.002)];
+  for (const stored of ["user", "environment"]) {
+    const context = setup({ examples, camera: fakeCamera({ storage: choiceStorage(stored) }) });
+    await attempt(context, MOVES_RIGHT);
+    assert.deepEqual(context.recogniser.state(), { kind: "confirm", conceptId: "trinken", hands: "right" }, stored);
+  }
+});
+
+/** What the view shows, for comparing layouts: tags, classes, texts and the attributes that matter, in order. */
+const shape = (node) => ({
+  tag: node.tagName, className: node.className, text: node.textContent, hidden: node.hidden,
+  label: node.attributes?.["aria-label"] ?? null, children: node.children.map(shape),
+});
+
+test("view: the gesture view has no camera control and draws every state the same with the front or the back camera chosen", async () => {
+  const drawn = {};
+  for (const stored of ["user", "environment"]) {
+    drawn[stored] = [];
+    await withView(async (context) => {
+      const { panel, buttonNamed, time, camera } = context;
+      const snap = () => drawn[stored].push(shape(context.root));
+      context.gestureButton().click();
+      snap();
+      await settle();
+      snap();
+      assert.equal(tree(panel()).some((element) => /Kamera:|vorne|hinten/.test(element.textContent)), false, "no camera choice on the child's screen");
+      assert.equal(tree(panel()).some((element) => hasClass(element, "camera-choice")), false);
+      time.advance(1000);
+      snap();
+      time.advance(2000);
+      snap();
+      await camera.feedAll(MOVES_RIGHT);
+      time.advance(RECOGNISE_GUARD_MS);
+      buttonNamed("Stopp").click();
+      snap();
+      time.advance(RECOGNISE_GUARD_MS);
+      buttonNamed("Nein").click();
+      snap();
+      time.advance(GESTURE_SHIELD_MS);
+      context.gestureButton().click();
+      await settle();
+      time.advance(3000);
+      await camera.feedAll(MOVES_UP);
+      time.advance(RECOGNISE_GUARD_MS);
+      buttonNamed("Stopp").click();
+      snap();
+      assert.deepEqual(camera.log.asked, stored === "user" ? ["user", "user"] : [{ exact: "environment" }, { exact: "environment" }]);
+    }, { camera: { storage: choiceStorage(stored) } });
+  }
+  assert.equal(drawn.user.length, 7);
+  assert.deepEqual(drawn.environment, drawn.user);
+});
+
+test("view: the fallback line is a paragraph under the count, in the countdown only; the buttons and the way back are the same", async () => {
+  await withView(async (context) => {
+    const { panel, buttonNamed, time } = context;
+    context.gestureButton().click();
+    const back = buttonNamed(RECOGNISE_TEXT.back);
+    await settle();
+    const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
+    assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-count", "recognise-note"]);
+    assert.equal(main.children[2].textContent, "Hintere Kamera nicht verfügbar. Es läuft die vordere.");
+    assert.deepEqual(tree(panel()).find((element) => hasClass(element, "recognise-actions")).children, []);
+    time.advance(3000);
+    assert.equal(tree(panel()).some((element) => hasClass(element, "recognise-note")), false);
+    assert.equal(buttonNamed(RECOGNISE_TEXT.back), back);
+    back.click();
+    // The refused request opened nothing; the one camera that opened is stopped.
+    assert.equal(context.camera.log.tracksStopped, 1);
+  }, { camera: { storage: choiceStorage("environment"), noBackCamera: true } });
 });

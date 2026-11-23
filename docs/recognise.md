@@ -15,7 +15,8 @@ Code: `src/recognise/recognise.ts` (`createRecogniser`, the controller without D
 ## Status
 
 - Tested in Node against a fake document, the real capture path (`startCapture`) on a fake camera
-  and tracker, made-up tracker hands, and the real feature builder and matcher.
+  and tracker, made-up tracker hands, and the real feature builder and matcher; the camera choice
+  (card NG-43) with the capture module's own bridge on a fake camera and a stand-in storage.
 - Tested in headless Chromium (Playwright) with DGS sign videos of adult signers fed into the
   app's capture path through the board's own flow (below).
 - **Not tested:** a real camera, a phone or tablet, a child, a screen reader, real speech, an
@@ -95,6 +96,30 @@ attached, the board is drawn without the control and the error is reported.
      geht auch ohne Kamera."; first use offline "Die Handerkennung braucht beim ersten Mal
      Internet. Mit Internet „Nochmal“ tippen."; refused "Die Kamera ist nicht erlaubt. Eine
      Bezugsperson kann sie in den Einstellungen erlauben."
+
+**Front or back camera** (card NG-43). The view has **no camera control**: the child's screen gets
+nothing new to look at or tap, and a camera switch in the middle of a gesture would only cost an
+attempt. "Gebärde" starts the bridge without naming a camera, and the bridge uses the one chosen on
+this device in the camera test or in teaching ("Kamera: vorne / hinten", remembered in
+`localStorage`; [capture.md](capture.md), "Front or back camera"), the front one when nothing was
+chosen. A parent who films the child with the back camera chooses "hinten" once in teaching (where
+they record the examples anyway); the child's view then uses it too. When the chosen camera is
+missing or does not open, the other one is used and the countdown carries one small line under the
+number, for the adult nearby: "Hintere Kamera nicht verfügbar. Es läuft die vordere." (or the other
+way round; `RecogniseState` countdown `note`, `.recognise-note`). It goes when the recording
+starts. Nothing else of the view depends on the camera: the attempt's frames mean the child's own
+left and right with either camera, so examples taught with one camera match attempts with the
+other (capture.md, "Handedness"). Measured in headless Chromium (the real stylesheet, board and
+view, the capture module's bridge on a fake camera) with "vorne" and with "hinten" stored: every
+state (countdown, recording, unusable) has the same boxes, to the pixel, and no page scroll:
+
+| Window | Back | Count (countdown) | Stopp / Nochmal | With the fallback line |
+| --- | --- | --- | --- | --- |
+| 360x640 | 20, 20, 319x112 | 156, 272 | 20, 454, 319x112 | count 20 px higher (156, 252), line 319x32 under it; Back and buttons unchanged |
+| 640x360 | 20, 18, 599x80 | 296, 176 | 380, 104, 240x186 | count 11 px higher (296, 165), line 450x16; Back and buttons unchanged |
+
+(x, y, then width x height in CSS pixels.) In the Node tests the view's whole tree is compared in
+seven states with either choice and is the same.
 
 **Ways out, and the camera.** The camera is stopped (the capture's cancel signal and `stop()`) on
 "Zurück zur Tafel" at every step (tracker loading, permission asked, countdown, recording), after

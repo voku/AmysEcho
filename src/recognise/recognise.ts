@@ -18,6 +18,12 @@
  * Nothing is stored or sent: the tracked frames of the attempt live in memory
  * until it has been compared, and no picture is ever kept (capture.md).
  *
+ * Which camera (front or back, card NG-43) is not chosen here: the view has no
+ * control for it, so nothing new competes for the child's attention. The
+ * bridge uses the camera chosen on this device in the camera test or in
+ * teaching. Only when that camera could not be used does the countdown carry
+ * one short line saying so, for the adult nearby.
+ *
  * The controller (`createRecogniser`) has no DOM and is tested in Node; the
  * view (`attachRecognise`) draws its states into the board region.
  */
@@ -121,7 +127,8 @@ export type RecogniseState =
   | { readonly kind: "idle" }
   /** The tracker loads or the camera is asked for. `line` is the capture's own text for the step. */
   | { readonly kind: "starting"; readonly line: string }
-  | { readonly kind: "countdown"; readonly left: number }
+  /** `note`: the chosen camera could not be used and the other one runs (card NG-43); for the adult nearby. */
+  | { readonly kind: "countdown"; readonly left: number; readonly note?: string }
   | { readonly kind: "recording" }
   /** `hands`: which hands the attempt showed (one-hand and two-hand attempts are compared with examples of their kind only). */
   /**
@@ -180,6 +187,8 @@ interface Camera {
   readonly controller: AbortController;
   session: CaptureSession | null;
   cancelTimer: () => void;
+  /** Said during the countdown when the other camera than the chosen one runs. */
+  note: string | null;
 }
 
 export function createRecogniser(options: RecogniserOptions): Recogniser {
@@ -257,7 +266,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
   const countdown = (own: Camera, left: number): void => {
     if (camera !== own || gone()) return;
     if (left > 0) {
-      show({ kind: "countdown", left });
+      show(own.note === null ? { kind: "countdown", left } : { kind: "countdown", left, note: own.note });
       schedule(own, () => countdown(own, left - 1), 1000);
       return;
     }
@@ -281,7 +290,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       return;
     }
     const text = bridge.text;
-    const own: Camera = { controller: new AbortController(), session: null, cancelTimer: () => undefined };
+    const own: Camera = { controller: new AbortController(), session: null, cancelTimer: () => undefined, note: null };
     camera = own;
     const ours = (): boolean => camera === own && !own.controller.signal.aborted;
     const failed = (line: string): void => {
@@ -317,6 +326,11 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
         return;
       }
       own.session = answer.session;
+      if (answer.camera?.fellBack === true) {
+        // Older bridges have no such text; then nothing is said.
+        const said = (text as Partial<CaptureBridge["text"]>).cameraFallback?.[answer.camera.facing === "user" ? "environment" : "user"];
+        if (said !== undefined) own.note = said;
+      }
       void answer.session.ended.then((end) => {
         // Ended by this module (a way out, or after the attempt): nothing to say.
         if (camera !== own) return;
@@ -506,6 +520,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       case "countdown":
         line.textContent = RECOGNISE_TEXT.countdown(state.left);
         content.push(element("p", "recognise-count", String(state.left)));
+        if (state.note !== undefined) content.push(element("p", "recognise-note", state.note));
         break;
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;

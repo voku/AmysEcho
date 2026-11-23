@@ -531,7 +531,8 @@ body, like the rewording:
   "Die Aufnahme läuft. Jetzt die Gebärde machen."), both with a fixed height, then one button
   and "Zurück". The button is "Kamera starten"; once the camera runs "Aufnahme starten"; during the
   countdown "Abbrechen"; while recording "Aufnahme beenden"; after a usable recording "Behalten"
-  and "Verwerfen";
+  and "Verwerfen"; last, in a row of its own, the camera choice "Kamera: vorne / hinten" (card
+  NG-43, below);
 - below the controls, in this order, what changes in length: what the last action came to (a
   line of the view, not the status line, so that the block at the top does not grow and move the
   controls; refusals and failures in the colour of the warnings), the verdict on the recording,
@@ -570,7 +571,7 @@ download) is said with the capture module's own German sentence, and "Kamera sta
 video it's really difficult to see whether you captured the picture you wanted"). The first thing
 in the controls is a box of fixed aspect (4:3) whose size depends on the window only, never on the
 state: empty and grey while the camera is off, the live picture while it runs. The picture is
-mirrored like a mirror, and the tracked hand points (the child's own left hand orange "L", right
+mirrored like a mirror for the front camera (the back camera's is not, card NG-43), and the tracked hand points (the child's own left hand orange "L", right
 hand cyan "R") and the shoulders (yellow) are drawn over it on every tracked frame, so the
 caregiver sees whether the sign is in the picture ([capture.md](capture.md), "Live preview"). In
 a window held upright the box is above the live line; in a wide one it is left of the lines and
@@ -590,6 +591,42 @@ states:
 | 640 × 360 | 224 × 168 left | 268, 243 | nothing |
 | 320 × 480 | 128 × 96 above | 31, 376 | nothing |
 | 820 × 1180 | 480 × 360 above | 31, 606 | nothing |
+
+**Front or back camera** (card NG-43; owner: "We need to support the back camera also"; a parent
+often holds the phone and films the child with the back camera). The last row of the controls is
+"Kamera:" with two buttons, "vorne" and "hinten" (`caregiver-button`, at least 44 px high and
+4.5rem wide; the pressed one has `aria-pressed="true"` and the primary colour). It is a row of its
+own under "Kamera starten" … "Zurück", there in every state of the session (not when the profile
+is full, where there is no camera), so nothing above it moves because of it. The choice is the
+device's (`localStorage`, `amysecho-camera-facing`, the same key as the capture module's; see
+[capture.md](capture.md), "Front or back camera"): what is chosen here is used by the camera test
+and the child's gesture view, and what was chosen there is pressed here. A tap:
+
+- while the camera is off: remembers the choice; the next "Kamera starten" asks for that camera;
+- while the camera starts or runs and nothing is recorded (the "Aufnahme starten" state, or after a
+  refused recording): remembers it, stops the camera and starts the chosen one at once (the
+  preview box stays, the new picture comes into it);
+- during the countdown, the recording, while a usable recording waits for "Behalten", and while a
+  keep or delete runs: nothing; both buttons have `aria-disabled="true"`.
+
+The buttons are covered by the shield like every other (rule A); a tap redraws the view (a swap).
+"Kamera starten" passes the choice to the bridge (`facing`). When the chosen camera is missing or
+does not open, the other one is used and the camera's line says so until the countdown: "Hintere
+Kamera nicht verfügbar. Es läuft die vordere." (or the other way round); the choice stays as it
+was. The preview is mirrored for the front camera only. A storage that refuses to remember the
+choice is caught; the area then holds it while the page is open. Measured in Chromium with the
+fake camera (which has no back camera, so "hinten" falls back to it, with the line), every state
+from "camera off" through "hinten", the fallback, countdown, recording and the result:
+
+| Window | Main button (x, y), every state | Choice row (y) | Off-screen |
+| --- | --- | --- | --- |
+| 360 × 640 | 31, 504 | 557 | nothing |
+| 640 × 360 | 268, 226 | 279 | nothing |
+| 320 × 480 | 31, 376 | 429; 483 while "Aufnahme starten"/"Aufnahme beenden" and "Zurück" wrap to two rows | the choice row while those wrap (the region scrolls to it) |
+| 820 × 1180 | 31, 606 | 660 | nothing |
+
+(At 640 × 360 the main button is now at y 226 instead of 243: the preview spans four rows of the
+right column instead of three. It is the same in every state.)
 
 **Countdown, then recording.** The hand that taps "Aufnahme starten" is in the picture, and rest
 is not trimmed from a gesture (recognition.md), so a phone held in one hand would often give
@@ -653,7 +690,8 @@ countdown or a recording that was not kept is dropped then.
 **The bridge.** `src/caregiver.ts` is part of the board's module graph and does not import
 `capture/capture.js`: `index.html` loads that module on its own, so that a failure in it can never
 stop the board. When the page loads it, it leaves `{ start, text, nextShoulders, createPreview }` under the global
-name `amysEchoCapture` (`CAPTURE_BRIDGE_KEY` in both modules; a test compares them), and the area
+name `amysEchoCapture` (`start` takes the camera, `facing`, card NG-43, and fills in the device's
+choice when it is not given; `text.cameraFallback` holds the fallback lines) (`CAPTURE_BRIDGE_KEY` in both modules; a test compares them), and the area
 looks for it at the tap. Without it the view says "Die Kamera kann hier gerade nicht gestartet
 werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera." The hidden video
 element goes into the caregiver region, which is emptied on closing; the preview's video is in
@@ -915,3 +953,6 @@ countdown. None of this was checked with assistive technology.
     countdown) does not call `markSwap` and keeps its height, so nothing that can be pressed moves.
     The controls of a view used again and again (teaching) stay in one block under its heading;
     what changes in length goes below them, and its messages go into the view, not the status line.
+25. The camera choice is the device's, not the profile's: read and written only under
+    `CAMERA_FACING_KEY`, each access in `try`/`catch`, never put into a profile, a backup or a
+    request. It does not change while a countdown or recording runs or a recording waits.

@@ -50,6 +50,7 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   (`record: true`, used by the browser test, or `startRecording` / `stopRecording`, used by
   teaching) gets landmark numbers of one capture in memory, at most `MAX_RECORDED_FRAMES` (600). Leaving the page, hiding it, "Kamera stoppen" and "Zurück zur
   Tafel" stop every camera track and close the tracker.
+- **Front or back camera** (card NG-43, below).
 - **German messages** for: camera refused ("Die Kamera ist nicht erlaubt …"), no camera, camera
   busy, a browser without camera support; for the tracker: a failed download ("… Beim ersten Mal
   braucht sie Internet (etwa 25 MB) …", `tracker_download`), storage full ("Auf diesem Gerät ist
@@ -62,26 +63,100 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
 - **Live preview** (card NG-42; owner feedback: "hand detected" alone does not show whether the
   sign is in the picture). In the camera test and in the teaching view
   ([caregiver.md](caregiver.md)) the caregiver sees the camera's picture while it runs, mirrored
-  like a mirror, with the tracked points over it. `startCapture` takes an optional `preview`
-  (`PreviewSink`: `show(stream)` once the camera is open, `draw(frame)` after `onFrame` with the
+  like a mirror for the front camera and as it comes for the back camera (card NG-43, below),
+  with the tracked points over it. `startCapture` takes an optional `preview`
+  (`PreviewSink`: `show(stream, facing)` once the camera is open, with the camera in use, `draw(frame)` after `onFrame` with the
   very tracker frame, `close()` in the capture's one shut-down, so on every end: stop, signal,
   tracker failure, camera lost). A preview that throws never stops the capture. The browser's
   preview is `createCapturePreview(document)` (also `createPreview` on the bridge): a box
   (`.capture-preview`) that holds, while the camera runs, a muted `<video>` on the camera's stream
-  (`.capture-preview-video`: `object-fit: contain`, `scale: -1 1`, the transform property that
+  (`.capture-preview-video`: `object-fit: contain`; in a box marked `data-mirrored="true"`, which
+  `show` sets for the front camera only, also `scale: -1 1`, the transform property that
   equals `scaleX(-1)`, written so because the board's stylesheet test keeps the word `transform`
   for motion; so only the shown video is mirrored; the tracker still gets unflipped frames) and a canvas over it. Per tracked
   frame the canvas is cleared and, when a hand is seen, each hand is drawn as its 21 points joined
   by `HAND_CONNECTIONS`, the child's own left hand orange with "L", the right one cyan with "R"
   (sided by `toLandmarkFrame`, as the live line), and the two shoulders (pose 11 and 12, held
   between pose results) as a yellow line. Without a hand the canvas is only cleared. Points are
-  placed by `previewPoint(x, y, imageWidth, imageHeight, boxWidth, boxHeight)`: the whole picture
-  fitted and centred in the box (as `contain`), x mirrored to 1 − x; the canvas is not mirrored, so
-  the letters read the right way round. `close` pauses the video, drops the stream and empties the
+  placed by `previewPoint(x, y, imageWidth, imageHeight, boxWidth, boxHeight, mirrored)`: the whole
+  picture fitted and centred in the box (as `contain`), x mirrored to 1 − x for the front camera
+  and left as it is for the back camera; the canvas is not mirrored, so the letters read the right
+  way round, and "L" sits on the child's left hand in both pictures (on the left of the mirror, on
+  the right of the back camera's picture of the child facing the parent). `close` pauses the video, drops the stream and empties the
   box. Nothing is stored or sent, and no request is made for it. In the camera test the preview is
   below the live line in a window held upright and left of everything else in a wide one, sized so
   that "Kamera starten"/"Kamera stoppen", the live line and "Zurück zur Tafel" stay in the window
-  (measured at 320 × 480, 360 × 640, 640 × 360 and 820 × 1180).
+  (measured at 320 × 480, 360 × 640, 640 × 360 and 820 × 1180; again with the camera choice of
+  card NG-43 and a two-line fallback message in the status line, after the gap went from .4rem to
+  .3rem and the upright preview height from `100dvh − 19rem` to `100dvh − 22.5rem`).
+
+## Front or back camera (card NG-43)
+
+Owner: "We need to support the back camera also": a parent often holds the phone and films the
+child with the back camera.
+
+- **The choice.** "Kamera: vorne / hinten" in the camera test (a row above "Kamera starten") and
+  in the teaching view ([caregiver.md](caregiver.md)); two buttons, the pressed one
+  (`aria-pressed`) is the camera used. The child's gesture view has no control
+  ([recognise.md](recognise.md)). The choice is remembered on the device in `localStorage` under
+  `amysecho-camera-facing` (`CAMERA_FACING_KEY`; `src/caregiver.ts` has the same string, a test
+  compares them): `"user"` (front, the default) or `"environment"` (back). It is a per-device
+  convenience, not data: every read and write is in `try`/`catch`; anything else stored, no
+  storage or a storage that throws means the front camera, and a choice that cannot be written
+  holds in the open view (the area keeps its own copy) until the page is left. It is not part of
+  a profile, a backup or anything sent. In the camera test it can be changed while the camera is
+  off ("Kamera stoppen" first).
+- **Used by all three.** `startCapture(environment, { facing })`; the bridge's `start` fills in
+  the stored choice when a caller names none, which is what the child's gesture view does, so the
+  view follows the choice made in the camera test or in teaching.
+- **What is asked for.** The back camera with `facingMode: { exact: "environment" }`, so a device
+  without one refuses instead of quietly giving the front camera. The front camera as before,
+  `facingMode: "user"` as a preference (`CAMERA_CONSTRAINTS`, unchanged): desktop webcams and
+  Chromium's fake camera report no facing at all, and an `exact` "user" refuses them
+  (`OverconstrainedError`, measured in headless Chromium 157), which would cost every desktop a
+  second request.
+- **Fallback.** If the chosen camera is missing (an `exact` request answered with
+  `OverconstrainedError` or `NotFoundError`) or does not open (`NotReadableError`, `AbortError`,
+  `TrackStartError`), the other camera is asked for once, unless the start was cancelled or the
+  page is hidden meanwhile. A refused permission is never asked again, and a front-camera request
+  that finds no camera at all means there is none (one request, as before). If the other camera
+  fails too, the answer is the first problem (or the second's when the first was "missing"; a
+  refusal always counts). The camera in use is the facing its track reports
+  (`getSettings().facingMode`), else the one the successful request named; `CaptureStart` carries
+  it as `camera: { facing, fellBack }`. A fallback is said in German:
+  "Hintere Kamera nicht verfügbar. Es läuft die vordere." or "Vordere Kamera nicht verfügbar. Es
+  läuft die hintere." (`CAPTURE_TEXT.cameraFallback`, keyed by the chosen camera): in the camera
+  test's status line while it runs, in the teaching view's camera line until the countdown, in
+  the child's view as a small line under the countdown. The stored choice is not changed by a
+  fallback. The camera is stopped on every way out as before; a refused request opened nothing.
+- **Mirroring.** The preview is mirrored for the front camera only (above); the back camera's
+  picture is shown as a photo app shows it. A camera of unknown facing counts as the front one.
+- **Handedness: no flip is needed.** A camera's picture as the sensor delivers it is a projection
+  of the scene, not a reflection: its x axis is forward × up. With the front camera the screen
+  faces the child; with the back camera the phone is turned round and its back faces the child;
+  either way the camera looks at the child (forward = from the phone to the child, up = up), so
+  the picture's x axis points to the child's own left and the child's left hand is on the right of
+  the picture, in both. Browsers deliver `getUserMedia` frames unmirrored for both cameras (the
+  selfie mirror is a display convention), so the tracker gets the same kind of picture from both,
+  and MediaPipe labels by the hand's shape on the picture it is given: on an unflipped picture the
+  subject's own hand ([tracker-decision.md](tracker-decision.md): "On unflipped images the label
+  matched the subject's real hand"; a flipped picture swaps the labels). So "Left" is the child's
+  own left hand with either camera, `toLandmarkFrame` keeps the label as it comes, and nothing
+  between the camera and the matcher depends on the camera: examples taught with one camera are
+  compared with attempts made with the other as they are. Tests (`test/capture.test.mjs`,
+  "handedness"): a vector model of both set-ups gives the same tracker numbers, the same
+  `LandmarkFrame`s and the same feature sequence; the capture path hands the same tracker answers
+  through unchanged with either `facing`; and a mirrored track (labels swapped with the picture)
+  puts the moving hand into the other slot, which only `inputMirrored` would undo.
+  `test/recognise.test.mjs`: examples from front-camera frames are matched by an attempt through
+  the back camera.
+- **A device that mirrors its track** (some front cameras on some devices are said to; not seen
+  here) cannot be told from its frames: `MediaStreamTrack.getSettings()` has no mirror flag, and
+  the pose model's wrists flip with the picture, so the cross-check above agrees either way. This
+  is a device-trial item, next to item 3 of the decision record: with each camera, hold up the
+  left hand; the live preview must show "L" on it and the teaching view must say "(links)" for a
+  one-hand recording with it. A device that fails it needs `inputMirrored` for that camera, which
+  is not wired to a setting.
 - **Tracking.** In a module worker: the hand landmarker with `numHands: 2` on every frame, the pose
   landmarker (lite) on every 5th frame (`POSE_EVERY`) for the shoulders, delegate `CPU`. GPU is an
   option of the code (`delegate: "GPU"`) but not the default: headless Chromium has only a
@@ -390,7 +465,9 @@ took 13 min. A CI runner is slower; the job's time limit was raised from 10 to 2
 ## Known limits and open points
 
 - Everything in "Not verified" of the decision record: frame rate, heat and battery on the phone,
-  GPU delegate, whether the front camera delivers unflipped frames, a child's hands, shoulders when
+  GPU delegate, whether the front and the back camera deliver unflipped frames (card NG-43: hold
+  up the left hand with each camera), whether `exact: "environment"` and the fallback behave on
+  the phone as in the tests, a child's hands, shoulders when
   the device lies or stands where it is used, the first 25 MB download on mobile data, memory.
   The card's own note applies: if hands-only tracking is too slow, hot or battery-hungry on the
   phone, stop and reconsider.

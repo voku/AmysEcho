@@ -6,13 +6,18 @@
  *   capture path calls. Loading this module requests nothing.
  * - No picture is kept: each frame is turned into an `ImageBitmap`, handed to
  *   the worker and closed there after tracking. A caller may ask for a live
- *   preview (`preview`, card NG-42): a second, mirrored `<video>` on the same
- *   stream with the tracked points drawn over it; it is emptied when the
+ *   preview (`preview`, card NG-42): a second `<video>` on the same stream
+ *   (mirrored for the front camera only, card NG-43) with the tracked points
+ *   drawn over it; it is emptied when the
  *   camera stops and keeps nothing. What stays, and only in
  *   memory, is landmark numbers, and only when the caller asks for them
  *   (`record`). Nothing is stored and nothing is sent.
  * - The tracker files have their own cache (`TRACKER_CACHE_PREFIX`), filled and
  *   checked here on the first start, never by the board's install.
+ * - Front or back camera (card NG-43): chosen in the camera test and in
+ *   teaching, remembered on the device (`CAMERA_FACING_KEY`), and used by the
+ *   bridge for the child's gesture view too. Frames of either camera go to
+ *   the tracker unflipped; nothing on the way to the matcher depends on it.
  */
 import { frameSummary, shouldersOf, toLandmarkFrame, type TrackerFrame, type TrackerHand, type TrackerPoint } from "../recognition/tracker-adapter.js";
 import type { Delegate, TrackerFiles, TrackerReply, TrackerRequest } from "./tracker-worker.js";
@@ -65,6 +70,13 @@ export const CAPTURE_TEXT = {
   asking: "Bitte die Kamera erlauben.",
   running: "Die Kamera läuft.",
   stopped: "Die Kamera ist aus.",
+  /** The camera choice (card NG-43): which camera the views ask for, remembered on the device. */
+  camera: { label: "Kamera:", user: "vorne", environment: "hinten" },
+  /** The chosen camera could not be opened and the other one is used; keyed by the camera that was chosen. */
+  cameraFallback: {
+    user: "Vordere Kamera nicht verfügbar. Es läuft die hintere.",
+    environment: "Hintere Kamera nicht verfügbar. Es läuft die vordere.",
+  },
   hands: ["Keine Hand im Bild.", "Eine Hand im Bild.", "Zwei Hände im Bild."],
   shoulders: ["Schultern nicht zu sehen.", "Schultern zu sehen."],
   problems: {
@@ -126,8 +138,63 @@ export function trackerProblem(error: unknown): TrackerProblem {
   }
 }
 
+/** What a camera track says about itself; `getSettings` is missing in some fakes. */
+export interface CameraTrack {
+  stop(): void;
+  getSettings?(): { readonly facingMode?: string };
+}
+
 export interface CameraStream {
-  getTracks(): readonly { stop(): void }[];
+  getTracks(): readonly CameraTrack[];
+}
+
+/**
+ * Which camera to use (card NG-43): "user" is the front camera (the screen
+ * side), "environment" the back camera. Either way the camera looks at the
+ * child, and the frames go to the tracker as the camera delivers them.
+ */
+export type CameraFacing = "user" | "environment";
+
+/** The camera a capture got: `facing` as it is treated (mirrored preview for "user"), `fellBack` when it is not the one asked for. */
+export interface CameraInUse {
+  readonly facing: CameraFacing;
+  readonly fellBack: boolean;
+}
+
+/** The local-storage key of the camera choice; `src/caregiver.ts` has the same string (a test compares them). */
+export const CAMERA_FACING_KEY = "amysecho-camera-facing";
+
+/** What the camera choice needs of `localStorage`. */
+export interface FacingStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+/** The browser's `localStorage`, or null where it is missing or refused (private mode, blocked storage). */
+export function browserFacingStorage(): FacingStorage | null {
+  try {
+    return (globalThis as { localStorage?: FacingStorage }).localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The camera chosen on this device; the front camera when nothing (or nothing readable) is stored. */
+export function loadCameraFacing(storage: FacingStorage | null): CameraFacing {
+  try {
+    return storage?.getItem(CAMERA_FACING_KEY) === "environment" ? "environment" : "user";
+  } catch {
+    return "user";
+  }
+}
+
+/** Remembers the choice on this device. A storage that refuses it is ignored: the choice then holds until the page is left. */
+export function saveCameraFacing(storage: FacingStorage | null, facing: CameraFacing): void {
+  try {
+    storage?.setItem(CAMERA_FACING_KEY, facing);
+  } catch {
+    // Nothing: a convenience, not data.
+  }
 }
 
 export interface CameraFrame {
@@ -183,11 +250,14 @@ export interface CaptureOptions {
    * whatever way. A failure in it never stops the capture.
    */
   readonly preview?: PreviewSink;
+  /** The camera to ask for (card NG-43). Default "user", the front camera. */
+  readonly facing?: CameraFacing;
 }
 
 /** What `startCapture` needs from a live preview; `createCapturePreview` is the browser's. */
 export interface PreviewSink {
-  show(stream: CameraStream): void;
+  /** `facing`: the camera in use; the picture is mirrored for the front camera only. */
+  show(stream: CameraStream, facing?: CameraFacing): void;
   draw(frame: TrackerFrame): void;
   close(): void;
 }
@@ -210,7 +280,7 @@ export interface CaptureSession {
 }
 
 export type CaptureStart =
-  | { readonly ok: true; readonly session: CaptureSession }
+  | { readonly ok: true; readonly session: CaptureSession; readonly camera: CameraInUse }
   | { readonly ok: false; readonly problem: CaptureProblem }
   /** Cancelled by `signal`, or the page was hidden before the camera was requested or opened. */
   | { readonly ok: false; readonly cancelled: true };
@@ -219,6 +289,48 @@ export const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
   audio: false,
   video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
 };
+
+/**
+ * What is asked for each camera. The back camera is asked for with an `exact`
+ * facing, so that a device without one refuses instead of quietly giving the
+ * front camera. The front camera is asked for as before, as a preference:
+ * desktop webcams and Chromium's fake camera report no facing at all, and an
+ * `exact` "user" would refuse them.
+ */
+export function cameraConstraints(facing: CameraFacing): MediaStreamConstraints {
+  if (facing === "user") return CAMERA_CONSTRAINTS;
+  return { audio: false, video: { facingMode: { exact: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } } };
+}
+
+const otherCamera = (facing: CameraFacing): CameraFacing => (facing === "user" ? "environment" : "user");
+
+/**
+ * Whether a refused request for `facing` is worth trying the other camera:
+ * the chosen camera is missing (only an `exact` request can say so; a
+ * preference for the front camera that finds nothing means no camera at all)
+ * or it could not be opened. A refused permission is never tried again.
+ */
+function tryOtherCamera(facing: CameraFacing, problem: CaptureProblem): boolean {
+  return problem === "busy" || (problem === "no_camera" && facing === "environment");
+}
+
+/**
+ * The camera a stream came from: the facing its track reports, else the one
+ * the successful request named. (A camera that reports none, such as a
+ * desktop webcam, is taken as the one asked for.)
+ */
+function facingOf(stream: CameraStream, asked: CameraFacing): CameraFacing {
+  for (const track of stream.getTracks()) {
+    let reported: string | undefined;
+    try {
+      reported = track.getSettings?.().facingMode;
+    } catch {
+      reported = undefined;
+    }
+    if (reported === "user" || reported === "environment") return reported;
+  }
+  return asked;
+}
 
 /**
  * Starts a capture: first the tracker (so that a tracker that cannot load
@@ -245,14 +357,40 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
     return cancelled;
   }
   options.onStep?.("asking");
+  const chosen = options.facing ?? "user";
   let stream: CameraStream;
+  let asked = chosen;
   try {
-    stream = await environment.getUserMedia(CAMERA_CONSTRAINTS);
+    stream = await environment.getUserMedia(cameraConstraints(chosen));
   } catch (error) {
-    tracker.close();
-    if (signal?.aborted === true) return cancelled;
-    return { ok: false, problem: cameraProblem(error) };
+    const first = cameraProblem(error);
+    if (signal?.aborted === true) {
+      tracker.close();
+      return cancelled;
+    }
+    if (!tryOtherCamera(chosen, first)) {
+      tracker.close();
+      return { ok: false, problem: first };
+    }
+    if (givenUp()) {
+      tracker.close();
+      return cancelled;
+    }
+    // The chosen camera is missing or would not open: the other one (card NG-43).
+    asked = otherCamera(chosen);
+    try {
+      stream = await environment.getUserMedia(cameraConstraints(asked));
+    } catch (again) {
+      tracker.close();
+      // Read again: the signal may have been raised while the second request was open.
+      if ((signal as AbortSignal | undefined)?.aborted === true) return cancelled;
+      const second = cameraProblem(again);
+      // "No camera" for the chosen one says nothing about the other: then the other's answer counts.
+      return { ok: false, problem: second === "denied" || first === "no_camera" ? second : first };
+    }
   }
+  const used = facingOf(stream, asked);
+  const inUse: CameraInUse = { facing: used, fellBack: used !== chosen };
   const release = (): void => {
     for (const track of stream.getTracks()) track.stop();
     tracker.close();
@@ -305,7 +443,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
   };
 
   signal?.addEventListener("abort", () => shutDown({ kind: "stopped" }), { once: true });
-  preview((sink) => sink.show(stream));
+  preview((sink) => sink.show(stream, inUse.facing));
   options.onStep?.("running");
   void (async () => {
     let index = 0;
@@ -363,7 +501,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
     },
     ended,
   };
-  return { ok: true, session };
+  return { ok: true, session, camera: inUse };
 }
 
 function closeImage(image: unknown): void {
@@ -576,11 +714,13 @@ export function trackerFiles(directory: string): TrackerFiles {
 }
 
 // ---------------------------------------------------------------------------
-// The live preview (card NG-42): the camera's picture, mirrored like a mirror,
-// with the tracked hand points and the shoulders drawn over it, so that the
-// caregiver sees whether a sign is in the picture. Only the displayed video is
-// mirrored (CSS); the tracker keeps getting the unflipped frames of the hidden
-// source video. Nothing of the picture is kept, copied or sent.
+// The live preview (card NG-42): the camera's picture with the tracked hand
+// points and the shoulders drawn over it, so that the caregiver sees whether a
+// sign is in the picture. The front camera's picture is mirrored like a
+// mirror; the back camera's is not, as in a photo app (card NG-43). Only the
+// displayed video is mirrored (CSS); the tracker keeps getting the unflipped
+// frames of the hidden source video, from either camera. Nothing of the
+// picture is kept, copied or sent.
 
 /** The bones of a MediaPipe hand: pairs of its 21 point indices. */
 export const HAND_CONNECTIONS: readonly (readonly [number, number])[] = [
@@ -596,15 +736,21 @@ export const PREVIEW_COLOURS = { left: "#ff8c1a", right: "#1ad1ff", shoulders: "
 
 /**
  * Where a tracker point (x and y normalised to the unflipped camera picture)
- * is on the mirrored preview: the picture of `imageWidth` × `imageHeight` is
- * fitted whole into a box of `boxWidth` × `boxHeight` (CSS `object-fit:
- * contain`, centred) and flipped left to right, so x becomes 1 − x.
+ * is on the preview: the picture of `imageWidth` × `imageHeight` is fitted
+ * whole into a box of `boxWidth` × `boxHeight` (CSS `object-fit: contain`,
+ * centred) and, when `mirrored` (the front camera), flipped left to right, so
+ * x becomes 1 − x.
  */
-export function previewPoint(x: number, y: number, imageWidth: number, imageHeight: number, boxWidth: number, boxHeight: number): [number, number] {
+export function previewPoint(x: number, y: number, imageWidth: number, imageHeight: number, boxWidth: number, boxHeight: number, mirrored = true): [number, number] {
   const scale = Math.min(boxWidth / imageWidth, boxHeight / imageHeight);
   const width = imageWidth * scale;
   const height = imageHeight * scale;
-  return [(boxWidth - width) / 2 + (1 - x) * width, (boxHeight - height) / 2 + y * height];
+  return [(boxWidth - width) / 2 + (mirrored ? 1 - x : x) * width, (boxHeight - height) / 2 + y * height];
+}
+
+/** The preview is mirrored for the front camera only (card NG-43); a camera of unknown facing counts as the front one, as before. */
+export function previewMirrored(facing: CameraFacing | undefined): boolean {
+  return facing !== "environment";
 }
 
 export type PreviewPoint = readonly [number, number];
@@ -619,13 +765,14 @@ export interface PreviewShapes {
 /**
  * The shapes of one tracked frame on a box of `boxWidth` × `boxHeight`.
  * Hands are sided as on the live line (`toLandmarkFrame`: the child's own
- * left and right). `shoulders` are those to draw, normalised to the picture
- * (the last ones pose saw; pose runs on every POSE_EVERY-th frame only).
+ * left and right, with either camera). `shoulders` are those to draw,
+ * normalised to the picture (the last ones pose saw; pose runs on every
+ * POSE_EVERY-th frame only). `mirrored` as the video (front camera: true).
  */
-export function previewShapes(frame: TrackerFrame, shoulders: readonly [TrackerPoint, TrackerPoint] | null, boxWidth: number, boxHeight: number): PreviewShapes {
+export function previewShapes(frame: TrackerFrame, shoulders: readonly [TrackerPoint, TrackerPoint] | null, boxWidth: number, boxHeight: number, mirrored = true): PreviewShapes {
   if (!(frame.imageWidth > 0 && frame.imageHeight > 0 && boxWidth > 0 && boxHeight > 0)) return { hands: [], shoulders: null };
   const sided = toLandmarkFrame(frame, frame.timestampMs);
-  const place = (x: number, y: number): PreviewPoint => previewPoint(x, y, frame.imageWidth, frame.imageHeight, boxWidth, boxHeight);
+  const place = (x: number, y: number): PreviewPoint => previewPoint(x, y, frame.imageWidth, frame.imageHeight, boxWidth, boxHeight, mirrored);
   const hands: { side: "left" | "right"; points: PreviewPoint[] }[] = [];
   for (const side of ["left", "right"] as const) {
     const points = sided[side];
@@ -710,10 +857,12 @@ export interface CapturePreview extends PreviewSink {
 
 /**
  * The browser's preview. `show` puts a muted `<video>` on the camera's stream
- * (mirrored by the CSS of `.capture-preview-video`) and a canvas over it into
- * `element`; `draw` draws the points of a frame; `close` stops the video and
- * empties `element`. The box keeps its size either way, so nothing around it
- * moves when the camera starts or stops.
+ * and a canvas over it into `element`, and marks the box `data-mirrored`
+ * "true" for the front camera, "false" for the back one (the stylesheet
+ * mirrors the video of a mirrored box only); `draw` draws the points of a
+ * frame to match; `close` stops the video and empties `element`. The box
+ * keeps its size either way, so nothing around it moves when the camera
+ * starts or stops.
  */
 export function createCapturePreview(doc: Document): CapturePreview {
   const element = doc.createElement("div");
@@ -724,6 +873,7 @@ export function createCapturePreview(doc: Document): CapturePreview {
   let video: HTMLVideoElement | null = null;
   let canvas: HTMLCanvasElement | null = null;
   let shoulders: readonly [TrackerPoint, TrackerPoint] | null = null;
+  let mirrored = true;
   const close = (): void => {
     if (video !== null) {
       video.pause();
@@ -734,11 +884,14 @@ export function createCapturePreview(doc: Document): CapturePreview {
     shoulders = null;
     element.replaceChildren();
     element.dataset["camera"] = "off";
+    delete element.dataset["mirrored"];
   };
   return {
     element,
-    show(stream) {
+    show(stream, facing) {
       close();
+      mirrored = previewMirrored(facing);
+      element.dataset["mirrored"] = String(mirrored);
       video = doc.createElement("video");
       video.className = "capture-preview-video";
       video.muted = true;
@@ -763,7 +916,7 @@ export function createCapturePreview(doc: Document): CapturePreview {
       if (canvas.height !== height) canvas.height = height;
       const context = canvas.getContext("2d");
       if (context === null) return;
-      drawPreviewShapes(context, previewShapes(frame, shoulders, width, height), width, height);
+      drawPreviewShapes(context, previewShapes(frame, shoulders, width, height, mirrored), width, height);
     },
     close,
   };
@@ -927,7 +1080,12 @@ export function browserEnvironment(host: HTMLElement, options: BrowserCaptureOpt
 export const CAPTURE_BRIDGE_KEY = "amysEchoCapture";
 
 export interface CaptureBridge {
-  /** `startCapture` with the browser's camera and tracker; `host` receives the hidden video element. */
+  /**
+   * `startCapture` with the browser's camera and tracker; `host` receives the
+   * hidden video element. Without `options.facing` the camera chosen on this
+   * device is used (`loadCameraFacing`, card NG-43): the child's gesture view
+   * passes none and so follows the choice made in the camera test or teaching.
+   */
   start(host: HTMLElement, options: CaptureOptions): Promise<CaptureStart>;
   readonly text: typeof CAPTURE_TEXT;
   readonly nextShoulders: typeof nextShoulders;
@@ -935,9 +1093,18 @@ export interface CaptureBridge {
   readonly createPreview?: (doc: Document) => CapturePreview;
 }
 
-export function captureBridge(options: BrowserCaptureOptions = {}): CaptureBridge {
+/** What the bridge uses of the browser; a test passes fakes. */
+export interface CaptureBridgeParts {
+  readonly environment?: (host: HTMLElement) => CaptureEnvironment;
+  /** Where the camera choice is remembered; default `browserFacingStorage`. */
+  readonly storage?: () => FacingStorage | null;
+}
+
+export function captureBridge(options: BrowserCaptureOptions = {}, parts: CaptureBridgeParts = {}): CaptureBridge {
+  const environment = parts.environment ?? ((host: HTMLElement) => browserEnvironment(host, options));
+  const storage = parts.storage ?? browserFacingStorage;
   return {
-    start: (host, captureOptions) => startCapture(browserEnvironment(host, options), captureOptions),
+    start: (host, captureOptions) => startCapture(environment(host), { ...captureOptions, facing: captureOptions.facing ?? loadCameraFacing(storage()) }),
     text: CAPTURE_TEXT,
     nextShoulders,
     createPreview: createCapturePreview,
@@ -960,11 +1127,19 @@ function element<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, c
 
 /**
  * Shows the capture test in `region` while the address ends in
- * `CAPTURE_ROUTE`: a start button, the mirrored camera picture with the
- * tracked points while the camera runs (card NG-42), a live line with 0, 1 or
- * 2 hands, a stop button and a way back to the board. The board is not touched.
+ * `CAPTURE_ROUTE`: the camera choice "Kamera: vorne / hinten" (card NG-43,
+ * remembered in `storage` and shared with teaching and the child's gesture
+ * view), a start button, the camera picture with the tracked points while the
+ * camera runs (card NG-42; mirrored for the front camera only), a live line
+ * with 0, 1 or 2 hands, a stop button and a way back to the board. The board
+ * is not touched. `environment` replaces the browser's camera and tracker;
+ * for tests.
  */
-export function mountCaptureEntry(doc: Document, region: HTMLElement, options: BrowserCaptureOptions = {}): void {
+export function mountCaptureEntry(
+  doc: Document, region: HTMLElement, options: BrowserCaptureOptions = {},
+  storage: () => FacingStorage | null = browserFacingStorage,
+  environment: (host: HTMLElement) => CaptureEnvironment = (host) => browserEnvironment(host, options),
+): void {
   /** Ends the current attempt at whatever step it is: tracker loading, permission request, or running. */
   let cancel: (() => void) | null = null;
   let generation = 0;
@@ -998,6 +1173,29 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
     stopButton.hidden = true;
     const back = element(doc, "button", "capture-back", CAPTURE_TEXT.back);
     back.type = "button";
+    // The camera choice (card NG-43). It can be changed while the camera is off; "Kamera stoppen" first otherwise.
+    let chosen = loadCameraFacing(storage());
+    const choice = element(doc, "div", "camera-choice");
+    choice.setAttribute("role", "group");
+    choice.setAttribute("aria-label", "Kamera");
+    const choiceButtons = (["user", "environment"] as const).map((facing) => {
+      const option = element(doc, "button", "camera-choice-button", CAPTURE_TEXT.camera[facing]);
+      option.type = "button";
+      option.dataset["facing"] = facing;
+      option.addEventListener("click", () => {
+        if (option.disabled || cancel !== null) return;
+        chosen = facing;
+        saveCameraFacing(storage(), facing);
+        showChoice();
+      });
+      return option;
+    });
+    const showChoice = (): void => {
+      for (const option of choiceButtons) option.setAttribute("aria-pressed", String(option.dataset["facing"] === chosen));
+      region.dataset["cameraChoice"] = chosen;
+    };
+    choice.append(element(doc, "span", "camera-choice-label", CAPTURE_TEXT.camera.label), ...choiceButtons);
+    showChoice();
     const show = (text: string, problem: CaptureProblem | null): void => {
       if (mine !== generation) return;
       status.textContent = text;
@@ -1010,6 +1208,7 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
       region.dataset["captureStep"] = "stopped";
       start.hidden = false;
       start.disabled = false;
+      for (const option of choiceButtons) option.disabled = false;
       stopButton.hidden = true;
       seen.textContent = "";
       seen.dataset["hands"] = "";
@@ -1038,11 +1237,14 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
         if (cancel === ownCancel) cancel = null;
       };
       start.disabled = true;
+      for (const option of choiceButtons) option.disabled = true;
       seen.textContent = "";
       previewHolder.replaceChildren(preview.element);
-      void startCapture(browserEnvironment(region, options), {
+      const facing = chosen;
+      void startCapture(environment(region), {
         signal: controller.signal,
         preview,
+        facing,
         onStep: (step) => {
           if (mine !== generation || controller.signal.aborted || step === "stopped") return;
           region.dataset["captureStep"] = step;
@@ -1069,6 +1271,8 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
         else {
           start.hidden = true;
           stopButton.hidden = false;
+          // The other camera is used: said in the status line while it runs.
+          if (started.camera?.fellBack === true) show(CAPTURE_TEXT.cameraFallback[facing], null);
         }
         void started.session.ended.then((end) => {
           finished();
@@ -1084,7 +1288,7 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
       if (view !== null) view.history.replaceState(null, "", `${view.location.pathname}${view.location.search}`);
       render();
     });
-    region.replaceChildren(heading, intro, start, stopButton, status, seen, previewHolder, back);
+    region.replaceChildren(heading, intro, choice, start, stopButton, status, seen, previewHolder, back);
     region.hidden = false;
   };
   const view = doc.defaultView;
