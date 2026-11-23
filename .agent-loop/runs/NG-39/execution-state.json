@@ -1,11 +1,76 @@
 {
     "attention": null,
-    "candidate_revision": "6d14770a8508ef725fe870b2541befa165baab20",
+    "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-23T10:11:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:11:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6d14770a8508ef725fe870b2541befa165baab20",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6d14770a8508ef725fe870b2541befa165baab20",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "outcome": "completed",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:9dc894ed",
+                "summary": "Pages workflow (npm ci, typecheck, build, upload dist, deploy) on push to main and dispatch; serveDist resolves paths inside dist and answers 404 otherwise (../, %2e%2e, %2f probed); README Try it section; Chromium probe under /AmysEcho/: board, service worker, offline start and camera test work",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:11:50+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:11:50+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "outcome": "completed",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:1c2bb782",
+                "summary": "Pages workflow (npm ci, typecheck, build, upload dist, deploy) on push to main and dispatch; serveDist resolves paths inside dist and answers 404 otherwise (../, %2e%2e, %2f probed); README Try it section; Chromium probe under /AmysEcho/: board, service worker, offline start and camera test work",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
