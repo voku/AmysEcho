@@ -9,13 +9,23 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Worker } from "node:worker_threads";
 import { buildFeatureSequence } from "../dist/recognition/features.js";
-import { evaluateBySession, simulateHandCases, simulateProfile } from "../dist/recognition/evaluate.js";
+import { evaluateBySession, simulateHandCases, simulateProfile, simulateProfileUnder } from "../dist/recognition/evaluate.js";
 import { createGesture, createSession, renderGesture } from "../dist/recognition/synthetic.js";
+
+/**
+ * `EVAL_FULL=1 npm test` runs the profiles at the size of the tables in docs/recognition.md: 5 attempts and 4 unknown
+ * movements per gesture in each of the two later sessions. Plain `npm test` runs the same rows with fewer attempts
+ * (below), so that it stays fast; every row and every limit is the same.
+ */
+const FULL = process.env.EVAL_FULL === "1";
+const FIRST_CARD_SIZE = FULL ? { attemptsPerGesture: 5, unknownsPerGesture: 4 } : { attemptsPerGesture: 2, unknownsPerGesture: 2 };
+const CONDITION_SIZE = FULL ? { attemptsPerGesture: 5, unknownsPerGesture: 4 } : { attemptsPerGesture: 2, unknownsPerGesture: 1 };
 
 const GESTURES = 15;
 /** The profile of the first cards: right-hand gestures, some with the left hand as well; examples recorded without a rest. */
-const simulate = (sloppiness, unknownKind) => simulateProfile({ hands: "default", gestures: GESTURES, sloppiness, unknownKind, examples: {} });
+const simulate = (sloppiness, unknownKind) => simulateProfile({ hands: "default", gestures: GESTURES, sloppiness, unknownKind, examples: {}, ...FIRST_CARD_SIZE });
 
 const percent = (value) => `${(value * 100).toFixed(1)}%`;
 const line = (name, report) => `${name}: top1 ${percent(report.top1)}, top3 ${percent(report.top3)}, `
@@ -86,12 +96,33 @@ const CONDITIONS = [
 ];
 const PROFILES = ["right", "left", "both", "mixed"];
 
-test("one-hand, two-hand and mixed profiles under the disturbances of a real capture: measured and reported", (t) => {
-  const cell = (report) => `${percent(report.top1)} / ${percent(report.top3)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)}`;
-  t.diagnostic(`per profile: top-1 / top-3 / spoken as a wrong concept / answered "unknown" (12 gestures, 72 examples, 120 attempts each)`);
+/** Runs `simulateProfileUnder` in a worker thread, so the four profiles are measured side by side. The result is the same as in this thread. */
+const simulateInWorker = (options, disturbances) => new Promise((resolve, reject) => {
+  const worker = new Worker(`
+    const { parentPort, workerData } = require("node:worker_threads");
+    import(workerData.module).then(({ simulateProfileUnder }) => parentPort.postMessage(simulateProfileUnder(workerData.options, workerData.disturbances)));
+  `, { eval: true, workerData: { module: new URL("../dist/recognition/evaluate.js", import.meta.url).href, options, disturbances } });
+  worker.once("message", resolve);
+  worker.once("error", reject);
+  worker.once("exit", (code) => reject(new Error(`worker stopped with code ${code}`)));
+});
+
+test("profiles measured in a worker thread give the same reports as in this thread", async () => {
+  const options = { hands: "mixed", gestures: 3, sloppiness: 1.5, unknownKind: "unrelated", attemptsPerGesture: 1, unknownsPerGesture: 1 };
+  const disturbances = [{}, { strayHandMs: 450 }];
+  assert.deepEqual(await simulateInWorker(options, disturbances), simulateProfileUnder(options, disturbances));
+});
+
+test("one-hand, two-hand and mixed profiles under the disturbances of a real capture: measured and reported", async (t) => {
+  const cell = (report) => `${percent(report.top1)} / ${percent(report.top3)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)} / ${percent(report.falseAccept)}`;
+  // Each profile's examples are recorded and calibrated once and used for every row.
+  const byProfile = await Promise.all(PROFILES.map((hands) => simulateInWorker({ hands, gestures: 12, sloppiness: 1.5, unknownKind: "unrelated", ...CONDITION_SIZE }, CONDITIONS.map(([, attempts]) => attempts))));
+  const { examples, knownAttempts, unknownAttempts } = byProfile[0][0];
+  t.diagnostic(`per profile: top-1 / top-3 / spoken as a wrong concept / answered "unknown" / unknown movements spoken as a concept `
+    + `(12 gestures, ${examples} examples, ${knownAttempts} attempts and ${unknownAttempts} unknown movements each)`);
   let worstWrong = 0;
-  for (const [name, attempts] of CONDITIONS) {
-    const reports = PROFILES.map((hands) => simulateProfile({ hands, gestures: 12, sloppiness: 1.5, unknownKind: "unrelated", attempts }));
+  for (const [row, [name]] of CONDITIONS.entries()) {
+    const reports = byProfile.map((reportsOfProfile) => reportsOfProfile[row]);
     t.diagnostic(`${name}: ${PROFILES.map((hands, index) => `${hands} ${cell(reports[index])}`).join(" | ")}`);
     for (const [index, report] of reports.entries()) {
       worstWrong = Math.max(worstWrong, report.wrongAccept);
@@ -112,11 +143,11 @@ test("the hand that does not sign is in view, fidgets, trembles or belongs to so
       ? `${name}: ${percent(report.top1)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)} (${report.examples} examples, ${report.knownAttempts} attempts)`
       : `${name}: spoken as a concept ${percent(report.falseAccept)} (${report.examples} examples, ${report.unknownAttempts} attempts)`);
   }
-  assert.equal(cases.length, 21);
-  // A second hand seen for under a fifth of the movement is taken for a hand passing through, by the rule
-  // (docs/recognition.md). These two rows are measured and reported; a limit here would only pin the weakness in place.
-  const byRule = (name) => /second hand seen for (20|10)% of the movement/.test(name);
-  assert.equal(cases.filter(({ name }) => byRule(name)).length, 2);
+  assert.equal(cases.length, 29);
+  // A second hand seen for under a fifth of the movement, or only before it, is taken for a hand passing through, by
+  // the rule (docs/recognition.md). These rows are measured and reported; a limit here would only pin the weakness in place.
+  const byRule = (name) => /second hand seen for (20|10)% of the movement|until the right hand starts in the attempts/.test(name);
+  assert.equal(cases.filter(({ name }) => byRule(name)).length, 3);
   for (const { name, report } of cases) {
     if (byRule(name)) continue;
     // Everywhere else the answer may be "unknown", never another concept.

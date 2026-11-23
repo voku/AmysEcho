@@ -26,17 +26,19 @@ const POSITION_WEIGHT = 1;
 const MIN_ACTIVE_FRAMES = 3;
 /**
  * A hand belongs to the gesture when it is visible for at least this share of
- * the gesture's duration, whether it moves or not. A hand below it is left out
- * entirely: a second hand that passes through does not turn a one-hand gesture
- * into a two-hand one. Presence alone decides: a hand that is clearly in view
- * is never left out because the other hand moves more.
+ * the gesture's duration, whether it moves or not. The gesture's duration is
+ * one span for both hands: from the first to the last movement of either.
+ * Presence decides: a hand that is clearly in view is never left out because
+ * the other hand moves more.
  */
 export const HAND_PRESENCE_SHARE = 0.5;
 /**
- * Only a hand visible for less than this share of the gesture's duration is
- * left out silently. Between the two shares nobody can say whether the hand
- * belongs, and leaving it out could turn a two-hand gesture into the one-hand
- * gesture with the same path: no sequence is built ("hands_unclear").
+ * Only a hand visible for less than this share of the gesture's duration, and
+ * without a movement of its own, is left out silently. It is a share, not a
+ * time: in a gesture of 1.5 s a hand seen for 300 ms is at the limit. Between
+ * the two shares nobody can say whether the hand belongs, and leaving it out
+ * could turn a two-hand gesture into the one-hand gesture with the same path:
+ * no sequence is built ("hands_unclear").
  */
 export const HAND_BRIEF_SHARE = 0.2;
 /**
@@ -102,11 +104,11 @@ export type FeatureSequenceV1 = FeatureSequence;
  * - "too_short": a hand of the gesture is in fewer than three of its frames, or
  *   the gesture's frames all carry one timestamp.
  * - "hands_unclear": which hands make the gesture cannot be told. A hand was in
- *   view for between `HAND_BRIEF_SHARE` and `HAND_PRESENCE_SHARE` of the time;
- *   or a hand was in view more briefly and the hands that stay show no
- *   movement of their own (so only the brief hand moved, or nothing did); or
- *   no hand is in view for half of the time; or the capture can be read both
- *   as a one-hand and as a two-hand gesture.
+ *   view for between `HAND_BRIEF_SHARE` and `HAND_PRESENCE_SHARE` of the
+ *   gesture; or one hand belongs and the other, though seen less, made a
+ *   movement of its own somewhere in the capture; or one hand belongs, shows no
+ *   movement of its own, and the other was in view during the gesture; or no
+ *   hand is in view for half of the gesture.
  * - "hand_lost": a hand of the gesture was not seen for longer than `MAX_BRIDGED_GAP_MS`.
  */
 export type FeatureFailure = "no_frames" | "bad_timestamps" | "bad_landmarks" | "no_hands" | "too_short" | "hands_unclear" | "hand_lost";
@@ -290,16 +292,16 @@ function frameWeights(frames: readonly LandmarkFrame[], first: number, last: num
 
 /**
  * The gesture inside a capture, as first and last frame index: from the first
- * to the last frame in which one of `sides` moves, with `SEGMENT_PAD_MS` on
- * each side as long as a hand is visible there. Hands that rest in view before
- * and after are left out. If no hand ever moves (a posture that is only held),
- * it is the whole time a hand is visible.
+ * to the last frame in which either hand moves, with `SEGMENT_PAD_MS` on each
+ * side as long as a hand is visible there. Hands that rest in view before and
+ * after are left out. If no hand ever moves (a posture that is only held), it
+ * is the whole time a hand is visible. At least one frame must show a hand.
  */
-function segment(frames: readonly LandmarkFrame[], sides: readonly Side[], moves: Readonly<Record<Side, boolean[]>>): [number, number] | null {
-  const visible = frames.map((frame) => sides.some((side) => frame[side] !== null));
-  const moving = frames.map((_, index) => sides.some((side) => moves[side][index]!));
+function segment(frames: readonly LandmarkFrame[], moves: Readonly<Record<Side, boolean[]>>): [number, number] {
+  const visible = frames.map((frame) => SIDES.some((side) => frame[side] !== null));
+  const moving = frames.map((_, index) => SIDES.some((side) => moves[side][index]!));
   if (!moving.includes(true)) {
-    return visible.includes(true) ? [visible.indexOf(true), visible.lastIndexOf(true)] : null;
+    return [visible.indexOf(true), visible.lastIndexOf(true)];
   }
   let first = moving.indexOf(true);
   let last = moving.lastIndexOf(true);
@@ -396,13 +398,10 @@ function resample(rows: readonly number[][], times: readonly number[], steps: nu
  *    (`segment`), so a capture may start early and end late and hands may
  *    rest in view.
  * 2. Its hands are those visible for `HAND_PRESENCE_SHARE` of that time, moving
- *    or not; a hand seen for less than `HAND_BRIEF_SHARE` of it is left out.
- *    The capture is a two-hand gesture if that holds for both hands over the
- *    time in which either moves, and a one-hand gesture if it holds for one
- *    hand over the time in which that hand moves. If none of the three
- *    readings holds, or more than one, nothing is built ("hands_unclear"):
- *    a hand in between, or a hand that stays without a movement of its own
- *    while another was in view briefly.
+ *    or not. The other hand is left out only when it was seen for less than
+ *    `HAND_BRIEF_SHARE` of it and made no movement of its own anywhere in the
+ *    capture, and the hand that stays has a movement of its own if the other
+ *    was in view. Otherwise nothing is built ("hands_unclear").
  * 3. Gaps of those hands up to `MAX_BRIDGED_GAP_MS` are filled; a longer one
  *    fails with "hand_lost".
  * 4. Positions are made relative to the body, and the result is resampled to
@@ -426,32 +425,33 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
     }
   }
 
-  // The speed needs a length to be measured in: that of the whole capture is good enough for cutting.
-  const coarse = findReference(frames, SIDES);
-  if (coarse === null) {
+  if (!frames.some((frame) => frame.left !== null || frame.right !== null)) {
     return { ok: false, reason: "no_hands" };
   }
-  if (!(coarse.scale > 0) || !Number.isFinite(coarse.scale)) {
+  // The speed needs a length to be measured in: that of the whole capture is good enough for cutting.
+  const coarse = findReference(frames, SIDES);
+  if (coarse === null || !(coarse.scale > 0) || !Number.isFinite(coarse.scale)) {
     return { ok: false, reason: "bad_landmarks" };
   }
   const moves: Record<Side, boolean[]> = {
     left: movement(frames, handSpeeds(frames, "left", coarse.scale)),
     right: movement(frames, handSpeeds(frames, "right", coarse.scale)),
   };
-  /** The gesture as made by exactly these hands, if the capture can be read that way. */
-  const read = (sides: readonly Side[]): { sides: readonly Side[]; span: [number, number] } | null => {
-    const span = segment(frames, sides, moves);
-    if (span === null || presentHands(frames, span)?.join() !== sides.join()) return null;
-    // Another hand was in view briefly: these hands have to show a movement of their own.
-    const inView = SIDES.filter((side) => frames.slice(span[0], span[1] + 1).some((frame) => frame[side] !== null));
-    return sides.length < inView.length && !sides.some((side) => moves[side].includes(true)) ? null : { sides, span };
-  };
-  // Exactly one reading has to hold: both hands, the left hand alone or the right hand alone.
-  const readings = [read(SIDES), read(["left"]), read(["right"])].filter((reading) => reading !== null);
-  if (readings.length !== 1) {
+  // Which hands belong is decided over one span that holds the counted movements of both hands.
+  const span = segment(frames, moves);
+  const sides = presentHands(frames, span);
+  if (sides === null || sides.length === 0) {
     return { ok: false, reason: "hands_unclear" };
   }
-  const { sides, span } = readings[0]!;
+  if (sides.length === 1) {
+    const kept = sides[0]!;
+    const other: Side = kept === "left" ? "right" : "left";
+    // A hand that moved on its own may belong to the gesture, however briefly it was seen.
+    if (moves[other].includes(true)) return { ok: false, reason: "hands_unclear" };
+    // A hand that stays without a movement of its own is not a gesture because another hand was in view for a moment.
+    // (Then nothing moved, and the span is the whole time a hand was in view.)
+    if (!moves[kept].includes(true) && frames.some((frame) => frame[other] !== null)) return { ok: false, reason: "hands_unclear" };
+  }
   const gesture = frames.slice(span[0], span[1] + 1);
   const times = gesture.map((frame) => frame.tMs);
   const active = gesture.filter((frame) => sides.some((side) => frame[side] !== null)).length;

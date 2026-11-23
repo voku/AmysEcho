@@ -20,19 +20,25 @@ The hand-tracker decision, with what was measured and what only the phone can an
      from the first to the last movement, with `SEGMENT_PAD_MS` (100 ms) on each side. Hands
      resting in view before and after are left out. If nothing moves (a posture that is only
      held), the gesture is the whole time a hand is visible, as before.
-   - **Which hands make the gesture** (`hands`: `left`, `right` or `both`). Presence decides,
-     never movement. A hand belongs to the gesture when it is visible for at least
-     `HAND_PRESENCE_SHARE` (half) of its duration, whether it moves or rests. A hand visible for
-     less than `HAND_BRIEF_SHARE` (a fifth) is a hand passing through and is dropped entirely,
-     not interpolated in. In between nobody can tell, and dropping the hand could turn a two-hand
-     gesture into the one-hand gesture with the same path: no sequence is built
-     (`hands_unclear`).
-   - **Three readings, exactly one must hold.** Two hands: over the time in which either hand
-     moves, both belong. Left hand alone, right hand alone: over the time in which that hand
-     moves (or, if it never moves, is visible), it belongs and the other is absent or brief. If
-     the hand that stays shows no movement of its own while another hand was in view, that
-     reading does not hold: a hand that lies still is never matched because a hand next to it
-     moved and left. No reading or more than one: `hands_unclear`.
+   - **Which hands make the gesture** (`hands`: `left`, `right` or `both`) is decided over one
+     span for both hands: the gesture as cut above, from the first to the last movement of
+     either hand. Presence decides, not which hand moves more. A hand belongs when it is
+     visible for at least `HAND_PRESENCE_SHARE` (half) of that span, whether it moves or rests.
+     In view for between a fifth (`HAND_BRIEF_SHARE`) and a half, nobody can tell, and dropping
+     the hand could turn a two-hand gesture into the one-hand gesture with the same path: no
+     sequence is built (`hands_unclear`). Neither hand in view for half: `hands_unclear`.
+   - **A one-hand gesture needs more.** The other hand is dropped entirely, not interpolated in,
+     only when all of this holds: it is in view for less than a fifth of the span; it has no
+     movement of its own (one that counts, as above) anywhere in the capture, before, during or
+     after the other hand's; and, if it was in view during the span, the hand that stays has a
+     movement of its own. Otherwise `hands_unclear`: a hand that moved and left just before or
+     after the gesture may be its first or last part, and a hand that lies still is never
+     matched because a hand next to it was seen for a moment.
+   - **The tolerance for a second hand is a share of the gesture, not a time.** A hand passing
+     through without a movement of its own is dropped if it is in view for under a fifth of the
+     gesture: in a gesture of 1.5 s that is up to 300 ms, in one of 0.6 s up to 120 ms. In the
+     table below a hand passing for 250 ms therefore gives `unknown` for about half of the
+     attempts, and a hand that passes for longer moves on its own and always gives `unknown`.
    - A hand that rests in view for the whole gesture therefore makes it a two-hand capture, with
      the resting hand's place and shape in the sequence. It is compared with examples that show
      two hands as well; see "Input contract".
@@ -49,7 +55,7 @@ The hand-tracker decision, with what was measured and what only the phone can an
      unsteady frame rate changes it.
    - **When no sequence is built** the caller answers "unknown". The reasons say what was seen,
      not what to do: `no_frames`, `bad_timestamps`, `bad_landmarks`, `no_hands` (frames, but no
-     hand in any), `too_short` (a hand of the gesture in fewer than three frames, or all frames
+     hand in any, also when shoulders are seen), `too_short` (a hand of the gesture in fewer than three frames, or all frames
      at one timestamp), `hands_unclear` and `hand_lost` (above).
 3. **Comparison** (`dtw.ts`). Dynamic time warping gives the cost of the best alignment divided by
    the sequence length, so a gesture may be faster or slower in parts.
@@ -121,13 +127,18 @@ have to be recorded again unless storage keeps unweighted features. That decisio
 
 ## Measured on synthetic gestures
 
-`npm test` prints the current numbers (`test/recognition-eval.test.mjs`; `simulateProfile` and
-`simulateHandCases` in `evaluate.ts`). **They are not accuracy claims**: see below the tables.
+`EVAL_FULL=1 npm test` prints the numbers of the tables below (`test/recognition-eval.test.mjs`;
+`simulateProfile`, `simulateProfileUnder` and `simulateHandCases` in `evaluate.ts`). Plain
+`npm test` runs the same rows and limits with fewer attempts, so that it stays fast: 2 attempts
+and 2 unknown movements per gesture and later session in the first table (60 and 60 per row), 2
+and 1 in the second (48 and 24 per profile and row); the third table is the same in both. Its
+numbers therefore differ from those below. **They are not accuracy claims**: see below the
+tables.
 
-Where a table shows **before → after**, "after" is what `npm test` prints. "Before" is not
-printed by it: it was measured once for card NG-18 by compiling the feature builder and matcher
-of schema version 1 (commit `73430eb`) together with today's `synthetic.ts` and `evaluate.ts`,
-so both sides saw the same captures.
+Where a table shows **before → after**, "after" is what `EVAL_FULL=1 npm test` prints. "Before"
+is not printed by it: it was measured for card NG-18 by compiling the feature builder, matcher
+and DTW of schema version 1 (commit `70bf62b`) together with today's `synthetic.ts` and
+`evaluate.ts` and running the same test file against them, so both sides saw the same captures.
 
 **The profile of the first card**: 15 gestures (right hand, some with the left as well), 3
 examples per gesture in each of 2 teaching sessions, then 5 attempts per gesture in each of 2
@@ -153,8 +164,8 @@ row. Cells are top-1 in percent, before → after.
 | No disturbance | 98 → 100 | 100 → 100 | 100 → 100 | 98 → 100 | 0 → 0 |
 | Second hand passes for 100 ms | 81 → 100 | 79 → 99 | 100 → 100 | 85 → 99 | 0 → 0 |
 | … 250 ms | 17 → 49 | 18 → 50 | 100 → 100 | 46 → 75 | 0 → 0 |
-| … 450 ms | 0 → 8 | 0 → 3 | 100 → 100 | 33 → 42 | 0 → 0 |
-| … 700 ms | 0 → 1 | 0 → 0 | 100 → 100 | 33 → 33 | 0 → 0 |
+| … 450 ms | 0 → 0 | 0 → 0 | 100 → 100 | 33 → 33 | 0 → 0 |
+| … 700 ms | 0 → 0 | 0 → 0 | 100 → 100 | 33 → 33 | 0 → 0 |
 | Other hand rests in view throughout | 0 → 0 | 0 → 0 | 100 → 100 | 33 → 33 | 0 → 0 |
 | A hand lost for 150 ms | 100 → 100 | 100 → 100 | 98 → 98 | 98 → 98 | 0 → 0 |
 | … 300 ms | 5 → 97 | 12 → 97 | 10 → 96 | 9 → 97 | 0 → 0 |
@@ -167,17 +178,19 @@ row. Cells are top-1 in percent, before → after.
 | 7 frames per second | 98 → 93 | 97 → 96 | 98 → 95 | 95 → 92 | 0 → 0 |
 | 7 to 15 frames per second, unsteady | 98 → 97 | 98 → 97 | 100 → 99 | 98 → 96 | 0 → 0 |
 
-120 attempts and 72 examples per profile and row. A known gesture was not spoken as a wrong
-concept in any row, before or after; every failure is an "unknown" answer. Of the unknown
-movements, 1% were spoken as a concept in one cell (right hand, 7 frames per second), none
-before.
+120 attempts, 96 unknown movements and 72 examples per profile and row; each profile's examples
+are recorded once and used for every row. A known gesture was not spoken as a wrong concept in
+any row, before or after; every failure is an "unknown" answer. Unknown movements spoken as a
+concept (the last figure of each cell in the output): 1.0% in one cell (right hand, 7 frames per
+second), 0% in every other cell; before, 0% in every cell.
 
 - A hand lost for up to 0.3 s and hands resting for seconds before and after no longer change
   the result, and a second hand passing for 0.1 s does not either.
-- **A second hand passing for a quarter of a second or more mostly gives `unknown`**
-  (`hands_unclear`): the synthetic gestures last 0.6 to 2.6 s, so it is often in view for more
-  than a fifth of the gesture. That is the price of never dropping a hand that might belong
-  (next table). No cell is worse than before.
+- **A second hand passing for a quarter of a second gives `unknown` about half of the time,
+  and always from 450 ms** (`hands_unclear`): the synthetic gestures last 0.6 to 2.6 s, so a
+  hand passing for 250 ms is often in view for more than a fifth of the gesture, and a hand
+  passing for 450 ms or more moves on its own. That is the price of never dropping a hand that
+  might belong (next table). No cell is worse than before.
 - **The other hand resting in view, taught without it, is `unknown`** (`other_hands`) in every
   attempt, as before. See "Input contract".
 - **A hand lost for longer than half a second** between two sightings fails by the rule
@@ -188,7 +201,7 @@ before.
 - The rows with rest were already good before, because here the examples rest as well.
 
 **The hand that does not sign** (card NG-18). Scripted cases with three examples per sign and 40
-attempts per kind of attempt from a later session; right-hand signs X, Y, Z that only change or
+attempts per kind of attempt (200 where marked) from a later session; right-hand signs X, Y, Z that only change or
 hold a shape, and A, B, C that travel. "Lap hand": the left hand lying in view. Cells are
 percent, before → after.
 
@@ -215,16 +228,34 @@ percent, before → after.
 | Same path, attempts of the two-hand sign: second hand seen for 10% of the movement | 0 → 0 | 100 → 100 | 0 → 0 |
 | Same path, attempts of the two-hand sign: second hand seen for 75% when taught, for 40% in the attempts | 100 → 0 | 0 → 0 | 0 → 100 |
 | Same path, attempts of the two-hand sign: second hand moves for 0.4 s when taught, for 0.25 s in the attempts | 100 → 100 | 0 → 0 | 0 → 0 |
+| Same path, second hand crosses from −500 ms (the capture start) to +200 ms when taught, to 0 ms in the attempts | 100 → 0 | 0 → 0 | 0 → 100 |
+| Same path, second hand crosses from −500 to +200 ms when taught, to +50 ms in the attempts | 100 → 0 | 0 → 0 | 0 → 100 |
+| Same path, second hand crosses from −500 to +600 ms when taught, to +100 ms in the attempts | 100 → 0 | 0 → 0 | 0 → 100 |
+| Same path, second hand crosses from −500 to +150 ms, shifted by up to 150 ms either way, taught and attempted alike (200 attempts) | 100 → 0 | 0 → 0 | 0 → 100 |
+| Same path, second hand crosses from +300 to +1400 ms when taught, from +900 ms in the attempts | 100 → 0 | 0 → 0 | 0 → 100 |
+| Same path, second hand crosses from +300 to +1400 ms when taught, from +1050 to +1450 ms in the attempts | 0 → 0 | 63 → 0 | 38 → 100 |
+| Same path, second hand crosses from +1000 to +1400 ms, shifted by up to 150 ms either way, taught and attempted alike (200 attempts) | 100 → 0 | 0 → 0 | 0 → 100 |
+| Same path, second hand held still: seen throughout when taught, only until the right hand starts in the attempts | 0 → 0 | 100 → 100 | 0 → 0 |
 
 - No row is spoken as a wrong concept more often than before. The first build of this card
   dropped a hand that did not move; with that rule `npm test` now fails, among others in the
-  second and fourth row and in rows with a shared path.
-- **A second hand seen for less than a fifth of the movement is taken for a hand passing
-  through**, so the two-hand sign is answered with its one-hand twin (rows "20%" and "10%"), as
-  before. Nothing in a capture tells a hand that belongs and is seen for a moment from one that
-  passes by. Between a fifth and a half the answer is now `unknown`.
-- The row "seen for 75% when taught, for 40% in the attempts" was recognised before and is
-  `unknown` now: the price of the band in which nothing is built.
+  second and fourth row and in rows with a shared path. The second build measured the shares
+  for a one-hand reading over that hand's own movement only; a second hand that moved and left
+  just before or after it was then dropped, and the rows "crosses … to 0 ms", "… to +50 ms",
+  "… to +100 ms", "from +900 ms" and "from +1050 ms" were spoken as the one-hand sign in all
+  attempts. With one span for both hands and no drop of a hand that moved on its own, they
+  are `unknown`.
+- In the "crosses" rows the right hand moves from 0 to 1000 ms. In the examples the second
+  hand is often unclear as well, so the two-hand sign has few or no examples; the attempts are
+  then compared with the one-hand sign only, which is what made the second build speak it.
+- **A second hand seen for less than a fifth of the movement, and not moving on its own, is
+  taken for a hand passing through**, so the two-hand sign is answered with its one-hand twin
+  (rows "20%" and "10%", and the last row, where the held hand is seen only before the
+  movement), as before. Nothing in a capture tells a hand that belongs and is seen for a moment
+  from one that passes by. Between a fifth and a half the answer is now `unknown`.
+- The row "seen for 75% when taught, for 40% in the attempts" and the "crosses" rows were
+  recognised before and are `unknown` now: the price of the band in which nothing is built and
+  of never dropping a hand that moved.
 
 The gestures are generated, differ strongly from each other and are repeated more consistently
 than a child would. The simulated sessions differ only in camera shift, zoom and tilt, which the
@@ -244,7 +275,8 @@ more.
   speed loses that part; a hand that only changes its shape does not count as moving (such a
   gesture is taken whole, with any rest around it); a resting hand that fidgets for longer than
   0.3 s starts a gesture. The limits were chosen on made-up jitter.
-- **With two hands in view, either hand's movement cuts the gesture.** A lap hand that fidgets
+- **With two hands in view, either hand's movement cuts the gesture**, and which hands belong
+  is decided over that whole span. A lap hand that fidgets
   well before or after the sign stretches the gesture over both; in the scripted case above the
   signs were still recognised, but nothing guarantees it. When the lap hand fidgets and the
   signing hand only holds a shape, the gesture is the time of the fidget.
@@ -252,8 +284,12 @@ more.
   (`hands_unclear`), and so does a still hand next to which another hand was seen briefly. The
   shares were chosen on made-up captures; a caregiver's hand in the picture will often land
   there.
-- **A hand in view for less than a fifth of the gesture is ignored**, also when it belonged to a
-  two-hand gesture (table above).
+- **A hand in view for less than a fifth of the gesture, without a movement of its own, is
+  ignored**, also when it belonged to a two-hand gesture (table above). The fifth is a share,
+  not a time, so a short gesture tolerates less: 120 ms in a gesture of 0.6 s. A still hand
+  seen only before or only after the movement is not in the gesture at all.
+- **A second hand that moves on its own and leaves, before, during or after the gesture, gives
+  no answer** (`hands_unclear`), however briefly it was seen.
 - **A child who makes a gesture with the other hand, or with the other hand resting in view when
   it was taught without, gets `unknown`** (`other_hands`) and an empty correction list, until an
   example with those hands exists.
