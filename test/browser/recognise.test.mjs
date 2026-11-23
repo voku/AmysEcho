@@ -355,19 +355,21 @@ test("recognising on the board: DGS videos taught as examples, attempted through
       await page.waitForTimeout(BEFORE_GESTURE_MS);
       await gesture.click();
       await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state === "recording", undefined, { timeout: 90_000 });
+      const recordingSince = Date.now();
       assert.ok(await gesture.isHidden(), "the board is covered while recording");
       const before = await page.evaluate(() => window.__camera.tracked);
       const fed = await page.evaluate((key) => window.__feed(key), `${name}:${pass}`);
       await page.waitForFunction(({ until }) => window.__camera.tracked >= until
         || document.querySelector("#board-region .recognise")?.dataset.state !== "recording", { until: before + fed }, { timeout: 60_000 });
+      // "Stopp" ignores presses sooner than RECOGNISE_GUARD_MS (700 ms) after the recording view appears,
+      // so wait past that; then the press must end the recording at once. If it does not (a broken or
+      // ignored "Stopp", or the time limit got there first), the attempt counts as cut and the test fails.
+      const wait = 1_000 - (Date.now() - recordingSince);
+      if (wait > 0) await page.waitForTimeout(wait);
       let cut = (await panelState()).state !== "recording";
       if (!cut) {
-        // The 5 s limit can end the recording between that check and the click (slow tracking on a busy
-        // machine): the button is then gone, which is a cut, not a failure.
-        await page.getByRole("button", { name: "Stopp" }).click({ timeout: 3_000 }).catch(async (error) => {
-          if ((await panelState())?.state === "recording") throw error;
-          cut = true;
-        });
+        await page.getByRole("button", { name: "Stopp" }).click({ timeout: 3_000 }).catch(() => undefined);
+        cut = !(await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state !== "recording", undefined, { timeout: 1_500 }).then(() => true, () => false));
       }
       await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state !== "recording", undefined, { timeout: 10_000 });
       const camera = await page.evaluate(() => window.__camera);

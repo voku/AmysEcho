@@ -1,9 +1,17 @@
 {
-    "attention": null,
+    "attention": {
+        "created_at": "2026-11-23T15:02:06+00:00",
+        "id": "attention:bd438d018c83d27f",
+        "kind": "review_changes_required",
+        "message": "Review requested changes in 3 rounds; a human decides how to continue. every(!cut) cannot catch a broken Stopp: Stopp ignores presses within 700 ms of the recording view, the click still succeeds, and the time limit then ends the attempt with cut false.",
+        "run_id": "run:NG-20:6dbed2dff2320d38",
+        "stage_id": "blindspot-review",
+        "task_id": "NG-20"
+    },
     "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
     "contract_revision": 3,
-    "current_attempt": 3,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
     "history": [
         {
@@ -266,6 +274,106 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:3:fbb2f986",
                 "summary": "Replay mismatches recorded and asserted empty; no attempt may end in a problem view; every attempt must end through Stopp; doc updated; verify passes",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:02:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:02:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:87365196fc6964ce1a8415a71e57cac55bc4c0a4acde2494a84fe3f5d3262ba5",
+                    "execution-evidence:sha256:3e48f93a9567c584ca8555580be31e5b79a4f885d0c4b163d2ca4e9ad30932da",
+                    "execution-evidence:sha256:fc29017608be70f5d9c736879c9cd5a760b02bc5c62870548e88159c11221308",
+                    "execution-evidence:sha256:57b98a407ba2f194ca1b0b6dddee5e7515b9448f3900e9e4f065045676b34009",
+                    "execution-evidence:sha256:fb7b613f52eb3ed2fd1e49d6f7cca3cc684cd6519fc03dba6063c91ae8d415c9",
+                    "execution-evidence:sha256:eb3ad7601abbbd86ffc3605f39cf8d40fb9ba27ff3cccc855beb051bb3034f00",
+                    "execution-evidence:sha256:4d9baeaa7faff7d1d6af21638be4e0d7c9298b018f4da328ca6dbe861c2b95fd",
+                    "execution-evidence:sha256:548e02187fa037ef899a969d1007e4687f53c10440411859ddf4398f636eef44",
+                    "execution-evidence:sha256:c2a48fd569a9214b8742b8c416495cb484f242c2d0001a53db738e1e64158300",
+                    "execution-evidence:sha256:6c5c49e6b96664e653c050dac4bb65659392ebf261e777e45b574e22c0bdd234",
+                    "execution-evidence:sha256:3bb30384dd8ccb0f37ef72f9d81597c067ba7faa9dacfb91a889135a3eda9775",
+                    "execution-evidence:sha256:215d76486c64aadc2261e408dc02ed7c21749ed30e0e5a81d118d316eddfc7bc",
+                    "execution-evidence:sha256:b8610e7f51b403d6d09179ec2a9dade74e6107bf5dc9ceb40ff6e291b989a32a",
+                    "execution-evidence:sha256:a3db17109ba41b23bf833dc77fd0a63f744dd396b3b38f403845a36bee1e30a1",
+                    "execution-evidence:sha256:b3f1baac1ef33510696fe4035e262f3f7e5ed511d5fd937c28fa13c5c87084d3"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:87365196fc6964ce1a8415a71e57cac55bc4c0a4acde2494a84fe3f5d3262ba5",
+                    "execution-evidence:sha256:3e48f93a9567c584ca8555580be31e5b79a4f885d0c4b163d2ca4e9ad30932da",
+                    "execution-evidence:sha256:fc29017608be70f5d9c736879c9cd5a760b02bc5c62870548e88159c11221308",
+                    "execution-evidence:sha256:57b98a407ba2f194ca1b0b6dddee5e7515b9448f3900e9e4f065045676b34009",
+                    "execution-evidence:sha256:fb7b613f52eb3ed2fd1e49d6f7cca3cc684cd6519fc03dba6063c91ae8d415c9",
+                    "execution-evidence:sha256:eb3ad7601abbbd86ffc3605f39cf8d40fb9ba27ff3cccc855beb051bb3034f00",
+                    "execution-evidence:sha256:4d9baeaa7faff7d1d6af21638be4e0d7c9298b018f4da328ca6dbe861c2b95fd",
+                    "execution-evidence:sha256:548e02187fa037ef899a969d1007e4687f53c10440411859ddf4398f636eef44",
+                    "execution-evidence:sha256:c2a48fd569a9214b8742b8c416495cb484f242c2d0001a53db738e1e64158300",
+                    "execution-evidence:sha256:6c5c49e6b96664e653c050dac4bb65659392ebf261e777e45b574e22c0bdd234",
+                    "execution-evidence:sha256:3bb30384dd8ccb0f37ef72f9d81597c067ba7faa9dacfb91a889135a3eda9775",
+                    "execution-evidence:sha256:215d76486c64aadc2261e408dc02ed7c21749ed30e0e5a81d118d316eddfc7bc",
+                    "execution-evidence:sha256:b8610e7f51b403d6d09179ec2a9dade74e6107bf5dc9ceb40ff6e291b989a32a",
+                    "execution-evidence:sha256:a3db17109ba41b23bf833dc77fd0a63f744dd396b3b38f403845a36bee1e30a1",
+                    "execution-evidence:sha256:b3f1baac1ef33510696fe4035e262f3f7e5ed511d5fd937c28fa13c5c87084d3"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "context_id": "correctness-review-r3-3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "pass",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:59058113",
+                "summary": "A forced replay mismatch fails the test three ways; nothing outside the test and doc changed",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:02:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:02:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:81a79666ee15e3479d234655c6ab854b36f0e1b6f952543c7c5420f6e4e4b5d4"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:81a79666ee15e3479d234655c6ab854b36f0e1b6f952543c7c5420f6e4e4b5d4"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "context_id": "blindspot-review-r3-3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "changes_required",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:82bca97f",
+                "summary": "every(!cut) cannot catch a broken Stopp: Stopp ignores presses within 700 ms of the recording view, the click still succeeds, and the time limit then ends the attempt with cut false.",
                 "task_id": "NG-20",
                 "validation_references": []
             }
