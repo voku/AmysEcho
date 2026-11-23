@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "b2ce5b6851056aff6a7432af665104f185fac543",
+    "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:acefdf9d373a9f2cf38671d65ad9c78d020fa4eb",
     "contract_revision": 2,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
     "history": [
         {
@@ -34,6 +34,38 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:429cf9d3",
                 "summary": "examples.ts record format (version 1, gesture.<concept>.<id>, 4 decimals, damaged reported), teach view in caregiver area with record/keep/discard/delete and size check, capture start/stopRecording, examples.js pre-cached; rounding changes no matcher decision on 20736 synthetic attempts; verify passes",
+                "task_id": "NG-19",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T12:42:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T12:42:22+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:acefdf9d373a9f2cf38671d65ad9c78d020fa4eb",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "schema_version": "1.0",
+                "task_id": "NG-19",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b2ce5b6851056aff6a7432af665104f185fac543:acefdf9d373a9f2cf38671d65ad9c78d020fa4eb",
+                "context_id": "build-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:25373e1f32c99642209b79b2ac461e7991f40beb1fd8d68efa3a8ec346ed373a",
+                "outcome": "completed",
+                "run_id": "run:NG-19:17b803a3977ae218",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:982f5eb9",
+                "summary": "examples.ts record format, teach view, capture recording, examples.js pre-cached; verify passes",
                 "task_id": "NG-19",
                 "validation_references": []
             }
