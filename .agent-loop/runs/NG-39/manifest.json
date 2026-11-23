@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-39 before calling agent-loop finish NG-39",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-23T10:14:13+00:00",
@@ -75,11 +75,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-23T10:27:10+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-39:7933f01bb3748647",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/780037d14dabc5b15acb49ae7ae39fbc361a63677ccf18746aa257a891487d28.json",
+                "sha256": "sha256:f783081150a1434abdf57e455385c4516ca5049fab72e1714bf18e4dd9f5cc86"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -113,8 +119,11 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-39/reviews/NG-39.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-39/reviews/NG-39.blindspots.json",
+                "sha256": "sha256:ea08e561a18d67841f5930369a444355df61a8beff1b02798be81d79cd0fdcaf"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
@@ -130,37 +139,27 @@
             "session_id": "2026-11-23-ng-39-r3-e684762b",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-23-ng-39-r3-e684762b/session.json",
-                "sha256": "sha256:a702368c7077f2fa9fb7eedf931bc5cf46f5a8d5ce88965df450a27103505405"
+                "sha256": "sha256:6b7c079848489940dabfa1a89a0fb3ac4bb20b3324352754954cf2c44899fd9e"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-39"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-39 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-39",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "execution_review",
-            "implementation_snapshot": "sha256:e4e23ebd77a0c653ddbdacfdb9b2eeaa93f7ed35b3ebb65c3467be9b005a0d07",
+            "contract_revision": 3,
+            "implementation_snapshot": "sha256:872dbc972a116feb31624d699bc8a73cb623d9b6d9c5d3fcad185b8f70ebc86f",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "independent review pipeline is incomplete at stage investigate",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-39:7933f01bb3748647",
+            "source": {
+                "path": ".agent-loop/runs/NG-39/verification.json",
+                "sha256": "sha256:0caea314740faab9a5b9316b04149d2155132943382752fa15313cd030021cbc"
+            },
+            "source_session_id": "2026-11-23-ng-39-r3-e684762b",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-39:7933f01bb3748647",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-39"
 }
