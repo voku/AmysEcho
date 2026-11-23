@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
     "history": [
         {
@@ -68,6 +68,133 @@
                 "summary": "CodeQL alerts read from the PR: two cache-poisoning alerts on pages.yml (workflow_run checkout of head_sha with npm cache) and one bad HTML filtering regexp in test/bootstrap.test.mjs:165. Pages workflow made reusable (workflow_call, dispatch on main), called by a CI deploy job after the app job for a push to main, no ref override, no cache; regex case-insensitive; verify passes",
                 "task_id": "NG-40",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:38:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:38:55+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:566d1b7dc107e2f83feabf82c335282677a1b5506cb348ab58890da43bc4e838",
+                    "execution-evidence:sha256:2938c5181c43e2e65102d21f407be3fe154f2612f9fc35335e3d82ea1a1a4832",
+                    "execution-evidence:sha256:239bb85baf9358e0950fb091bbccde0df4135407209db1567af22b47a39fcfaf",
+                    "execution-evidence:sha256:5a23f020a82b1d929213ce668cec4bffc81af959501ae2439938851741d102c4"
+                ],
+                "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-40:7c15e701ebb70add",
+                "schema_version": "1.0",
+                "task_id": "NG-40",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:566d1b7dc107e2f83feabf82c335282677a1b5506cb348ab58890da43bc4e838",
+                    "execution-evidence:sha256:2938c5181c43e2e65102d21f407be3fe154f2612f9fc35335e3d82ea1a1a4832",
+                    "execution-evidence:sha256:239bb85baf9358e0950fb091bbccde0df4135407209db1567af22b47a39fcfaf",
+                    "execution-evidence:sha256:5a23f020a82b1d929213ce668cec4bffc81af959501ae2439938851741d102c4"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
+                "outcome": "pass",
+                "run_id": "run:NG-40:7c15e701ebb70add",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:e6b7abf6",
+                "summary": "Reusable deploy called by CI only for a push to main; no cache-poisoning pattern; script check exact and case-insensitive",
+                "task_id": "NG-40",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:38:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:38:55+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:190d08ee39eedbd3aa3b655a1fe534df32d7948e7d2a218d9990ccab25b3408c",
+                    "execution-evidence:sha256:d180e7a3590495fae1ab931db759e814996f64fa5b489ab15283f5349714d016",
+                    "execution-evidence:sha256:0598b9e113658582fff94ec75901ef146f06f8e178a4f5fdc4091559d7390f86",
+                    "execution-evidence:sha256:4941accfc9953a848dfd9dbbd131713ffd53572c4a56f03b87c20dc1206bce47"
+                ],
+                "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-40:7c15e701ebb70add",
+                "schema_version": "1.0",
+                "task_id": "NG-40",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:190d08ee39eedbd3aa3b655a1fe534df32d7948e7d2a218d9990ccab25b3408c",
+                    "execution-evidence:sha256:d180e7a3590495fae1ab931db759e814996f64fa5b489ab15283f5349714d016",
+                    "execution-evidence:sha256:0598b9e113658582fff94ec75901ef146f06f8e178a4f5fdc4091559d7390f86",
+                    "execution-evidence:sha256:4941accfc9953a848dfd9dbbd131713ffd53572c4a56f03b87c20dc1206bce47"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
+                "context_id": "blindspot-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
+                "observations": [
+                    "The repository's Pages source must be GitHub Actions or configure-pages fails (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-40:7c15e701ebb70add",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:e489a021",
+                "summary": "First deploy runs after merge once both matrix legs pass; pull requests skip the deploy job; no untrusted code path",
+                "task_id": "NG-40",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:41:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:41:34+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-40:7c15e701ebb70add",
+                "schema_version": "1.0",
+                "task_id": "NG-40",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:28e66c6d81759f7d81d7bdb8b681d5d2797da343da30e7ec4e5fe961be918f28",
+                    "execution-evidence:sha256:a842cffcae537c97b87289dfa462e2378364f08098ea8b607d98ecc4bdfbe098"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
+                "consistency_references": [
+                    "execution-evidence:sha256:7b2982a90db5f93f1b0ace5a4f16442f351fa85e328e357f9ce92c43f7672104"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
+                "outcome": "pass",
+                "run_id": "run:NG-40:7c15e701ebb70add",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:eaac92755aba9fe08e7c5d4b4443966532d9d33d2f253a39684a527723a6af45",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-40: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-40 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-40:7c15e701ebb70add binds active Session 2026-11-23-ng-40-r1-f9e7d809 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-40 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-40",
+                "validation_references": [
+                    "execution-evidence:sha256:28e66c6d81759f7d81d7bdb8b681d5d2797da343da30e7ec4e5fe961be918f28",
+                    "execution-evidence:sha256:a842cffcae537c97b87289dfa462e2378364f08098ea8b607d98ecc4bdfbe098"
+                ]
             }
         }
     ],

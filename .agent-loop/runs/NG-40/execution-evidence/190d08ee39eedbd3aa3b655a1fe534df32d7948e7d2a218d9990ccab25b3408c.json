@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7:86d9fb4ca36056449dedda0587b39f709024c644",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:0e11dd5d528c260aaa22b8ff7377416b6eadd60b175be50c43d983264e43c8ef",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-23T10:38:55+00:00",
+    "reference": "execution-evidence:sha256:190d08ee39eedbd3aa3b655a1fe534df32d7948e7d2a218d9990ccab25b3408c",
+    "run_id": "run:NG-40:7c15e701ebb70add",
+    "schema_version": "1.0",
+    "source_digest": "sha256:91a2f09694b0966467b70c65852225cdb0175f51aff1e73c66aa5f690edf1bb8",
+    "source_reference": "workspace-file:.github/workflows/ci.yml",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-40"
+}
