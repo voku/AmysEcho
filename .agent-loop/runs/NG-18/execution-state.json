@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
     "contract_revision": 1,
-    "current_attempt": 3,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 4,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
     "history": [
         {
@@ -207,10 +207,50 @@
                 "task_id": "NG-18",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-23T04:54:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T04:54:39+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7e557ef02aa2d103959fb51c37eecd474f176458e11ab37c18b5c8ec116ac3be",
+                    "execution-evidence:sha256:8bf90a8d2d9364a38281d0de596479952a7d129445e82527c34cc1bf5b132c25",
+                    "execution-evidence:sha256:0db7864fb89167ab19226236f232f30c85fdd5626beebb35195b617e19004228"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7e557ef02aa2d103959fb51c37eecd474f176458e11ab37c18b5c8ec116ac3be",
+                    "execution-evidence:sha256:8bf90a8d2d9364a38281d0de596479952a7d129445e82527c34cc1bf5b132c25",
+                    "execution-evidence:sha256:0db7864fb89167ab19226236f232f30c85fdd5626beebb35195b617e19004228"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:8b3a5bd386314bd3a312e2f826da9e61f5c5c83f",
+                "context_id": "correctness-review-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:ed85f14d",
+                "summary": "Hand membership is decided only inside the movement span: a still second hand seen in the rests before or after makes a two-hand sign its one-hand twin (0 old, 40 of 40 new). Tracker jitter on a resting hand counts as movement and cuts shape-only signs to the wrong part (0 old, up to 49 percent wrong). Calibration ignores which hands an example has. Doc claims about both are false.",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": null,
+    "last_attention_id": "attention:71e2f58728066485",
     "recovery_history": [],
     "run_id": "run:NG-18:3da5f471dc313675",
     "schema_version": "1.0",

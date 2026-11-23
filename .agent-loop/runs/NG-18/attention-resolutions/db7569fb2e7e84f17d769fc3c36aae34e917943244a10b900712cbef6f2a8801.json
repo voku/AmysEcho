@@ -1,0 +1,14 @@
+{
+    "actor": "Lars Moelleken (delegated to Claude for this session)",
+    "attempt": 3,
+    "attention_id": "attention:71e2f58728066485",
+    "contract_revision": 1,
+    "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+    "kind": "execution_attention_resolution",
+    "resolved_at": "2026-11-23T04:54:48+00:00",
+    "response": "Continue with a structural change instead of another patch: decide which hands belong over the whole visible capture as the old matcher's window did, never over a movement cut; use movement only to trim time, and only when it is clearly above tracker noise; calibrate per concept and hand kind; the old matcher's wrong-concept rate is the bar in every case, including jittered and resting-hand captures.",
+    "run_id": "run:NG-18:3da5f471dc313675",
+    "schema_version": "1.0",
+    "stage_id": "correctness-review",
+    "task_id": "NG-18"
+}
