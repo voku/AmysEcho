@@ -6,9 +6,10 @@
 // dgs-capture.test.mjs) by tracking them through the app's capture path and storing them with
 // `saveExample`. Then each attempt goes through the BOARD's own flow: a tap on "Gebärde", the
 // countdown, the recording, "Stopp", and the confirm or unknown view. The frames of the attempt are
-// fed into the app's capture path (`startCapture` with the real tracker worker; only the camera is
-// replaced, through the capture bridge the board looks up). Speech is observed through a stand-in
-// engine in the page and the sentence bar.
+// fed into the app's capture path (`startCapture`, through the capture bridge the board looks up),
+// with the camera replaced and the tracker replaying the real tracker's answers for these frames,
+// tracked up front so that machine speed cannot cut the recording (see installFeeder). Speech is
+// observed through a stand-in engine in the page and the sentence bar.
 //
 // Without the main_old history (an exported copy) the test is skipped with a reason, except under
 // CI=true, where it fails. DGS_REF=<ref> as in dgs-capture.test.mjs.
@@ -33,6 +34,7 @@ const CAPTURE_RATE = 10;
 const AFTER_VIEW_MS = 900;
 /** The shield of "Gebärde" after the gesture view closed (GESTURE_SHIELD_MS), plus a margin. */
 const BEFORE_GESTURE_MS = 1600;
+const THROTTLE = Number(process.env.RECOGNISE_CPU_THROTTLE ?? 1);
 
 /**
  * Taught words: an app concept signed with one hand and a two-hand sign as a custom concept
@@ -122,10 +124,20 @@ function standInSpeech() {
 }
 
 /**
- * Replaces the capture bridge the board looks up with one that runs the app's own `startCapture`
- * and real tracker, with frames from the test instead of a camera. Frames are handed in only when
- * the test feeds them (after the countdown, while the board records). Also gives the page a
- * teaching helper that tracks a pass and stores it as an example through the app's store.
+ * Why the tracker runs before the attempt, not during it. The board's recording ends by wall-clock
+ * time (5 s). Tracking a video frame in the test (a Playwright route, `createImageBitmap`, the
+ * worker, MediaPipe on the CPU) can take longer than the video frame's 100 ms on a slow or busy
+ * machine, so tracking during the recording let the limit cut attempts, and on a slow enough
+ * machine every attempt, depending on machine speed alone. So every pass of every video is tracked
+ * once, up front, through the app's own `startCapture` with the real tracker worker
+ * (`window.__track`). Teaching stores the first passes. An attempt then goes through the board's
+ * own flow and the app's own capture path (`startCapture` through the bridge the board looks up:
+ * recording, `stopRecording`, the feature builder, the matcher, the view); only the camera and the
+ * tracker are replaced there, the tracker by a replay of what the real tracker answered for exactly
+ * these frames (its answers are identical when the same frames are tracked again, as
+ * dgs-capture.test.mjs asserts). A replayed frame takes microseconds, so the whole attempt is in
+ * the recording long before the limit, and "Stopp" ends it. The pose flag is the same in both runs:
+ * both captures start counting frames at the first frame of the pass.
  */
 async function installFeeder(page) {
   await page.evaluate(async () => {
@@ -135,57 +147,9 @@ async function installFeeder(page) {
       const bytes = await (await fetch(url)).arrayBuffer();
       return createImageBitmap(new ImageData(new Uint8ClampedArray(bytes), width, height));
     };
-    window.__camera = { starts: 0, stops: 0, tracked: 0 };
-    let pending = [];
-    let wake = () => undefined;
-    window.__feed = (frames) => {
-      pending.push(...frames);
-      wake();
-    };
-    const source = () => {
-      let closed = false;
-      return {
-        async next() {
-          while (!closed) {
-            if (pending.length > 0) {
-              const { url, timestampMs, width, height } = pending.shift();
-              return { image: await fetchFrame(url, width, height), timestampMs, width, height };
-            }
-            await new Promise((resolve) => { wake = resolve; });
-          }
-          return null;
-        },
-        close() {
-          closed = true;
-          pending = [];
-          wake();
-        },
-      };
-    };
-    const environment = (host) => ({
-      ...capture.browserEnvironment(host),
-      getUserMedia: async () => {
-        window.__camera.starts += 1;
-        return { getTracks: () => [{ stop() { window.__camera.stops += 1; } }] };
-      },
-      openFrames: async () => source(),
-    });
-    Object.defineProperty(globalThis, capture.CAPTURE_BRIDGE_KEY, {
-      configurable: true,
-      value: {
-        text: capture.CAPTURE_TEXT,
-        nextShoulders: capture.nextShoulders,
-        start: (host, options) => capture.startCapture(environment(host), {
-          ...options,
-          onFrame: (frame) => {
-            window.__camera.tracked += 1;
-            options.onFrame?.(frame);
-          },
-        }),
-      },
-    });
-
-    window.__teach = async (store, profileId, conceptId, frames) => {
+    /** Tracked passes by key: what the real tracker answered, frame by frame. */
+    const trackedPasses = new Map();
+    window.__track = async (key, frames) => {
       const tracked = [];
       let index = 0;
       const started = await capture.startCapture({
@@ -202,7 +166,74 @@ async function installFeeder(page) {
       }, { onFrame: (frame) => tracked.push(frame) });
       if (!started.ok) throw new Error(`capture did not start: ${started.problem}`);
       await started.session.ended;
-      const recording = examples.sequenceFromRecording(tracked);
+      trackedPasses.set(key, tracked);
+      return tracked.length;
+    };
+
+    window.__camera = { starts: 0, stops: 0, tracked: 0 };
+    let pending = [];
+    let wake = () => undefined;
+    /** Hands the frames of a tracked pass to the running capture (while the board records). */
+    window.__feed = (key) => {
+      pending.push(...trackedPasses.get(key).map((frame, index) => ({ key, index, frame })));
+      wake();
+      return trackedPasses.get(key).length;
+    };
+    const source = () => {
+      let closed = false;
+      return {
+        async next() {
+          while (!closed) {
+            if (pending.length > 0) {
+              const { key, index, frame } = pending.shift();
+              return { image: { key, index }, timestampMs: frame.timestampMs, width: frame.imageWidth, height: frame.imageHeight };
+            }
+            await new Promise((resolve) => { wake = resolve; });
+          }
+          return null;
+        },
+        close() {
+          closed = true;
+          pending = [];
+          wake();
+        },
+      };
+    };
+    /** The real tracker's answers for exactly these frames. */
+    const replay = {
+      async detect(image, timestampMs, pose) {
+        const frame = trackedPasses.get(image.key)[image.index];
+        if (frame.timestampMs !== timestampMs || frame.poseRan !== pose) throw new Error("replay out of step with the capture");
+        return { hands: frame.hands, pose: frame.pose };
+      },
+      close() {},
+    };
+    const environment = () => ({
+      startTracker: async () => replay,
+      getUserMedia: async () => {
+        window.__camera.starts += 1;
+        return { getTracks: () => [{ stop() { window.__camera.stops += 1; } }] };
+      },
+      openFrames: async () => source(),
+      isVisible: () => document.visibilityState === "visible",
+    });
+    Object.defineProperty(globalThis, capture.CAPTURE_BRIDGE_KEY, {
+      configurable: true,
+      value: {
+        text: capture.CAPTURE_TEXT,
+        nextShoulders: capture.nextShoulders,
+        start: (host, options) => capture.startCapture(environment(), {
+          ...options,
+          onFrame: (frame) => {
+            window.__camera.tracked += 1;
+            options.onFrame?.(frame);
+          },
+        }),
+      },
+    });
+
+    window.__teach = async (store, profileId, conceptId, key) => {
+      const recording = examples.sequenceFromRecording(trackedPasses.get(key));
       if (!recording.ok) return { ok: false, reason: recording.reason };
       await examples.saveExample(store, profileId, conceptId, recording.sequence, { capturedAt: new Date(), frames: recording.frames, durationMs: recording.durationMs });
       return { ok: true, hands: recording.sequence.hands };
@@ -254,6 +285,11 @@ test("recognising on the board: DGS videos taught as examples, attempted through
     });
     await context.addInitScript(standInSpeech);
     const page = await context.newPage();
+    if (THROTTLE > 1) {
+      // RECOGNISE_CPU_THROTTLE=<n>: the page's CPU n times slower, to show the result does not depend on machine speed.
+      const cdp = await context.newCDPSession(page);
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: THROTTLE });
+    }
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(new URL("./", origin).href);
@@ -276,13 +312,20 @@ test("recognising on the board: DGS videos taught as examples, attempted through
       return profile.id;
     }, TAUGHT);
     assert.equal(await page.locator("#board-region .gesture-start").count(), 0, "a profile without examples has no gesture control");
+    // Every pass tracked once by the real tracker, up front (see installFeeder).
+    for (const name of names) {
+      for (const pass of [0, 1]) {
+        const tracked = await page.evaluate(({ key, frames }) => window.__track(key, frames), { key: `${name}:${pass}`, frames: frameList(name, pass) });
+        assert.equal(tracked, frameList(name, pass).length, `${name}: frames lost while tracking`);
+      }
+    }
     const taughtHands = {};
     for (const entry of TAUGHT) {
       for (const name of entry.videos) {
-        const result = await page.evaluate(async ({ profileId: id, conceptId, frames }) => {
+        const result = await page.evaluate(async ({ profileId: id, conceptId, key }) => {
           const { app } = await import("./main.js");
-          return window.__teach(await app.store(), id, conceptId, frames);
-        }, { profileId, conceptId: entry.conceptId, frames: frameList(name, 0) });
+          return window.__teach(await app.store(), id, conceptId, key);
+        }, { profileId, conceptId: entry.conceptId, key: `${name}:0` });
         taughtHands[name] = result.ok ? result.hands : `unusable (${result.reason})`;
       }
     }
@@ -309,11 +352,10 @@ test("recognising on the board: DGS videos taught as examples, attempted through
       await gesture.click();
       await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state === "recording", undefined, { timeout: 90_000 });
       assert.ok(await gesture.isHidden(), "the board is covered while recording");
-      const frames = frameList(name, pass);
       const before = await page.evaluate(() => window.__camera.tracked);
-      await page.evaluate((list) => window.__feed(list), frames);
+      const fed = await page.evaluate((key) => window.__feed(key), `${name}:${pass}`);
       await page.waitForFunction(({ until }) => window.__camera.tracked >= until
-        || document.querySelector("#board-region .recognise")?.dataset.state !== "recording", { until: before + frames.length }, { timeout: 60_000 });
+        || document.querySelector("#board-region .recognise")?.dataset.state !== "recording", { until: before + fed }, { timeout: 60_000 });
       let cut = (await panelState()).state !== "recording";
       if (!cut) {
         // The 5 s limit can end the recording between that check and the click (slow tracking on a busy
@@ -326,7 +368,7 @@ test("recognising on the board: DGS videos taught as examples, attempted through
       await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state !== "recording", undefined, { timeout: 10_000 });
       const camera = await page.evaluate(() => window.__camera);
       assert.equal(camera.stops, camera.starts, `${name}: the camera is still on after the attempt`);
-      return { ...await panelState(), cut, frames: frames.length };
+      return { ...await panelState(), cut, frames: fed };
     };
     const back = async () => {
       await page.getByRole("button", { name: "Zurück zur Tafel" }).click();
@@ -412,6 +454,8 @@ test("recognising on the board: DGS videos taught as examples, attempted through
     ];
     console.log(lines.join("\n"));
 
+    // A broken "Stopp" must not hide as a cut: with replayed frames every attempt is in the recording long before the limit.
+    assert.ok(outcomes.some((outcome) => !outcome.cut), "'Stopp' never ended a recording");
     assert.ok(confirmedSpoken >= 1, "no attempt was recognised and confirmed");
     assert.ok(rejected >= 1, "'Nein' was never tried");
     assert.equal((await spoken()).length, confirmedSpoken + candidateSpoken, "something was spoken without a confirming tap");

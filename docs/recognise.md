@@ -161,10 +161,14 @@ after use), skips with a reason when that history is missing and fails under `CI
   `trinken_main_kaffee`, 1.5 to 3 s), tracked through the app's `startCapture` with the real
   tracker worker at fixed frames (10 per second of video, phase 0) and stored with `saveExample`.
   After a refresh the board shows "Gebärde".
-- **Attempted through the board**: a click on "Gebärde"; the capture bridge the board looks up is
-  replaced in the page by one that runs the app's `startCapture` with the real tracker, only the
-  camera replaced; when the view says it records, the frames of the video (the second pass, half a
-  frame later: the same signing seen in other frames) are fed in, then "Stopp" is clicked. Also two
+- **Attempted through the board**: every pass of every video is first tracked once by the real
+  tracker worker through the app's `startCapture`. A click on "Gebärde" then runs the board's own
+  flow and the app's `startCapture`; during the recording only the camera and the tracker are
+  replaced: the tracker replays what the real tracker answered for exactly these frames (the second
+  pass, half a frame later: the same signing seen in other frames), and refuses a frame whose
+  timestamp or pose flag is out of step. A replayed frame takes microseconds, so the 5 s limit
+  cannot cut an attempt on a slow machine. Then "Stopp" is clicked; the test asserts that "Stopp"
+  ended at least one recording. Also two
   videos of words that were not taught (`danke_var_danke_2`, `oma_main_oma`).
 - Speech is observed through a stand-in engine in the page (headless Chromium has no German voice)
   and the sentence bar.
