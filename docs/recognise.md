@@ -54,9 +54,9 @@ attached, the board is drawn without the control and the error is reported.
    shows the capture's own line ("Die Handerkennung wird vorbereitet …", "Bitte die Kamera
    erlauben.").
 2. **Countdown**: "Gleich geht’s los: 3", "… 3 … 2", "… 3 … 2 … 1" (one second each,
-   `RECOGNISE_COUNTDOWN_S`), with the number large. Frames of this time are not kept: the hand
-   that tapped leaves the picture.
-3. **Recording**: "Jetzt die Gebärde machen." and one button "Stopp". The attempt ends on "Stopp"
+   `RECOGNISE_COUNTDOWN_S`), with the number large (over the live picture, below). Frames of this
+   time are not kept: the hand that tapped leaves the picture.
+3. **Recording**: "Jetzt die Gebärde machen.", the live picture and one button "Stopp". The attempt ends on "Stopp"
    or after `RECOGNISE_MAX_RECORDING_MS` (5 s). The camera stops then, whatever the answer.
    ("Stopp", not "Fertig": "Fertig" is a concept on the board.)
 4. **The answer** (`analyseAttempt`: `sequenceFromRecording`, then `matchGesture` with limits
@@ -97,6 +97,43 @@ attached, the board is drawn without the control and the error is reported.
      geht auch ohne Kamera."; first use offline "Die Handerkennung braucht beim ersten Mal
      Internet. Mit Internet „Nochmal“ tippen."; refused "Die Kamera ist nicht erlaubt. Eine
      Bezugsperson kann sie in den Einstellungen erlauben."
+
+**Live picture with the detected hands** (card NG-44; owner request 2026-11-23: whoever makes
+the gesture, the child or a caregiver beside it, should see where the gesture is captured). While
+the camera runs, in the countdown and the recording, the view shows the preview of the camera test
+and teaching (card NG-42, [capture.md](capture.md), "Live preview"): the front camera's picture
+mirrored like a mirror, each tracked hand drawn as its 21 points and bones, the child's own left
+hand orange with "L", the right one cyan with "R", and the shoulders as a yellow line. Without a
+hand in the picture nothing is drawn over it, so an empty picture says "no hand seen". The view
+asks the bridge for one preview per camera start (`createPreview`, passed to `start` as
+`preview`); the capture draws every tracked frame on it, including the countdown's, which are
+still not kept. The picture sits under the state's line in one box (`.recognise-preview`) that
+keeps its size and place from the countdown into the recording; the countdown's number is drawn
+large over it (white with a dark outline). In a wide window the empty button column stays during
+the countdown, so the picture does not widen and shrink again. After the attempt (confirm,
+unknown, unusable), on a camera problem and on every way out the camera stops, the capture closes
+the preview (the controller closes it too, also when the start was cancelled before the camera
+opened) and the box is emptied: no picture is shown with an answer. A bridge without
+`createPreview` (an older one, or the browser test's) or a preview that fails leaves the view as
+before: the count in its own line and no picture. Nothing of the picture is kept, copied or sent.
+Tested in `test/recognise.test.mjs` ("preview: …") with a recording preview on the real capture
+path. Measured in headless Chromium (the real stylesheet, board and view, the real
+`createCapturePreview` on Chromium's fake camera, synthetic tracker frames), no page scroll and
+nothing outside the window in either state; the picture's box is the same in the countdown and
+the recording:
+
+| Window | Back | Picture (countdown and recording) | Stopp |
+| --- | --- | --- | --- |
+| 320x480 | 20, 18, 279x80 | 20, 132, 279x243 | 20, 381, 279x80 |
+| 360x640 | 20, 20, 319x112 | 20, 169, 319x332 | 20, 509, 319x112 |
+| 640x360 | 20, 18, 599x80 | 20, 133, 353x208 | 380, 104, 240x237 |
+| 844x390 | 20, 18, 803x80 | 20, 135, 476x236 | 502, 104, 321x267 |
+| 820x1180 | 20, 20, 779x112 | 20, 187, 779x854 | 20, 1049, 779x112 |
+
+(x, y, then width x height in CSS pixels. The picture is fitted whole into the box, `contain`,
+with dark bars where the box's shape differs from the camera's.) Not tried: a real camera, a
+phone, a child; whether the picture distracts a child from the gesture, or helps it, is a question
+for the trial.
 
 **Always the front camera** (card NG-43). The view has **no camera control** and does **not** use
 the "Kamera: vorne / hinten" choice of teaching and the camera test: it asks the bridge for the
@@ -245,5 +282,6 @@ parallel. The test takes about 70 s, mostly tracking; `npm run verify` took 2 mi
 - **A cooldown** against speaking the same gesture twice in a row within a short time.
 - **A profile setting for who confirms** (the child or a caregiver). Today the child confirms.
 - Measuring the gesture view with larger text, and on a device.
-- A live line in the view (how many hands are seen) while recording.
+- A live line in the view (how many hands are seen) while recording; the live picture (card NG-44)
+  shows the hands, but says nothing in words.
 - Trying the flow, the countdown, the 5 s limit and both guard times with a child.
