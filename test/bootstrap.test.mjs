@@ -213,7 +213,8 @@ test("service-worker pre-cache includes the full local concept bundle", async ()
   }
   // Every shipped picture, also one no concept names (the speaker of the sentence bar, the app icon).
   const listed = await precacheList(worker);
-  const icons = (await readdir(new URL("../dist/icons/", import.meta.url))).map((name) => `icons/${name}`);
+  // The licence record (docs/assets.md) ships beside the icons but is not a picture.
+  const icons = (await readdir(new URL("../dist/icons/", import.meta.url))).filter((name) => name !== "licences.json").map((name) => `icons/${name}`);
   assert.ok(icons.includes("icons/sprechen.svg"));
   for (const icon of icons) assert.ok(listed.includes(icon), `missing precache icon ${icon}`);
   // What the worker hands to the cache is what the text search above saw: the page itself, the modules, the rest.

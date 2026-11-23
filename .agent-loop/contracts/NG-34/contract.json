@@ -1,0 +1,49 @@
+{
+    "acceptance_criteria": [
+        "\"Eigenen Begriff anlegen\" takes a word and a sentence with the same cleaning and German refusals as rewording; saving writes a generated id (never derived from the label) and puts it at the end of the board",
+        "If the entry was written but the board write failed, the concept is listed under own concepts not on the board and can be added from there",
+        "Own concepts can be moved and taken off the board like catalogue concepts; taken off, they stay listed as own concepts and can be added back",
+        "\"Endgültig löschen\" for an own concept needs a confirmation and removes it from board and profile; entries a newer app wrote are never offered for deletion",
+        "listCustomConcepts reports the damage kind of unreadable ids, and the 500-id cap counts ids that cannot be shown"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-23T20:02:18+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
+    "behavior_anchors": [],
+    "created_at": "2026-11-23T20:01:06+00:00",
+    "goal": "In the caregiver area a caregiver creates a concept of their own (word and spoken sentence), it goes onto the board of the edited profile, can be moved, taken off, put back and deleted for good after a confirmation; the child's board shows and speaks it.",
+    "kind": "task_contract",
+    "non_goals": [
+        "Pictures for concepts (card NG-8673323346005092805)",
+        "Import of concept lists"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Claude",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/caregiver.ts",
+        "src/board-data.ts",
+        "public/styles.css",
+        "public/sw.js",
+        "test/caregiver.test.mjs",
+        "test/board.test.mjs",
+        "test/bootstrap.test.mjs",
+        "docs/caregiver.md",
+        "docs/storage.md",
+        "README.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-34",
+    "updated_at": "2026-11-23T20:02:18+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

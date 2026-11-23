@@ -129,5 +129,8 @@ public DGS demo videos. It is not maintained. See
 
 ## License
 
-[MIT](LICENSE) for the source code. Symbols and other assets carry their own licence records.
+[MIT](LICENSE) for the source code. The bundled symbols are the project's own drawings, also MIT;
+each has a licence record in `public/icons/licences.json`. No third-party symbol set such as
+METACOM or ARASAAC is bundled: a family brings the symbols its child knows by importing pictures
+on the device from its own licence. See [docs/assets.md](docs/assets.md).
 If you use this to help another child, let me know. That's why it's public.

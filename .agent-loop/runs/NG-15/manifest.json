@@ -1,0 +1,165 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-15 before calling agent-loop finish NG-15",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T20:02:18+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-15/contract.json",
+                "sha256": "sha256:1cda42515469ce82b4099f4e2f13033285efdb58be04e4d1ea10aac3c13805c4"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-15",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "02d8fb2c486de288c252a7ad7328229b59799b37d507502255d17152e0251de4",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-15.md",
+                "sha256": "sha256:02d8fb2c486de288c252a7ad7328229b59799b37d507502255d17152e0251de4"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "docs/assets.md states the decision (owner choice of 2026-11-23), why METACOM and ARASAAC are not bundled, and the rules for caregiver-imported pictures (stay on the device, travel only in the family's own backup, licence is the family's)",
+                "public/icons/licences.json lists every file in public/icons with source and licence, and a test fails when a file is missing from it or listed but absent",
+                "README names the licence of bundled symbols and links docs/assets.md"
+            ],
+            "goal": "Record the symbol decision: no third-party symbol set is bundled; METACOM or other licensed symbols reach a board only as pictures a caregiver imports on the device from their own licence. Every bundled icon has a machine-checked source and licence record.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-15/contract.json",
+                "sha256": "sha256:1cda42515469ce82b4099f4e2f13033285efdb58be04e4d1ea10aac3c13805c4"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-15/contract.json",
+                "sha256": "sha256:1cda42515469ce82b4099f4e2f13033285efdb58be04e4d1ea10aac3c13805c4"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-15:db7f1c3295ce9cde",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:8bfd747a714f0b4ea2d90346a4896a122f7ee076eacbcd10fd1b28398957c7cd",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:e4212b10165ba1da94427f66bc4257a82e3332942cb338bc8f4aacd058358b87"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-15:db7f1c3295ce9cde",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "c9bbc9a1a105a182398db4183d748fe049ff22de5901114d619d6b0d351665c3",
+            "compilation_id": "compilation.NG-15.2026-11-23-200218.2583e9b3",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "e08814044a7091a0931b7b24a2c41902dd07746969211fca566f052705cbb011",
+            "source": {
+                "path": ".agent-loop/recall/NG-15/meta.json",
+                "sha256": "sha256:a1b699a5208b018c1fdecae6dcf02684ddf164b183dafb008d6749d74c7a9130"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-15/reviews/NG-15.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-15-r1-73387d31",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-15-r1-73387d31/session.json",
+                "sha256": "sha256:d825f4d7951e1b900f1869aa5fae8628d71cb1ade24aaa782b14b8b0df9210fc"
+            },
+            "state": "active",
+            "task_id": "NG-15"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-15 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-15",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "implementation",
+            "implementation_snapshot": null,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Implementation snapshot scoped path does not exist yet: public/icons/licences.json (a deleted path needs a Contract base_commit that tracks it)",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-15:db7f1c3295ce9cde",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-15"
+}

@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:2373b0fd443e1bfd63e1ce509f8b51ab9107862e",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-23T20:06:11+00:00",
+    "reference": "execution-evidence:sha256:fafb237d83f694b92a060f876c5536f4ac3d90df93fc912ac8857152685002d3",
+    "run_id": "run:NG-15:db7f1c3295ce9cde",
+    "schema_version": "1.0",
+    "source_digest": "sha256:0c3e7ab11a7b6acc68ad6a222a08f04349f0a5a896538a7760ad9de84832da3b",
+    "source_reference": "workspace-file:docs/s0a-product-contract-v0.1.md",
+    "stage_id": "correctness-review",
+    "task_id": "NG-15"
+}

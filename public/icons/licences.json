@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "note": "Source and licence of every file in public/icons. Checked by test/assets.test.mjs; see docs/assets.md.",
+  "files": [
+    {
+      "file": "app.svg",
+      "what": "App icon: a check mark on a blue square",
+      "source": "Drawn by hand as SVG for this repository (commit 5fd5bfd, 2026-11-22)",
+      "licence": "MIT",
+      "licenceFile": "LICENSE"
+    },
+    {
+      "file": "fertig.svg",
+      "what": "Placeholder for the concept \"fertig\"",
+      "source": "Drawn by hand as SVG for this repository (commit 5fd5bfd, 2026-11-22)",
+      "licence": "MIT",
+      "licenceFile": "LICENSE"
+    },
+    {
+      "file": "hilfe.svg",
+      "what": "Placeholder for the concept \"hilfe\"",
+      "source": "Drawn by hand as SVG for this repository (commit 5fd5bfd, 2026-11-22)",
+      "licence": "MIT",
+      "licenceFile": "LICENSE"
+    },
+    {
+      "file": "mehr.svg",
+      "what": "Placeholder for the concept \"mehr\"",
+      "source": "Drawn by hand as SVG for this repository (commit 5fd5bfd, 2026-11-22)",
+      "licence": "MIT",
+      "licenceFile": "LICENSE"
+    },
+    {
+      "file": "pause.svg",
+      "what": "Placeholder for the concept \"pause\"",
+      "source": "Drawn by hand as SVG for this repository (commit 5fd5bfd, 2026-11-22)",
+      "licence": "MIT",
+      "licenceFile": "LICENSE"
+    },
+    {
+      "file": "sprechen.svg",
+      "what": "Speaker in the sentence bar of the child's board",
+      "source": "Drawn by hand as SVG for this repository (commit 5fd5bfd, 2026-11-22)",
+      "licence": "MIT",
+      "licenceFile": "LICENSE"
+    },
+    {
+      "file": "trinken.svg",
+      "what": "Placeholder for the concept \"trinken\"",
+      "source": "Drawn by hand as SVG for this repository (commit 5fd5bfd, 2026-11-22)",
+      "licence": "MIT",
+      "licenceFile": "LICENSE"
+    }
+  ]
+}

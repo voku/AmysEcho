@@ -21,7 +21,7 @@ All example IDs and texts below are **non-personal placeholders** for determinis
 | `mehr` | Mehr | Ich möchte mehr. | Locally rendered placeholder |
 | `fertig` | Fertig | Ich bin fertig. | Locally rendered placeholder |
 
-Do not download or commit copyrighted AAC symbols on an assumed MIT license. Each eventual bundled/caregiver-provided asset needs a recorded source, license/permission, offline availability and an accessible fallback. No actual child photos or audio samples belong in the public repository.
+Do not download or commit copyrighted AAC symbols on an assumed MIT license. Each eventual bundled/caregiver-provided asset needs a recorded source, license/permission, offline availability and an accessible fallback. No actual child photos or audio samples belong in the public repository. Decision of 2026-11-23 (card NG-15, [assets.md](assets.md)): no third-party symbol set is bundled; METACOM and other licensed symbols reach a board only as pictures a caregiver imports on the device.
 
 ## 3. Minimal versioned contracts (design, not implementation)
 
