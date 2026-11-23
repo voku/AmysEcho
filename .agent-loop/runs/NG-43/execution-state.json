@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
     "history": [
         {
@@ -192,6 +192,160 @@
                 "summary": "Child's view requests the front camera with fallback off, ignoring the stored choice; fallback note removed there; tests for front-only child view, no back-camera retry, back-taught examples matching front attempts; docs corrected; verify passes",
                 "task_id": "NG-43",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T18:24:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T18:24:20+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:37c2e6061f4a05dc3804589023c9aaf9a8479a5fdb207bd46fcfd0d5b5436290",
+                    "execution-evidence:sha256:66a54cf7841aa0c3af4197876ee39dd770d0f1dea4593ff29d8b45a9945e8875",
+                    "execution-evidence:sha256:82bcb6dd84f7695ff4324873347e6af5b8c9db52a376a447f95e7a8c1032a32a",
+                    "execution-evidence:sha256:d40bed137d13a59c25da7c33599a0c35d6816901673aea940444405ecc05a93f",
+                    "execution-evidence:sha256:80fea00893e5a9a1d16c7e6128332a737b4e14742767c58d540a66c2ea25b18f",
+                    "execution-evidence:sha256:dae95ddb30347b72ed8e3d63e347364e32027ee499c681456df7db247615fe5b",
+                    "execution-evidence:sha256:1a3b43fd779434b94fe4e5cffb764a6f5285c586e56cd7de8850be207611050f",
+                    "execution-evidence:sha256:ff68ab16a102d660dddb98688497becc862243d005d07b4903d45fe36e40c791",
+                    "execution-evidence:sha256:d95b9b963795d9598f5b25b8cedd5c3b158f85f8f15d8950f7ace9659ac0ffa4",
+                    "execution-evidence:sha256:5ea11c23e86bab5aa9d0b7fae9ff617959903021e1ab802caa7b43b33ffc9d56"
+                ],
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:37c2e6061f4a05dc3804589023c9aaf9a8479a5fdb207bd46fcfd0d5b5436290",
+                    "execution-evidence:sha256:66a54cf7841aa0c3af4197876ee39dd770d0f1dea4593ff29d8b45a9945e8875",
+                    "execution-evidence:sha256:82bcb6dd84f7695ff4324873347e6af5b8c9db52a376a447f95e7a8c1032a32a",
+                    "execution-evidence:sha256:d40bed137d13a59c25da7c33599a0c35d6816901673aea940444405ecc05a93f",
+                    "execution-evidence:sha256:80fea00893e5a9a1d16c7e6128332a737b4e14742767c58d540a66c2ea25b18f",
+                    "execution-evidence:sha256:dae95ddb30347b72ed8e3d63e347364e32027ee499c681456df7db247615fe5b",
+                    "execution-evidence:sha256:1a3b43fd779434b94fe4e5cffb764a6f5285c586e56cd7de8850be207611050f",
+                    "execution-evidence:sha256:ff68ab16a102d660dddb98688497becc862243d005d07b4903d45fe36e40c791",
+                    "execution-evidence:sha256:d95b9b963795d9598f5b25b8cedd5c3b158f85f8f15d8950f7ace9659ac0ffa4",
+                    "execution-evidence:sha256:5ea11c23e86bab5aa9d0b7fae9ff617959903021e1ab802caa7b43b33ffc9d56"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "context_id": "correctness-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "observations": [
+                    "The front camera is a preference, not exact: on a device with only a back camera the browser may open it and the docs' 'never replaced' wording is too strong (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:a7a7e7ec",
+                "summary": "Child's view always asks for the front camera with fallback off; teaching and camera test unchanged; removed CSS unreferenced; docs match",
+                "task_id": "NG-43",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T18:24:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T18:24:20+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:85ef41689af19bfb1443c3d8097bc9b8991d419a067d81b7ed8b2d031e36bf0d",
+                    "execution-evidence:sha256:b73298377ea0ea6f5b1792d9964e7d0310f32a0094e28dcb267daf58c63cb915",
+                    "execution-evidence:sha256:590c0917452d2c038bc65b2f6de3793e15ad582136af63b86ed0b90175afb822",
+                    "execution-evidence:sha256:635617ae00087f6b913f64410d5eab90157e93552ba0f7c3b921bcbcbb6894a6",
+                    "execution-evidence:sha256:25d00fce4096984125a6db574ff16510d231e6dcda3dad82aef94c7b3892ce89",
+                    "execution-evidence:sha256:58c1b73760a629dc90d87e168509378cbf38adcb1f2fb2b7202401cf04b1f786",
+                    "execution-evidence:sha256:2f4a224e29988b51e1d9641a63d24dccce458438056ad403d12c18bd7fc703db",
+                    "execution-evidence:sha256:d53e511e33b65f1859c4b74a696e583e72d4af0041875c7f5d9320fe9edf093d",
+                    "execution-evidence:sha256:cfd566b4eca2e918f0f8ec27756afaa8b9b76e3f1bfda0f74f4b8a5513951695",
+                    "execution-evidence:sha256:19d11b786f5a3ef3a640bbdd33e462a7ae0b30711d8867fafaacb8cc12ffddc8"
+                ],
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:85ef41689af19bfb1443c3d8097bc9b8991d419a067d81b7ed8b2d031e36bf0d",
+                    "execution-evidence:sha256:b73298377ea0ea6f5b1792d9964e7d0310f32a0094e28dcb267daf58c63cb915",
+                    "execution-evidence:sha256:590c0917452d2c038bc65b2f6de3793e15ad582136af63b86ed0b90175afb822",
+                    "execution-evidence:sha256:635617ae00087f6b913f64410d5eab90157e93552ba0f7c3b921bcbcbb6894a6",
+                    "execution-evidence:sha256:25d00fce4096984125a6db574ff16510d231e6dcda3dad82aef94c7b3892ce89",
+                    "execution-evidence:sha256:58c1b73760a629dc90d87e168509378cbf38adcb1f2fb2b7202401cf04b1f786",
+                    "execution-evidence:sha256:2f4a224e29988b51e1d9641a63d24dccce458438056ad403d12c18bd7fc703db",
+                    "execution-evidence:sha256:d53e511e33b65f1859c4b74a696e583e72d4af0041875c7f5d9320fe9edf093d",
+                    "execution-evidence:sha256:cfd566b4eca2e918f0f8ec27756afaa8b9b76e3f1bfda0f74f4b8a5513951695",
+                    "execution-evidence:sha256:19d11b786f5a3ef3a640bbdd33e462a7ae0b30711d8867fafaacb8cc12ffddc8"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "context_id": "blindspot-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "observations": [
+                    "A broken front camera shows the 'besetzt' wording, which invites retrying; a device with no front camera may silently open the back one (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:b1830a31",
+                "summary": "Trap closed: the stored back-camera choice is never used in the child's view; a failing front camera gives a problem line with Nochmal and Zurück zur Tafel",
+                "task_id": "NG-43",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T18:26:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T18:26:59+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:2714d858568e92c448aea43062eb719c436f773943fc165175a0622b15b9ea94",
+                    "execution-evidence:sha256:b7699d54e9f44c3c0b4a9db5c469cbd11bfacf18df13d5f17193e5eca5530ee2"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "consistency_references": [
+                    "execution-evidence:sha256:f9e113afa15492b41a4c9ac39eb76ffb4fa22d0878ceb3ab4b934f026cb6bbf3"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "outcome": "pass",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:c50d9f5da592d94b31dc3a04f455e0021f37ff8fb302ef49845ceef5413c0ed5",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-43: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-43 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-43:72ceadb9ff9cb5c5 binds active Session 2026-11-23-ng-43-r1-081db8b6 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-43 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-43",
+                "validation_references": [
+                    "execution-evidence:sha256:2714d858568e92c448aea43062eb719c436f773943fc165175a0622b15b9ea94",
+                    "execution-evidence:sha256:b7699d54e9f44c3c0b4a9db5c469cbd11bfacf18df13d5f17193e5eca5530ee2"
+                ]
             }
         }
     ],
