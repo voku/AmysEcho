@@ -624,8 +624,8 @@ test("view: the gesture view covers the board in its own frame; 'Ja, sagen' spea
     const actionsRow = tree(panel()).find((element) => hasClass(element, "recognise-actions"));
     assert.deepEqual(actionsRow.children.map((element) => element.attributes["aria-label"]), ["Nein", "Ja, sagen"]);
     const [noButton, yesButton] = actionsRow.children;
-    assert.deepEqual(noButton.children.map((element) => element.textContent || element.tagName), ["\\u2717", "Nein"]);
-    assert.deepEqual(yesButton.children.map((element) => element.textContent || element.tagName), ["\\u2713", "img", "Ja, sagen"]);
+    assert.deepEqual(noButton.children.map((element) => element.textContent || element.tagName), ["✗", "Nein"]);
+    assert.deepEqual(yesButton.children.map((element) => element.textContent || element.tagName), ["✓", "img", "Ja, sagen"]);
     assert.equal(yesButton.children[1].src, "./icons/trinken.svg");
     assert.equal(yesButton.children[0].attributes["aria-hidden"], "true");
     time.advance(RECOGNISE_GUARD_MS);
