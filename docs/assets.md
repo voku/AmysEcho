@@ -40,8 +40,9 @@ redistribution, needs a decision recorded on card NG-15 and a change of that tes
 
 ## Pictures a caregiver imports
 
-Rules for pictures that do not come with the app. The import is card NG-8673323346005092805 and
-is not built yet; these are its requirements:
+Rules for pictures that do not come with the app. The import is built ("Bild wählen" in the
+caregiver area, [caregiver.md](caregiver.md); storage in [storage.md](storage.md)); these are its
+rules:
 
 - They must stay on the device, in the profile of the child they were chosen for. The app must send
   nothing. They may leave the device only in a backup the family makes itself.

@@ -3,7 +3,8 @@
  * child's screen, and inside it a header that says which board the child
  * sees after closing, the profiles as cards (make active, edit, rename,
  * delete), creating a profile, and a board editor of two lists, with own
- * concepts of a profile (card NG-34).
+ * concepts of a profile (card NG-34) and own pictures for concepts (card
+ * NG-8673323346005092805).
  *
  * This module writes into the caregiver region and into the entry element
  * that holds the opening control. Of the board region it only reads
@@ -16,8 +17,8 @@
  */
 import type { App } from "./app.js";
 import {
-  BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, listCustomConcepts, normalizeWording, putCustomConcept, removeCustomConcept, resolveBoard,
-  setBoardConcepts, setWording,
+  BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, MAX_SYMBOL_DATA_URL_LENGTH, clearSymbol, clearWording, isSymbolDataUrl, listCustomConcepts, normalizeWording,
+  putCustomConcept, removeCustomConcept, resolveBoard, setBoardConcepts, setSymbol, setWording,
 } from "./board-data.js";
 import type { BoardEntry, CatalogueConcept, CustomConcept, ResolvedBoard } from "./board-data.js";
 import { MAX_CONCEPT_IDS, MAX_DISPLAY_NAME_LENGTH, ProfileFormatError } from "./profiles/profile.js";
@@ -208,6 +209,75 @@ export interface CaregiverOptions {
   readonly date?: () => Date;
   /** Where the camera choice is remembered; for tests. Default: the browser's `localStorage`, when it can be used. */
   readonly cameraStorage?: () => FacingStorage | null;
+  /**
+   * Turns a chosen image file into the picture that is stored: a PNG or JPEG
+   * data URL of at most `PICTURE_SIZE_PX` pixels a side that `isSymbolDataUrl`
+   * accepts, or a `PictureRefusal`; for tests. Default: `pictureFromFile`.
+   */
+  readonly pictureFromFile?: (file: Blob) => Promise<string>;
+}
+
+/** The longer side of a stored picture, in pixels (card NG-8673323346005092805). */
+export const PICTURE_SIZE_PX = 256;
+/** Largest image file that is read at all. */
+export const MAX_PICTURE_FILE_BYTES = 10 * 1024 * 1024;
+/** The file types the picker offers; SVG is drawn onto a canvas like the others, so none of its markup is stored. */
+export const PICTURE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/svg+xml"] as const;
+
+/** Why a chosen file did not become a picture: "type" (not an image the app reads), "size" (file too large), "unreadable" (could not be decoded), "too-large" (still too large after redrawing). */
+export class PictureRefusal extends Error {
+  readonly reason: "type" | "size" | "unreadable" | "too-large";
+
+  constructor(reason: "type" | "size" | "unreadable" | "too-large") {
+    super(`picture refused: ${reason}`);
+    this.reason = reason;
+  }
+}
+
+/**
+ * The browser's way from a chosen file to a stored picture: the file is read
+ * as a data URL (the page's CSP allows `data:` images and no `blob:`), loaded
+ * into an image, and drawn onto a canvas of at most `PICTURE_SIZE_PX` a side.
+ * What is stored is the canvas as PNG, or as JPEG on white when the PNG is
+ * too long: never the file itself, so no SVG markup, script or metadata of
+ * the original (camera, place, date) is kept. Nothing leaves the device.
+ */
+export async function pictureFromFile(file: Blob): Promise<string> {
+  if (!(PICTURE_TYPES as readonly string[]).includes(file.type)) throw new PictureRefusal("type");
+  if (file.size > MAX_PICTURE_FILE_BYTES) throw new PictureRefusal("size");
+  const source = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => (typeof reader.result === "string" ? resolve(reader.result) : reject(new PictureRefusal("unreadable")));
+    reader.onerror = () => reject(new PictureRefusal("unreadable"));
+    reader.readAsDataURL(file);
+  });
+  const image = new Image();
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new PictureRefusal("unreadable"));
+    image.src = source;
+  });
+  // An SVG without its own size reports 0; it is drawn into the full square then.
+  const width = image.naturalWidth > 0 ? image.naturalWidth : PICTURE_SIZE_PX;
+  const height = image.naturalHeight > 0 ? image.naturalHeight : PICTURE_SIZE_PX;
+  const scale = Math.min(1, PICTURE_SIZE_PX / Math.max(width, height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const context = canvas.getContext("2d");
+  if (context === null) throw new PictureRefusal("unreadable");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  let picture = canvas.toDataURL("image/png");
+  if (picture.length > MAX_SYMBOL_DATA_URL_LENGTH) {
+    // A photo: JPEG is much shorter. It has no transparency, so it is laid on white.
+    context.globalCompositeOperation = "destination-over";
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    picture = canvas.toDataURL("image/jpeg", 0.85);
+  }
+  const length = picture.length;
+  if (!isSymbolDataUrl(picture)) throw new PictureRefusal(length > MAX_SYMBOL_DATA_URL_LENGTH ? "too-large" : "unreadable");
+  return picture;
 }
 
 export interface CaregiverHandle {
@@ -315,6 +385,26 @@ const OWN_CONCEPTS = "Eigene Begriffe, nicht auf der Tafel";
 const OWN_HELP = "Eigene Begriffe gibt es nur in diesem Profil. Von der Tafel genommen, bleiben sie hier, bis sie endgültig gelöscht werden.";
 const OWN_CREATE_NOTE = "Der Begriff kommt ans Ende der Tafel. Danach kann ihm eine Gebärde beigebracht werden.";
 const OWN_DELETE_LOSS = "Das Wort, der Satz und die beigebrachten Gebärden dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.";
+const PICTURE = "Bild wählen";
+const PICTURE_FILE = "Bilddatei auswählen";
+const PICTURE_FILE_HINT = "PNG, JPEG, WebP, GIF oder SVG. Das Bild wird auf höchstens 256 × 256 Pixel verkleinert.";
+const PICTURE_NOW = "Jetzt auf der Taste:";
+const PICTURE_NONE = "Jetzt auf der Taste: kein Bild, nur das Wort.";
+const PICTURE_NEW = "Neues Bild:";
+const PICTURE_LOCAL = "Das Bild wird nur in diesem Browser auf diesem Gerät gespeichert, in diesem Profil. Die App sendet es nicht.";
+const PICTURE_RIGHTS = "Bitte nur Bilder verwenden, die ihr verwenden dürft, zum Beispiel METACOM-Symbole aus eurer eigenen Lizenz oder eigene Zeichnungen und Fotos. "
+  + "Fotos, auf denen ein Kind zu erkennen ist, besser nicht verwenden.";
+const PICTURE_RESET = "Bild der App wiederherstellen";
+const PICTURE_REMOVE = "Bild entfernen";
+const PICTURE_READING = "Das Bild wird gelesen …";
+const NEWER_PICTURE = "Das Bild dieser Taste wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
+const PICTURE_REFUSED: Readonly<Record<PictureRefusal["reason"], string>> = {
+  type: "Diese Datei ist kein Bild, das die App lesen kann. Bitte ein PNG-, JPEG-, WebP-, GIF- oder SVG-Bild wählen.",
+  size: `Die Datei ist zu groß. Bitte ein Bild mit höchstens ${MAX_PICTURE_FILE_BYTES / (1024 * 1024)} MB wählen.`,
+  unreadable: "Das Bild konnte nicht gelesen werden. Bitte ein anderes Bild wählen.",
+  "too-large": "Das Bild ist auch verkleinert noch zu groß. Bitte ein einfacheres Bild wählen.",
+};
+const PICTURE_FULL = "Der Platz für dieses Profil ist voll. Das Bild wurde nicht gespeichert. Entferne Begriffe, Bilder oder Gebärden, dann ist wieder Platz.";
 /** Prefix of the ids of own concepts; the rest is random, never taken from the label (card NG-34). */
 const OWN_ID_PREFIX = "eigen-";
 const NEWER_ENTRY = "Diese Taste wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
@@ -440,7 +530,20 @@ type Mode =
   | TeachMode
   | CreateConceptMode
   | { readonly kind: "delete-concept"; readonly id: string; readonly conceptId: string; readonly title: string }
+  | PictureMode
   | null;
+/**
+ * Choosing a picture for one concept of the profile `id` (card
+ * NG-8673323346005092805). Takes over the body like a rewording. `draft.picture`
+ * is the redrawn picture of the chosen file, kept in memory until "Speichern".
+ */
+interface PictureMode {
+  readonly kind: "picture";
+  readonly id: string;
+  readonly conceptId: string;
+  readonly title: string;
+  readonly draft: { picture: string | null; reading: boolean; busy: boolean };
+}
 /** Creating an own concept for the profile `id`: like a rewording, but nothing is stored before "Speichern". */
 interface CreateConceptMode {
   readonly kind: "create-concept";
@@ -767,6 +870,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   /** The fixed-size box of the teaching view on screen that holds the camera's preview while the camera runs (card NG-42). */
   let teachPreviewSlot: HTMLElement | null = null;
   const date = options.date ?? (() => new Date());
+  const makePicture = options.pictureFromFile ?? pictureFromFile;
   const cameraStorage = options.cameraStorage ?? browserFacingStorage;
   /**
    * The camera teaching asks for (card NG-43). What the device remembers wins
@@ -1354,7 +1458,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     stopTeachCamera();
     mode = null;
-    const back = was.kind === "reword" || was.kind === "teach" || was.kind === "delete-concept"
+    const back = was.kind === "reword" || was.kind === "teach" || was.kind === "delete-concept" || was.kind === "picture"
       ? `${was.kind}:${was.conceptId}`
       : was.kind === "create-concept" ? "create-concept" : `${was.kind}:${was.id}`;
     run(() => draw([back]));
@@ -1519,6 +1623,79 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
     return true;
   };
+
+  /**
+   * A file was chosen in the open picture view: it is redrawn (`makePicture`)
+   * and shown as "Neues Bild" until "Speichern". Nothing is stored yet. A
+   * refusal is said in German and the view stays.
+   */
+  const choosePicture = (open: PictureMode, file: Blob | undefined): void => {
+    if (mode !== open || file === undefined || open.draft.busy) return;
+    clearStatus();
+    open.draft.reading = true;
+    run(async () => {
+      if (mode === open) await draw(["picture-file"], { toTop: true });
+    });
+    void makePicture(file).then((picture) => {
+      if (!isSymbolDataUrl(picture)) throw new PictureRefusal("unreadable");
+      return { picture, line: null as string | null };
+    }, (error: unknown) => ({ picture: null, line: PICTURE_REFUSED[error instanceof PictureRefusal ? error.reason : "unreadable"] }))
+      .catch(() => ({ picture: null, line: PICTURE_REFUSED.unreadable }))
+      .then(({ picture, line }) => {
+        open.draft.reading = false;
+        // Left meanwhile: the picture is dropped.
+        if (mode !== open || !isOpen) return;
+        if (picture !== null) open.draft.picture = picture;
+        if (line !== null) say(line, true);
+        run(async () => {
+          if (mode === open) await draw(picture === null ? ["picture-file"] : ["picture-save"], { toTop: true });
+        });
+      });
+  };
+
+  /** Saves or takes away the profile's own picture of the open view, as one queued write. */
+  const settlePicture = (write: (current: ProfileStore, open: PictureMode) => Promise<string>): void => {
+    const mine = mode;
+    if (mine === null || mine.kind !== "picture" || mine.draft.busy || mine.draft.reading) return;
+    mine.draft.busy = true;
+    clearStatus();
+    runWrite(async () => {
+      try {
+        if (store === null || mode !== mine) return;
+        try {
+          say(await write(store, mine));
+          writes += 1;
+          if (acting === session && mode === mine) mode = null;
+          await draw([`picture:${mine.conceptId}`]);
+        } catch (error) {
+          if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
+            if (acting === session && mode === mine) mode = null;
+            say(PROFILE_GONE, true);
+            await draw(["profiles-heading"]);
+            return;
+          }
+          if (error instanceof ProfileSizeError) say(PICTURE_FULL, true);
+          else if (error instanceof BoardDataError && error.kind === "unsupported-entry") say(`${NEWER_PICTURE} Das Bild wurde nicht geändert.`, true);
+          else say(`${WRITE_FAILED} Das Bild ist unverändert.`, true);
+          await draw(["picture-save", "picture-file"], { toTop: true });
+        }
+      } finally {
+        mine.draft.busy = false;
+      }
+    });
+  };
+
+  const savePicture = (): void => settlePicture(async (current, open) => {
+    if (open.draft.picture === null) throw new Refusal("no picture");
+    await setSymbol(current, open.id, open.conceptId, open.draft.picture, catalogue);
+    return `Gespeichert: neues Bild für ${quoted(open.title)}.`;
+  });
+
+  const removePicture = (): void => settlePicture(async (current, open) => {
+    await clearSymbol(current, open.id, open.conceptId);
+    const known = catalogue.find((concept) => concept.id === open.conceptId);
+    return known !== undefined ? `${quoted(open.title)} zeigt wieder das Bild der App.` : `${quoted(open.title)} hat jetzt kein Bild.`;
+  });
 
   const resetWording = (): void => settleWording(async (current, open) => {
     await clearWording(current, open.id, open.conceptId, catalogue);
@@ -2007,7 +2184,90 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return text;
   };
 
-  /** A catalogue concept on the board: it can be moved among the editable rows and taken off. */
+  /** "Bild wählen" for one concept of a board (card NG-8673323346005092805). */
+  const pictureButton = (profileId: string, entry: BoardEntry, register: Map<string, Focusable>): HTMLButtonElement => {
+    const control = button(PICTURE);
+    control.setAttribute("aria-label", `${PICTURE}: ${entry.labelDe}`);
+    control.addEventListener("click", () => openMode({
+      kind: "picture", id: profileId, conceptId: entry.id, title: entry.labelDe, draft: { picture: null, reading: false, busy: false },
+    }, "picture-file"));
+    register.set(`picture:${entry.id}`, control);
+    return control;
+  };
+
+  /**
+   * The picture of one concept. Like the rewording it is the whole body while
+   * it is open: what is on the key now, the file picker, the chosen picture,
+   * and the notice that the picture stays on the device and needs the right
+   * to use it.
+   */
+  const pictureView = (open: PictureMode, entry: BoardEntry, profileLabel: string, register: Map<string, Focusable>): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-takeover caregiver-picture");
+    view.append(element("h2", "", `Bild für ${quoted(entry.labelDe)} – Tafel von ${quoted(profileLabel)}`));
+    const onKey = element("div", "caregiver-picture-now");
+    if (entry.symbolPath === null) {
+      onKey.append(element("p", "caregiver-notice", PICTURE_NONE));
+    } else {
+      const current = element("img", "caregiver-picture-preview");
+      current.src = entry.symbolPath;
+      current.alt = "";
+      current.width = 96;
+      current.height = 96;
+      onKey.append(element("p", "caregiver-notice", PICTURE_NOW), current);
+    }
+    view.append(onKey, element("p", "caregiver-notice", PICTURE_LOCAL), element("p", "caregiver-notice", PICTURE_RIGHTS));
+    const label = element("label", "caregiver-picture-label", PICTURE_FILE);
+    label.htmlFor = "caregiver-picture-file";
+    const input = element("input", "caregiver-picture-file");
+    input.type = "file";
+    input.id = "caregiver-picture-file";
+    input.accept = PICTURE_TYPES.join(",");
+    const hint = element("p", "caregiver-notice caregiver-name-notice", PICTURE_FILE_HINT);
+    hint.id = "caregiver-picture-hint";
+    input.setAttribute("aria-describedby", hint.id);
+    input.disabled = open.draft.busy;
+    input.addEventListener("change", () => choosePicture(open, input.files?.[0]));
+    register.set("picture-file", input);
+    register.set("anchor:picture-file", view);
+    view.append(label, input, hint);
+    if (open.draft.reading) view.append(element("p", "caregiver-notice", PICTURE_READING));
+    if (open.draft.picture !== null) {
+      const chosen = element("div", "caregiver-picture-new");
+      const preview = element("img", "caregiver-picture-preview");
+      preview.src = open.draft.picture;
+      preview.alt = "";
+      preview.width = 96;
+      preview.height = 96;
+      chosen.append(element("p", "caregiver-notice", PICTURE_NEW), preview);
+      view.append(chosen);
+    }
+    const actions = element("div", "caregiver-profile-actions");
+    if (open.draft.picture !== null) {
+      const save = button(SAVE, "caregiver-button caregiver-primary");
+      save.addEventListener("click", () => {
+        if (aimed(now())) savePicture();
+      });
+      register.set("picture-save", save);
+      actions.append(save);
+    }
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("picture-cancel", cancel);
+    actions.append(cancel);
+    view.append(actions);
+    // Only where there is an own picture to take away.
+    if (entry.ownSymbol === true) {
+      const known = catalogue.find((concept) => concept.id === entry.id && entry.source === "catalogue");
+      const reset = button(known !== undefined ? PICTURE_RESET : PICTURE_REMOVE);
+      reset.addEventListener("click", () => {
+        if (aimed(now())) removePicture();
+      });
+      register.set("picture-reset", reset);
+      view.append(reset);
+    }
+    return view;
+  };
+
   /** "Text ändern" for one concept of a board: opens the rewording with the wording that is stored now. */
   const rewordButton = (profileId: string, entry: BoardEntry, register: Map<string, Focusable>): HTMLButtonElement => {
     const control = button(REWORD);
@@ -2022,7 +2282,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
   const boardRow = (
     profileId: string, entry: BoardEntry, place: number, editableOrder: readonly string[], register: Map<string, Focusable>, newer: boolean,
-    examples: number | undefined,
+    examples: number | undefined, newerPicture: boolean,
   ): HTMLElement => {
     const { id } = entry;
     const row = element("li", "caregiver-concept");
@@ -2075,10 +2335,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const teach = teachButton(profileId, entry, register);
     actions.append(
       move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1),
-      ...(newer ? [] : [rewordButton(profileId, entry, register)]), ...(teach === null ? [] : [teach]), remove,
+      ...(newer ? [] : [rewordButton(profileId, entry, register)]), ...(newerPicture ? [] : [pictureButton(profileId, entry, register)]),
+      ...(teach === null ? [] : [teach]), remove,
     );
     row.append(conceptText(entry, "", examples), actions);
     if (newer) row.append(element("p", "caregiver-concept-note", NEWER_ENTRY));
+    if (newerPicture) row.append(element("p", "caregiver-concept-note", NEWER_PICTURE));
     return row;
   };
 
@@ -2089,6 +2351,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    */
   const lockedRow = (
     profileId: string, id: string, entry: BoardEntry | undefined, register: Map<string, Focusable>, newer: boolean, examples: number | undefined,
+    newerPicture: boolean,
   ): HTMLElement => {
     const row = element("li", "caregiver-concept caregiver-concept-locked");
     if (entry === undefined) {
@@ -2097,8 +2360,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     const actions = element("div", "caregiver-row-actions");
     const teach = teachButton(profileId, entry, register);
-    actions.append(rewordButton(profileId, entry, register), ...(teach === null ? [] : [teach]));
+    actions.append(rewordButton(profileId, entry, register), ...(newerPicture ? [] : [pictureButton(profileId, entry, register)]), ...(teach === null ? [] : [teach]));
     row.append(conceptText(entry, "", examples), actions, element("p", "caregiver-concept-note", entry.source === "retired" ? `${RETIRED} ${LOCKED_PLACE}` : LOCKED_PLACE));
+    if (newerPicture) row.append(element("p", "caregiver-concept-note", NEWER_PICTURE));
     return row;
   };
 
@@ -2544,10 +2808,13 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       const onBoard = element("ol", "caregiver-concepts");
       for (const id of ids) {
         const entry = board.entries.find((candidate) => candidate.id === id);
-        const newer = board.problems.some((problem) => problem.conceptId === id && problem.damage === "unsupported-version");
+        const newerOf = (kind: "picture" | "entry"): boolean => board.problems.some((problem) => problem.conceptId === id && problem.damage === "unsupported-version"
+          && (problem.kind === "damaged-symbol") === (kind === "picture"));
+        const newer = newerOf("entry");
+        const newerPicture = newerOf("picture");
         onBoard.append(entry !== undefined && editable.has(id)
-          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register, newer, examples.get(id))
-          : lockedRow(profile.id, id, entry, register, newer, examples.get(id)));
+          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register, newer, examples.get(id), newerPicture)
+          : lockedRow(profile.id, id, entry, register, newer, examples.get(id), newerPicture));
       }
       section.append(onBoard);
     }
@@ -2769,6 +3036,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       if (owner !== undefined && own.some((concept) => concept.id === open.conceptId)) {
         return { content: [deleteConceptView(open.title, labelOf(owner), register, holds)], afterClose: header, confirming: true };
       }
+      mode = null;
+    }
+
+    // And choosing a picture, while the concept is on the board and shown there.
+    if (mode !== null && mode.kind === "picture") {
+      const open = mode;
+      const owner = profiles.find((profile) => profile.id === open.id);
+      const board = owner === undefined ? null : await resolveBoard(current, owner.id, catalogue).catch(() => null);
+      const entry = board?.entries.find((candidate) => candidate.id === open.conceptId);
+      if (owner !== undefined && entry !== undefined) return { content: [pictureView(open, entry, labelOf(owner), register)], afterClose: header, confirming: true };
       mode = null;
     }
 

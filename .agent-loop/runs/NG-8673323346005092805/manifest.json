@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-8673323346005092805 before calling agent-loop finish NG-8673323346005092805",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T20:02:18+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
+                "sha256": "sha256:5107e09f6875d039595eca325acb337488d11fc2e5051ece293287a9ebe45233"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673323346005092805",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "4a0411144a557bf6346c011afa6c5dec6bbff3be910c12b2216d4a45fe2cab05",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673323346005092805.md",
+                "sha256": "sha256:4a0411144a557bf6346c011afa6c5dec6bbff3be910c12b2216d4a45fe2cab05"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Board data stores a picture per concept as its own versioned data entry (downscaled image as a data URL with type and size limits); strict reader, newer versions left alone; wording entries keep their version",
+                "resolveBoard shows the profile's picture before the catalogue's, also for custom and retired concepts; a damaged picture entry falls back to the catalogue picture or text and is reported as a problem",
+                "The caregiver area offers \"Bild wählen\" per board row with preview, \"Speichern\", \"Abbrechen\" and \"Bild der App wiederherstellen\"; unsupported, unreadable or too large files are refused in German; a line says the picture stays on this device and that the family needs the right to use it (for example a METACOM licence)",
+                "Images are re-encoded through a canvas to at most 256x256 pixels, so SVG scripts or metadata are never stored; CSP allows data: images only for img-src",
+                "Removing a custom concept for good also removes its picture"
+            ],
+            "goal": "A caregiver gives any concept on a board its own picture by choosing an image file on the device (for example a METACOM symbol exported from the family's licence or a photo); the child's board shows it instead of the app's picture, and the picture travels with the profile backup. Nothing is uploaded and no picture enters the repository.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
+                "sha256": "sha256:5107e09f6875d039595eca325acb337488d11fc2e5051ece293287a9ebe45233"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
+                "sha256": "sha256:5107e09f6875d039595eca325acb337488d11fc2e5051ece293287a9ebe45233"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:1f8808c21d0b858812b162f79c00eccd5732ef6a3264f9771bff93e30be8c666",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:6bf436fd6f9df2debf916385530cbea2610f86ce313411e3caf989ede8532b6f"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "b5d49bca9938d5df56410693eaf1cb6f43b79b32d3f5d4070d121fe58a2ae698",
+            "compilation_id": "compilation.NG-8673323346005092805.2026-11-23-202021.996ba140",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "3fd5c9e65975bb8b598da745c822924631b73ca078adbbaa1e9eb43fa5561322",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673323346005092805/meta.json",
+                "sha256": "sha256:686e475d9b2c613a3ee399ecc233ca449aa9aa6c86f26388af26834eb08a7be6"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-8673323346005092805/reviews/NG-8673323346005092805.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-8673323346005092805-r1-9a18e45b",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-8673323346005092805-r1-9a18e45b/session.json",
+                "sha256": "sha256:aff711a103da886b4e00b7a163c2d9496da58de8b80b9256c7c7f5bd740d4a51"
+            },
+            "state": "active",
+            "task_id": "NG-8673323346005092805"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-8673323346005092805 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-8673323346005092805",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:7076ce7afa2e886c68e624ac9214569c3e7b4af436ede1e7a8bf58f40286f40d",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-8673323346005092805"
+}

@@ -1,7 +1,7 @@
 # Caregiver area
 
-Status: second slice (cards NG-29 and NG-31), rewording (NG-33), teaching gestures (NG-19) and own
-concepts (NG-34). Code in
+Status: second slice (cards NG-29 and NG-31), rewording (NG-33), teaching gestures (NG-19), own
+concepts (NG-34) and own pictures (card NG-8673323346005092805). Code in
 `src/caregiver.ts`, styles in `public/styles.css`, tests in `test/caregiver.test.mjs`.
 
 ## Verification status
@@ -774,6 +774,44 @@ back the own concept.
   Deleting is offered only for a concept that is off the board, so that a tap on the board list
   never starts it.
 
+**Own pictures** (card NG-8673323346005092805). Every row of "Auf der Tafel" that the board shows
+(catalogue, own and retired concepts) has "Bild wählen" after "Text ändern". It opens a view that
+takes over the body:
+
+- the heading "Bild für „<label>“ – Tafel von „<name>“"; "Jetzt auf der Taste:" with the picture
+  the key has now, or "Jetzt auf der Taste: kein Bild, nur das Wort.";
+- "Das Bild wird nur in diesem Browser auf diesem Gerät gespeichert, in diesem Profil. Die App
+  sendet es nicht." and "Bitte nur Bilder verwenden, die ihr verwenden dürft, zum Beispiel
+  METACOM-Symbole aus eurer eigenen Lizenz oder eigene Zeichnungen und Fotos. Fotos, auf denen ein
+  Kind zu erkennen ist, besser nicht verwenden." ([assets.md](assets.md));
+- "Bilddatei auswählen", a file field (PNG, JPEG, WebP, GIF, SVG; focused on opening) with the line
+  "PNG, JPEG, WebP, GIF oder SVG. Das Bild wird auf höchstens 256 × 256 Pixel verkleinert.";
+- after a file was chosen: "Neues Bild:" with the redrawn picture, "Speichern" and "Abbrechen";
+- with an own picture stored: "Bild der App wiederherstellen" for a catalogue concept, "Bild
+  entfernen" for an own or retired one. One tap: the picture can be chosen again.
+
+Choosing a file stores nothing. `pictureFromFile` refuses a type that is not offered and a file
+over 10 MB, reads the file as a data URL, loads it into an image and draws it onto a canvas of at
+most 256 pixels a side; it keeps the canvas as PNG, or as JPEG on white when the PNG is longer
+than 256 KiB. So what is stored is never the file: no SVG markup or script, no camera, place or
+date. Refusals are German error lines and the view stays: "Diese Datei ist kein Bild, das die App
+lesen kann. …", "Die Datei ist zu groß. …", "Das Bild konnte nicht gelesen werden. …", "Das Bild
+ist auch verkleinert noch zu groß. …". "Speichern" is one queued write through `setSymbol`; the
+status line says "Gespeichert: neues Bild für „<label>“." and the focus returns to the row's
+"Bild wählen". A full profile ("Der Platz für dieses Profil ist voll. Das Bild wurde nicht
+gespeichert. …") and a failed write keep the view with the chosen picture. A picture a newer app
+wrote is not replaced: its row has no "Bild wählen" and says "Das Bild dieser Taste wurde mit einer
+neueren Version gespeichert. Bitte die App aktualisieren." Deleting an own concept for good also
+deletes its picture.
+
+The page's Content Security Policy allows `data:` images (`img-src 'self' data:`) for these
+pictures and nothing else new. In headless Chromium (script run by hand, not in CI) an SVG with an
+`onload` attribute and a `<script>` came out as a plain PNG without running either, a 1200 × 900
+synthetic image came out at 256 × 192, a text file and a broken PNG were refused, and the full
+flow (create an own concept, choose a picture, save, close) showed the picture on the child's
+board at 390 px width with no console error. Not tried on a phone, with a real METACOM export,
+or with a screen reader.
+
 **Help.** At the bottom, behind "Hilfe bei Problemen" (a `<details>`): "Tafel neu laden" with one
 sentence that says what it does, and a text for a device that does not speak: "Spricht das Gerät
 nicht? Dann ist es vielleicht stumm geschaltet, oder es fehlt eine deutsche Stimme. Sie wird in
@@ -809,7 +847,8 @@ countdown. None of this was checked with assistive technology.
 
 ## Deliberately missing
 
-- Pictures for own concepts (card NG-8673323346005092805): an own concept is a text tile.
+- Cropping or rotating a picture, choosing from a symbol library inside the app, or taking a
+  photo with the camera from this view; the device's file picker may offer the camera itself.
 - Deleting an own concept straight from the board list: it is taken off first.
 - Hearing a wording before it is saved ("listen"); the caregiver hears it on the child's board.
 - Export, import and backup (NG-22). Deleting a profile is final.

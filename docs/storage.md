@@ -151,6 +151,7 @@ Everything belongs to one profile:
 ```
 profile/<id>/meta                        conceptIds: the board, concept ids in display order
 profile/<id>/data/concept.<conceptId>    the wording of that concept on this board, or a custom concept
+profile/<id>/data/symbol.<conceptId>     the profile's own picture for that concept (card NG-8673323346005092805)
 ```
 
 ```json
@@ -165,7 +166,7 @@ An entry has exactly one of these three key sets. Anything else reads as unreada
 | --- | --- | --- |
 | `version`, `labelDe`, `speechDe`, `copied` | The catalogue wording (`src/concepts.ts`), copied when the concept was chosen: a copy of the catalogue wording at that moment. | `setBoardConcepts`, and `clearWording` for a concept on the board |
 | `version`, `labelDe`, `speechDe` | A caregiver's own wording for a catalogue concept. | `setWording` |
-| `version`, `labelDe`, `speechDe`, `custom` | A concept of this profile only. It has no symbol yet and the board shows it as a text button; symbol images are a later card. | `putCustomConcept`, and `setWording` on a custom concept |
+| `version`, `labelDe`, `speechDe`, `custom` | A concept of this profile only. The board shows it with the profile's own picture, or as a text button. | `putCustomConcept`, and `setWording` on a custom concept |
 
 - `copied` and `custom` are `true` when present. `false`, any other value, or both together make
   the entry unreadable.
@@ -195,6 +196,28 @@ Consequences of copying the wording when a concept is chosen:
 - An export is self-contained for wording: it carries the label and sentence of every concept
   chosen through this module, so a restored board reads the same on any app version. It does not
   carry symbols; those come from the catalogue of the app that shows the board.
+
+**Own pictures** (card NG-8673323346005092805). A picture is a separate entry, so the wording entries
+keep their exact key sets and version 1:
+
+```json
+{ "version": 1, "dataUrl": "data:image/png;base64,iVBORw0KGgo…" }
+```
+
+- Exactly these two keys. `dataUrl` is a base64 PNG, JPEG or WebP data URL of at most
+  `MAX_SYMBOL_DATA_URL_LENGTH` (256 KiB) characters (`isSymbolDataUrl`). An SVG, a plain-text data
+  URL, a path or a web address is unreadable. The caregiver area stores only what it redrew
+  through a canvas (at most 256 × 256 pixels), so no markup, script or metadata of the chosen file
+  is stored.
+- `resolveBoard` shows a readable picture before the catalogue's, for a catalogue, custom or
+  retired concept, and marks the entry with `ownSymbol: true`. A picture that cannot be read is
+  left out (the catalogue picture or text is shown) and reported as `damaged-symbol` with its
+  damage kind; the board's general line "Nicht alle Begriffe …" covers it.
+- A picture is read only for a concept that is shown, so one more read per concept on the board.
+- It is plain JSON in the profile's data, so it counts toward the profile's size limits and
+  travels in an export like every other entry: a restored board shows the same pictures. A
+  picture under 256 KiB lets a profile hold a few hundred of them.
+- Taking a concept off the board keeps its picture, like its wording, so it comes back with it.
 
 ### Limits
 
@@ -228,7 +251,9 @@ All writes validate first and store nothing when they refuse. A refusal by this 
 | `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept, a custom concept (it stays custom) or a retired concept. The result is a caregiver's wording, without `copied`. Replaces an unreadable entry under a catalogue id. Refuses an entry written by a newer app version (`unsupported-entry`). | 1 |
 | `clearWording(store, id, conceptId, catalogue)` | For a catalogue concept on the board: stores the current catalogue wording again, as a copy, whether the entry was readable or unreadable. For a catalogue concept that is not on the board: deletes the entry, readable or unreadable. Under an id the catalogue does not have: deletes an unreadable entry. Refuses a custom concept (`custom-concept`), a readable retired one (`retired-concept`) and an entry written by a newer app version (`unsupported-entry`). | 1 |
 | `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. Refuses to replace an entry written by a newer app version (`unsupported-entry`). | 1 |
-| `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom or retired concept off the board and deletes its entry. Also clears an unreadable or missing entry, but only under an id that is not in the catalogue. | 2 |
+| `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom or retired concept off the board, deletes its own picture (not one a newer app wrote) and then its entry. Also clears an unreadable or missing entry, but only under an id that is not in the catalogue. | up to 3 |
+| `setSymbol(store, id, conceptId, dataUrl, catalogue)` | Stores the profile's own picture for a catalogue concept or one with a readable entry in this profile (`unknown-concept` otherwise). Refuses a value `isSymbolDataUrl` rejects (`invalid-symbol`) and replacing a picture a newer app wrote (`unsupported-entry`); replaces an unreadable one. | 1 |
+| `clearSymbol(store, id, conceptId)` | Deletes the profile's own picture, readable or not; nothing to do when there is none. Refuses a picture a newer app wrote (`unsupported-entry`). | 0 or 1 |
 | `listCustomConcepts(store, id)` | Read only: the profile's custom concepts (not the retired ones), the ids of unreadable entries (`unreadableIds`), and the same ids with their damage kind (`unreadable`: `unsupported-version` or `unreadable`; card NG-34). | 0 |
 
 When `setBoardConcepts` stores a copy for a chosen catalogue concept. "Newly chosen" means: in
@@ -541,11 +566,11 @@ utterance, which the board uses to know that a sentence is no longer being spoke
   them. Taking a concept off the board keeps its examples on purpose (like its wording), so that
   they come back with it. Whether `removeCustomConcept` should also delete the examples, or a
   custom id must never be used again, is still open; `board-data.ts` was outside card NG-19.
-- For the symbol card (NG-27): a concept the catalogue drops becomes a text-only tile on the boards
-  that have it, with no problem reported and no line on the board. The child loses the picture
-  without anyone being told.
-- For the symbol card (NG-27): the symbol always comes from the current catalogue, the sentence
-  from the profile. If a later catalogue gives an id another picture or meaning, a board keeps the
+- A concept the catalogue drops becomes a text-only tile on the boards that have it, unless the
+  profile has its own picture for it (card NG-8673323346005092805), with no problem reported and no
+  line on the board. The child loses the picture without anyone being told.
+- Without an own picture, the symbol comes from the current catalogue, the sentence from the
+  profile. If a later catalogue gives an id another picture or meaning, a board keeps the
   stored label and sentence under the new picture.
 - A copy that is on a board is never refreshed by itself, so a catalogue typo that was copied stays
   on that board. The `copied` marker makes such entries findable; nothing refreshes them yet.
@@ -553,8 +578,8 @@ utterance, which the board uses to know that a sentence is no longer being spoke
   from the grid rule (140 px minimum tile width, 0.8 rem gap, 1 rem page padding, and 1 rem padding
   plus a 6 px border for the frame), not rendered: at 360 px width the examples show one column
   where an own board shows two, at 480 px two where an own board shows three.
-- Reading a board costs sequential backend reads, two per concept plus three (83 for a board of
-  40 concepts), at start-up and on every refresh. The 1.5 s bound is unmeasured, so on a slow
+- Reading a board costs sequential backend reads, three per concept plus three (123 for a board of
+  40 concepts; the third is the own picture), at start-up and on every refresh. The 1.5 s bound is unmeasured, so on a slow
   device it may fire on every profile switch and show the examples instead of the new board. The
   caregiver area offers a retry ("Tafel neu laden", [caregiver.md](caregiver.md)); whether the app
   should also accept a late answer when no newer refresh has started is open.

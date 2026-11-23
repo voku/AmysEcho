@@ -12,13 +12,23 @@
  * These three key sets are the only ones accepted; `custom` and `copied` are
  * `true` when present and never appear together.
  *
+ *   data "symbol.<conceptId>"      { version: 1, dataUrl }   the profile's own picture for the concept (card NG-8673323346005092805)
+ *
+ * A picture is its own entry, so a wording entry keeps its exact key set and
+ * version. `dataUrl` is a base64 PNG, JPEG or WebP data URL of at most
+ * `MAX_SYMBOL_DATA_URL_LENGTH` characters: a picture a caregiver chose, already
+ * redrawn on the device (the caregiver area does that through a canvas), so
+ * no SVG, script or metadata of the original file is ever stored. Being plain
+ * JSON, it travels in a profile export like any other data.
+ *
  * The wording of a catalogue concept is copied into the profile when the
  * concept is chosen (`setBoardConcepts`), so a board does not change when a
  * later catalogue changes a sentence or drops a concept. An entry without
  * `custom` under an id the current catalogue does not have is therefore the
  * stored wording of a dropped ("retired") concept, and a valid board member.
  *
- * A custom concept has no symbol yet (symbol images are card NG-8673323346005092805).
+ * The profile's own picture of a concept is shown before the catalogue's; a
+ * custom or retired concept without one is shown as text.
  *
  * Writes are strict: anything that is not valid is rejected and nothing is
  * stored. Reads are tolerant: `resolveBoard` never throws for a bad concept
@@ -46,6 +56,11 @@ export const MAX_SPEECH_LENGTH = 200;
 /** Longest concept id this module writes; "concept." plus the id still fits a data name. */
 export const MAX_BOARD_CONCEPT_ID_LENGTH = 40;
 const DATA_NAME_PREFIX = "concept.";
+const SYMBOL_NAME_PREFIX = "symbol.";
+export const SYMBOL_ENTRY_VERSION = 1;
+/** Longest stored picture, in characters of its data URL (256 KiB; a 256 x 256 picture fits easily). */
+export const MAX_SYMBOL_DATA_URL_LENGTH = 256 * 1024;
+const SYMBOL_DATA_URL_PATTERN = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 const BOARD_CONCEPT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 /** Control characters, line and paragraph separators, and unpaired surrogates. */
@@ -73,12 +88,15 @@ export interface Wording {
 
 export interface BoardEntry extends Wording {
   readonly id: string;
-  /** Null for a concept without a symbol; render it as text only. */
+  /** Null for a concept without a symbol; render it as text only. A data URL when the profile has its own picture. */
   readonly symbolPath: string | null;
+  /** Present (and true) when `symbolPath` is the profile's own picture rather than the catalogue's. */
+  readonly ownSymbol?: true;
   /**
    * "catalogue": a concept of the current catalogue. "custom": a concept of
    * this profile only. "retired": chosen from an earlier catalogue that had
-   * it; shown from the wording stored then, without a symbol.
+   * it; shown from the wording stored then, with the profile's own picture or
+   * as text.
    */
   readonly source: "catalogue" | "custom" | "retired";
 }
@@ -93,15 +111,17 @@ export interface BoardEntry extends Wording {
  *   read. The board shows the catalogue wording.
  * - "custom-shadows-catalogue": the profile has a custom concept under an id
  *   the catalogue (now) uses too. The board shows the profile's own concept,
- *   as text, and not the catalogue concept.
+ *   and not the catalogue concept.
+ * - "damaged-symbol": the profile's own picture for a concept on the board
+ *   cannot be read. The board shows the catalogue's picture, or text.
  */
-export type BoardProblemKind = "unknown-concept" | "damaged-custom-concept" | "damaged-wording" | "custom-shadows-catalogue";
+export type BoardProblemKind = "unknown-concept" | "damaged-custom-concept" | "damaged-wording" | "custom-shadows-catalogue" | "damaged-symbol";
 
 export interface BoardProblem {
   readonly kind: BoardProblemKind;
   readonly conceptId: string;
   /**
-   * Only for the two "damaged" kinds. "unsupported-version": a newer app
+   * Only for the three "damaged" kinds. "unsupported-version": a newer app
    * version wrote the entry and it is probably intact. "unreadable": the rest.
    */
   readonly damage?: "unsupported-version" | "unreadable";
@@ -140,7 +160,8 @@ export type BoardDataErrorKind =
   | "custom-concept"
   | "retired-concept"
   | "unsupported-entry"
-  | "catalogue-concept";
+  | "catalogue-concept"
+  | "invalid-symbol";
 
 /** Caregiver input was refused; nothing was written. `kind` says why. */
 export class BoardDataError extends Error {
@@ -232,6 +253,40 @@ function readEntry(value: unknown): StoredEntry {
   }
 }
 
+type StoredSymbol =
+  | { readonly state: "missing" }
+  | { readonly state: "damaged"; readonly damage: "unsupported-version" | "unreadable" }
+  | { readonly state: "ok"; readonly dataUrl: string };
+
+/** True for a picture board data stores: a base64 PNG, JPEG or WebP data URL within the length limit. */
+export function isSymbolDataUrl(value: unknown): value is string {
+  return typeof value === "string" && value.length <= MAX_SYMBOL_DATA_URL_LENGTH && SYMBOL_DATA_URL_PATTERN.test(value);
+}
+
+/** Strict reader for one stored picture: exactly `version` and `dataUrl`. */
+function readSymbolEntry(value: unknown): StoredSymbol {
+  if (value === undefined) return { state: "missing" };
+  const unreadable: StoredSymbol = { state: "damaged", damage: "unreadable" };
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return unreadable;
+  const record = value as Record<string, unknown>;
+  const version = record["version"];
+  if (version !== SYMBOL_ENTRY_VERSION) {
+    return typeof version === "number" && version > SYMBOL_ENTRY_VERSION ? { state: "damaged", damage: "unsupported-version" } : unreadable;
+  }
+  const keys = Object.keys(record).sort();
+  if (keys.length !== 2 || keys[0] !== "dataUrl" || keys[1] !== "version") return unreadable;
+  return isSymbolDataUrl(record["dataUrl"]) ? { state: "ok", dataUrl: record["dataUrl"] } : unreadable;
+}
+
+function symbolName(conceptId: string): string {
+  return `${SYMBOL_NAME_PREFIX}${conceptId}`;
+}
+
+async function readSymbol(store: ProfileStore, profileId: string, conceptId: string): Promise<StoredSymbol> {
+  if (!isBoardConceptId(conceptId)) return { state: "missing" };
+  return readSymbolEntry(await store.data(profileId).get(symbolName(conceptId)));
+}
+
 function dataName(conceptId: string): string {
   return `${DATA_NAME_PREFIX}${conceptId}`;
 }
@@ -261,10 +316,12 @@ async function readStored(store: ProfileStore, profileId: string, conceptId: str
  *
  * Per id, the profile's stored entry decides before the catalogue does:
  *
- * - a custom entry is shown as stored, without a symbol;
+ * - a custom entry is shown as stored;
  * - a stored wording is shown as stored; the symbol is the current
  *   catalogue's, and when the catalogue no longer has the id the concept is
- *   still shown, as text ("retired");
+ *   still shown ("retired");
+ * - the profile's own picture ("symbol.<id>"), when it can be read, is shown
+ *   instead of the catalogue's or of none ("damaged-symbol" otherwise);
  * - without an entry (a board from before wording was copied on choosing) the
  *   current catalogue wording is shown.
  */
@@ -275,16 +332,23 @@ export async function resolveBoard(store: ProfileStore, profileId: string, catal
   for (const id of profile.conceptIds) {
     const known = inCatalogue(catalogue, id);
     const stored = await readStored(store, profileId, id);
+    // The profile's own picture, read only for a concept that is shown.
+    const pictured = async (entry: BoardEntry): Promise<BoardEntry> => {
+      const symbol = await readSymbol(store, profileId, id);
+      if (symbol.state === "ok") return { ...entry, symbolPath: symbol.dataUrl, ownSymbol: true };
+      if (symbol.state === "damaged") problems.push({ kind: "damaged-symbol", conceptId: id, damage: symbol.damage });
+      return entry;
+    };
     if (stored.state === "ok" && stored.custom) {
       if (known !== null) problems.push({ kind: "custom-shadows-catalogue", conceptId: id });
-      entries.push({ id, ...stored.wording, symbolPath: null, source: "custom" });
+      entries.push(await pictured({ id, ...stored.wording, symbolPath: null, source: "custom" }));
     } else if (known !== null) {
       if (stored.state === "damaged") problems.push({ kind: "damaged-wording", conceptId: id, damage: stored.damage });
       const wording: Wording = stored.state === "ok" ? stored.wording : { labelDe: known.labelDe, speechDe: known.speechDe };
-      entries.push({ id, ...wording, symbolPath: known.symbolPath, source: "catalogue" });
+      entries.push(await pictured({ id, ...wording, symbolPath: known.symbolPath, source: "catalogue" }));
     } else if (stored.state === "ok") {
       // The wording was copied when the concept was chosen; the catalogue has dropped the id since.
-      entries.push({ id, ...stored.wording, symbolPath: null, source: "retired" });
+      entries.push(await pictured({ id, ...stored.wording, symbolPath: null, source: "retired" }));
     } else if (stored.state === "damaged") {
       problems.push({ kind: "damaged-custom-concept", conceptId: id, damage: stored.damage });
     } else {
@@ -461,21 +525,59 @@ export async function putCustomConcept(
 }
 
 /**
+ * Stores the profile's own picture for a concept (card
+ * NG-8673323346005092805). The id must be a catalogue concept or have a
+ * readable entry in this profile ("unknown-concept"); `dataUrl` must pass
+ * `isSymbolDataUrl` ("invalid-symbol"). A picture a newer app wrote is not
+ * replaced ("unsupported-entry"); an unreadable one is. One store write.
+ */
+export async function setSymbol(store: ProfileStore, profileId: string, conceptId: string, dataUrl: unknown, catalogue: readonly CatalogueConcept[]): Promise<void> {
+  const id = requireConceptId(conceptId);
+  if (!isSymbolDataUrl(dataUrl)) throw new BoardDataError("invalid-symbol", `a picture is a base64 PNG, JPEG or WebP data URL of at most ${MAX_SYMBOL_DATA_URL_LENGTH} characters`);
+  if (inCatalogue(catalogue, id) === null && (await readStored(store, profileId, id)).state !== "ok") {
+    throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
+  }
+  const symbol = await readSymbol(store, profileId, id);
+  if (symbol.state === "damaged" && symbol.damage === "unsupported-version") {
+    throw new BoardDataError("unsupported-entry", `the picture for "${id}" was written by a newer app version and is left as it is`);
+  }
+  await store.data(profileId).set(symbolName(id), { version: SYMBOL_ENTRY_VERSION, dataUrl });
+}
+
+/**
+ * Takes the profile's own picture of a concept away, readable or not; the
+ * board shows the catalogue's picture again, or text. Clearing what is not
+ * there is fine. A picture a newer app wrote is refused ("unsupported-entry").
+ * One store write (none when there is nothing to delete).
+ */
+export async function clearSymbol(store: ProfileStore, profileId: string, conceptId: string): Promise<void> {
+  const id = requireConceptId(conceptId);
+  const symbol = await readSymbol(store, profileId, id);
+  if (symbol.state === "missing") return;
+  if (symbol.state === "damaged" && symbol.damage === "unsupported-version") {
+    throw new BoardDataError("unsupported-entry", `the picture for "${id}" was written by a newer app version and is left as it is`);
+  }
+  await store.data(profileId).delete(symbolName(id));
+}
+
+/**
  * Removes a concept that only this profile has: a custom concept, or the
  * stored wording of a concept the catalogue has dropped. It is taken off the
  * board and out of the profile's data. Also works for an id that is not in
  * the catalogue and whose entry is unreadable or missing, so a board can be
  * cleaned up. A catalogue concept is refused ("catalogue-concept").
  *
- * Two store writes, in this order:
+ * Up to three store writes, in this order:
  *
  *   1. take the id out of `conceptIds` (skipped when it is not on the board);
- *   2. delete the data entry.
+ *   2. delete its own picture (skipped when there is none; one a newer app
+ *      wrote is left, as everywhere);
+ *   3. delete the data entry.
  *
- * If the second write fails, the board no longer names the concept and
- * resolves without a problem; the entry is still listed by
- * `listCustomConcepts`, and calling this function again finishes the job. The
- * other order could leave an id on the board with nothing behind it.
+ * If a later write fails, the board no longer names the concept and resolves
+ * without a problem; the entry is still listed by `listCustomConcepts`, and
+ * calling this function again finishes the job. The other order could leave
+ * an id on the board with nothing behind it, or a picture of nothing.
  */
 export async function removeCustomConcept(store: ProfileStore, profileId: string, conceptId: string, catalogue: readonly CatalogueConcept[]): Promise<void> {
   const id = requireConceptId(conceptId);
@@ -485,5 +587,7 @@ export async function removeCustomConcept(store: ProfileStore, profileId: string
   }
   const profile = await store.get(profileId);
   if (profile.conceptIds.includes(id)) await store.setConceptIds(profileId, profile.conceptIds.filter((other) => other !== id));
+  const symbol = await readSymbol(store, profileId, id);
+  if (symbol.state === "ok" || (symbol.state === "damaged" && symbol.damage === "unreadable")) await store.data(profileId).delete(symbolName(id));
   await store.data(profileId).delete(dataName(id));
 }
