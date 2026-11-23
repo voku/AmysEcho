@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:93af45795b968ca50e3c9b302a7924c1ce7ade31",
+    "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
     "contract_revision": 3,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
     "history": [
         {
@@ -234,6 +234,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:2:10c3f6f5",
                 "summary": "A replay mismatch throws inside the capture loop, is reported as tracker_failed and accepted as a cut with a problem view; only some(!cut) catches it. Record mismatches and assert none, assert no problem view, and require every attempt to end through Stopp.",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T15:01:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T15:01:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:ae79cf9b28e87e7789a881d4c024e752b62e2117",
+                "context_id": "build-r3-3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:90f845b3ea39522e0bf282a765d52a506ac9ffa979ab5c86d31499970b903491",
+                "outcome": "completed",
+                "run_id": "run:NG-20:6dbed2dff2320d38",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:fbb2f986",
+                "summary": "Replay mismatches recorded and asserted empty; no attempt may end in a problem view; every attempt must end through Stopp; doc updated; verify passes",
                 "task_id": "NG-20",
                 "validation_references": []
             }
