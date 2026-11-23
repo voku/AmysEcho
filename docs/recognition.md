@@ -1,7 +1,9 @@
 # Gesture recognition core
 
-Code: `src/recognition/`. Board cards: NG-1, and NG-18 for one and two hands, time and rest. Product slice: S3 in
-[#1176](https://github.com/voku/AmysEcho/issues/1176) (matcher only; no camera, UI or storage yet).
+Code: `src/recognition/`. Board cards: NG-1, NG-18 for one and two hands, time and rest, and NG-19 for
+stored examples. Product slice: S3 in [#1176](https://github.com/voku/AmysEcho/issues/1176). The camera
+is card NG-3 ([capture.md](capture.md)); teaching examples in the caregiver area is card NG-19
+([caregiver.md](caregiver.md)); recognising an attempt on the child's board is card NG-20 and not built.
 
 The hand-tracker decision, with what was measured and what only the phone can answer, is in
 [tracker-decision.md](tracker-decision.md) (card NG-16).
@@ -124,8 +126,10 @@ timestamps; how, and what is still unverified on a phone, is in capture.md.
   camera task (NG-3) wants a child whose shoulders are hidden for one attempt to stay
   comparable, it has to pass on the last shoulders it saw. Card NG-3 does not: each capture is
   anchored by the shoulders it saw itself, and the adapter has `shoulders: "never"` for a profile
-  that uses the hands anchor throughout. Which of the two a profile uses is decided with the stored
-  examples (card NG-19).
+  that uses the hands anchor throughout. Card NG-19 decided: teaching uses the default (`"auto"`),
+  each stored example keeps the anchor it was recorded with, and the teaching view says when a
+  recording had no shoulders and asks for them to be in the picture. A profile can therefore hold
+  examples of both anchors; an attempt is compared only with those of its own anchor.
 - **Frames carry timestamps in milliseconds that do not decrease.** The cut, the hand rules and
   the resampling all use them. 7 to 15 frames per second are enough for the rules; what low and
   unsteady rates cost is in the table below.
@@ -144,17 +148,71 @@ timestamps; how, and what is still unverified on a phone, is in capture.md.
 
 `FeatureSequence` in `features.ts` is the payload the matcher compares (schema version 2: version
 1 had no `hands` field, cut the gesture by visibility and laid it out by frame number; its
-sequences are not comparable with these). Nothing is stored yet, so raising the version cost
-nothing. Version 2 has never been stored or released either, so the hand rules were corrected
-within card NG-18 without raising it again. The type is still exported under its old name `FeatureSequenceV1` as well, because
-`dtw.ts` imports that name. It is not yet the stored
-record described in section 3 of the product contract, which also needs the profile, timestamps,
-quality fields and provenance; that record is designed with storage (card NG-2).
+sequences are not comparable with these). Version 1 was never stored. Since card NG-19, sequences
+of version 2 are stored inside the example record below, so **every change of the feature
+weights, the step count or the rules of `buildFeatureSequence` that changes values must raise
+`FEATURE_SCHEMA_VERSION`**; stored examples of the old version are then reported as
+`incompatible` and have to be recorded again. The type is still exported under its old name
+`FeatureSequenceV1` as well, because `dtw.ts` imports that name.
 
-The feature weights and the step count are baked into the values. Changing any of them makes old
-sequences incomparable with new ones, so every such change must raise `FEATURE_SCHEMA_VERSION`.
-Because raw landmarks are not kept, stored examples cannot be recomputed after such a change; they
-have to be recorded again unless storage keeps unweighted features. That decision belongs to NG-2.
+## Stored examples (card NG-19)
+
+Code: `src/recognition/examples.ts`, tests `test/examples.test.mjs`. Storage layout and limits:
+[storage.md](storage.md), "Gesture examples". The view that records them:
+[caregiver.md](caregiver.md), "Teaching a gesture".
+
+One example is one data entry of its profile, `gesture.<conceptId>.<12 hex characters>`, written
+through the profile store (`saveExample`). Its value, `GestureExampleRecordV1`:
+
+```json
+{ "version": 1, "conceptId": "trinken", "capturedAt": "2026-11-23T09:30:00.000Z",
+  "featureSchemaVersion": 2, "anchor": "shoulders", "hands": "right", "decimals": 4,
+  "frames": 20, "durationMs": 1900, "steps": [[0, 0, …], …] }
+```
+
+- `steps` are the 32 x 86 values of the `FeatureSequence`, as weighted by `features.ts`, rounded to
+  `EXAMPLE_DECIMALS` (4) decimals; negative zero is stored as zero; a typed array is turned into
+  plain numbers first. `frames` and `durationMs` (first to last frame) describe the recording; the
+  matcher does not use them. `hands` is what `buildFeatureSequence` decided for the recording
+  (`left`, `right` or `both`), so one- and two-hand examples are told apart in the record.
+- The profile is not in the record: the key says whose it is, and a restore under a new id
+  (`onConflict: "copy"`) must not leave a record that names another profile.
+- **No landmark, picture or video is stored, so features cannot be rebuilt.** Decided for card
+  NG-19: keeping raw landmarks on the device would allow re-extraction after a schema change, but
+  they are a finer trace of the child's body and several times larger (21 points per hand, two
+  coordinates, every frame of the recording instead of 32 steps). After a schema change the
+  examples have to be recorded again; the caregiver area says so for each example that cannot be
+  used. Because no landmarks are kept, the caregiver area does not mention them.
+- **Reading is strict** (`parseExampleRecord`): exactly these fields, `version` 1, the feature
+  schema of this app, `decimals` 4, values already in stored form, a real UTC timestamp, and the
+  concept id of the data name. Anything else is listed as damaged by `listExamples`, never dropped
+  or repaired: `unsupported-version` (record version or feature schema above this app's: a newer
+  app wrote it; never deleted by this app), `incompatible` (an older feature schema: record again)
+  or `unreadable`.
+- `countExamples` counts examples per concept from the data names alone, so the board editor can
+  show "Gebärde: 3 Beispiele" without reading every example on every redraw.
+- `sequenceFromRecording` is what the teaching view runs on a recording: the tracker adapter's
+  `toLandmarkFrames`, then `buildFeatureSequence`, with the adapter's defaults (shoulders when
+  seen, nothing removed). A recording that gives no sequence is refused with the builder's reason.
+  For a two-hand sequence it also says whether one hand stayed within `MIN_TRAVEL` (`handTravel`:
+  palm centres averaged over `SPEED_SPAN_MS`, in shoulder widths, or three hand lengths without
+  shoulders; an approximation of the builder's own movement rule). That is a hint for the
+  caregiver only ("Eine Hand lag still im Bild …"); nothing about it is stored, and the matcher
+  does not use it.
+
+**Precision and what rounding costs.** Four decimals is 0.00005 at most per value; distances
+between repetitions of one gesture are 0.2 to 1.2. Checked with a probe that is not part of the
+repository (run by hand for card NG-19): the four profiles of the second table above (right, left,
+both, mixed; 12 gestures, 3 examples in each of two teaching sessions), each with the three kinds
+of unknown movements of the first table, under eight of its disturbances (none, second hand 100
+and 250 ms, a hand lost for 300 and 450 ms, rest 1 s, 7 and 7 to 15 frames per second); attempts
+at full precision against the examples at full precision and against the same examples rounded:
+**0 of 20,736 decisions changed** (top-1 10,437, wrong concept 0, unknown 1,083, unknown movements
+accepted 2,833 on both sides; the closest distance moved by 0.00002 at most; no calibrated limit
+changed). A small version of that comparison is in `test/examples.test.mjs`. Size as the store
+counts it: a one-hand example is about 13 kB (30 kB at full precision), a two-hand one about 21 kB
+(55 kB).
+
 
 ## Measured on synthetic gestures
 
@@ -472,5 +530,7 @@ more.
   1.2 s apart, separate visits, gave 4% and 21%. The camera task could drop such single frames. A lap hand that holds a toy (a fist) when it was open in the
   examples gives `too_far` with both matchers (probe `ng18-blind4/c1.mjs`): the resting hand's
   shape is part of a two-hand sequence.
+- **Stored examples are not re-extracted.** A change of the features makes every stored example
+  `incompatible`; they have to be recorded again (see "Stored examples").
 - **Cost is unmeasured on phones.** Informal runs in Node on a desktop CPU took between 3 and 7 ms
   per attempt against 90 examples; no test tracks this.

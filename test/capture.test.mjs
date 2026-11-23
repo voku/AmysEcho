@@ -11,7 +11,7 @@ import {
 } from "../dist/recognition/tracker-adapter.js";
 import { buildFeatureSequence, HAND_POINTS } from "../dist/recognition/features.js";
 import {
-  CAPTURE_TEXT, POSE_EVERY, SHOULDERS_LOST_AFTER, TRACKER_CACHE_PREFIX, nextShoulders, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
+  CAPTURE_BRIDGE_KEY, CAPTURE_TEXT, POSE_EVERY, captureBridge, SHOULDERS_LOST_AFTER, TRACKER_CACHE_PREFIX, nextShoulders, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
 } from "../dist/capture/capture.js";
 import { createTrackerHost } from "../dist/capture/tracker-worker.js";
 
@@ -302,6 +302,61 @@ test("capture without record keeps no frames; with a limit it keeps only the new
   const frames = kept.session.stop();
   assert.equal(frames.length, 4);
   assert.ok(frames[3].timestampMs > frames[0].timestampMs);
+});
+
+test("capture: recordings can be started and stopped while the camera keeps running (teaching, card NG-19)", async () => {
+  const { environment, log } = fakeEnvironment();
+  let seen = 0;
+  const started = await startCapture(environment, { onFrame: () => { seen += 1; } });
+  await until(() => seen >= 3);
+  // Without `record` nothing is kept until a recording starts.
+  assert.deepEqual(started.session.stopRecording(), []);
+  started.session.startRecording();
+  const from = seen;
+  await until(() => seen >= from + 5);
+  const first = started.session.stopRecording();
+  assert.ok(first.length >= 5);
+  assert.ok(first.every((frame) => Object.keys(frame).sort().join() === "hands,imageHeight,imageWidth,pose,poseRan,timestampMs"));
+  // Stopped: frames flow on, none is kept; the camera still runs.
+  const after = seen;
+  await until(() => seen >= after + 3);
+  assert.deepEqual(started.session.stopRecording(), []);
+  assert.equal(log.tracksStopped, 0);
+  // A second recording starts empty, and the end of the capture returns what it holds.
+  started.session.startRecording();
+  const again = seen;
+  await until(() => seen >= again + 2);
+  const last = started.session.stop();
+  assert.ok(last.length >= 2 && last[0].timestampMs > first[first.length - 1].timestampMs);
+  assert.equal(log.tracksStopped, 1);
+  // After the end nothing starts again.
+  started.session.startRecording();
+  assert.deepEqual(started.session.stopRecording(), []);
+
+  // With `record` frames are kept from the start; `startRecording` forgets those.
+  const kept = fakeEnvironment();
+  let count = 0;
+  const recording = await startCapture(kept.environment, { record: true, onFrame: () => { count += 1; } });
+  try {
+    await until(() => count >= 4);
+    recording.session.startRecording();
+    const mark = count;
+    await until(() => count >= mark + 2);
+    const fresh = recording.session.stopRecording();
+    assert.ok(fresh.length >= 2 && fresh.length <= count - mark);
+  } finally {
+    recording.session.stop();
+  }
+});
+
+test("capture bridge: what the caregiver area gets without importing this module", () => {
+  // Registered under this global name when the page loads capture.js (not in Node: there is no document).
+  assert.equal(CAPTURE_BRIDGE_KEY, "amysEchoCapture");
+  assert.equal(globalThis[CAPTURE_BRIDGE_KEY], undefined);
+  const bridge = captureBridge();
+  assert.equal(typeof bridge.start, "function");
+  assert.equal(bridge.text, CAPTURE_TEXT);
+  assert.equal(bridge.nextShoulders, nextShoulders);
 });
 
 test("capture: a tracker that cannot load never asks for the camera", async () => {

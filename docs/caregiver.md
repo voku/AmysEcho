@@ -1,7 +1,7 @@
 # Caregiver area
 
-Status: second slice (cards NG-29 and NG-31). Code in `src/caregiver.ts`, styles in
-`public/styles.css`, tests in `test/caregiver.test.mjs`.
+Status: second slice (cards NG-29 and NG-31), rewording (NG-33) and teaching gestures (NG-19). Code in
+`src/caregiver.ts`, styles in `public/styles.css`, tests in `test/caregiver.test.mjs`.
 
 ## Verification status
 
@@ -27,6 +27,26 @@ Status: second slice (cards NG-29 and NG-31). Code in `src/caregiver.ts`, styles
     where "Endgültig löschen" is about to be drawn; a finger that stays down across "Abbrechen"
     and a second "Löschen"; a finger that slides off the button during and after a hold; the
     lift after a completed hold; a tap right after a tap that retires the status message.
+- Teaching a gesture (card NG-19) was driven once by hand in headless Chromium with a probe that
+  is not part of the repository or of CI, with Chromium's fake camera playing a DGS video from
+  `main_old` (as the browser test reads them; deleted after use), at 390 px width: open by
+  holding, create a profile, add "Trinken", "Gebärde beibringen", "Kamera starten" (no tracker
+  file and no camera requested before that tap; the camera ran after about 0.8 s with the tracker
+  cached), live line, two recordings of about 3.5 s, "Behalten", one recording left to stop by
+  itself after 8 s, "Zurück". With `trinken_main_trinken.mp4` both recordings were usable "mit
+  einer Hand (rechts)" (27 and 40 frames, stored records of about 12.9 kB, shoulders anchor);
+  with `trinken_main_kaffee.mp4` the first was refused as hands unclear and the second usable
+  "mit beiden Händen" (34 frames, about 20 kB). The 8-second recordings, which ran over the end of
+  the looping video, were refused as hands unclear. The stored IndexedDB entries held exactly the
+  record's fields; after "Zurück" no video element was left; the row showed "Gebärde: 2
+  Beispiele"; no console error and no request left the origin. The probe clicks with a mouse.
+- Second build of card NG-19, the same kind of probe with `trinken_main_trinken.mp4`, three
+  examples each at 360 x 640 and 640 x 360, measured in 16 states (camera off; per example ready,
+  countdown, recording, result; after the third): the record button ("Kamera starten", "Aufnahme
+  starten", "Abbrechen", "Aufnahme beenden", "Behalten", always in one place) at y = 270 to 314 and
+  the live line at y = 167 to 214 at 360 x 640, and at y = 226 to 270 and 122 to 169 at 640 x 360,
+  in every state, all inside the window. Two of the three recordings were usable, one was refused
+  (no hand in the part of the looping video that was recorded); no console error.
 - **Not** tested: a real phone or tablet, a real touch screen and a finger (the scripts use a
   mouse and emulated taps), an on-screen keyboard, a screen reader or switch access, text
   enlarged by the user, an installed app, and
@@ -46,7 +66,10 @@ A caregiver can, in the app and without a reload:
 - choose which catalogue concepts are on one profile's board and in which order, and take back
   removals made during the visit;
 - reload the board ("Tafel neu laden", under "Hilfe bei Problemen"), which is also the retry after
-  a refresh ran into its time-out.
+  a refresh ran into its time-out;
+- teach a gesture for a tile on the board: record examples with the camera, keep or discard
+  them, and delete them (card NG-19, "Teaching a gesture" below). Recognising a gesture on the
+  child's board is card NG-20 and not built.
 
 All text is German. The child's display name appears only inside the caregiver region; the region
 is emptied when the area closes, so no name stays in the page behind a `hidden` attribute.
@@ -254,8 +277,8 @@ failed. After a rename the area is drawn from the store. "Abbrechen" and Escape 
 and write nothing. The field has the same attributes as the create field.
 
 **Deleting.** Two steps, without a dialog element. "Löschen" replaces the whole body by the
-confirmation: "Profil „<name>“ löschen?", "Alle ausgewählten Begriffe dieses Profils gehen
-verloren. Eine Sicherung gibt es noch nicht.", for the active profile also "Das Kind sieht danach
+confirmation: "Profil „<name>“ löschen?", "Alle ausgewählten Begriffe und beigebrachten Gebärden
+dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.", for the active profile also "Das Kind sieht danach
 Beispiele, bis eine andere Tafel aktiv ist.", the buttons "Abbrechen" and "Endgültig löschen", in
 that order, and under them the line "Zum Löschen 2 Sekunden gedrückt halten." Focus goes to
 "Abbrechen", and the confirmation starts right under the block. While it is open there is no
@@ -382,7 +405,8 @@ Under the field is one short line, which is also the field's description (`aria-
 "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt."
 The full notice is behind "Was wird gespeichert?" (a `<details>`): this is a test version; a first
 name or nickname is enough and no surname should be entered (owner decision on card NG-7); the
-name, the chosen concepts and own texts for them are stored only in this browser on this device; the app sends
+name, the chosen concepts, own texts for them and taught gestures are stored only in this browser on this
+device, and of a gesture only numbers about the movement of the hands, no picture and no video (card NG-19); the app sends
 nothing, but the device's keyboard may process what is typed on its own; a profile can be renamed
 and deleted here and there is no backup; clearing the website data in the browser removes all
 profiles in this browser and the offline copy of the app; the browser may remove the data on its
@@ -395,8 +419,9 @@ a given browser or on-screen keyboard honours these is unverified.
 "Tafel von „<name>“ bearbeiten", two lists:
 
 - "Auf der Tafel": the profile's concept ids in board order. A catalogue concept shows its
-  picture, the label and sentence stored in the profile (which is what the board shows), and the
-  buttons "nach oben", "nach unten" and "Entfernen". "nach oben" and "nach unten" are disabled at
+  picture, the label and sentence stored in the profile (which is what the board shows), a line
+  "Gebärde: 3 Beispiele" when gesture examples are stored for it, and the buttons "nach oben",
+  "nach unten", "Text ändern", "Gebärde beibringen" and "Entfernen". "nach oben" and "nach unten" are disabled at
   the ends of the editable sequence.
 - "Weitere Begriffe": the catalogue concepts that are not on the board, in catalogue order, each
   with one button "Hinzufügen". A concept in this list shows the catalogue wording, also when the
@@ -492,6 +517,129 @@ correction are off as for a name; capitals are left to the keyboard.
 - No id changes its place, no other entry is written, and the profile's name stays inside the
   caregiver region.
 
+**Teaching a gesture** (card NG-19). Every row of "Auf der Tafel" that the board shows has
+"Gebärde beibringen" next to "Text ändern" (also a custom or retired concept, and a concept whose
+entry a newer app wrote: teaching does not write the entry). It opens a view that takes over the
+body, like the rewording:
+
+- the heading "Gebärde für „<label>“ beibringen – Tafel von „<name>“" (it gets the focus);
+- **right under it, the controls, one block that stays in the same place for the whole session**
+  (second build of the card: in the first, "Aufnahme starten" moved by up to 240 px between
+  examples, and the live line fell below the window): the live line ("Eine Hand im Bild.
+  Schultern zu sehen.", as in the camera test, [capture.md](capture.md): the only feedback on
+  framing, there is no preview), the camera's line (preparing, asking, a problem, the countdown,
+  or "Die Aufnahme läuft. Jetzt die Gebärde machen."), both with a fixed height, then one button
+  and "Zurück". The button is "Kamera starten"; once the camera runs "Aufnahme starten"; during the
+  countdown "Abbrechen"; while recording "Aufnahme beenden"; after a usable recording "Behalten"
+  and "Verwerfen";
+- below the controls, in this order, what changes in length: what the last action came to (a
+  line of the view, not the status line, so that the block at the top does not grow and move the
+  controls; refusals and failures in the colour of the warnings), the verdict on the recording,
+  the size warning, the count, the notes on unusable examples, the instruction, and the list.
+- **the size of the profile, before anything is recorded.** Opening the view calls `store.usage`
+  once (it reads the whole profile; not on every redraw). Near the limit (90% of bytes or names):
+  "Der Platz für dieses Profil ist fast voll. Es passen nur noch wenige Beispiele hinein. Lösche
+  Beispiele, die nicht mehr gebraucht werden." At the limit (one more example does not fit):
+  "Der Platz für dieses Profil ist voll. Neue Beispiele können erst gespeichert werden, wenn
+  Beispiele gelöscht sind.", and there is no "Kamera starten". When `usage` fails, a line says
+  that the room could not be checked;
+- the count: "N Beispiele gespeichert." (or "Noch kein Beispiel gespeichert."), with ", davon M
+  nicht verwendbar" when stored entries of the tile cannot be used, and "Empfohlen sind mindestens
+  3." while fewer than 3 can be used. It counts every stored entry of the tile, as the row on the
+  board does ("Gebärde: N Beispiele", from the data names alone). When the examples cannot be
+  read, no count is shown, only "Die gespeicherten Beispiele können gerade nicht gelesen werden.";
+  a line for examples a newer app wrote, and one for examples that cannot be used and have to be
+  recorded again;
+- the instruction: "Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“: Das Gerät
+  zählt 3 Sekunden herunter, damit deine Hand aus dem Bild kommt. Dann die Gebärde einmal machen
+  und auf „Aufnahme beenden“ tippen. Nach 8 Sekunden endet die Aufnahme von selbst. Am besten steht
+  das Gerät fest, oder eine zweite Person hält es. Am besten mindestens 3 Beispiele aufnehmen, so
+  wie das Kind später vor dem Gerät sitzt. Gespeichert werden nur Zahlen zu Bewegung und Handform,
+  kein Bild und kein Video." (The stored features hold the shape of the hand's joints as well as
+  where the hands are; the first build said "Bewegung der Hände" only.);
+- "Gespeicherte Beispiele": one row per example, oldest first, "Beispiel 2: mit beiden Händen,
+  23.11.2026, 10:30 Uhr", each with "Löschen", and "Alle Beispiele löschen" from two examples on
+  (or when unusable ones are stored).
+
+**The camera only after the tap.** "Kamera starten" calls the capture module's `startCapture` (the
+real tracker and camera, card NG-3) through its bridge (below); before that tap nothing is
+requested. While it starts, a second tap does nothing. A problem (refused, no camera, tracker
+download) is said with the capture module's own German sentence, and "Kamera starten" is the retry.
+
+**Countdown, then recording.** The hand that taps "Aufnahme starten" is in the picture, and rest
+is not trimmed from a gesture (recognition.md), so a phone held in one hand would often give
+"hands unclear". So "Aufnahme starten" first counts `TEACH_COUNTDOWN_S` (3) seconds down, in the
+camera's line: "Gleich geht’s los: 3", "… 3 … 2", "… 3 … 2 … 1", written in place (the line keeps
+its height). Nothing is kept meanwhile. "Abbrechen" (in the button's place) ends it and records
+nothing; so does every way out of the view (below), because the countdown's timer belongs to the
+camera. Then the tracked frames are kept in memory (`startRecording`) until "Aufnahme beenden", or
+`TEACH_MAX_RECORDING_MS` (8 s from the end of the countdown) by itself (`stopRecording`); the camera
+keeps running. The frames go through `sequenceFromRecording` (tracker adapter, then the matcher's
+`buildFeatureSequence`). Nothing is stored yet:
+
+- usable: "Die Aufnahme kann verwendet werden: Gebärde mit einer Hand (rechts)." (or "(links)",
+  or "mit beiden Händen"), when no shoulders were seen also "Die Schultern waren nicht zu sehen. Am
+  besten so aufnehmen, dass die Schultern im Bild sind.", then "Behalten oder verwerfen?"; after the
+  8 s it starts with "Die Aufnahme hat nach 8 Sekunden von selbst geendet.". A two-hand recording
+  in which one hand stayed within the matcher's movement floor (`MIN_TRAVEL`, 0.1 shoulder widths,
+  on palm centres averaged over 200 ms: `handTravel` in `examples.ts`) gets the line "Eine Hand
+  lag still im Bild. Wenn die Gebärde mit einer Hand gemacht wird, lieber ohne die zweite Hand im
+  Bild aufnehmen." It is a hint only: the example is stored as recorded, with both hands;
+- not usable: "Diese Aufnahme kann nicht verwendet werden." with the reason and what to do, and
+  "Es wurde nichts gespeichert.": no hand seen ("Es war keine Hand zu sehen. Bitte so sitzen, dass
+  die Hände gut im Bild sind, …"), too short ("… Bitte erst „Aufnahme starten“ tippen, dann die
+  Gebärde machen und danach „Aufnahme beenden“ tippen."), hands unclear ("Es war nicht klar, ob
+  die Gebärde mit einer oder mit beiden Händen gemacht wird: Eine Hand war nur zeitweise im Bild.
+  Bitte die Hände der Gebärde die ganze Zeit im Bild lassen, andere Hände aus dem Bild nehmen …"),
+  a hand lost, no frames, a faulty recording. "Aufnahme starten" is then the next try.
+
+"Behalten" is one queued write (`saveExample`, one data name per example) and says, under the
+controls, "Das Beispiel wurde gespeichert. Für diese Taste sind jetzt 3 Beispiele gespeichert.";
+the focus goes to "Aufnahme starten" for the next one. "Verwerfen" forgets the recording ("Die
+Aufnahme wurde verworfen. Es wurde nichts gespeichert."). A refusal for size (`ProfileSizeError`)
+says "Das Profil ist voll. Das Beispiel wurde nicht gespeichert. Bitte nicht mehr gebrauchte
+Beispiele löschen." as an error; the recording is dropped, the camera stops, the view is treated
+as full, and nothing is tried again. A write that failed otherwise keeps the recording and says
+so; a second tap on "Behalten" is the caregiver's retry.
+
+**Deleting examples** follows rules 12 and 17: "Löschen" (one example) or "Alle Beispiele löschen"
+stops the camera and replaces the body by a confirmation ("Beispiel 2 von „Trinken“ auf der Tafel
+von „Mia“ löschen?" or "Alle 3 Beispiele von „Trinken“ auf der Tafel von „Mia“ löschen?", "Das
+kann nicht rückgängig gemacht werden. Die Gebärde kann danach neu aufgenommen werden.",
+"Abbrechen" first and focused, "Endgültig löschen" held for 2 s and carried out on the release,
+with the same bar and line as for a profile). "Abbrechen" and Escape go back to the view, to the
+button that opened it. After a delete the size is read again, the view is back, and the line
+under the controls says "Beispiel 2 wurde gelöscht." A delete that fails says what the store
+holds afterwards, read again: "… Beispiel 2 ist noch gespeichert." for one; for all, which are
+deleted one write each, "Das Löschen wurde unterbrochen: 1 Beispiel wurde gelöscht, 2 sind noch
+gespeichert. Bitte noch einmal versuchen."; when that cannot be read either, that it cannot. Deleting
+is not offered while a countdown or a recording runs or a recording waits for "Behalten". An
+example a newer app wrote is never deleted.
+
+**Leaving stops the camera**, at whatever step it is (tracker loading, permission asked, running,
+recording), through the capture's cancel signal and `stop`: "Zurück" (focus back on that row's
+"Gebärde beibringen"), Escape, "Fertig", the area closing by itself (hidden page, idle time),
+"Rückgängig" in the block at the top, and any redraw that does not show this view's controls:
+another view, its own delete confirmation, the tile taken off the board in another tab, and a
+redraw that cannot read the store (the body is then the notice that the profiles cannot be read;
+in the first build the camera ran on under that notice, with no way to stop it on screen). A
+countdown or a recording that was not kept is dropped then.
+
+**The bridge.** `src/caregiver.ts` is part of the board's module graph and does not import
+`capture/capture.js`: `index.html` loads that module on its own, so that a failure in it can never
+stop the board. When the page loads it, it leaves `{ start, text, nextShoulders }` under the global
+name `amysEchoCapture` (`CAPTURE_BRIDGE_KEY` in both modules; a test compares them), and the area
+looks for it at the tap. Without it the view says "Die Kamera kann hier gerade nicht gestartet
+werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera." The hidden video
+element goes into the caregiver region, which is emptied on closing.
+
+**Press rules in the view.** Every button of the view is covered by the shield (rule A): a tap
+that lands on "Abbrechen", "Aufnahme beenden" or "Behalten" as it appears does nothing. The live
+line is written in place on every camera frame and does **not** count as a swap (it would keep
+every button dead while the camera runs); it keeps its height (`min-height`, two lines), so the
+buttons under it do not move. The countdown is written in place in a line of fixed height as
+well. The camera's step line counts as a swap.
+
 Rules for later slices: wording is written only through `setWording` and `clearWording`, as one
 queued write, with text that went through `cleanWordingText` and `checkedWording`; no English
 message of board data reaches the screen; an entry of a newer app is never overwritten or reset;
@@ -556,12 +704,14 @@ countdown. None of this was checked with assistive technology.
   can be reworded only.
 - Hearing a wording before it is saved ("listen"); the caregiver hears it on the child's board.
 - Export, import and backup (NG-22). Deleting a profile is final.
+- Recognising a gesture on the child's board (NG-20); choosing a profile-wide anchor (each example
+  keeps the anchor it was recorded with, recognition.md); trying out a taught gesture in the view.
 - Deleting or repairing damaged profiles and unreadable concept entries.
 - Undo for anything but removals of concepts during the visit; an add or a move is taken back by
   hand, and a deleted profile cannot be brought back.
 - Moving a concept by more than one place at a time, or by dragging.
 - Editing custom and retired concepts on a board: they cannot be moved or taken off here.
-- A warning before the profile's storage is full (`store.usage`).
+- A warning before the profile's storage is full (`store.usage`), except when a teaching view opens.
 - Any protection beyond the hold gesture.
 
 ## Known gaps
@@ -641,6 +791,29 @@ countdown. None of this was checked with assistive technology.
 - Two tabs are not coordinated (docs/storage.md). The area re-reads after each action, not when
   another tab writes.
 
+- Teaching (card NG-19) was tested in Node with the real `startCapture` on a fake camera and
+  tracker. Not tried: a real camera in this view on a phone, a child, the front camera's left and
+  right (capture.md), how a caregiver holds the device and taps at the same time, and whether 8 s
+  and "at least 3 examples" are right.
+- A recording that was not kept is lost when the area closes by itself (two minutes without a
+  press: holding still for a recording does not count as activity, but each tap does).
+- The tracker download (about 25 MB) happens on the first "Kamera starten", in the view; offline
+  without it the camera cannot start (capture.md).
+- Examples of a concept that is not on the board are kept and counted against the limits, but
+  shown nowhere; putting the concept back shows them again.
+- The examples of a tile are not compared with each other: a mislabelled or very different
+  example is not pointed out (the matcher's limits, recognition.md, decide what it costs).
+- The live line follows each frame; on a slow phone it may lag. The frame rate is not shown. With
+  enlarged text it can wrap to a third line and then moves the buttons under it.
+- The countdown is a fixed 3 seconds; whether a parent's hand is out of the picture by then, and
+  whether a child waits for it, is untried.
+- The still-hand hint uses the matcher's movement floor on made-up data; a real tracker's jitter
+  may give it for a hand that moved a little, or not give it.
+- **Open for this card:** `recognition/examples.js` (imported by the area) has to be in the board's
+  pre-cache in `public/sw.js`, which was outside the card's scope. Without it `main.js`, which
+  imports the area, cannot load offline, so the installed app shows no board offline; and
+  `test/bootstrap.test.mjs` fails ("missing precache member"). The fix is that one entry.
+
 ## Rules for later slices
 
 1. **Always pass the profile's full `conceptIds`.** Build a new board from the ids read from the
@@ -705,3 +878,14 @@ countdown. None of this was checked with assistive technology.
     pointer-down, a key-down or a timer alone outside these helpers.
 21. A press does not change the layout by itself. What it retires (the status message) keeps its
     place until the redraw.
+22. The camera starts only on a tap in the caregiver region and only through the capture module's
+    bridge; this module never imports `capture/capture.js`. Every way out of a view that started
+    the camera stops it (`stopTeachCamera`), and so does any redraw that shows another view.
+23. Gesture examples are written and deleted only through `src/recognition/examples.ts`, one data
+    name per example, one queued write per action. `store.usage` is read when a teaching view
+    opens (and after a delete), not on a redraw; a refused write is reported, never retried by
+    the app. Nothing of a picture is stored.
+24. Something written in place many times a second (the live line) or once a second (the
+    countdown) does not call `markSwap` and keeps its height, so nothing that can be pressed moves.
+    The controls of a view used again and again (teaching) stay in one block under its heading;
+    what changes in length goes below them, and its messages go into the view, not the status line.

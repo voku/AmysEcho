@@ -101,6 +101,24 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
 .caregiver-concept-sentence { color: #3d5666; overflow-wrap: anywhere; }
 .caregiver-concept-note { margin: .4rem 0 0; color: #6b4a1c; }
 .caregiver-concept-locked { background: #f3f5f6; }
+/* Teaching a gesture (card NG-19). */
+.caregiver-concept-gesture { margin-top: .2rem; color: #215c76; font-size: .95rem; font-weight: 600; }
+.caregiver-teach-result { max-width: 40rem; margin: .8rem 0 0; padding: .6rem .9rem; border-left: 6px solid #215c76; border-radius: .4rem; background: #eef6f9; font-weight: 600; overflow-wrap: anywhere; }
+.caregiver-teach-refused { border-left-color: #cf681e; background: #fff6ec; }
+.caregiver-recording { border-color: #a3261a; background: #a3261a; }
+/* The controls of the teaching view: one block under the heading, the same for the whole session.
+   The two lines keep their height whether they are empty, count down or name a hand, so the buttons do not move. */
+.caregiver-teach-controls { padding: .2rem .8rem .8rem; border: 2px solid #c9dbe2; border-radius: .8rem; background: white; }
+.caregiver-teach-controls .caregiver-teach-actions { margin-top: .4rem; }
+.caregiver-teach-camera { min-height: 2.8em; max-width: 40rem; margin: .2rem 0 0; line-height: 1.4; overflow-wrap: anywhere; }
+.caregiver-teach-note { max-width: 40rem; margin: .8rem 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.caregiver-teach-hint { margin-top: .4rem; }
+/* Written on every camera frame without a redraw: it keeps its height, and nothing to press is below it until the list. */
+.caregiver-teach-live { min-height: 2.8em; margin: .4rem 0 0; line-height: 1.4; color: #3d5666; font-weight: 600; }
+.caregiver-examples { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.caregiver-example { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .8rem; padding: .5rem .8rem; border: 2px solid #c9dbe2; border-radius: .8rem; background: white; }
+.caregiver-example-text { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
+.caregiver-teach > .caregiver-button { margin-top: .8rem; }
 .caregiver-concept-locked .caregiver-concept-text { color: #55656d; }
 .caregiver-open:focus-visible, .caregiver-button:focus-visible, .caregiver-input:focus-visible, .caregiver-details summary:focus-visible { outline: 5px solid #cf681e; outline-offset: 3px; }
 /* The line under "Endgültig löschen" keeps its height when its text changes: a button that moved would end the hold on it. */

@@ -25,8 +25,8 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   board: "Kamera starten", a live line "Keine Hand / Eine Hand / Zwei Hände im Bild" plus whether
   shoulders are seen, "Kamera stoppen", and "Zurück zur Tafel". Without that address the section
   stays hidden and empty, so a child on the board never sees it. It is a test entry for caregivers
-  and developers; teaching and recognising belong to the caregiver area (cards NG-19, NG-20). It
-  was not placed in the caregiver area because that needs `src/caregiver.ts`, outside this card.
+  and developers. Teaching gestures is in the caregiver area since card NG-19 (below, "Teaching");
+  recognising is card NG-20.
 - **The camera only after a tap.** `capture/capture.js` is loaded by `index.html` as its own module
   next to `main.js` (a failure in it cannot stop the board) and only wires the section. The camera
   is requested only by `startCapture`, which only the tap on "Kamera starten" calls. Order on the
@@ -44,8 +44,8 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
 - **Nothing is kept or sent.** Each camera frame becomes an `ImageBitmap`, is transferred to the
   worker and closed there as soon as it is tracked. The `<video>` element is hidden and only a
   frame source; there is no preview. The camera test keeps no frames at all. A caller that asks
-  (`record: true`, used by the browser test) gets landmark numbers of one capture in memory, at
-  most `MAX_RECORDED_FRAMES` (600). Leaving the page, hiding it, "Kamera stoppen" and "Zurück zur
+  (`record: true`, used by the browser test, or `startRecording` / `stopRecording`, used by
+  teaching) gets landmark numbers of one capture in memory, at most `MAX_RECORDED_FRAMES` (600). Leaving the page, hiding it, "Kamera stoppen" and "Zurück zur
   Tafel" stop every camera track and close the tracker.
 - **German messages** for: camera refused ("Die Kamera ist nicht erlaubt …"), no camera, camera
   busy, a browser without camera support; for the tracker: a failed download ("… Beim ersten Mal
@@ -61,6 +61,26 @@ Card NG-3. Code: `src/capture/capture.ts` (controller, tracker cache, camera-tes
   option of the code (`delegate: "GPU"`) but not the default: headless Chromium has only a
   software GPU, which was far slower in the spike; which delegate a phone gets is for the phone
   probe. The pose model runs on every fifth frame only, so the shoulder part holds the last pose result and says the shoulders are gone only after two pose results in a row without them (card NG-41).
+
+## Teaching (card NG-19)
+
+- **Recordings while the camera runs.** `CaptureSession.startRecording()` starts keeping the tracked
+  frames (and forgets any kept before, also those of `record: true`); `stopRecording()` returns
+  them and stops keeping; the camera and the tracker keep running, so several examples are
+  recorded without starting the tracker again. After the capture ended, `startRecording` does
+  nothing. Tested in `test/capture.test.mjs`.
+- **The bridge.** The caregiver area (`src/caregiver.ts`, part of the board's module graph) must
+  not import this module: `index.html` loads it on its own so that a failure here cannot stop
+  the board. So this module, when a page loads it (there is a `document`), defines
+  `globalThis.amysEchoCapture` (`CAPTURE_BRIDGE_KEY`) as `captureBridge()`: `start(host, options)`
+  (`startCapture` with `browserEnvironment(host)`), `CAPTURE_TEXT` and `nextShoulders`. The area
+  looks for it when "Kamera starten" is tapped, passes the caregiver region as `host` for the
+  hidden video element, and stops the capture through the signal and `stop()` on every way out
+  ([caregiver.md](caregiver.md), "Teaching a gesture"). Importing the module in Node defines
+  nothing.
+- What a recording becomes: `sequenceFromRecording` in `src/recognition/examples.ts` (the adapter,
+  then the matcher's feature builder); stored only as features ([recognition.md](recognition.md),
+  "Stored examples").
 
 ## The tracker files and their cache
 
@@ -346,8 +366,10 @@ took 13 min. A CI runner is slower; the job's time limit was raised from 10 to 2
 - **A second tab runs its own capture**: its own camera request, worker and models in memory, and
   it may delete a tracker cache the other tab is still filling (the other tab's next start
   downloads again). Nothing coordinates tabs yet (follow-up).
-- The camera test entry is reached only by its address; the caregiver area gets a proper entry with
-  cards NG-19 and NG-20.
+- The camera test entry is reached only by its address. Teaching has its entry in the caregiver area
+  (card NG-19); recognising (card NG-20) has none yet.
+- The browser test does not drive the teaching view; it was tried once by hand (card NG-19, see
+  caregiver.md, "Verification status").
 - The live fake camera reached 8 to 9.5 frames per second on the desktop VM (camera frame, bitmap,
   worker round trip with pose on every fifth frame); not a phone number. The DGS rates are
   measured at a fixed 10 frames per second of video instead.

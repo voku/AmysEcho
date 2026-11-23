@@ -536,10 +536,11 @@ utterance, which the board uses to know that a sentence is no longer being spoke
 
 ### Open decisions
 
-- Removing a custom or retired concept deletes only `concept.<id>`. Data stored per concept later
-  (gesture examples) is not known here. Either it is purged together with the concept, or a concept
-  id is never used again, so that a new concept cannot inherit old examples. That is a decision for
-  the gesture cards.
+- Removing a custom or retired concept deletes only `concept.<id>`. Its gesture examples
+  (`gesture.<id>.…`, card NG-19) stay, and a new custom concept under the same id would inherit
+  them. Taking a concept off the board keeps its examples on purpose (like its wording), so that
+  they come back with it. Whether `removeCustomConcept` should also delete the examples, or a
+  custom id must never be used again, is still open; `board-data.ts` was outside card NG-19.
 - For the symbol card (NG-27): a concept the catalogue drops becomes a text-only tile on the boards
   that have it, with no problem reported and no line on the board. The child loses the picture
   without anyone being told.
@@ -559,6 +560,45 @@ utterance, which the board uses to know that a sentence is no longer being spoke
   should also accept a late answer when no newer refresh has started is open.
 - After a refresh ran into its bound, the examples stay until the next `refreshBoard()`. Whether
   the app should try again by itself is not decided.
+
+## Gesture examples
+
+Card NG-19. Code: `src/recognition/examples.ts` (the record is described in
+[recognition.md](recognition.md), "Stored examples"). It builds no storage keys of its own: it uses
+`store.data(id)` only.
+
+```
+profile/<id>/data/gesture.<conceptId>.<12 hex characters>    one stored example
+```
+
+- **One data name per example**, never one growing value: appending to one large value would
+  rewrite all of it on every keep (about 100 ms per write at 2.3 MB in Node, card NG-25). The 12
+  hex characters are 48 random bits from `crypto.getRandomValues`; a collision with a stored name
+  is drawn again once. With the concept id rule of board data (`[a-z0-9][a-z0-9-]{0,39}`) the
+  longest name has 61 characters, within the store's 64.
+- **Sizes**, counted as the store counts them: about 13 kB for a one-hand example and about 21 kB
+  for a two-hand one, at four decimals (30 and 55 kB at full precision). The 64 MiB limit of a
+  profile holds about 3,200 two-hand examples; the 10,000 names would be reached first only by
+  one-hand examples. 300 two-hand examples are about 6 MB of an export.
+- **Writes**: `saveExample` is one `set`, `deleteExample` one `delete`, `deleteExamples` one
+  `delete` per example (not atomic: a failure stops it there, the ones deleted before stay
+  deleted, and calling again finishes the job). They pass the store's refusals through unchanged.
+  Neither deletes an entry a newer app wrote (`unsupported-version`); `deleteExample` refuses it.
+- **Size checks**: `usageLevel(store.usage(id))` gives `ok`, `near` (from 90% of the names or the
+  bytes) or `full` (one more example of `EXAMPLE_BYTES_ESTIMATE`, 24 KiB, does not fit). The
+  teaching view calls `usage()` once when it opens and once after a delete, never on a redraw
+  ([caregiver.md](caregiver.md)). A refused write (`ProfileSizeError`) is reported and not tried
+  again by the app; `set` itself counts the whole profile before it refuses.
+- **Export, restore and delete**: examples are ordinary profile data, so `exportProfile` includes
+  them, `importProfile` restores them (also as a copy under a new id: the record holds no profile
+  id), and `remove` deletes them with the profile. Tests in `test/examples.test.mjs` cover all
+  three. Import does not check them as examples; a damaged one is reported when it is read.
+- The board editor's "Gebärde: N Beispiele" counts every stored entry of a concept from the data
+  names (`countExamples`, no value read); the teaching view shows the same number and says how many
+  of them cannot be used (`listExamples`).
+- Examples are not deleted when their concept leaves the board, and the caregiver area shows them
+  only for concepts on the board. They still count towards the limits and are exported.
+- No picture, video or landmark is stored (recognition.md, "Stored examples").
 
 ## Export format
 
@@ -659,7 +699,8 @@ record that is too low lets the profile grow past the limits. Nothing notices th
   storage view opens, before a teaching session), not on every render, and do not rely on a value
   cached from an earlier call.
 
-For scale: 300 gesture examples of 32 x 86 numbers are about 17 MB. A file saved with indentation is
+For scale: 300 gesture examples of 32 x 86 numbers at full precision are about 17 MB; stored at four
+decimals (card NG-19, "Gesture examples" above) 300 two-hand examples are about 6 MB. A file saved with indentation is
 larger on disk than the counted size. The limits can be lowered per store
 (`ProfileStore.open(backend, { limits })`); that exists for tests.
 
@@ -712,7 +753,6 @@ no permanence guarantee. The export file is the backup.
 - The caregiver area ([caregiver.md](caregiver.md)) creates, renames, deletes and activates
   profiles and sets their boards. Export and restore controls are not built (card NG-13), and
   nothing there deletes or repairs a damaged entry.
-- No stored gesture examples (card NG-19).
 - No real-browser test of the IndexedDB adapter (card NG-14).
 - No coordination between two open tabs. One `ProfileStore` runs its operations one after another;
   two tabs can still interleave (for example one writes data while the other deletes the profile,
