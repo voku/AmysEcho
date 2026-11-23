@@ -11,6 +11,7 @@ import {
 } from "../dist/recognition/tracker-adapter.js";
 import { buildFeatureSequence, HAND_POINTS } from "../dist/recognition/features.js";
 import {
+  CAMERA_CONSTRAINTS, CAMERA_FACING_KEY, CAPTURE_ROUTE, cameraConstraints, loadCameraFacing, mountCaptureEntry, previewMirrored, saveCameraFacing,
   CAPTURE_BRIDGE_KEY, CAPTURE_TEXT, HAND_CONNECTIONS, POSE_EVERY, PREVIEW_COLOURS, captureBridge, createCapturePreview, drawPreviewShapes, previewPoint, previewShapes, SHOULDERS_LOST_AFTER, TRACKER_CACHE_PREFIX, nextShoulders, TrackerStartError, cameraProblem, parseTrackerManifest, prepareTrackerFiles, startCapture, trackerFiles, trackerProblem,
 } from "../dist/capture/capture.js";
 import { createTrackerHost } from "../dist/capture/tracker-worker.js";
@@ -1132,11 +1133,410 @@ test("browser preview: a mirrored video on the camera's stream and a canvas whil
 test("the stylesheet mirrors only the shown video, keeps the whole picture, and gives the preview boxes a fixed aspect", async () => {
   const css = await readFile(new URL("styles.css", DIST), "utf8");
   const rule = (selector) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
-  // Mirrored with the transform property `scale` (the same as scaleX(-1); the board's stylesheet test keeps "transform" for motion only).
-  assert.match(rule(".capture-preview-video"), /object-fit: contain; scale: -1 1;/);
+  // Mirrored with the transform property `scale` (the same as scaleX(-1); the board's stylesheet test keeps "transform" for motion only),
+  // and only in a box the preview marks as mirrored: the front camera's (card NG-43).
+  assert.equal(rule(".capture-preview-video"), ".capture-preview-video { object-fit: contain; }");
+  assert.equal(rule('.capture-preview[data-mirrored="true"] .capture-preview-video'), '.capture-preview[data-mirrored="true"] .capture-preview-video { scale: -1 1; }');
+  assert.equal(css.split("\n").filter((line) => !line.startsWith("/*") && line.includes("scale: -1 1")).length, 1, "nothing else is mirrored");
   // The canvas is not mirrored: the points are mapped with x → 1 − x, so "L" and "R" read the right way round.
   assert.doesNotMatch(css, /capture-preview-points[^}]*(scale|transform)/);
   assert.match(rule(".capture-preview-video, .capture-preview-points"), /position: absolute; top: 0; left: 0; width: 100%; height: 100%;/);
   assert.match(rule(".caregiver-teach-preview"), /aspect-ratio: 4 \/ 3;/);
   assert.match(rule(".capture-preview-holder"), /aspect-ratio: 4 \/ 3;/);
+});
+
+// ---------------------------------------------------------------------------
+// Front or back camera (card NG-43).
+
+/** A `localStorage` stand-in; `refuse` makes it throw as a blocked storage does. */
+function memoryStorage({ refuse = false } = {}) {
+  const items = new Map();
+  return {
+    items,
+    getItem(key) { if (refuse) throw new DOMException("blocked", "SecurityError"); return items.has(key) ? items.get(key) : null; },
+    setItem(key, value) { if (refuse) throw new DOMException("full", "QuotaExceededError"); items.set(key, String(value)); },
+  };
+}
+
+/**
+ * A device for `fakeEnvironment`: `cameras` it has ("user", "environment"; a camera without a
+ * reported facing, as a desktop webcam or Chromium's fake camera: "unlabelled"), and which of them
+ * fail to open. Answers as browsers do: an exact facing it lacks is an OverconstrainedError, a
+ * preference takes any camera, no camera at all is NotFoundError.
+ */
+function cameraDevice({ cameras = ["user", "environment"], busy = [], denied = false } = {}) {
+  const { environment, log } = fakeEnvironment();
+  log.asked = [];
+  log.opened = [];
+  environment.getUserMedia = async (constraints) => {
+    log.cameraRequests += 1;
+    log.asked.push(constraints.video.facingMode);
+    if (denied) throw Object.assign(new Error("camera"), { name: "NotAllowedError" });
+    if (cameras.length === 0) throw Object.assign(new Error("camera"), { name: "NotFoundError" });
+    const wanted = constraints.video.facingMode;
+    const exact = typeof wanted === "object" ? wanted.exact : null;
+    const camera = exact === null ? (cameras.includes(wanted) ? wanted : cameras[0]) : cameras.find((entry) => entry === exact);
+    if (camera === undefined) throw Object.assign(new Error("camera"), { name: "OverconstrainedError" });
+    if (busy.includes(camera)) throw Object.assign(new Error("camera"), { name: "NotReadableError" });
+    log.opened.push(camera);
+    const settings = camera === "unlabelled" ? {} : { facingMode: camera };
+    return { getTracks: () => [{ stop() { log.tracksStopped += 1; }, getSettings: () => settings }] };
+  };
+  return { environment, log };
+}
+
+test("camera choice: remembered on the device, the front camera by default and whenever the storage cannot be read", () => {
+  assert.equal(CAMERA_FACING_KEY, "amysecho-camera-facing");
+  const storage = memoryStorage();
+  assert.equal(loadCameraFacing(storage), "user");
+  saveCameraFacing(storage, "environment");
+  assert.equal(storage.items.get(CAMERA_FACING_KEY), "environment");
+  assert.equal(loadCameraFacing(storage), "environment");
+  saveCameraFacing(storage, "user");
+  assert.equal(loadCameraFacing(storage), "user");
+  // Anything else stored there, no storage, or a storage that throws: the front camera, and no error.
+  storage.items.set(CAMERA_FACING_KEY, "left");
+  assert.equal(loadCameraFacing(storage), "user");
+  assert.equal(loadCameraFacing(null), "user");
+  const blocked = memoryStorage({ refuse: true });
+  assert.equal(loadCameraFacing(blocked), "user");
+  assert.doesNotThrow(() => saveCameraFacing(blocked, "environment"));
+  assert.doesNotThrow(() => saveCameraFacing(null, "environment"));
+});
+
+test("camera choice: the front camera is asked for as before (a preference); the back camera with an exact facing", async () => {
+  assert.equal(cameraConstraints("user"), CAMERA_CONSTRAINTS);
+  assert.deepEqual(cameraConstraints("environment"), { audio: false, video: { facingMode: { exact: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } } });
+  for (const [facing, asked] of [[undefined, "user"], ["user", "user"], ["environment", { exact: "environment" }]]) {
+    const { environment, log } = cameraDevice();
+    const started = await startCapture(environment, facing === undefined ? {} : { facing });
+    assert.ok(started.ok);
+    assert.deepEqual(log.asked, [asked]);
+    assert.deepEqual(started.camera, { facing: facing ?? "user", fellBack: false });
+    started.session.stop();
+    assert.equal(log.tracksStopped, 1);
+  }
+  // A camera that reports no facing (a desktop webcam) is the one asked for: no second request, no message.
+  const webcam = cameraDevice({ cameras: ["unlabelled"] });
+  const plain = await startCapture(webcam.environment);
+  assert.deepEqual([webcam.log.asked, plain.camera], [["user"], { facing: "user", fellBack: false }]);
+  plain.session.stop();
+});
+
+test("camera choice: a missing or failing camera falls back to the other one and says so; no camera, a refusal or a cancel never asks twice", async () => {
+  const run = async (device, options) => {
+    const { environment, log } = cameraDevice(device);
+    const preview = recordingPreview();
+    const started = await startCapture(environment, { ...options, preview: preview.sink });
+    if (started.ok) started.session.stop();
+    return { started, log, preview };
+  };
+  // No back camera (a phone without one, a laptop): the front camera, mirrored, with the message.
+  const noBack = await run({ cameras: ["user"] }, { facing: "environment" });
+  assert.deepEqual(noBack.log.asked, [{ exact: "environment" }, "user"]);
+  assert.deepEqual(noBack.started.camera, { facing: "user", fellBack: true });
+  assert.equal(CAPTURE_TEXT.cameraFallback.environment, "Hintere Kamera nicht verfügbar. Es läuft die vordere.");
+  assert.equal(noBack.log.tracksStopped, 1, "the camera that opened is stopped at the end");
+  // A laptop's webcam reports no facing: taken as the front camera.
+  const laptop = await run({ cameras: ["unlabelled"] }, { facing: "environment" });
+  assert.deepEqual(laptop.started.camera, { facing: "user", fellBack: true });
+  // The back camera fails to open (busy): the front one.
+  const backBusy = await run({ busy: ["environment"] }, { facing: "environment" });
+  assert.deepEqual([backBusy.log.asked, backBusy.started.camera], [[{ exact: "environment" }, "user"], { facing: "user", fellBack: true }]);
+  // The front camera fails to open: the back one, unmirrored, with the other message.
+  const frontBusy = await run({ busy: ["user"] }, {});
+  assert.deepEqual(frontBusy.log.asked, ["user", { exact: "environment" }]);
+  assert.deepEqual(frontBusy.started.camera, { facing: "environment", fellBack: true });
+  assert.equal(CAPTURE_TEXT.cameraFallback.user, "Vordere Kamera nicht verfügbar. Es läuft die hintere.");
+  assert.deepEqual(frontBusy.preview.log.shown.length, 1);
+  // A device with only a back camera: the front preference gets it, and it says which it is.
+  const backOnly = await run({ cameras: ["environment"] }, {});
+  assert.deepEqual([backOnly.log.asked, backOnly.started.camera], [["user"], { facing: "environment", fellBack: true }]);
+
+  // Both fail to open: "busy", the tracker closed, nothing open.
+  const bothBusy = await run({ busy: ["user", "environment"] }, { facing: "environment" });
+  assert.deepEqual(bothBusy.started, { ok: false, problem: "busy" });
+  assert.equal(bothBusy.log.trackerClosed, 1);
+  // A desktop webcam that is busy: the other camera does not exist, the answer is still "busy".
+  const webcamBusy = await run({ cameras: ["unlabelled"], busy: ["unlabelled"] }, {});
+  assert.deepEqual([webcamBusy.log.asked.length, webcamBusy.started], [2, { ok: false, problem: "busy" }]);
+  // No camera at all: with the front camera one request (as before), with the back camera two; "no_camera".
+  const noneFront = await run({ cameras: [] }, {});
+  assert.deepEqual([noneFront.log.cameraRequests, noneFront.started], [1, { ok: false, problem: "no_camera" }]);
+  const noneBack = await run({ cameras: [] }, { facing: "environment" });
+  assert.deepEqual([noneBack.log.cameraRequests, noneBack.started], [2, { ok: false, problem: "no_camera" }]);
+  // Refused: never asked again, for either camera.
+  for (const facing of ["user", "environment"]) {
+    const refused = await run({ denied: true }, { facing });
+    assert.deepEqual([refused.log.cameraRequests, refused.started], [1, { ok: false, problem: "denied" }]);
+    assert.equal(refused.preview.log.shown.length, 0);
+  }
+  // Cancelled while the first request was open: no second request.
+  const controller = new AbortController();
+  const { environment, log } = cameraDevice({ cameras: ["user"] });
+  const first = environment.getUserMedia;
+  environment.getUserMedia = async (constraints) => {
+    controller.abort();
+    return first(constraints);
+  };
+  assert.deepEqual(await startCapture(environment, { facing: "environment", signal: controller.signal }), { ok: false, cancelled: true });
+  assert.deepEqual([log.cameraRequests, log.trackerClosed], [1, 1]);
+});
+
+test("camera choice: the bridge uses the device's choice when a view names no camera (the child's gesture view), and the view's own otherwise", async () => {
+  const storage = memoryStorage();
+  const devices = [];
+  const bridge = captureBridge({}, {
+    storage: () => storage,
+    environment: () => {
+      const device = cameraDevice();
+      devices.push(device);
+      return device.environment;
+    },
+  });
+  const ask = async (options) => {
+    const started = await bridge.start({}, options);
+    started.session.stop();
+    return devices.at(-1).log.asked;
+  };
+  assert.deepEqual(await ask({}), ["user"]);
+  saveCameraFacing(storage, "environment");
+  assert.deepEqual(await ask({}), [{ exact: "environment" }]);
+  assert.deepEqual(await ask({ facing: "user" }), ["user"]);
+});
+
+test("preview: mirrored for the front camera only; the back camera's picture is shown as it comes, like a photo", () => {
+  assert.equal(previewMirrored("user"), true);
+  assert.equal(previewMirrored(undefined), true, "a camera of unknown facing counts as the front one, as before");
+  assert.equal(previewMirrored("environment"), false);
+  // Unmirrored: the picture's corners are the box's corners.
+  assert.deepEqual(previewPoint(0, 0, 640, 480, 400, 300, false), [0, 0]);
+  assert.deepEqual(previewPoint(1, 1, 640, 480, 400, 300, false), [400, 300]);
+  assert.deepEqual(previewPoint(0.25, 0.5, 640, 480, 400, 300, false), [100, 150]);
+  assert.deepEqual(previewPoint(0, 0, 640, 480, 300, 300, false), [0, 37.5]);
+  // The same frame (the child's left hand on the right of the camera picture, labelled "Left").
+  const both = frame(0, [hand(0.7, 0.6, "Left"), hand(0.3, 0.6, "Right")], pose());
+  const shoulders = [{ x: 0.62, y: 0.55 }, { x: 0.38, y: 0.55 }];
+  const front = previewShapes(both, shoulders, 400, 300, true);
+  const back = previewShapes(both, shoulders, 400, 300, false);
+  // "L" is drawn at the wrist of the child's left hand in both: on the left of a mirror, on the right of a photo of the child.
+  const near = (actual, expected) => assert.ok(actual.every((value, index) => Math.abs(value - expected[index]) < 1e-9), `${actual} ≠ ${expected}`);
+  assert.deepEqual(front.hands.map((entry) => entry.side), ["left", "right"]);
+  assert.deepEqual(back.hands.map((entry) => entry.side), ["left", "right"]);
+  near(front.hands.map((entry) => entry.points[0][0]), [120, 280]);
+  near(back.hands.map((entry) => entry.points[0][0]), [280, 120]);
+  near(back.shoulders.map((point) => point[0]), [248, 152]);
+  // Every point of the back camera's drawing is the front camera's flipped back: the same picture, not mirrored.
+  front.hands.forEach((entry, index) => entry.points.forEach((point, at) => {
+    assert.ok(Math.abs(point[0] - (400 - back.hands[index].points[at][0])) < 1e-9 && point[1] === back.hands[index].points[at][1]);
+  }));
+
+  // The browser's preview marks its box for the stylesheet and draws to match.
+  const { doc, made } = previewDocument();
+  const preview = createCapturePreview(doc);
+  const stream = { getTracks: () => [] };
+  preview.show(stream, "environment");
+  assert.equal(preview.element.dataset.mirrored, "false");
+  preview.draw(frame(0, [hand(0.7, 0.6, "Left")], pose()));
+  const label = made.canvases[0].calls.find(([name]) => name === "fillText");
+  assert.equal(label[1], "L");
+  assert.ok(Math.abs(label[2] - 0.7 * 800) < 1e-9);
+  preview.show(stream, "user");
+  assert.equal(preview.element.dataset.mirrored, "true");
+  preview.draw(frame(0, [hand(0.7, 0.6, "Left")], pose()));
+  const mirroredLabel = made.canvases[1].calls.find(([name]) => name === "fillText");
+  assert.ok(Math.abs(mirroredLabel[2] - 0.3 * 800) < 1e-9);
+  preview.show(stream);
+  assert.equal(preview.element.dataset.mirrored, "true", "a caller that names no camera gets the mirror, as before");
+  preview.close();
+  assert.equal(preview.element.dataset.mirrored, undefined);
+});
+
+test("capture: the preview is told the camera in use, also after a fallback", async () => {
+  for (const [device, facing, shown] of [[{}, "user", "user"], [{}, "environment", "environment"], [{ cameras: ["user"] }, "environment", "user"]]) {
+    const { environment } = cameraDevice(device);
+    const facings = [];
+    const started = await startCapture(environment, { facing, preview: { show: (stream, used) => facings.push(used), draw() {}, close() {} } });
+    started.session.stop();
+    assert.deepEqual(facings, [shown]);
+  }
+});
+
+/**
+ * The geometry of both cameras, as vectors. A camera's picture, as the sensor delivers it (not
+ * mirrored), has its x axis along forward × up. The phone's screen faces along `screen`; the front
+ * camera looks along `screen`, the back camera against it.
+ */
+const cross = ([a, b, c], [d, e, f]) => [b * f - c * e, c * d - a * f, a * e - b * d];
+const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+const minus = (u, v) => [u[0] - v[0], u[1] - v[1], u[2] - v[2]];
+function cameraOf(phone, facing) {
+  const forward = facing === "user" ? phone.screen : phone.screen.map((value) => 0 - value);
+  const up = [0, 1, 0];
+  return { at: phone.at, forward, up, right: cross(forward, up) };
+}
+/** A point in the camera's picture, normalised (0..1), unflipped. */
+function project(camera, point) {
+  const relative = minus(point, camera.at);
+  const depth = dot(relative, camera.forward);
+  return { x: 0.5 + 0.8 * dot(relative, camera.right) / depth, y: 0.5 - 0.8 * dot(relative, camera.up) / depth };
+}
+
+test("handedness: the child's own left hand gets the same label and slot with the front and the back camera, so no flip is needed", () => {
+  // The child stands at the origin and faces +z; with y up, the child's own left is +x.
+  const childLeft = [1, 0, 0];
+  assert.deepEqual(cross([0, 0, 1], [0, 1, 0]), [-1, 0, 0], "facing +z with y up, the child's right is −x");
+  // A parent holds the phone 1.5 m in front of the child. Front camera: the screen faces the child.
+  // Back camera: the phone is turned round, its back faces the child. Either way the camera looks at the child.
+  const screenToChild = { at: [0, 0, 1.5], screen: [0, 0, -1] };
+  const backToChild = { at: [0, 0, 1.5], screen: [0, 0, 1] };
+  const front = cameraOf(screenToChild, "user");
+  const back = cameraOf(backToChild, "environment");
+  assert.deepEqual([front.forward, back.forward], [[0, 0, -1], [0, 0, -1]]);
+  // The picture's x axis points to the child's own left in both: the child's left hand is on the right of the picture.
+  assert.equal(dot(front.right, childLeft), 1);
+  assert.equal(dot(back.right, childLeft), 1);
+  // The wrong set-up, as a check that the model can tell: the back camera of a phone whose screen faces the child
+  // looks away from the child; and a mirrored picture would put the left hand on the left.
+  assert.equal(dot(cameraOf(screenToChild, "environment").forward, [0, 0, -1]), -1);
+
+  // A synthetic child moves its left hand outwards, its right hand stays low; hands made of 21 points
+  // around the wrist. MediaPipe labels a hand by its shape on the picture it is given: on an unflipped
+  // picture, the subject's own hand ("On unflipped images the label matched the subject's real hand",
+  // docs/tracker-decision.md); a mirror image of a left hand looks like a right hand, and is labelled so.
+  const wrists = (i) => ({ left: [0.15 + i * 0.01, 0.1, 0], right: [-0.2, -0.15, 0] });
+  const trackerOutput = (camera, i, mirroredTrack = false) => ["left", "right"].map((side) => {
+    const wrist = wrists(i)[side];
+    const points = hand(0, 0, "Left").landmarks.map((offset) => project(camera, [wrist[0] + (offset.x) * 0.5, wrist[1] - (offset.y) * 0.5, wrist[2]]));
+    const flip = (point) => (mirroredTrack ? { x: 1 - point.x, y: point.y } : point);
+    const label = (side === "left") !== mirroredTrack ? "Left" : "Right";
+    return { landmarks: points.map(flip), label, score: 0.95 };
+  });
+  const recording = (camera, mirroredTrack = false) => capture(20, (i) => trackerOutput(camera, i, mirroredTrack));
+
+  const byFront = recording(front);
+  const byBack = recording(back);
+  assert.deepEqual(byBack, byFront, "the same picture: the tracker gets the same numbers");
+  const framesFront = toLandmarkFrames(byFront);
+  const framesBack = toLandmarkFrames(byBack);
+  assert.deepEqual(framesBack, framesFront);
+  // "left" holds the child's own left hand: the one that moves, on the right of the picture.
+  assert.ok(framesFront.every((entry) => entry.left[0][0] > entry.right[0][0]));
+  assert.ok(framesFront.at(-1).left[0][0] > framesFront[0].left[0][0]);
+  const builtFront = buildFeatureSequence(framesFront);
+  const builtBack = buildFeatureSequence(framesBack);
+  assert.ok(builtFront.ok && builtBack.ok);
+  assert.deepEqual(builtBack.sequence, builtFront.sequence, "an example taught with one camera is the same as one taught with the other");
+
+  // A device that mirrors its track (a device-trial item): the labels swap with the picture, the hands
+  // come out in the other slots, and only `inputMirrored` would put them back. Nothing here detects it.
+  const mirrored = recording(back, true);
+  const wrong = toLandmarkFrames(mirrored);
+  // The moving hand (the child's own left) is now in the "right" slot, and the still one in "left".
+  assert.equal(wrong.at(-1).left[0][0], wrong[0].left[0][0]);
+  assert.notEqual(wrong.at(-1).right[0][0], wrong[0].right[0][0]);
+  assert.notDeepEqual(buildFeatureSequence(wrong).sequence, builtFront.sequence);
+  const corrected = toLandmarkFrames(mirrored, { inputMirrored: true });
+  corrected.forEach((entry, index) => {
+    for (const side of ["left", "right"]) {
+      entry[side].forEach((point, at) => assert.ok(Math.abs(point[0] - framesFront[index][side][at][0]) < 1e-9));
+    }
+  });
+});
+
+test("handedness: the capture path does nothing by camera: the same tracker answers give the same recorded frames with either camera", async () => {
+  const recordings = [];
+  for (const facing of ["user", "environment"]) {
+    const { environment, log } = cameraDevice();
+    let count = 0;
+    const images = [];
+    environment.startTracker = async () => ({
+      async detect(image, timestampMs, withPose) {
+        images.push(Object.keys(image).join());
+        image.close();
+        // Frame by frame the same answer: a left hand on the right of the picture.
+        return { hands: [hand(0.7, 0.5 - (count++) * 0.01, "Left")], pose: withPose ? pose() : null };
+      },
+      close() { log.trackerClosed += 1; },
+    });
+    const started = await startCapture(environment, { facing, record: true, onFrame: () => undefined });
+    await until(() => count >= 8);
+    const frames = started.session.stop().slice(0, 8);
+    assert.ok(images.every((keys) => keys === "close"), "the tracker gets the camera's frame as it is, with either camera");
+    recordings.push(frames.map(({ hands, poseRan }) => ({ hands, poseRan })));
+  }
+  assert.deepEqual(recordings[1], recordings[0]);
+  const [front, back] = recordings.map((frames) => toLandmarkFrames(frames.map((entry, index) => ({ ...entry, timestampMs: index * 66, imageWidth: WIDTH, imageHeight: HEIGHT, pose: null }))));
+  assert.deepEqual(back, front);
+  assert.ok(front.every((entry) => entry.left !== null && entry.right === null));
+});
+
+/** Just enough of a document for the camera test's entry: elements with children, buttons that click, and an address. */
+function entryDocument(hash = CAPTURE_ROUTE) {
+  const listeners = {};
+  const make = (tag) => {
+    const handlers = {};
+    const node = {
+      tagName: tag, className: "", textContent: "", hidden: false, disabled: false, dataset: {}, children: [], attributes: {},
+      setAttribute(name, value) { this.attributes[name] = String(value); },
+      replaceChildren(...nodes) { this.children = nodes; },
+      append(...nodes) { this.children.push(...nodes); },
+      remove() {},
+      addEventListener(type, handler) { handlers[type] = handler; },
+      click() { handlers.click?.(); },
+    };
+    if (tag === "video") Object.assign(node, { play: () => Promise.resolve(), pause() {}, srcObject: null });
+    if (tag === "canvas") Object.assign(node, { clientWidth: 0, clientHeight: 0, getContext: () => null });
+    return node;
+  };
+  const doc = {
+    createElement: make,
+    addEventListener(type, handler) { listeners[type] = handler; },
+    defaultView: { location: { hash, pathname: "/", search: "" }, addEventListener() {}, history: { replaceState() {} }, devicePixelRatio: 1 },
+  };
+  return { doc, region: make("section") };
+}
+
+test("camera test: 'Kamera: vorne / hinten' above 'Kamera starten', remembered on the device, locked while the camera runs; a fallback is said in the status line", async () => {
+  const storage = memoryStorage();
+  const devices = [];
+  const { doc, region } = entryDocument();
+  mountCaptureEntry(doc, region, {}, () => storage, () => {
+    const device = cameraDevice({ cameras: ["user"] });
+    devices.push(device);
+    return device.environment;
+  });
+  const [, , choice, start] = region.children;
+  assert.equal(choice.className, "camera-choice");
+  assert.equal(choice.attributes.role, "group");
+  const [label, front, back] = choice.children;
+  assert.deepEqual([label.textContent, front.textContent, back.textContent], ["Kamera:", "vorne", "hinten"]);
+  assert.equal(start.textContent, "Kamera starten");
+  assert.deepEqual([front.attributes["aria-pressed"], back.attributes["aria-pressed"]], ["true", "false"]);
+  back.click();
+  assert.deepEqual([front.attributes["aria-pressed"], back.attributes["aria-pressed"]], ["false", "true"]);
+  assert.equal(storage.items.get(CAMERA_FACING_KEY), "environment");
+  start.click();
+  assert.equal(front.disabled && back.disabled, true, "no change while the camera starts or runs");
+  front.click();
+  assert.equal(storage.items.get(CAMERA_FACING_KEY), "environment");
+  await until(() => region.dataset.captureStep === "running" && region.children[5].textContent !== CAPTURE_TEXT.running);
+  assert.deepEqual(devices[0].log.asked, [{ exact: "environment" }, "user"]);
+  const status = region.children.find((node) => node.className === "capture-status");
+  assert.equal(status.textContent, "Hintere Kamera nicht verfügbar. Es läuft die vordere.");
+  // "Kamera stoppen": the camera off, the choice free again.
+  region.children.find((node) => node.className === "capture-stop").click();
+  await until(() => region.dataset.captureStep === "stopped");
+  assert.equal(devices[0].log.tracksStopped, 1);
+  assert.equal(front.disabled || back.disabled, false);
+  front.click();
+  assert.equal(loadCameraFacing(storage), "user");
+});
+
+test("camera choice: `fallback: false` (the child's gesture view) never tries the other camera", async () => {
+  for (const [device, problem] of [[{ busy: ["user"] }, "busy"], [{ cameras: ["environment"], busy: ["environment"] }, "busy"]]) {
+    const { environment, log } = cameraDevice(device);
+    assert.deepEqual(await startCapture(environment, { facing: "user", fallback: false }), { ok: false, problem });
+    assert.deepEqual([log.asked, log.trackerClosed], [["user"], 1]);
+  }
 });

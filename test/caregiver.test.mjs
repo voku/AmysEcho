@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { CAPTURE_BRIDGE_KEY, TEACH_COUNTDOWN_S, TEACH_MAX_RECORDING_MS, BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
+import { CAMERA_FACING_KEY, CAPTURE_BRIDGE_KEY, TEACH_COUNTDOWN_S, TEACH_MAX_RECORDING_MS, BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
 import { resolveBoard, setBoardConcepts, setWording } from "../dist/board-data.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
-import { CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, PREVIEW_COLOURS, createCapturePreview, nextShoulders, startCapture } from "../dist/capture/capture.js";
+import {
+  CAMERA_FACING_KEY as CAPTURE_FACING_KEY, CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, PREVIEW_COLOURS, captureBridge, createCapturePreview, loadCameraFacing, nextShoulders, startCapture,
+} from "../dist/capture/capture.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
 import { listExamples } from "../dist/recognition/examples.js";
 import { ProfileStore } from "../dist/profiles/store.js";
@@ -167,6 +169,16 @@ function stringsIn(node) {
  * A page with the real app on `backend` (or on what `openBackend` gives) and
  * the caregiver area mounted on it. `seed` fills the store before the app starts.
  */
+/** A `localStorage` stand-in: a map, with `refuse` to make it throw as a blocked storage does. */
+function memoryStorage({ refuse = false } = {}) {
+  const items = new Map();
+  return {
+    items,
+    getItem(key) { if (refuse) throw new DOMException("blocked", "SecurityError"); return items.has(key) ? items.get(key) : null; },
+    setItem(key, value) { if (refuse) throw new DOMException("full", "QuotaExceededError"); items.set(key, String(value)); },
+  };
+}
+
 async function withArea(options, callback) {
   const fakes = installFakes(options.rect);
   try {
@@ -189,16 +201,19 @@ async function withArea(options, callback) {
     const refreshes = { count: 0 };
     const counted = { store: () => app.store(), refreshBoard: () => { refreshes.count += 1; return app.refreshBoard(); } };
     const clock = fakeClock();
+    const cameraStorage = options.cameraStorage === undefined ? memoryStorage() : options.cameraStorage;
     const page = { hide: () => undefined };
     const handle = mountCaregiver({
       app: counted, boardRegion, caregiverRegion, entry, catalogue: options.catalogue ?? CONCEPTS,
       setTimer: clock.setTimer, onPageHidden: (hidden) => { page.hide = hidden; }, now: options.now ?? alwaysAimed(),
       ...(options.capture === undefined ? {} : { capture: options.capture }),
       ...(options.date === undefined ? {} : { date: options.date }),
+      // The device's camera choice (card NG-43): a storage of the test's own, never the process's.
+      cameraStorage: () => cameraStorage,
     });
     const [opener, progress, hint] = entry.children;
     const area = {
-      ...fakes, backend, seeded, app, boardRegion, caregiverRegion, entry, clock, handle, opener, progress, hint, page, refreshes, appTimers,
+      ...fakes, backend, seeded, app, boardRegion, caregiverRegion, entry, clock, handle, opener, progress, hint, page, refreshes, appTimers, cameraStorage,
       /** Presses the opening control for the full duration and waits for the area to be drawn. */
       async holdOpen() {
         opener.dispatch("pointerdown", { button: 0 });
@@ -5594,8 +5609,12 @@ const POSE = Array.from({ length: 33 }, (_, index) => ({ x: index === 11 ? 0.62 
  * The real `startCapture` with a fake tracker and camera: the test hands in each frame (the hands the
  * tracker "sees" in it) with `feed`. `holdTracker` keeps the tracker loading until `releaseTracker`.
  */
-function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
-  const log = { trackerStarts: 0, cameraRequests: 0, tracksStopped: 0, trackerClosed: 0, sourceClosed: 0, signals: [], hosts: [], streams: [], previews: [] };
+/**
+ * `startCapture` on a fake camera and tracker. `noBackCamera`: a device with a front camera only, which
+ * refuses an exact request for the back one (OverconstrainedError), as a phone or a laptop without one does.
+ */
+function fakeCamera({ cameraError = null, holdTracker = false, noBackCamera = false } = {}) {
+  const log = { trackerStarts: 0, cameraRequests: 0, tracksStopped: 0, trackerClosed: 0, sourceClosed: 0, signals: [], hosts: [], streams: [], previews: [], constraints: [], facings: [] };
   let waiting = [];
   let queued = [];
   let t = 0;
@@ -5615,10 +5634,14 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
         close() { log.trackerClosed += 1; },
       };
     },
-    async getUserMedia() {
+    async getUserMedia(constraints) {
       log.cameraRequests += 1;
+      log.constraints.push(constraints);
       if (cameraError !== null) throw Object.assign(new Error("camera"), { name: cameraError });
-      const stream = { getTracks: () => [{ stop() { log.tracksStopped += 1; } }] };
+      const back = constraints?.video?.facingMode?.exact === "environment";
+      if (back && noBackCamera) throw Object.assign(new Error("camera"), { name: "OverconstrainedError" });
+      const facingMode = back ? "environment" : "user";
+      const stream = { getTracks: () => [{ stop() { log.tracksStopped += 1; }, getSettings: () => ({ facingMode }) }] };
       log.streams.push(stream);
       return stream;
     },
@@ -5636,6 +5659,7 @@ function fakeCamera({ cameraError = null, holdTracker = false } = {}) {
   const bridge = {
     start(host, options) {
       log.hosts.push(host);
+      log.facings.push(options.facing);
       return startCapture(environment, options);
     },
     text: CAPTURE_TEXT,
@@ -5707,7 +5731,10 @@ function teachViewOf(region) {
   if (view === undefined) return null;
   return {
     view, texts: textsIn(view), heading: tree(view).find((element) => element.tagName === "h2"),
-    buttons: buttonsIn(view).map((element) => element.textContent),
+    // The camera choice (card NG-43) is its own row; `buttons` are the view's other buttons.
+    buttons: buttonsIn(view).filter((element) => !hasClass(element, "camera-choice-button")).map((element) => element.textContent),
+    facing: buttonsIn(view).filter((element) => hasClass(element, "camera-choice-button"))
+      .map((element) => `${element.textContent}${element["aria-pressed"] === "true" ? "*" : ""}${element["aria-disabled"] === "true" ? " (aus)" : ""}`),
     result: byClass(view, "caregiver-teach-result")?.textContent ?? null,
     live: byClass(view, "caregiver-teach-live")?.textContent ?? null,
     camera: byClass(view, "caregiver-teach-camera")?.textContent ?? null,
@@ -5754,6 +5781,10 @@ const bothHands = (i) => [trackerHand(0.3 + i * 0.01, 0.5, "Right"), trackerHand
 
 test("CAPTURE_BRIDGE_KEY is the same string in the caregiver area and the capture module", () => {
   assert.equal(CAPTURE_BRIDGE_KEY, CAPTURE_MODULE_KEY);
+});
+
+test("CAMERA_FACING_KEY (the remembered camera choice, card NG-43) is the same string in the caregiver area and the capture module", () => {
+  assert.equal(CAMERA_FACING_KEY, CAPTURE_FACING_KEY);
 });
 
 test("teach: every tile on the board offers 'Gebärde beibringen'; it opens a view that takes over the body, names tile and profile, and starts no camera", async () => {
@@ -6277,6 +6308,131 @@ test("teach: the camera's picture shows in a fixed box above the live line while
   });
 });
 
+// ---------------------------------------------------------------------------
+// The camera choice (card NG-43): "Kamera: vorne / hinten".
+
+test("teach: the camera choice is a row of its own under the buttons, 'vorne' by default; 'hinten' is remembered on the device and asks for the back camera, mirror off", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => area.concept("Trinken").teach.click());
+    const choiceRow = () => byClass(byClass(area.caregiverRegion, "caregiver-teach-controls"), "camera-choice");
+    assert.equal(choiceRow().role, "group");
+    assert.equal(choiceRow()["aria-label"], "Kamera");
+    assert.equal(choiceRow().children[0].textContent, "Kamera:");
+    assert.deepEqual(teachViewOf(area.caregiverRegion).facing, ["vorne*", "hinten"]);
+    // The buttons of the view are the same as without the choice; "Kamera starten" stays first in its row.
+    assert.deepEqual(teachViewOf(area.caregiverRegion).buttons, ["Kamera starten", "Zurück"]);
+    assert.equal(camera.log.cameraRequests, 0, "choosing is not starting");
+    await area.act(() => area.button("hinten").click());
+    assert.deepEqual(teachViewOf(area.caregiverRegion).facing, ["vorne", "hinten*"]);
+    assert.equal(area.cameraStorage.items.get(CAMERA_FACING_KEY), "environment");
+    assert.equal(camera.log.cameraRequests, 0);
+    await area.act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    assert.deepEqual(camera.log.facings, ["environment"]);
+    assert.deepEqual(camera.log.constraints[0].video.facingMode, { exact: "environment" });
+    // The back camera's picture is not mirrored; no fallback line.
+    assert.equal(camera.log.previews[0].element.dataset.mirrored, "false");
+    assert.equal(teachViewOf(area.caregiverRegion).camera, "");
+    // During the countdown, the recording and while a recording waits, the choice cannot change.
+    await area.act(() => area.button("Aufnahme starten").click());
+    assert.deepEqual(teachViewOf(area.caregiverRegion).facing, ["vorne (aus)", "hinten* (aus)"]);
+    await area.act(() => area.button("vorne").click());
+    assert.equal(area.cameraStorage.items.get(CAMERA_FACING_KEY), "environment");
+    assert.equal(camera.log.cameraRequests, 1);
+    area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await area.handle.settled();
+    for (let i = 0; i < 20; i += 1) await camera.feed(rightHand(i));
+    await area.act(() => area.button("Aufnahme beenden").click());
+    assert.deepEqual(teachViewOf(area.caregiverRegion).facing, ["vorne (aus)", "hinten* (aus)"]);
+    await area.act(() => area.button("Verwerfen").click());
+    // The camera runs and records nothing: "vorne" stops it and starts the front camera at once.
+    await area.act(() => area.button("vorne").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    assert.equal(camera.log.cameraRequests, 2);
+    assert.equal(camera.log.tracksStopped, 1, "the back camera is stopped");
+    assert.deepEqual(camera.log.facings, ["environment", "user"]);
+    assert.deepEqual(camera.log.constraints[1].video.facingMode, "user");
+    assert.equal(camera.log.previews[1].element.dataset.mirrored, "true");
+    assert.equal(area.cameraStorage.items.get(CAMERA_FACING_KEY), "user");
+    // Leaving stops it, as before.
+    await area.act(() => area.button("Zurück").click());
+    assert.equal(camera.running, false);
+  });
+});
+
+test("teach: the choice is the device's, shared with the camera test and the child's gesture view; a blocked storage still holds it while the page is open", async () => {
+  const camera = fakeCamera();
+  const storage = memoryStorage();
+  // Chosen earlier on this device (in the camera test, say): teaching opens with it.
+  storage.setItem(CAMERA_FACING_KEY, "environment");
+  await withArea({ seed: seedTeach, capture: camera.bridge, cameraStorage: storage }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => area.concept("Trinken").teach.click());
+    assert.deepEqual(teachViewOf(area.caregiverRegion).facing, ["vorne", "hinten*"]);
+    await area.act(() => area.button("vorne").click());
+  });
+  // What teaching remembered is what the capture module reads, and what its bridge uses when a view
+  // (the child's gesture view) passes no camera of its own.
+  assert.equal(loadCameraFacing(storage), "user");
+  storage.setItem(CAMERA_FACING_KEY, "environment");
+  const asked = [];
+  const bridge = captureBridge({}, {
+    storage: () => storage,
+    environment: () => ({
+      startTracker: async () => ({ detect: async () => ({ hands: [], pose: null }), close() {} }),
+      getUserMedia: async (constraints) => { asked.push(constraints.video.facingMode); throw Object.assign(new Error("x"), { name: "NotAllowedError" }); },
+      openFrames: async () => { throw new Error("not reached"); },
+    }),
+  });
+  await bridge.start({}, {});
+  await bridge.start({}, { facing: "user" });
+  assert.deepEqual(asked, [{ exact: "environment" }, "user"]);
+
+  // A storage that refuses: the choice is held in the area, and the camera follows it.
+  const blocked = fakeCamera();
+  await withArea({ seed: seedTeach, capture: blocked.bridge, cameraStorage: memoryStorage({ refuse: true }) }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => area.concept("Trinken").teach.click());
+    assert.deepEqual(teachViewOf(area.caregiverRegion).facing, ["vorne*", "hinten"]);
+    await area.act(() => area.button("hinten").click());
+    assert.deepEqual(teachViewOf(area.caregiverRegion).facing, ["vorne", "hinten*"]);
+    await area.act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    assert.deepEqual(blocked.log.facings, ["environment"]);
+  });
+  // No storage at all (none in this browser): front by default.
+  const none = fakeCamera();
+  await withArea({ seed: seedTeach, capture: none.bridge, cameraStorage: null }, async (area) => {
+    await teachWithCamera(area, none);
+    assert.deepEqual(none.log.facings, ["user"]);
+  });
+});
+
+test("teach: a device without a back camera says so in German, uses the front one (mirrored), and teaching goes on", async () => {
+  const camera = fakeCamera({ noBackCamera: true });
+  const storage = memoryStorage();
+  storage.setItem(CAMERA_FACING_KEY, "environment");
+  await withArea({ seed: seedTeach, capture: camera.bridge, cameraStorage: storage }, async (area) => {
+    await teachWithCamera(area, camera);
+    assert.deepEqual(camera.log.constraints.map((entry) => entry.video.facingMode), [{ exact: "environment" }, "user"]);
+    const view = teachViewOf(area.caregiverRegion);
+    assert.equal(view.camera, "Hintere Kamera nicht verfügbar. Es läuft die vordere.");
+    // The choice stays "hinten": on another device it would be there.
+    assert.deepEqual(view.facing, ["vorne", "hinten*"]);
+    assert.equal(storage.items.get(CAMERA_FACING_KEY), "environment");
+    assert.equal(camera.log.previews[0].element.dataset.mirrored, "true", "the front camera's picture is mirrored");
+    // The countdown takes the line over; a recording is made as usual.
+    await record(area, camera, 20, rightHand);
+    assert.match(teachViewOf(area.caregiverRegion).result, /Gebärde mit einer Hand \(rechts\)/);
+    await area.act(() => area.button("Zurück").click());
+    // The refused request opened nothing; the one camera that opened is stopped.
+    assert.equal(camera.log.streams.length, 1);
+    assert.equal(camera.log.tracksStopped, 1);
+  });
+});
+
 test("teach: a bridge without a preview still teaches with the live line; the box stays empty", async () => {
   const camera = fakeCamera();
   const { createPreview, ...older } = camera.bridge;
@@ -6436,7 +6592,8 @@ test("teach: the controls stay one block right under the heading, with the previ
       const [heading, controls] = view.children;
       assert.equal(heading.tagName, "h2", state);
       assert.equal(controls.className, "caregiver-teach-controls", state);
-      assert.deepEqual(controls.children.map((child) => child.className.split(" ")[0]), ["caregiver-teach-preview", "caregiver-teach-live", "caregiver-teach-camera", "caregiver-profile-actions"], state);
+      // The camera choice (card NG-43) is the last row, under the buttons: nothing above it moves because of it.
+      assert.deepEqual(controls.children.map((child) => child.className.split(" ")[0]), ["caregiver-teach-preview", "caregiver-teach-live", "caregiver-teach-camera", "caregiver-profile-actions", "camera-choice"], state);
       const actions = controls.children[3].children.map((child) => child.textContent);
       assert.equal(actions.at(-1), "Zurück", state);
       seen.push(actions[0]);

@@ -15,7 +15,9 @@ Code: `src/recognise/recognise.ts` (`createRecogniser`, the controller without D
 ## Status
 
 - Tested in Node against a fake document, the real capture path (`startCapture`) on a fake camera
-  and tracker, made-up tracker hands, and the real feature builder and matcher.
+  and tracker, made-up tracker hands, and the real feature builder and matcher; that it always asks
+  for the front camera (card NG-43), with the capture module's own bridge on a fake camera and a
+  stand-in storage holding "hinten".
 - Tested in headless Chromium (Playwright) with DGS sign videos of adult signers fed into the
   app's capture path through the board's own flow (below).
 - **Not tested:** a real camera, a phone or tablet, a child, a screen reader, real speech, an
@@ -95,6 +97,31 @@ attached, the board is drawn without the control and the error is reported.
      geht auch ohne Kamera."; first use offline "Die Handerkennung braucht beim ersten Mal
      Internet. Mit Internet „Nochmal“ tippen."; refused "Die Kamera ist nicht erlaubt. Eine
      Bezugsperson kann sie in den Einstellungen erlauben."
+
+**Always the front camera** (card NG-43). The view has **no camera control** and does **not** use
+the "Kamera: vorne / hinten" choice of teaching and the camera test: it asks the bridge for the
+front camera itself (`facing: "user"`, `fallback: false`). Reason (second build, coordinator's
+decision delegated by the owner): the child uses the board alone, facing the screen, and only the
+front camera sees the child there. A parent who taught with "hinten" leaves that choice stored;
+used here, it would point the back camera away from the child, every attempt would end in "no
+hands", and the child would get no explanation and no way out. For the same reason a front camera
+that is missing or does not open is not replaced by the back one: the view shows its camera
+problem line ("Die Kamera ist gerade besetzt. …", "Es wurde keine Kamera gefunden.") with
+"Nochmal" and "Zurück zur Tafel", as before. Examples taught with the back camera still match
+attempts made here: both cameras look at the child and give the same frames
+([capture.md](capture.md), "Handedness"); tested with examples recorded through the back camera
+and an attempt through the front one. Measured in headless Chromium (first build, the real
+stylesheet, board and view on a fake camera) with "vorne" and with "hinten" stored: every state
+(countdown, recording, unusable) had the same boxes, to the pixel, no page scroll; the view
+itself is unchanged by this card:
+
+| Window | Back | Count (countdown) | Stopp / Nochmal |
+| --- | --- | --- | --- |
+| 360x640 | 20, 20, 319x112 | 156, 272 | 20, 454, 319x112 |
+| 640x360 | 20, 18, 599x80 | 296, 176 | 380, 104, 240x186 |
+
+(x, y, then width x height in CSS pixels.) In the Node tests the view's whole tree is compared in
+seven states with either stored choice and is the same, and the camera asked for is the front one.
 
 **Ways out, and the camera.** The camera is stopped (the capture's cancel signal and `stop()`) on
 "Zurück zur Tafel" at every step (tracker loading, permission asked, countdown, recording), after

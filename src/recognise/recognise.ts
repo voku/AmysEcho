@@ -18,6 +18,15 @@
  * Nothing is stored or sent: the tracked frames of the attempt live in memory
  * until it has been compared, and no picture is ever kept (capture.md).
  *
+ * Always the front camera (card NG-43, second build): the child uses the board
+ * alone, facing the screen, and only the front camera sees the child there.
+ * The "vorne / hinten" choice of teaching and the camera test is never read
+ * here: after a parent taught with "hinten", it would point the camera away
+ * from the child, every attempt would end in "no hands", and the child could
+ * not tell why. For the same reason a front camera that does not open is not
+ * replaced by the back one (`fallback: false`): the capture's own problem line
+ * says so instead.
+ *
  * The controller (`createRecogniser`) has no DOM and is tested in Node; the
  * view (`attachRecognise`) draws its states into the board region.
  */
@@ -294,6 +303,9 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     try {
       started = bridge.start(options.host(), {
         signal: own.controller.signal,
+        // The front camera only, and no other in its place: a back camera cannot see a child facing the screen.
+        facing: "user",
+        fallback: false,
         onStep: (step) => {
           if (!ours() || current.kind !== "starting" || (step !== "preparing" && step !== "asking")) return;
           show({ kind: "starting", line: text[step] });

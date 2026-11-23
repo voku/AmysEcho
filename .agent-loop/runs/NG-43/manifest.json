@@ -1,0 +1,192 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T17:49:41+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-43/contract.json",
+                "sha256": "sha256:2ebdc2cda7708bc343fc11d972f0946100401077fd6094dd1c8a794e8f0f1c0b"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-43",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "a551db639416fe8c9fddeca4aaa3dcb960c56d4450fdfe9fb41a6f1f5bf67332",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-43.md",
+                "sha256": "sha256:a551db639416fe8c9fddeca4aaa3dcb960c56d4450fdfe9fb41a6f1f5bf67332"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Where the camera is used (camera test, teaching, the child's gesture view) the front or the back camera can be chosen; the choice is remembered on the device and used by all three",
+                "The preview is mirrored for the front camera only; drawn hands and their L/R labels sit on the correct hand in both views",
+                "Handedness and the landmark frames given to the matcher mean the child's own left and right with either camera, so examples taught with one camera match attempts with the other (unit tests with synthetic tracker output for both cameras)",
+                "A device without the chosen camera, or a refused switch, gives a short German message and falls back to the other camera; the camera stops on every exit as before"
+            ],
+            "goal": "The caregiver can use the front or the back camera for teaching, recognising and the camera test, and left keeps meaning the child's own left hand with either camera.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-43/contract.json",
+                "sha256": "sha256:2ebdc2cda7708bc343fc11d972f0946100401077fd6094dd1c8a794e8f0f1c0b"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-43/contract.json",
+                "sha256": "sha256:2ebdc2cda7708bc343fc11d972f0946100401077fd6094dd1c8a794e8f0f1c0b"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-23T18:29:37+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/f66b4c5ffeb16d49a55cf6100facae2a31f079bf81d01a63ff2a13c240e1f0fe.json",
+                "sha256": "sha256:5dec965787832d2c1120928e03e588337b120928f27dace71f28cb29ab2cf53e"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:5b9fc9b14f8e8797291c008cc95de3b46c281242abaabc329850ea1bd0c2c1c2",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:40960b980d0da0ec6d1c9cc8c962991c0165ee84abf8e10c10819a45959ca115"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/capture/capture.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/recognise/recognise.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/capture.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognise.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 6,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "e1cf90c08418ec16e870ed360bfe00c5ff99d7740875cb753d6a74ccab194f1b",
+            "compilation_id": "compilation.NG-43.2026-11-23-174941.af38ffa1",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "1e797ad58a899a47b7b3c6df988676e4b45daa883c1445d21710a28b84b31eaf",
+            "source": {
+                "path": ".agent-loop/recall/NG-43/meta.json",
+                "sha256": "sha256:97fd143b3327c89e310ef837f8a1cb37953e3c1f9dbb4dcc30a40af16a73e650"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-43/reviews/NG-43.blindspots.json",
+                "sha256": "sha256:4d7d3c8efd7d8d18769068aeb5984c62b576186ae1fac1e296b633473f10dda1"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "973ea927c6c904afafa780006b9fe4306b2e114f",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-43-r1-081db8b6",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-43-r1-081db8b6/session.json",
+                "sha256": "sha256:0204f6fb9e1fc284e14a4c3efa68c3f37fee5e1c02b708e38a600f6fb0d6aeb8"
+            },
+            "state": "done",
+            "task_id": "NG-43"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:8e6a06d242fd247e4c4eb8a13b3c2a52a5a5e976adb31490f0e244c48271da91",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+            "source": {
+                "path": ".agent-loop/runs/NG-43/verification.json",
+                "sha256": "sha256:9efe3aa245c68d9624a2e4825d0f6a5bebe505c21d23c53cb67e62ef63032395"
+            },
+            "source_session_id": "2026-11-23-ng-43-r1-081db8b6",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-43"
+}
