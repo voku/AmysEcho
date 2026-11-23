@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-42 before calling agent-loop finish NG-42",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-23T16:40:00+00:00",
@@ -75,11 +75,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-23T17:04:44+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-42:687b23eb37b093eb",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/a3469d3e76a21e89b8d46018e2904d52d91605dc49cd7607ffae47ad92422ff5.json",
+                "sha256": "sha256:a8cf9a9a388522457531ffc4884aaca61552c32aa5dee73d60ebf41f428506cf"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -90,7 +96,14 @@
                 "path": ".agent-loop/map/php-symbols.json",
                 "sha256": "sha256:b66de8fe333f18a0cb211203dc37df496ba5c79a20e093847cdf60114c0d2c30"
             },
-            "state": "ready"
+            "stale_entries": [
+                {
+                    "path": "test/browser/dgs-capture.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 1,
+            "state": "stale"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
@@ -113,14 +126,17 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-42/reviews/NG-42.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-42/reviews/NG-42.blindspots.json",
+                "sha256": "sha256:2558c189595063391d7d5e13e9edb3ed14bdeb88410cb6466b5bd1ef3ac97a5c"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/search.sqlite",
-            "state": "missing"
+            "state": "unavailable"
         },
         "session": {
             "base_commit": "6963b5be29a4a23599dc6ed8712b9fbccbfb88d5",
@@ -130,37 +146,27 @@
             "session_id": "2026-11-23-ng-42-r2-b4fdc335",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-23-ng-42-r2-b4fdc335/session.json",
-                "sha256": "sha256:5513ec6a239d7f1b4a5b8e2b9bf0b35394aefadb1c7b3af159d6a52bc1a09503"
+                "sha256": "sha256:c8af74f5226fbedf6533e2f65f4522e98ecd1f258eb908d8fdfe996aef6460cd"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-42"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-42 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-42",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "execution_review",
-            "implementation_snapshot": "sha256:78e9ea6d430e3447843747bf6ff761d696fb3d065ee63a5d03a06ae220a503c0",
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:d17897589696dd1bbc13f9b1bb26be7b2333f45a78a4673734b3194429db611a",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "independent review pipeline is incomplete at stage investigate",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-42:687b23eb37b093eb",
+            "source": {
+                "path": ".agent-loop/runs/NG-42/verification.json",
+                "sha256": "sha256:a1e062b8dd6af8a2f615c3ea5ae065e00367cd1de41a275e4530c12895d76675"
+            },
+            "source_session_id": "2026-11-23-ng-42-r2-b4fdc335",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-42:687b23eb37b093eb",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-42"
 }

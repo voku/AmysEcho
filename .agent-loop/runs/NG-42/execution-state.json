@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "blindspot-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
     "history": [
         {
@@ -186,6 +186,99 @@
                 "summary": "Preview holder fixed in every state; controls keep positions with camera off and on; privacy, unflipped tracker frames, mirror mapping and closing on every exit verified earlier",
                 "task_id": "NG-42",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T16:59:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T16:59:16+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:f50704adf0608bb7d30609989079fa710df262cc956524ca2f812aa251a86b27",
+                    "execution-evidence:sha256:96493e93c265b65b28e5dd5077a15fa0345bc25f2a5d4bdea89f5cb7c8e562a9",
+                    "execution-evidence:sha256:3297e9ea85e6f39e6fb5bd852d2085dc987f77118c1e30f9deb2d39e0ea6eb47",
+                    "execution-evidence:sha256:329e21eeb5ceada33dc979176b0f0a8fa3ef979b0ca68dc4206b8cc3cb64df24",
+                    "execution-evidence:sha256:1408005d58bb36a62a2553c32baf607c7cd3e513b94cc9672e427bd2a69ea2cd",
+                    "execution-evidence:sha256:516e058c61d18a68e65625e108ecfd361434f10b716ba1aff1950df205ab5dd7",
+                    "execution-evidence:sha256:d171f6b299010d9434867ed0949b12d49039c370d86dc62b74becc3909828cf8",
+                    "execution-evidence:sha256:b0012a68b2e6badd76ed1a375c48c1b2ee140a42bfaa5319d45e5ed1f7bbea6c"
+                ],
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "schema_version": "1.0",
+                "task_id": "NG-42",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:f50704adf0608bb7d30609989079fa710df262cc956524ca2f812aa251a86b27",
+                    "execution-evidence:sha256:96493e93c265b65b28e5dd5077a15fa0345bc25f2a5d4bdea89f5cb7c8e562a9",
+                    "execution-evidence:sha256:3297e9ea85e6f39e6fb5bd852d2085dc987f77118c1e30f9deb2d39e0ea6eb47",
+                    "execution-evidence:sha256:329e21eeb5ceada33dc979176b0f0a8fa3ef979b0ca68dc4206b8cc3cb64df24",
+                    "execution-evidence:sha256:1408005d58bb36a62a2553c32baf607c7cd3e513b94cc9672e427bd2a69ea2cd",
+                    "execution-evidence:sha256:516e058c61d18a68e65625e108ecfd361434f10b716ba1aff1950df205ab5dd7",
+                    "execution-evidence:sha256:d171f6b299010d9434867ed0949b12d49039c370d86dc62b74becc3909828cf8",
+                    "execution-evidence:sha256:b0012a68b2e6badd76ed1a375c48c1b2ee140a42bfaa5319d45e5ed1f7bbea6c"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "context_id": "blindspot-review-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "observations": [
+                    "The teaching preview is 128x96 on a 320x480 screen: framing visible, finger detail not; the overlay trails fast movement by about one tracked frame; main-thread cost about 13 to 20 percent higher (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:ab3a4819",
+                "summary": "Grey placeholder box reads as a placeholder; every control stays reachable at 320x480, 360x640, 640x360; earlier round confirmed sides, frame rate and privacy",
+                "task_id": "NG-42",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T17:01:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T17:01:57+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "schema_version": "1.0",
+                "task_id": "NG-42",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:457622d0ced4c7d0e1d5319aad62c1ee1b8eb1bf85f4372ef7272d0de0a3901b",
+                    "execution-evidence:sha256:cfabc7feb9099fde46481ca0e8dcfb4a0df622e562ba345d753a630f99b7ddba"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "consistency_references": [
+                    "execution-evidence:sha256:8a41318f5fdaeb3a677cbc1ab1f194b56613a887d079d3f9a6da80c140443a30"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "outcome": "pass",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:69668b3a01d2549a2f0f3867926b8b8175351a8973c1b706fe56586848d498dc",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-42: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-42 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-42:687b23eb37b093eb binds active Session 2026-11-23-ng-42-r2-b4fdc335 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-42 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-42",
+                "validation_references": [
+                    "execution-evidence:sha256:457622d0ced4c7d0e1d5319aad62c1ee1b8eb1bf85f4372ef7272d0de0a3901b",
+                    "execution-evidence:sha256:cfabc7feb9099fde46481ca0e8dcfb4a0df622e562ba345d753a630f99b7ddba"
+                ]
             }
         }
     ],
