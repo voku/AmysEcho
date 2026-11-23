@@ -97,8 +97,8 @@ child with the back camera.
 
 - **The choice.** "Kamera: vorne / hinten" in the camera test (a row above "Kamera starten") and
   in the teaching view ([caregiver.md](caregiver.md)); two buttons, the pressed one
-  (`aria-pressed`) is the camera used. The child's gesture view has no control
-  ([recognise.md](recognise.md)). The choice is remembered on the device in `localStorage` under
+  (`aria-pressed`) is the camera used. The child's gesture view has no control and does not use
+  the choice ([recognise.md](recognise.md)), see below. The choice is remembered on the device in `localStorage` under
   `amysecho-camera-facing` (`CAMERA_FACING_KEY`; `src/caregiver.ts` has the same string, a test
   compares them): `"user"` (front, the default) or `"environment"` (back). It is a per-device
   convenience, not data: every read and write is in `try`/`catch`; anything else stored, no
@@ -106,9 +106,14 @@ child with the back camera.
   holds in the open view (the area keeps its own copy) until the page is left. It is not part of
   a profile, a backup or anything sent. In the camera test it can be changed while the camera is
   off ("Kamera stoppen" first).
-- **Used by all three.** `startCapture(environment, { facing })`; the bridge's `start` fills in
-  the stored choice when a caller names none, which is what the child's gesture view does, so the
-  view follows the choice made in the camera test or in teaching.
+- **Used by the camera test and teaching only.** `startCapture(environment, { facing })`; the
+  bridge's `start` fills in the stored choice when a caller names none. **The child's gesture view
+  always asks for the front camera** (`facing: "user"`, `fallback: false`; second build of the
+  card, coordinator's decision delegated by the owner): the child uses the board alone, facing the
+  screen. After a parent taught with "hinten", the stored choice would point the back camera away
+  from the child; every attempt would end in "no hands", with no explanation and no way out the
+  child could find. For the same reason a front camera that does not open is not replaced by the
+  back one there: the view shows its camera problem line and "Nochmal".
 - **What is asked for.** The back camera with `facingMode: { exact: "environment" }`, so a device
   without one refuses instead of quietly giving the front camera. The front camera as before,
   `facingMode: "user"` as a preference (`CAMERA_CONSTRAINTS`, unchanged): desktop webcams and
@@ -126,8 +131,8 @@ child with the back camera.
   it as `camera: { facing, fellBack }`. A fallback is said in German:
   "Hintere Kamera nicht verfügbar. Es läuft die vordere." or "Vordere Kamera nicht verfügbar. Es
   läuft die hintere." (`CAPTURE_TEXT.cameraFallback`, keyed by the chosen camera): in the camera
-  test's status line while it runs, in the teaching view's camera line until the countdown, in
-  the child's view as a small line under the countdown. The stored choice is not changed by a
+  test's status line while it runs and in the teaching view's camera line until the countdown
+  (never in the child's view, which has no fallback). `fallback: false` turns it off. The stored choice is not changed by a
   fallback. The camera is stopped on every way out as before; a refused request opened nothing.
 - **Mirroring.** The preview is mirrored for the front camera only (above); the back camera's
   picture is shown as a photo app shows it. A camera of unknown facing counts as the front one.
@@ -157,6 +162,11 @@ child with the back camera.
   left hand; the live preview must show "L" on it and the teaching view must say "(links)" for a
   one-hand recording with it. A device that fails it needs `inputMirrored` for that camera, which
   is not wired to a setting.
+- **Several back cameras** (device-trial item): many phones have more than one (wide, ultra-wide,
+  tele). `facingMode: { exact: "environment" }` lets the browser choose, and it may pick the
+  ultra-wide one, with a smaller child in the picture and more distortion at the edges. Check on
+  the phone which one opens (`getSettings().deviceId` / the track's label); choosing a camera by
+  `enumerateDevices` is not done.
 - **Tracking.** In a module worker: the hand landmarker with `numHands: 2` on every frame, the pose
   landmarker (lite) on every 5th frame (`POSE_EVERY`) for the shoulders, delegate `CPU`. GPU is an
   option of the code (`delegate: "GPU"`) but not the default: headless Chromium has only a

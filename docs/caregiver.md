@@ -599,8 +599,9 @@ often holds the phone and films the child with the back camera). The last row of
 own under "Kamera starten" … "Zurück", there in every state of the session (not when the profile
 is full, where there is no camera), so nothing above it moves because of it. The choice is the
 device's (`localStorage`, `amysecho-camera-facing`, the same key as the capture module's; see
-[capture.md](capture.md), "Front or back camera"): what is chosen here is used by the camera test
-and the child's gesture view, and what was chosen there is pressed here. A tap:
+[capture.md](capture.md), "Front or back camera"): what is chosen here is used by the camera test,
+and what was chosen there is pressed here. The child's gesture view always uses the front camera,
+whatever is chosen here ([recognise.md](recognise.md)). A tap:
 
 - while the camera is off: remembers the choice; the next "Kamera starten" asks for that camera;
 - while the camera starts or runs and nothing is recorded (the "Aufnahme starten" state, or after a

@@ -15,8 +15,8 @@
  * - The tracker files have their own cache (`TRACKER_CACHE_PREFIX`), filled and
  *   checked here on the first start, never by the board's install.
  * - Front or back camera (card NG-43): chosen in the camera test and in
- *   teaching, remembered on the device (`CAMERA_FACING_KEY`), and used by the
- *   bridge for the child's gesture view too. Frames of either camera go to
+ *   teaching, remembered on the device (`CAMERA_FACING_KEY`). The child's
+ *   gesture view always asks for the front camera, without fallback. Frames of either camera go to
  *   the tracker unflipped; nothing on the way to the matcher depends on it.
  */
 import { frameSummary, shouldersOf, toLandmarkFrame, type TrackerFrame, type TrackerHand, type TrackerPoint } from "../recognition/tracker-adapter.js";
@@ -252,6 +252,12 @@ export interface CaptureOptions {
   readonly preview?: PreviewSink;
   /** The camera to ask for (card NG-43). Default "user", the front camera. */
   readonly facing?: CameraFacing;
+  /**
+   * Whether the other camera may be used when the asked one is missing or
+   * does not open. Default true; the child's gesture view passes false (only
+   * the front camera can see the child there).
+   */
+  readonly fallback?: boolean;
 }
 
 /** What `startCapture` needs from a live preview; `createCapturePreview` is the browser's. */
@@ -368,7 +374,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
       tracker.close();
       return cancelled;
     }
-    if (!tryOtherCamera(chosen, first)) {
+    if (options.fallback === false || !tryOtherCamera(chosen, first)) {
       tracker.close();
       return { ok: false, problem: first };
     }
@@ -1083,8 +1089,8 @@ export interface CaptureBridge {
   /**
    * `startCapture` with the browser's camera and tracker; `host` receives the
    * hidden video element. Without `options.facing` the camera chosen on this
-   * device is used (`loadCameraFacing`, card NG-43): the child's gesture view
-   * passes none and so follows the choice made in the camera test or teaching.
+   * device is used (`loadCameraFacing`, card NG-43). The child's gesture view
+   * always names the front camera (and `fallback: false`), never the choice.
    */
   start(host: HTMLElement, options: CaptureOptions): Promise<CaptureStart>;
   readonly text: typeof CAPTURE_TEXT;

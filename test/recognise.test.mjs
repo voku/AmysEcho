@@ -797,52 +797,54 @@ function choiceStorage(facing) {
   return { items, getItem: (key) => items.get(key) ?? null, setItem: (key, value) => { items.set(key, String(value)); } };
 }
 
-test("camera: the child's view names no camera; the bridge uses the one chosen on this device (in the camera test or teaching), the front one by default", async () => {
-  for (const [stored, asked] of [[undefined, "user"], ["user", "user"], ["environment", { exact: "environment" }]]) {
+test("camera: the child's view always asks for the front camera, also when 'hinten' is stored for teaching and the camera test", async () => {
+  for (const stored of [undefined, "user", "environment"]) {
     const context = setup({ outcome: MATCH, camera: fakeCamera({ storage: choiceStorage(stored) }) });
     await attempt(context);
-    assert.deepEqual(context.camera.log.facings, [undefined], "the view passes no camera of its own");
-    assert.deepEqual(context.camera.log.asked, [asked]);
+    assert.deepEqual(context.camera.log.facings, ["user"], "the view names the front camera itself");
+    assert.deepEqual(context.camera.log.asked, ["user"], `stored: ${stored}`);
     assert.equal(context.camera.running, false, "stopped after the attempt, as before");
     assert.equal(context.kind(), "confirm");
   }
+  // Teaching and the camera test still follow the stored choice through the same bridge (no facing named).
+  const camera = fakeCamera({ storage: choiceStorage("environment") });
+  const started = await camera.bridge.start({}, {});
+  started.session.stop();
+  assert.deepEqual(camera.log.asked, [{ exact: "environment" }]);
 });
 
-test("camera: without the chosen back camera, the countdown carries one short line for the adult and the attempt runs on the front camera", async () => {
-  const context = setup({ outcome: MATCH, camera: fakeCamera({ storage: choiceStorage("environment"), noBackCamera: true }) });
-  context.recogniser.start();
-  await settle();
-  const note = "Hintere Kamera nicht verfügbar. Es läuft die vordere.";
-  assert.deepEqual(context.recogniser.state(), { kind: "countdown", left: 3, note });
-  assert.deepEqual(context.camera.log.asked, [{ exact: "environment" }, "user"]);
-  context.time.advance(1000);
-  assert.deepEqual(context.recogniser.state(), { kind: "countdown", left: 2, note });
-  context.time.advance(2000);
-  assert.deepEqual(context.recogniser.state(), { kind: "recording" }, "the line goes when the recording starts");
-  await context.camera.feedAll(MOVES_RIGHT, 5);
-  context.time.advance(RECOGNISE_GUARD_MS);
-  context.recogniser.finish();
-  assert.equal(context.kind(), "confirm");
-  assert.equal(context.camera.log.tracksStopped, 1, "the one camera that opened is stopped");
-  // With the chosen camera there, no line.
-  const plain = setup({ outcome: MATCH, camera: fakeCamera({ storage: choiceStorage("environment") }) });
-  plain.recogniser.start();
-  await settle();
-  assert.deepEqual(plain.recogniser.state(), { kind: "countdown", left: 3 });
-  plain.recogniser.back();
-  assert.equal(plain.camera.running, false);
+test("camera: a front camera that does not open is a problem in the child's view; the back camera is never tried there", async () => {
+  for (const cameraError of ["NotReadableError", "NotFoundError"]) {
+    const context = setup({ outcome: MATCH, camera: fakeCamera({ storage: choiceStorage("environment"), cameraError }) });
+    context.recogniser.start();
+    await settle();
+    assert.equal(context.kind(), "problem");
+    assert.equal(context.recogniser.state().line, RECOGNISE_TEXT.problems[cameraError === "NotFoundError" ? "no_camera" : "busy"]);
+    assert.deepEqual(context.camera.log.asked, ["user"], "one request, for the front camera");
+    assert.equal(context.camera.log.trackerClosed, 1);
+  }
 });
 
-test("camera: an example taught with the front camera is recognised in an attempt made with the back camera", async () => {
-  // The examples are tracker frames as the front camera gives them; the attempt comes from the back camera.
+test("camera: examples taught with the back camera are recognised in the child's view, which uses the front camera", async () => {
   // Both cameras look at the child and deliver unflipped frames, so the tracker answers the same
   // (test/capture.test.mjs, "handedness"); nothing on the way from the camera to the matcher depends on the camera.
-  const examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("hilfe", MOVES_UP), example("hilfe", MOVES_UP, 0.002)];
-  for (const stored of ["user", "environment"]) {
-    const context = setup({ examples, camera: fakeCamera({ storage: choiceStorage(stored) }) });
-    await attempt(context, MOVES_RIGHT);
-    assert.deepEqual(context.recogniser.state(), { kind: "confirm", conceptId: "trinken", hands: "right" }, stored);
+  const taughtBy = async (stored, hands, wobble) => {
+    const camera = fakeCamera({ storage: choiceStorage(stored) });
+    const started = await camera.bridge.start({}, { record: true });
+    for (let i = 0; i < 20; i += 1) await camera.feed(hands(i).map((hand) => ({ ...hand, landmarks: hand.landmarks.map((point) => ({ x: point.x + wobble * Math.sin(i), y: point.y })) })));
+    const recording = sequenceFromRecording(started.session.stop());
+    assert.ok(recording.ok);
+    assert.deepEqual(camera.log.asked, [stored === "environment" ? { exact: "environment" } : "user"]);
+    return recording.sequence;
+  };
+  const examples = [];
+  for (const [conceptId, hands] of [["trinken", MOVES_RIGHT], ["hilfe", MOVES_UP]]) {
+    for (const wobble of [0, 0.002]) examples.push({ conceptId, sequence: await taughtBy("environment", hands, wobble) });
   }
+  const context = setup({ examples, camera: fakeCamera({ storage: choiceStorage("environment") }) });
+  await attempt(context, MOVES_RIGHT);
+  assert.deepEqual(context.camera.log.asked, ["user"]);
+  assert.deepEqual(context.recogniser.state(), { kind: "confirm", conceptId: "trinken", hands: "right" });
 });
 
 /** What the view shows, for comparing layouts: tags, classes, texts and the attributes that matter, in order. */
@@ -851,7 +853,7 @@ const shape = (node) => ({
   label: node.attributes?.["aria-label"] ?? null, children: node.children.map(shape),
 });
 
-test("view: the gesture view has no camera control and draws every state the same with the front or the back camera chosen", async () => {
+test("view: the gesture view has no camera control and draws every state the same whatever camera is stored", async () => {
   const drawn = {};
   for (const stored of ["user", "environment"]) {
     drawn[stored] = [];
@@ -883,28 +885,9 @@ test("view: the gesture view has no camera control and draws every state the sam
       time.advance(RECOGNISE_GUARD_MS);
       buttonNamed("Stopp").click();
       snap();
-      assert.deepEqual(camera.log.asked, stored === "user" ? ["user", "user"] : [{ exact: "environment" }, { exact: "environment" }]);
+      assert.deepEqual(camera.log.asked, ["user", "user"], "the front camera whatever is stored");
     }, { camera: { storage: choiceStorage(stored) } });
   }
   assert.equal(drawn.user.length, 7);
   assert.deepEqual(drawn.environment, drawn.user);
-});
-
-test("view: the fallback line is a paragraph under the count, in the countdown only; the buttons and the way back are the same", async () => {
-  await withView(async (context) => {
-    const { panel, buttonNamed, time } = context;
-    context.gestureButton().click();
-    const back = buttonNamed(RECOGNISE_TEXT.back);
-    await settle();
-    const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
-    assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-count", "recognise-note"]);
-    assert.equal(main.children[2].textContent, "Hintere Kamera nicht verfügbar. Es läuft die vordere.");
-    assert.deepEqual(tree(panel()).find((element) => hasClass(element, "recognise-actions")).children, []);
-    time.advance(3000);
-    assert.equal(tree(panel()).some((element) => hasClass(element, "recognise-note")), false);
-    assert.equal(buttonNamed(RECOGNISE_TEXT.back), back);
-    back.click();
-    // The refused request opened nothing; the one camera that opened is stopped.
-    assert.equal(context.camera.log.tracksStopped, 1);
-  }, { camera: { storage: choiceStorage("environment"), noBackCamera: true } });
 });

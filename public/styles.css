@@ -51,8 +51,6 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .recognise-line { flex: none; max-width: 100%; margin: 0; font: 700 clamp(1.05rem, 5vmin, 2rem)/1.25 system-ui, sans-serif; overflow-wrap: anywhere; }
 .recognise-count { flex: none; margin: 0; font: 800 clamp(3rem, 20vmin, 8rem)/1 system-ui, sans-serif; }
 .recognise-hint { flex: none; margin: 0; font-size: clamp(.9rem, 3.5vmin, 1.1rem); }
-/* Only when the chosen camera could not be used (card NG-43): a line for the adult nearby, under the count; the buttons do not move. */
-.recognise-note { flex: none; max-width: 100%; margin: 0; font-size: clamp(.85rem, 3.2vmin, 1rem); overflow-wrap: anywhere; }
 .recognise-concept { flex: 0 1 auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; min-width: min(10rem, 100%); max-width: 100%; min-height: var(--tile-min); padding: .4rem 1rem; border: 4px solid #143146; border-radius: 1rem; background: white; color: #143146; font: 800 clamp(1.3rem, 6vmin, 2.6rem)/1.15 system-ui, sans-serif; overflow: hidden; }
 .recognise-concept img { flex: 0 1 auto; width: auto; height: clamp(48px, 30vmin, 220px); min-height: 32px; max-width: 100%; object-fit: contain; pointer-events: none; }
 .recognise-concept span { flex: none; overflow-wrap: anywhere; }

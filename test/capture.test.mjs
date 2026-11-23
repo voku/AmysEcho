@@ -1532,3 +1532,11 @@ test("camera test: 'Kamera: vorne / hinten' above 'Kamera starten', remembered o
   front.click();
   assert.equal(loadCameraFacing(storage), "user");
 });
+
+test("camera choice: `fallback: false` (the child's gesture view) never tries the other camera", async () => {
+  for (const [device, problem] of [[{ busy: ["user"] }, "busy"], [{ cameras: ["environment"], busy: ["environment"] }, "busy"]]) {
+    const { environment, log } = cameraDevice(device);
+    assert.deepEqual(await startCapture(environment, { facing: "user", fallback: false }), { ok: false, problem });
+    assert.deepEqual([log.asked, log.trackerClosed], [["user"], 1]);
+  }
+});
