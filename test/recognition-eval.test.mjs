@@ -153,23 +153,30 @@ test("one-hand, two-hand and mixed profiles under the disturbances of a real cap
 
 test("the hand that does not sign is in view, fidgets, trembles or belongs to somebody else: measured and reported", async (t) => {
   // In two halves side by side; each case has its own seeds, so the halves are the cases of one run.
-  const cases = (await Promise.all([inWorker("simulateHandCases", 0, 50), inWorker("simulateHandCases", 50)])).flat();
+  const cases = (await Promise.all([inWorker("simulateHandCases", 0, 58), inWorker("simulateHandCases", 58)])).flat();
   t.diagnostic("per case: top-1 / spoken as a wrong concept / answered \"unknown\"; for attempts that are no sign: spoken as a concept");
   for (const { name, report } of cases) {
     t.diagnostic(report.knownAttempts > 0
       ? `${name}: ${percent(report.top1)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)} (${report.examples} examples, ${report.knownAttempts} attempts)`
       : `${name}: spoken as a concept ${percent(report.falseAccept)} (${report.examples} examples, ${report.unknownAttempts} attempts)`);
   }
-  assert.equal(cases.length, 99);
-  // A second hand seen for under a fifth of the time a hand is in view, without a movement of its own, is taken for a
-  // hand passing through, by the rule (docs/recognition.md). These rows are measured and reported (the matcher of
-  // schema version 1 speaks the wrong concept in them as well); a limit here would only pin the weakness in place.
-  const byRule = (name) => /second hand seen for (30|20|10)% of the movement/.test(name);
-  assert.equal(cases.filter(({ name }) => byRule(name)).length, 3);
+  assert.equal(cases.length, 115);
+  // The rows in which the matcher of schema version 1 (commit 70bf62b) speaks a wrong concept, measured on the same
+  // captures: there the device may do so no more often. A second hand seen for under a fifth of the time, in one visit
+  // and without a movement of its own, is taken for a hand passing through (docs/recognition.md); a held hand seen
+  // only in scattered frames is not dropped, but version 1 spoke the one-hand sign for many of them as well.
+  const scatteredOld = [[0.1, [27, 26, 31]], [0.15, [15, 9, 14]], [0.2, [6, 3, 12]], [0.25, [2, 1, 7]], [0.3, [0, 0, 4]]];
+  const rates = ["15 frames per second", "30 frames per second", "7 to 15 frames per second, unsteady"];
+  const oldWrong = new Map([
+    ...[30, 20, 10].map((seen) => [`one-hand and two-hand sign with the same path; attempts of the two-hand sign: second hand seen for ${seen}% of the movement`, 1]),
+    ...scatteredOld.flatMap(([chance, counts]) => counts.map((count, index) => [
+      `one-hand and two-hand sign with the same path, the second hand held still; attempts of the two-hand sign: held hand seen in each frame with chance ${chance}, ${rates[index]}`, count / 40,
+    ])),
+  ]);
+  assert.equal(cases.filter(({ name }) => oldWrong.has(name)).length, 18);
   for (const { name, report } of cases) {
-    if (byRule(name)) continue;
     // Everywhere else the answer may be "unknown", never another concept.
-    if (report.knownAttempts > 0) assert.equal(report.wrongAccept, 0, name);
+    if (report.knownAttempts > 0) assert.ok(report.wrongAccept <= (oldWrong.get(name) ?? 0) + 1e-12, `${name}: ${percent(report.wrongAccept)}`);
     else assert.equal(report.falseAccept, 0, name);
   }
   const top1 = (part) => cases.find(({ name }) => name.includes(part)).report.top1;

@@ -250,6 +250,11 @@ test("limits are per concept and kind of sequence, and never wider than the limi
   const twoAnchors = calibrateMaxDistance([anchored("shoulders", 0), anchored("shoulders", 1.2), anchored("hands", 0), anchored("hands", 1.2)]);
   assert.equal(twoAnchors.get(rightKey("c")), MAX_CALIBRATED_MAX_DISTANCE);
   assert.equal(twoAnchors.get(limitKey("c", { anchor: "hands", hands: "right" })), MAX_CALIBRATED_MAX_DISTANCE);
+  // As in schema version 1, the median runs over all examples of the concept, whatever their anchor: three tidy
+  // examples with shoulders and two loose ones without give the loose kind the fallback, not the upper bound.
+  const mixed = calibrateMaxDistance([anchored("shoulders", 0), anchored("shoulders", 0.1), anchored("shoulders", 0.2), anchored("hands", 0), anchored("hands", 1.2)]);
+  assert.equal(mixed.get(limitKey("c", { anchor: "hands", hands: "right" })), FALLBACK_MAX_DISTANCE);
+  assert.equal(mixed.get(rightKey("c")), FALLBACK_MAX_DISTANCE);
   // The key tells concepts, anchors and hands apart.
   assert.notEqual(limitKey("a", { anchor: "shoulders", hands: "right" }), limitKey("a", { anchor: "hands", hands: "right" }));
   assert.notEqual(limitKey("a", { anchor: "shoulders", hands: "right" }), limitKey("b", { anchor: "shoulders", hands: "right" }));
@@ -317,6 +322,23 @@ test("hand kind: seen for half of the gesture a hand belongs to it, seen for und
   assert.deepEqual(buildFeatureSequence(capture(1000, 50, (t) => ({ left: [100 + t / 10, 100], right: t <= 450 ? [220 - t / 10, 100] : null }))), unclear);
   // Two hands that take turns, each seen for under half of the time: nobody's gesture.
   assert.deepEqual(buildFeatureSequence(capture(1000, 50, (t) => (t < 450 ? { left: [20, 100] } : t > 550 ? { right: [120, 100] } : {}))), unclear);
+});
+
+test("hand kind: a brief hand is dropped only when it is seen in one unbroken visit", () => {
+  // The right hand travels for three seconds; the left hand lies still and is seen only at the times given.
+  const answer = (stepMs, seenAt) => {
+    const result = buildFeatureSequence(capture(3000, stepMs, (t) => ({ right: [100 + t / 30, 100], left: seenAt.includes(t) ? [20, 60] : null })));
+    return result.ok ? result.sequence.hands : result.reason;
+  };
+  // Frames every 250 ms. Two sightings 500 ms apart, the bridging limit, are one visit; 750 ms apart, two visits.
+  assert.equal(answer(250, [1000, 1500]), "right");
+  assert.equal(answer(250, [1000, 1750]), "hands_unclear");
+  // Frames every 50 ms. Seen in at least half of the frames from its first to its last sighting, it is one visit; in
+  // scattered frames, it is not.
+  assert.equal(answer(50, [500, 550, 650]), "right");
+  assert.equal(answer(50, [500, 650]), "right", "two of four frames: exactly half");
+  assert.equal(answer(50, [500, 700]), "hands_unclear", "two of five frames");
+  assert.equal(answer(50, [500, 650, 800]), "hands_unclear");
 });
 
 test("hand kind: the shares are limits that a hand reaches when it is seen for exactly that share", () => {

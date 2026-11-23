@@ -35,11 +35,11 @@ const MIN_ACTIVE_FRAMES = 3;
 export const HAND_PRESENCE_SHARE = 0.5;
 /**
  * Only a hand visible for less than this share of the time a hand is in view,
- * and without a movement of its own, is left out silently. It is a share, not
- * a time: in a capture of 1.5 s a hand seen for 300 ms is at the limit. Between
- * the two shares nobody can say whether the hand belongs, and leaving it out
- * could turn a two-hand gesture into the one-hand gesture with the same path:
- * no sequence is built ("hands_unclear").
+ * in one visit and without a movement of its own, is left out silently. It is
+ * a share, not a time: in a capture of 1.5 s a hand seen for 300 ms is at the
+ * limit. Between the two shares nobody can say whether the hand belongs, and
+ * leaving it out could turn a two-hand gesture into the one-hand gesture with
+ * the same path: no sequence is built ("hands_unclear").
  */
 export const HAND_BRIEF_SHARE = 0.2;
 /**
@@ -114,8 +114,9 @@ export type FeatureSequenceV1 = FeatureSequence;
  * - "hands_unclear": which hands make the gesture cannot be told. A hand was in
  *   view for between `HAND_BRIEF_SHARE` and `HAND_PRESENCE_SHARE` of the time
  *   a hand is in view; or one hand belongs and the other, though seen less,
- *   moved on its own; or one hand belongs, shows no movement of its own, and
- *   the other was in view; or no hand is in view for half of the time.
+ *   moved on its own or was seen in more than one visit; or one hand belongs,
+ *   shows no movement of its own, and the other was in view; or no hand is in
+ *   view for half of the time.
  * - "hand_lost": a hand of the gesture was not seen for longer than `MAX_BRIDGED_GAP_MS`.
  */
 export type FeatureFailure = "no_frames" | "bad_timestamps" | "bad_landmarks" | "no_hands" | "too_short" | "hands_unclear" | "hand_lost";
@@ -325,6 +326,21 @@ function wanders(frames: readonly LandmarkFrame[], { places }: Motion): boolean 
   return seen.some((index) => distance(start, places[index]!) >= MIN_TRAVEL / 2);
 }
 
+/**
+ * True when a hand is seen in one unbroken visit: its sightings are no
+ * farther apart in time than `MAX_BRIDGED_GAP_MS` (the gap a hand of the
+ * gesture may be lost for), and it is seen in at least half of the frames from
+ * its first to its last sighting. A hand that passes through is seen like
+ * that; one seen in separate moments, or in scattered frames, may be a hand of
+ * the gesture that the tracker keeps losing.
+ */
+function oneVisit(frames: readonly LandmarkFrame[], side: Side): boolean {
+  const seen = frames.flatMap((frame, index) => (frame[side] === null ? [] : [index]));
+  if (seen.length === 0) return true;
+  const apart = seen.some((index, at) => at > 0 && frames[index]!.tMs - frames[seen[at - 1]!]!.tMs > MAX_BRIDGED_GAP_MS);
+  return !apart && seen.length * 2 >= seen[seen.length - 1]! - seen[0]! + 1;
+}
+
 /** The time each frame stands for: half the way to its neighbours, inside the span. */
 function frameWeights(frames: readonly LandmarkFrame[], first: number, last: number): number[] {
   const weights: number[] = [];
@@ -437,9 +453,10 @@ function resample(rows: readonly number[][], steps: number): number[][] {
  *
  * 1. Its hands are those visible for `HAND_PRESENCE_SHARE` of the time a hand
  *    is in view, moving or not. The other hand is left out only when it was
- *    seen for less than `HAND_BRIEF_SHARE` of it and did not move on its own
- *    (`wanders`), and the hand that stays has a movement of its own if the
- *    other was in view. Otherwise nothing is built ("hands_unclear").
+ *    seen for less than `HAND_BRIEF_SHARE` of it, in one visit (`oneVisit`), and
+ *    did not move on its own (`wanders`), and the hand that stays has a
+ *    movement of its own if the other was in view. Otherwise nothing is built
+ *    ("hands_unclear").
  * 2. The gesture is the whole time those hands are in view (`segment`).
  * 3. Gaps of those hands up to `MAX_BRIDGED_GAP_MS` are filled; a longer one
  *    fails with "hand_lost".
@@ -485,6 +502,8 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
     const other: Side = kept === "left" ? "right" : "left";
     // A hand that moved on its own, beyond jitter, may belong to the gesture, however briefly it was seen.
     if (wanders(frames, motion[other])) return { ok: false, reason: "hands_unclear" };
+    // A hand seen in several separate moments, or in scattered frames, may be a hand of the gesture that the tracker keeps losing.
+    if (!oneVisit(frames, other)) return { ok: false, reason: "hands_unclear" };
     // A hand that stays without a movement of its own is not a gesture because another hand was in view for a moment.
     if (!moves[kept].includes(true) && frames.some((frame) => frame[other] !== null)) return { ok: false, reason: "hands_unclear" };
   }

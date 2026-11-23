@@ -300,8 +300,12 @@ export function trembling(hand: HandScript, hertz: number, size: number): HandSc
 export interface Tracking {
   /** How far a hand's landmarks wander together from frame to frame, in shoulder widths (standard deviation); default 0.004. */
   readonly noise?: number;
-  /** Mean time between frames; default 37 (about 27 frames per second). Each interval varies by a tenth either way. */
+  /** Mean time between frames; default 37 (about 27 frames per second). */
   readonly frameMs?: number;
+  /** How much each interval between frames varies either way, as a share of `frameMs`; default 0.1. */
+  readonly frameJitter?: number;
+  /** False: the shoulders are not seen. */
+  readonly shoulders?: boolean;
   /** In this many frames, picked at random, the whole right hand is shown `jumpSize` shoulder widths off, in a random direction: a tracker's wrong frame. */
   readonly jumps?: number;
   readonly jumpSize?: number;
@@ -326,12 +330,15 @@ export function renderScript(capture: ScriptedCapture, variation: Pick<Variation
     ]));
   };
   const frames: LandmarkFrame[] = [];
-  for (let tMs = 0; tMs <= capture.durationMs; tMs += (variation.frameMs ?? FRAME_MS) * (0.9 + random() * 0.2)) {
+  const unsteady = variation.frameJitter ?? 0.1;
+  for (let tMs = 0; tMs <= capture.durationMs; tMs += (variation.frameMs ?? FRAME_MS) * (1 - unsteady + random() * 2 * unsteady)) {
     frames.push({
       tMs: Math.round(tMs),
       left: render(capture.left, tMs),
       right: render(capture.right, tMs),
-      shoulders: [toCamera([-0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01]), toCamera([0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01])],
+      shoulders: variation.shoulders === false
+        ? null
+        : [toCamera([-0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01]), toCamera([0.5 + gaussian(random) * 0.01, gaussian(random) * 0.01])],
     });
   }
   for (let jump = 0; jump < (variation.jumps ?? 0); jump += 1) {

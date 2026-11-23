@@ -23,12 +23,15 @@ The hand-tracker decision, with what was measured and what only the phone can an
      one-hand gesture with the same path: no sequence is built (`hands_unclear`). Neither hand in
      view for half: `hands_unclear`.
    - **A one-hand gesture needs more.** The other hand is dropped entirely, not interpolated in,
-     only when all of this holds: it is in view for less than a fifth of the time; it does not
-     get half of `MIN_TRAVEL` (below) away from where it was first seen while it is seen for
+     only when all of this holds: it is in view for less than a fifth of the time; it is seen in
+     one unbroken visit (no two sightings more than `MAX_BRIDGED_GAP_MS`, 500 ms, apart, and
+     seen in at least half of the frames from its first to its last sighting); it does not get
+     half of `MIN_TRAVEL` (below) away from where it was first seen while it is seen for
      `MIN_GESTURE_MS` (300 ms) or longer, however slowly; and, if it was in view at all, the hand
      that stays has a movement of its own. Otherwise `hands_unclear`: a hand that moved and left
-     just before or after the gesture may be its first or last part, and a hand that lies still
-     is never matched because a hand next to it was seen for a moment.
+     just before or after the gesture may be its first or last part, a hand seen in separate
+     moments or scattered frames may be a hand of the gesture that the tracker keeps losing, and
+     a hand that lies still is never matched because a hand next to it was seen for a moment.
    - **The tolerance for a second hand is a share of the capture, not a time.** A hand passing
      through without moving on its own as above is dropped if it is in view for under a fifth
      of the time a hand is in view: in a capture of 1.5 s that is up to 300 ms, in one of 0.6 s
@@ -87,8 +90,11 @@ The hand-tracker decision, with what was measured and what only the phone can an
    own examples of that concept typically differ, separately for each kind of sequence (anchor
    and hands, `limitKey`): right-hand examples of a concept never widen the limit of its single
    two-hand example. A kind's limit is also never wider than the limit of the whole concept,
-   computed from all its examples as the matcher of schema version 1 does (whatever hands they
-   show), so examples of one kind can only make it stricter. More examples can widen a concept
+   computed as the matcher of schema version 1 does: each example's nearest sibling among the
+   concept's examples with the same anchor (whatever hands they show), and the median over all
+   examples of the concept, whatever their anchor. So examples of one kind can only make it
+   stricter: two loose examples without shoulders do not open a concept that has tidy ones with
+   shoulders. More examples can widen a concept
    up to an upper bound but never make it stricter than the fixed limit a single example gets.
 
 There is no training step and no shared model. Adding an example changes the result immediately.
@@ -152,8 +158,9 @@ and 2 unknown movements per gesture and later session in the first table (60 and
 and 1 in the second (48 and 24 per profile and row); the other tables are the same in both. Its
 numbers therefore differ from those below. Both runs assert that no row speaks a known gesture
 as a wrong concept, or an unknown movement as a concept, more often than the matcher of schema
-version 1 did on the same captures (except the rows named "by the rule" below). **They are not
-accuracy claims**: see below the tables.
+version 1 did on the same captures; in the rows where version 1 does so (rows "30%", "20%" and
+"10%" and the scattered-frame rows below) the test holds the share measured for it. **They are
+not accuracy claims**: see below the tables.
 
 Where a table shows **before → after**, "after" is what `EVAL_FULL=1 npm test` prints. "Before"
 is not printed by it: it was measured for card NG-18 by compiling the feature builder, matcher
@@ -339,6 +346,40 @@ The build before this one cut the gesture by movement; in reviewer probes like t
 wrong frame or strong jitter at a low frame rate cut a sign without travel down to its rest, and
 some of those attempts were spoken as a wrong concept. Without a trim, none is here.
 
+**A held hand seen in scattered frames** (card NG-18). The two-hand sign with a held hand and
+its one-hand twin, as in the "same path" rows; in the attempts of the two-hand sign the tracker
+sees the held hand in each frame only with the chance of the row (40 attempts per row). Cells are
+percent, before → after.
+
+| Held hand seen with chance, frame rate | Top-1 | Spoken as a wrong concept | Answered "unknown" |
+| --- | --- | --- | --- |
+| 0.1, 15 frames per second | 0 → 0 | 68 → 18 | 33 → 83 |
+| 0.1, 30 frames per second | 0 → 0 | 65 → 0 | 35 → 100 |
+| 0.1, 7 to 15 frames per second, unsteady | 0 → 0 | 78 → 55 | 23 → 45 |
+| 0.15, 15 frames per second | 8 → 0 | 38 → 0 | 55 → 100 |
+| 0.15, 30 frames per second | 0 → 0 | 23 → 0 | 78 → 100 |
+| 0.15, 7 to 15 frames per second, unsteady | 8 → 0 | 35 → 13 | 58 → 88 |
+| 0.2, 15 frames per second | 23 → 0 | 15 → 0 | 63 → 100 |
+| 0.2, 30 frames per second | 8 → 0 | 8 → 0 | 85 → 100 |
+| 0.2, 7 to 15 frames per second, unsteady | 15 → 0 | 30 → 15 | 55 → 85 |
+| 0.25, 15 frames per second | 28 → 0 | 5 → 0 | 68 → 100 |
+| 0.25, 30 frames per second | 25 → 0 | 3 → 0 | 73 → 100 |
+| 0.25, 7 to 15 frames per second, unsteady | 33 → 0 | 18 → 5 | 50 → 95 |
+| 0.3, 15 frames per second | 43 → 0 | 0 → 0 | 58 → 100 |
+| 0.3, 30 frames per second | 55 → 0 | 0 → 0 | 45 → 100 |
+| 0.3, 7 to 15 frames per second, unsteady | 38 → 3 | 10 → 3 | 53 → 95 |
+
+- The build before this one dropped the held hand when it was in view for under a fifth of the
+  time, scattered or not, and spoke the one-hand twin more often than version 1 (up to 100% of
+  these attempts). Dropped only after one unbroken visit, it is spoken less often than by
+  version 1 in every row; the rest are `unknown`, including those that version 1 recognised
+  (top-1 up to 55% before, 3% at most now).
+- A sign taught in three tidy examples with shoulders and two loose ones without (one at 40%,
+  one at 160% of the size), attempted with look-alikes (other hand shapes on the same path)
+  without shoulders, 40 attempts per look-alike: spoken as a concept 0% → 0%. The build before
+  this one calibrated the loose examples without the tidy ones and spoke half of them as the
+  concept.
+
 The gestures are generated, differ strongly from each other and are repeated more consistently
 than a child would. The simulated sessions differ only in camera shift, zoom and tilt, which the
 features remove by construction, so the session split is far easier than a real one. The jitter
@@ -397,8 +438,8 @@ more.
   (the tracker sees a hand for one frame where there is none) is a hand seen briefly next to a
   hand that does not move: in the reviewer probe `ng18-blind4/a4.mjs`, rerun on this build (not
   part of `npm test`), top-1 for signs without travel fell from 100% to 44% at 15 frames per
-  second and to 57% at 7 to 15, every miss `hands_unclear`, none spoken wrong; the camera task
-  could drop such single frames. A lap hand that holds a toy (a fist) when it was open in the
+  second and to 57% at 7 to 15, every miss `hands_unclear`, none spoken wrong; two false frames
+  1.2 s apart, separate visits, gave 4% and 21%. The camera task could drop such single frames. A lap hand that holds a toy (a fist) when it was open in the
   examples gives `too_far` with both matchers (probe `ng18-blind4/c1.mjs`): the resting hand's
   shape is part of a two-hand sequence.
 - **Cost is unmeasured on phones.** Informal runs in Node on a desktop CPU took between 3 and 7 ms

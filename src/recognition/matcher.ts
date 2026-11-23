@@ -136,8 +136,10 @@ function median(values: number[]): number {
  * concept. Each kind of sequence of a concept (`limitKey`) gets its own limit
  * from its own examples, and a kind with fewer than two examples gets no
  * entry. A kind's limit is never wider than the limit of the whole concept,
- * computed from all its examples with the anchor of that kind, whatever hands
- * they show: so examples of one kind can make it stricter, never wider.
+ * computed as the matcher of schema version 1 does: each example's nearest
+ * sibling with the same anchor, whatever hands it shows, and the median over
+ * all examples of the concept, whatever their anchor. So examples of one kind
+ * can make it stricter, never wider.
  */
 export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<string, number> {
   const ofKind = new Map<string, number[]>();
@@ -155,16 +157,15 @@ export function calibrateMaxDistance(examples: readonly GestureExample[]): Map<s
         if (comparable(other.sequence, example.sequence)) nearestOfKind = Math.min(nearestOfKind, between);
       }
     }
-    const concept = JSON.stringify([example.conceptId, example.sequence.anchor]);
-    if (Number.isFinite(nearest)) add(ofConcept, concept, nearest);
+    if (Number.isFinite(nearest)) add(ofConcept, example.conceptId, nearest);
     if (Number.isFinite(nearestOfKind)) add(ofKind, limitKey(example.conceptId, example.sequence), nearestOfKind);
   }
   const limit = (distances: readonly number[]): number =>
     Math.min(Math.max(median([...distances]) * CALIBRATION_HEADROOM, FALLBACK_MAX_DISTANCE), MAX_CALIBRATED_MAX_DISTANCE);
   const limits = new Map<string, number>();
   for (const [key, distances] of ofKind) {
-    const [conceptId, anchor] = JSON.parse(key) as [string, string];
-    limits.set(key, Math.min(limit(distances), limit(ofConcept.get(JSON.stringify([conceptId, anchor]))!)));
+    const [conceptId] = JSON.parse(key) as [string];
+    limits.set(key, Math.min(limit(distances), limit(ofConcept.get(conceptId)!)));
   }
   return limits;
 }

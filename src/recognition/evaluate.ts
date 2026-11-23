@@ -196,6 +196,9 @@ const SIGNS: Readonly<Record<string, readonly [readonly [number, number], readon
   Y: [[0.4, 0.1], [0.4, 0.1], POINT, POINT],
   Z: [[0.3, -0.4], [0.3, -0.4], VEE, FIST],
   A: [[0.6, 0.6], [0.1, 0], POINT, POINT],
+  /** A's path with other hand shapes: look-alikes of A. */
+  Av: [[0.6, 0.6], [0.1, 0], VEE, VEE],
+  Ao: [[0.6, 0.6], [0.1, 0], OPEN, OPEN],
   B: [[0.2, -0.5], [0.8, -0.3], OPEN, FIST],
   C: [[0.7, 0.2], [0.6, 0.9], VEE, VEE],
   /** Not a sign: the hand lies in view. */
@@ -283,6 +286,13 @@ const heldInRests = (before: boolean, after: boolean): OtherHand => (nudge, { st
   return (tMs) => ((before && tMs < startMs) || (after && tMs > endMs) ? hand(tMs) : null);
 };
 
+/** A second hand held still, but seen by the tracker in each frame only with chance `chance`, in scattered frames. */
+const heldScattered = (chance: number): OtherHand => (nudge, timing) => {
+  const hand = held(OPEN)(nudge, timing)!;
+  const random = createRandom(Math.floor((nudge() / NUDGE + 1) * 1e6));
+  return (tMs) => (random() < chance ? hand(tMs) : null);
+};
+
 /** One-hand sign "one" and two-hand sign "two" with the same right-hand path; the attempts are all "two". */
 const sharedPath = (name: string, taught: OtherHand, attempted: OtherHand, attemptsPerKind?: number): HandCase => ({
   name: `one-hand and two-hand sign with the same path; attempts of the two-hand sign: ${name}`,
@@ -295,8 +305,8 @@ interface HandCase {
   readonly name: string;
   /** How the examples are recorded; the attempts carry their own options. */
   readonly taught?: SignOptions;
-  /** Per taught sign: its concept, the sign made and what the other hand does in each of the three examples. */
-  readonly examples: readonly (readonly [string, string, readonly [OtherHand, OtherHand, OtherHand]])[];
+  /** Per taught sign: its concept, the sign made, what the other hand does in each example (usually three), and how each is recorded (default `taught`). */
+  readonly examples: readonly (readonly [string, string, readonly OtherHand[], (readonly SignOptions[])?])[];
   /** Per kind of attempt: the concept it should be answered with (null: none, the child is not signing), the sign made, the other hand. */
   readonly attempts: readonly (readonly [string | null, string, OtherHand, SignOptions?])[];
   /** Default `ATTEMPTS_PER_KIND`. */
@@ -330,6 +340,33 @@ const restCases = (): HandCase[] => [
 /** Tracker jitter of a hand (shoulder widths, standard deviation per frame) and time between frames, as a real tracker may show them. */
 const TRACKERS: readonly Required<Pick<Tracking, "noise" | "frameMs">>[] = [0.01, 0.015, 0.02].flatMap((noise) => [100, 67, 33].map((frameMs) => ({ noise, frameMs })));
 const TRACKED_ATTEMPTS = 30;
+
+const SCATTER_RATES: readonly (readonly [string, Tracking])[] = [["15 frames per second", { frameMs: 67 }], ["30 frames per second", { frameMs: 33 }], ["7 to 15 frames per second, unsteady", { frameMs: 100, frameJitter: 0.45 }]];
+
+/** A two-hand sign with a held hand and its one-hand twin; in the attempts of the two-hand sign the tracker sees the held hand only in scattered frames. */
+const scattered = (chance: number, rate: string, tracking: Tracking): HandCase => ({
+  name: `one-hand and two-hand sign with the same path, the second hand held still; attempts of the two-hand sign: held hand seen in each frame with chance ${chance}, ${rate}`,
+  taught: tracking,
+  examples: [["one", "A", clean(absent)], ["two", "A", clean(held(OPEN))]],
+  attempts: [["two", "A", heldScattered(chance), tracking]],
+});
+
+/**
+ * One concept taught with the shoulders in view in three tidy examples and
+ * without them in two loose ones (one small, one large); the attempts are
+ * look-alikes without shoulders. The matcher of schema version 1 calibrated a
+ * concept over all its examples, whatever their anchor.
+ */
+const anchorsMixed: HandCase = {
+  name: "a sign taught in three tidy examples with shoulders and two loose ones without; attempts: look-alikes without shoulders",
+  examples: [
+    ["A", "A", clean(absent)],
+    ["A", "A", [absent, absent], [{ shoulders: false, size: 0.4 }, { shoulders: false, size: 1.6 }]],
+    ["C", "C", clean(absent)],
+    ["C", "C", [absent, absent], [{ shoulders: false }, { shoulders: false }]],
+  ],
+  attempts: [[null, "Av", absent, { shoulders: false }], [null, "Ao", absent, { shoulders: false }]],
+};
 
 /** Jitter beyond what the rows above allow for, and frames in which the tracker puts the hand somewhere else. */
 const STRONG_JITTER: readonly Tracking[] = [0.025, 0.03].flatMap((noise) => [143, 100, 67].map((frameMs) => ({ noise, frameMs })));
@@ -439,6 +476,8 @@ const HAND_CASES: readonly HandCase[] = [
   ...TRACKERS.flatMap(trackerCases),
   ...STRONG_JITTER.map((tracking) => shapesWithLap(tracking, `; jitter ${tracking.noise} shoulder widths, ${Math.round(1000 / tracking.frameMs!)} frames per second`)),
   ...JUMPS.map((tracking) => shapesWithLap(tracking, `; attempts: ${tracking.jumps} frame${tracking.jumps === 1 ? "" : "s"} with the hand ${tracking.jumpSize} shoulder widths off (jitter 0.02, 15 frames per second)`, { noise: 0.02, frameMs: 67 })),
+  ...[0.1, 0.15, 0.2, 0.25, 0.3].flatMap((chance) => SCATTER_RATES.map(([rate, tracking]) => scattered(chance, rate, tracking))),
+  anchorsMixed,
 ];
 
 const ATTEMPTS_PER_KIND = 40;
@@ -456,12 +495,12 @@ export function simulateHandCases(first = 0, count = HAND_CASES.length): { reado
     const add = (conceptId: string | null, sessionId: string, id: string, other: OtherHand, options: SignOptions = {}): void => {
       const random = createRandom(seed += 1);
       const capture = sign(id, () => (random() - 0.5) * 2 * NUDGE, other, options);
-      const tracking = { noise: options.noise, frameMs: options.frameMs, jumps: options.jumps, jumpSize: options.jumpSize };
+      const tracking = { noise: options.noise, frameMs: options.frameMs, frameJitter: options.frameJitter, shoulders: options.shoulders, jumps: options.jumps, jumpSize: options.jumpSize };
       const result = buildFeatureSequence(renderScript(capture, { seed, session: createSession(sessionId === "teach" ? 300 : 301), ...tracking }));
       attempts.push({ conceptId, sessionId, sequence: result.ok ? result.sequence : null });
     };
-    for (const [conceptId, id, others] of handCase.examples) {
-      for (const other of others) add(conceptId, "teach", id, other, handCase.taught);
+    for (const [conceptId, id, others, recorded] of handCase.examples) {
+      others.forEach((other, index) => add(conceptId, "teach", id, other, recorded?.[index] ?? handCase.taught));
     }
     for (const [conceptId, id, other, options] of handCase.attempts) {
       for (let repeat = 0; repeat < (handCase.attemptsPerKind ?? ATTEMPTS_PER_KIND); repeat += 1) add(conceptId, "use", id, other, options);
