@@ -1,0 +1,36 @@
+{
+    "acceptance_criteria": [
+        "The record names tracker, pinned version and the reason for the pin, models, licence, sizes and the CSP change",
+        "It separates what was measured in headless Chromium from what is unverified on the phone",
+        "It lists the matcher gaps for one- and two-hand gestures with file references and an ordered build plan"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-22T22:29:59+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "6cbffb1b03dd05843d3c12c5617b2121d2acf615",
+    "behavior_anchors": [],
+    "created_at": "2026-11-22T22:29:59+00:00",
+    "goal": "Record the hand-tracker decision with its evidence: which tracker and version, how it is bundled offline, licence and size, security-policy change, left/right convention, what is measured and what only the phone can answer, and the matcher gaps for one- and two-hand gestures.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "docs/tracker-decision.md",
+        "docs/recognition.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-16",
+    "updated_at": "2026-11-22T22:29:59+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

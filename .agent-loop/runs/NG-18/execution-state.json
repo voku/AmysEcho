@@ -1,0 +1,416 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+    "contract_revision": 2,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T06:15:14+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:15:14+00:00",
+                "artifact_references": [],
+                "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "70bf62b8c196d05758863b5e5390672b72815b40",
+                "context_id": "investigate-r2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "completed",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:1ea5f904",
+                "summary": "Contract revision 2: hand membership over the whole visible capture, limits capped at the old whole-concept limit, no movement trim (every cut tried could speak a wrong concept), steps in frame order; wrong concept and unknown accepted no higher than 70bf62b in every evaluation row and reviewer probe; 475 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:15:14+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:15:14+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "context_id": "build-r2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "completed",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:b240f95c",
+                "summary": "Contract revision 2: hand membership over the whole visible capture, limits capped at the old whole-concept limit, no movement trim (every cut tried could speak a wrong concept), steps in frame order; wrong concept and unknown accepted no higher than 70bf62b in every evaluation row and reviewer probe; 475 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:20:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:20:48+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d578d35be942105007d7a1a1065d8c1407c4db1e006327f6e14fa7a3533f52ac",
+                    "execution-evidence:sha256:26052992d1f4ab306ba6b54b31f3495d15b371330e172b23ba7cbcda553221f2",
+                    "execution-evidence:sha256:4f616eb984f323be1bf89ee3506d9ad4745d41d1330882f00da18ecb178eac9b"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d578d35be942105007d7a1a1065d8c1407c4db1e006327f6e14fa7a3533f52ac",
+                    "execution-evidence:sha256:26052992d1f4ab306ba6b54b31f3495d15b371330e172b23ba7cbcda553221f2",
+                    "execution-evidence:sha256:4f616eb984f323be1bf89ee3506d9ad4745d41d1330882f00da18ecb178eac9b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "context_id": "correctness-review-r2-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:ef90cae4",
+                "summary": "The whole-concept cap is keyed by concept and anchor, while 70bf62b pooled all anchors: unknown no-shoulder attempts accepted 0 of 40 old, 40 of 40 new. A still held hand detected in scattered single frames is dropped as brief and the one-hand twin is spoken more often than old (e.g. 22 to 32 percent at 15 fps).",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:34:03+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:34:03+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "context_id": "build-r2-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "completed",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:d8238490",
+                "summary": "Sixth build: cap keyed by concept as 70bf62b, brief hand dropped only for one unbroken dense visit, scattered-detection and mixed-anchor rows asserted at or below old; 476 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:39:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:39:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7242fea9607e97292622334054bce599a1b86f1ec0cff5cce5ed1130c329f6bd",
+                    "execution-evidence:sha256:f801246ee7a59d2c7d0b0c9cdd677f6665ed5dae696b23050f6639749b2f40e3",
+                    "execution-evidence:sha256:cee360f37b9449aaf0da4f4a09ef3bd5a698bd4400ab00d64680d76f3a1c4fe9",
+                    "execution-evidence:sha256:087c5e414bd46594afca837e46af45817d8d0ca759c00f50d66af064fe288400",
+                    "execution-evidence:sha256:db97fd1730b289c75bc8c1b9e57a1865107fd91869667aa5b3c8fe177477f646",
+                    "execution-evidence:sha256:2ef7eac438a628ab35fdd5bac08132754f97f8c0caf0626cc32f9d85b2ebfb59",
+                    "execution-evidence:sha256:3aaf1aee082d002ae8af52ae2cc8f55775bfe50d96b426c9cabf3ae56ecfb806"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7242fea9607e97292622334054bce599a1b86f1ec0cff5cce5ed1130c329f6bd",
+                    "execution-evidence:sha256:f801246ee7a59d2c7d0b0c9cdd677f6665ed5dae696b23050f6639749b2f40e3",
+                    "execution-evidence:sha256:cee360f37b9449aaf0da4f4a09ef3bd5a698bd4400ab00d64680d76f3a1c4fe9",
+                    "execution-evidence:sha256:087c5e414bd46594afca837e46af45817d8d0ca759c00f50d66af064fe288400",
+                    "execution-evidence:sha256:db97fd1730b289c75bc8c1b9e57a1865107fd91869667aa5b3c8fe177477f646",
+                    "execution-evidence:sha256:2ef7eac438a628ab35fdd5bac08132754f97f8c0caf0626cc32f9d85b2ebfb59",
+                    "execution-evidence:sha256:3aaf1aee082d002ae8af52ae2cc8f55775bfe50d96b426c9cabf3ae56ecfb806"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "context_id": "correctness-review-r2-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "observations": [
+                    "Scattered held-hand detections at 10 percent and 7-15 fps still speak the one-hand twin in 55 percent (old 78); exempt held-share row and known limit."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:28bedff1",
+                "summary": "Sixth build passes correctness: no probe row NEW above OLD for wrong concept or unknown accepted, no loosened limit, doc numbers match",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:39:19+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:39:19+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:fd4faa8f19fb209623c5a24fef5023a4ef300156bc183df520848bee65d63307",
+                    "execution-evidence:sha256:641483382117688301e197f1cb8af13ea819c99c3664a05e4e2fb24d0966d5a9"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:fd4faa8f19fb209623c5a24fef5023a4ef300156bc183df520848bee65d63307",
+                    "execution-evidence:sha256:641483382117688301e197f1cb8af13ea819c99c3664a05e4e2fb24d0966d5a9"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:87e21d575f0fa4104ef3323fc7a63104bd1041d8",
+                "context_id": "blindspot-review-r2-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:71e34151",
+                "summary": "A caregiver's moving hand in view for half the capture or more is held at its first and last position outside its visit and makes a one-hand sign speak a two-hand concept: old 0, new 14 to 31 percent wrong. Old recorded the hand as missing outside its visit.",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:49:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:49:51+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "context_id": "build-r2-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "completed",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:371f58f5",
+                "summary": "Seventh build: outside a hand's visit it is encoded as missing as in 70bf62b; caregiver-reach rows added at 0 wrong; full earlier probe set unchanged with no row above old; 476 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:54:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:54:39+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:22ba5a4d24694372ef46f0bb516521ca5ef26f5032818297b645ccf9e9f90f95",
+                    "execution-evidence:sha256:9f88acc792d106075b28af8682edb0fb37105a0992d328d8a78efe91908a1fcf",
+                    "execution-evidence:sha256:fb33cc8aeaeae5d30a71a10dbb12772ab69f02ef1bc362d76f1b9d1fbfde715c",
+                    "execution-evidence:sha256:986e4c5b955eac2fa70e01c9fc9f7e8639b72c989f8b5b1a7357c6a01fe3a4d6",
+                    "execution-evidence:sha256:fba19f4cfd7311a6deb86a37d2086a61f7aea52e0f74b106b4d3df1b7345aa70",
+                    "execution-evidence:sha256:321fcaefeab85dcbf7576b67802d51e6ff590f5de9831616b94ae268ad633f0e",
+                    "execution-evidence:sha256:bea22b794e380a9b5985f877a2e771c812947a98caeed620cf4ac45b28ae337b"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:22ba5a4d24694372ef46f0bb516521ca5ef26f5032818297b645ccf9e9f90f95",
+                    "execution-evidence:sha256:9f88acc792d106075b28af8682edb0fb37105a0992d328d8a78efe91908a1fcf",
+                    "execution-evidence:sha256:fb33cc8aeaeae5d30a71a10dbb12772ab69f02ef1bc362d76f1b9d1fbfde715c",
+                    "execution-evidence:sha256:986e4c5b955eac2fa70e01c9fc9f7e8639b72c989f8b5b1a7357c6a01fe3a4d6",
+                    "execution-evidence:sha256:fba19f4cfd7311a6deb86a37d2086a61f7aea52e0f74b106b4d3df1b7345aa70",
+                    "execution-evidence:sha256:321fcaefeab85dcbf7576b67802d51e6ff590f5de9831616b94ae268ad633f0e",
+                    "execution-evidence:sha256:bea22b794e380a9b5985f877a2e771c812947a98caeed620cf4ac45b28ae337b"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "context_id": "correctness-review-r2-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "observations": [
+                    "docs/recognition.md:352 gives the reach-in rows' old column as 0 without the harness printing it (NG-37)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:db36bb02",
+                "summary": "Seventh build passes: no probe row NEW above OLD for wrong concept or unknown accepted; matcher constants and DTW unchanged; doc tables match EVAL_FULL output",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:54:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:54:39+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:5853c91cec8f2780a15ed30f55076f61bf0bd5195ab2aa597215e8436feff0ec",
+                    "execution-evidence:sha256:f21a7f86c2d72f9ca8118480fbd9c65e6298dad9f1b2ea5c4f8176a6f19c3cc4",
+                    "execution-evidence:sha256:0693fe2a0ca2e4f501d9932af1a833534f915a1525691a824f749a0c02a610ca",
+                    "execution-evidence:sha256:4ca890e860d8b6d1e8dd682250439f8c02d1c32f8392a00802247336830750f3",
+                    "execution-evidence:sha256:e1dcc1431020e3d7389d80a7e31a6c360ed4ad50cb4da41b61367062a0b4e6bc",
+                    "execution-evidence:sha256:6be06c8a0f96b11cae69c4260b110d59b54c57d5d3aee878dac3d3c11ae6a3f9",
+                    "execution-evidence:sha256:33079ae0d05979ccf5ebec9e0e1edec186381ac03a6413c3debc1c8e5a0839a8"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:5853c91cec8f2780a15ed30f55076f61bf0bd5195ab2aa597215e8436feff0ec",
+                    "execution-evidence:sha256:f21a7f86c2d72f9ca8118480fbd9c65e6298dad9f1b2ea5c4f8176a6f19c3cc4",
+                    "execution-evidence:sha256:0693fe2a0ca2e4f501d9932af1a833534f915a1525691a824f749a0c02a610ca",
+                    "execution-evidence:sha256:4ca890e860d8b6d1e8dd682250439f8c02d1c32f8392a00802247336830750f3",
+                    "execution-evidence:sha256:e1dcc1431020e3d7389d80a7e31a6c360ed4ad50cb4da41b61367062a0b4e6bc",
+                    "execution-evidence:sha256:6be06c8a0f96b11cae69c4260b110d59b54c57d5d3aee878dac3d3c11ae6a3f9",
+                    "execution-evidence:sha256:33079ae0d05979ccf5ebec9e0e1edec186381ac03a6413c3debc1c8e5a0839a8"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "context_id": "blindspot-review-r2-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "observations": [
+                    "A second hand lost for 400 ms drops top-1 from 100 to 68 percent at 15 fps (hand_lost, not wrong); the doc names only 450 ms as at the limit (NG-37).",
+                    "Rest is not trimmed and a held hand seen only in a rest gives unknown; one false frame of the other hand drops top-1 to 44-57 percent; scattered held-hand sightings are almost never recognised (NG-37, device trial)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:5e8d051e",
+                "summary": "Blind-spot passes: caregiver reach-in equal to old, adversarial search found no case above old, no crash",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:55:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:55:00+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:f752d71e79523905c59ef3a262a9dda4a6d9ac7ce4a29cdee1a401c76d063008",
+                    "execution-evidence:sha256:ed27715d0dfb437a1bca30a2c03113e12126c0facbb0575fe52ecf098d8ef30a"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:564a7b2c451550886c426ba0a9aa8c400f3d3bc9",
+                "consistency_references": [
+                    "execution-evidence:sha256:9d33abe38dc7bd4c3131460cafd803f9fe6417180931d85f29d2e649c9a1b0fb"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "pass",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:b02200429cf8d7e30d1d5bdb898b6bfe0734f7aea5867824cc618493d975b4e1",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-18: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-18 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-18:7f5011adee9b0b31 binds active Session 2026-11-23-ng-18-r2-28973ff3 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-18 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-18",
+                "validation_references": [
+                    "execution-evidence:sha256:f752d71e79523905c59ef3a262a9dda4a6d9ac7ce4a29cdee1a401c76d063008",
+                    "execution-evidence:sha256:ed27715d0dfb437a1bca30a2c03113e12126c0facbb0575fe52ecf098d8ef30a"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-18:7f5011adee9b0b31",
+    "schema_version": "1.0",
+    "task_id": "NG-18"
+}

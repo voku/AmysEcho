@@ -1,0 +1,194 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T06:15:07+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-18/contract.json",
+                "sha256": "sha256:0e374e09e6d21b520332d074026a7b962a39dc9da47903619dda956c02bb3b58"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-18",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "df580ca039a6575416dc8db095e48e01132498c1c57435c66965c1d6f57c6393",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-18.md",
+                "sha256": "sha256:df580ca039a6575416dc8db095e48e01132498c1c57435c66965c1d6f57c6393"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A gesture is one-handed or two-handed by a stated rule, and an attempt is only compared with examples of the same kind",
+                "A second hand visible only briefly during a one-hand gesture, and a hand lost briefly during a two-hand gesture, are tolerated within stated limits",
+                "Resting before and after the movement is handled no worse than by the previous matcher; cutting rest away is left to a later card because every cut tried so far could speak a wrong concept",
+                "In every evaluation row and every reviewer probe, a known gesture spoken as the wrong concept and an unknown movement spoken as a concept are no more frequent than with commit 70bf62b",
+                "The synthetic evaluation covers one-hand, two-hand and mixed profiles, tracker jitter and one-frame jumps, and prints measured numbers; no threshold is lowered",
+                "A change that makes stored feature sequences incomparable raises FEATURE_SCHEMA_VERSION"
+            ],
+            "goal": "One-hand and two-hand gestures are told apart by rule and survive a second hand passing through and a hand lost for a moment, without ever speaking a wrong concept more often than the previous matcher.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-18/contract.json",
+                "sha256": "sha256:0e374e09e6d21b520332d074026a7b962a39dc9da47903619dda956c02bb3b58"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-18/contract.json",
+                "sha256": "sha256:0e374e09e6d21b520332d074026a7b962a39dc9da47903619dda956c02bb3b58"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-23T06:55:20+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-18:7f5011adee9b0b31",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/b85d7bf47c3f29fe80da29f0ad3378acc0749f9786a4a1da4894ee09528218d7.json",
+                "sha256": "sha256:dd91b5cf4a8bd8297cc678e387e7a3357dc0ce2ced161a5f4ead459fe4b09ebe"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:b8747c3ab0653904700a7b29f3c9345192a8e90f105002c130958b8692556b86",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:03713303152e5f3c838a7f3bc0c170bc7467900e85f31c0f96ae940f57b80370"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/recognition/evaluate.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/recognition/features.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/recognition/matcher.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/recognition/synthetic.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognition-eval.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognition.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 6,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-18:7f5011adee9b0b31",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "196693b2e69cbbc3089722c9b9511141ac50d26c2fd3eb2f86a8935bec83ad68",
+            "compilation_id": "compilation.NG-18.2026-11-23-061508.9f81b6ee",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "57957c8ffa97581c4b91f7afec327d24fcf41955b2cda02dea15853156b82eec",
+            "source": {
+                "path": ".agent-loop/recall/NG-18/meta.json",
+                "sha256": "sha256:4f60c6dfdc31dc403187f0143e977b8189777eca8ec696137bf478f200f11196"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-18/reviews/NG-18.blindspots.json",
+                "sha256": "sha256:b39d43bdb2dd4f8088210e45b833c32a19e8fda3f10cbf3004d3d494b2d84b34"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "70bf62b8c196d05758863b5e5390672b72815b40",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-18-r2-28973ff3",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-18-r2-28973ff3/session.json",
+                "sha256": "sha256:d2add527d404596adccbf214270431871a0c9c8848b6f4086741141e3684f885"
+            },
+            "state": "done",
+            "task_id": "NG-18"
+        },
+        "verification": {
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:ebeb605afec2261ad20d8ce70b091b7cd71609c278a50fe93a1f3c6e80a49d8a",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-18:7f5011adee9b0b31",
+            "source": {
+                "path": ".agent-loop/runs/NG-18/verification.json",
+                "sha256": "sha256:76e034153aba484617f9469f4ddf6ff2b05aa12dde4e3144d7cede8e3f0e1ec1"
+            },
+            "source_session_id": "2026-11-23-ng-18-r2-28973ff3",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-18:7f5011adee9b0b31",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-18"
+}
