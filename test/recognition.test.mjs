@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildFeatureSequence, parseFeatureSequence, FeatureSchemaError, SEQUENCE_STEPS, STEP_VALUES, FEATURE_SCHEMA_VERSION,
-  HAND_PRESENCE_SHARE, HAND_MOVING_SHARE, MAX_BRIDGED_GAP_MS, REST_SPEED, MIN_GESTURE_MS, MOVEMENT_GAP_MS,
+  HAND_PRESENCE_SHARE, HAND_BRIEF_SHARE, MAX_BRIDGED_GAP_MS, REST_SPEED, MIN_GESTURE_MS, MOVEMENT_GAP_MS,
 } from "../dist/recognition/features.js";
 import { dtwDistance } from "../dist/recognition/dtw.js";
 import {
@@ -75,7 +75,10 @@ test("unusable input is rejected with a reason", () => {
   assert.deepEqual(buildFeatureSequence([frame(0), frame(1, hand(1, 1).slice(1)), frame(2)]), { ok: false, reason: "bad_landmarks" });
   assert.deepEqual(buildFeatureSequence([frame(0), frame(1, [...hand(1, 1).slice(1), [Number.NaN, 0]]), frame(2)]), { ok: false, reason: "bad_landmarks" });
   assert.deepEqual(buildFeatureSequence([frame(0), frame(1), frame(2, null)]), { ok: false, reason: "too_short" });
-  assert.deepEqual(buildFeatureSequence([frame(0, null), frame(1, null), frame(2, null)]), { ok: false, reason: "too_short" });
+  // Each cause has its own reason: no hand at all; a hand in too few frames; frames that all carry one timestamp.
+  assert.deepEqual(buildFeatureSequence([frame(0, null), frame(1, null), frame(2, null)]), { ok: false, reason: "no_hands" });
+  assert.deepEqual(buildFeatureSequence([frame(7), frame(7), frame(7), frame(7)]), { ok: false, reason: "too_short" });
+  assert.equal(buildFeatureSequence([frame(7), frame(7), frame(7), frame(8)]).ok, true);
 });
 
 test("stored sequences with another schema version or shape are rejected", () => {
@@ -248,39 +251,105 @@ const built = (frames) => {
   return result.sequence;
 };
 
-test("hand kind: a hand belongs to the gesture when it is seen for half of its duration, and is dropped entirely below that", () => {
-  assert.equal(HAND_PRESENCE_SHARE, 0.5);
+const unclear = { ok: false, reason: "hands_unclear" };
+
+test("hand kind: seen for half of the gesture a hand belongs to it, seen for under a fifth it is dropped entirely, in between nothing is built", () => {
+  assert.deepEqual([HAND_PRESENCE_SHARE, HAND_BRIEF_SHARE], [0.5, 0.2]);
   // The right hand moves for one second (one shoulder width per second); the left hand moves along for its first part.
   const withLeftFor = (ms) => capture(1000, 50, (t) => ({ right: [100 + t / 10, 100], left: t <= ms ? [20 - t / 10, 100] : null }));
-  // Frames stand for 50 ms each, the first and last for 25: seen up to 450 ms is 47.5 %, up to 500 ms is 52.5 %.
-  const below = built(withLeftFor(450));
+  // Frames stand for 50 ms each, the first and last for 25: seen up to 150 ms is 17.5 %, up to 200 ms 22.5 %, up to 450 ms 47.5 %, up to 500 ms 52.5 %.
+  const brief = built(withLeftFor(150));
   const above = built(withLeftFor(500));
-  assert.equal(below.hands, "right");
+  assert.equal(brief.hands, "right");
   assert.equal(above.hands, "both");
+  // Neither brief nor there for half of it: leaving the hand out could make a two-hand gesture the one-hand gesture with the same path.
+  assert.deepEqual(buildFeatureSequence(withLeftFor(200)), unclear);
+  assert.deepEqual(buildFeatureSequence(withLeftFor(450)), unclear);
   // Dropped means: not a trace of it. The sequence is that of the right hand alone.
   const alone = built(capture(1000, 50, (t) => ({ right: [100 + t / 10, 100] })));
-  assert.deepEqual(below, alone);
-  assert.ok(below.steps.every((step) => step.slice(0, STEP_VALUES / 2).every((value) => value === 0)));
+  assert.deepEqual(brief, alone);
+  assert.ok(brief.steps.every((step) => step.slice(0, STEP_VALUES / 2).every((value) => value === 0)));
   assert.ok(above.steps.every((step) => step[STEP_VALUES / 2 - 1] === 1), "a hand that belongs is filled in where it was not seen");
   // A hand that joins late is filled in before its first sighting as well.
   const late = built(capture(1000, 50, (t) => ({ right: [100 + t / 10, 100], left: t >= 500 ? [20 - t / 10, 100] : null })));
   assert.equal(late.hands, "both");
   assert.ok(late.steps.every((step) => step[STEP_VALUES / 2 - 1] === 1));
   // The same the other way round.
-  assert.equal(built(capture(1000, 50, (t) => ({ left: [100 + t / 10, 100], right: t <= 450 ? [220 - t / 10, 100] : null }))).hands, "left");
+  assert.equal(built(capture(1000, 50, (t) => ({ left: [100 + t / 10, 100], right: t <= 150 ? [220 - t / 10, 100] : null }))).hands, "left");
+  assert.deepEqual(buildFeatureSequence(capture(1000, 50, (t) => ({ left: [100 + t / 10, 100], right: t <= 450 ? [220 - t / 10, 100] : null }))), unclear);
+  // Two hands that take turns, each seen for under half of the time: nobody's gesture.
+  assert.deepEqual(buildFeatureSequence(capture(1000, 50, (t) => (t < 450 ? { left: [20, 100] } : t > 550 ? { right: [120, 100] } : {}))), unclear);
 });
 
-test("hand kind: a second hand that only rests in view while the other one moves is not part of the gesture; when nothing moves, every hand in view is", () => {
-  assert.equal(HAND_MOVING_SHARE, 0.2);
+test("hand kind: presence decides, not movement; a hand in view is never dropped because the other one moves", () => {
+  const alone = built(capture(1000, 50, (t) => ({ right: [100 + t / 10, 100] })));
+  // The other hand rests in view while the right one moves: a two-hand capture, with the resting hand in it.
   const resting = built(capture(1000, 50, (t) => ({ right: [100 + t / 10, 100], left: [20 + (t % 100) / 100, 100] })));
-  assert.equal(resting.hands, "right");
-  assert.deepEqual(resting, built(capture(1000, 50, (t) => ({ right: [100 + t / 10, 100] }))));
-  // It moves along for a fifth of the time or more: it belongs.
-  const movesFor = (ms) => built(capture(2000, 50, (t) => ({ right: [100 + t / 10, 100], left: [20 - Math.min(t, ms) / 10, 100] }))).hands;
-  assert.equal(movesFor(300), "right");
-  assert.equal(movesFor(500), "both");
-  // A posture that is only held: there is no movement to tell the hands apart by.
+  assert.equal(resting.hands, "both");
+  assert.ok(resting.steps.every((step) => step[STEP_VALUES / 2 - 1] === 1));
+  assert.deepEqual(matchGesture(resting, [{ conceptId: "a", sequence: alone }], { maxDistance: new Map(), minMargin: 0.15 }).reason, "other_hands");
+  // A posture that is only held, with two hands in view.
   assert.equal(built(capture(600, 50, () => ({ right: [120, 100], left: [20, 100] }))).hands, "both");
+  // The right hand holds a sign without travelling; the hand in the lap fidgets for 600 ms. The gesture is not "the hand that fidgeted".
+  const fidget = (t) => 20 + Math.sin(Math.min(Math.max((t - 600) / 600, 0), 1) * 2 * Math.PI) * 12;
+  const held = built(capture(2000, 50, (t) => ({ right: [120, 100], left: [fidget(t), 160] })));
+  assert.equal(held.hands, "both");
+  assert.ok(held.steps.every((step) => step[STEP_VALUES - 1] === 1), "the hand that makes the sign is in every step");
+  // Two signs that differ only in where the still right hand is stay apart, whatever the lap hand does.
+  const elsewhere = built(capture(2000, 50, (t) => ({ right: [150, 60], left: [fidget(t), 160] })));
+  assert.ok(dtwDistance(held, elsewhere) > 0.4, `distance ${dtwDistance(held, elsewhere)}`);
+});
+
+test("hand kind: a hand that stays without a movement of its own, while another hand was in view briefly, gives no sequence", () => {
+  // The right hand lies still for three seconds. Somebody's hand is seen for 300 ms, too slow or too short to count as moving.
+  const blip = capture(3000, 50, (t) => ({ right: [120, 100], left: t >= 1000 && t <= 1300 ? [20 + (t - 1000) / 100, 60] : null }));
+  assert.deepEqual(buildFeatureSequence(blip), unclear);
+  // Without the other hand it is a held posture, and with a movement of its own the right hand is a gesture.
+  assert.equal(built(capture(3000, 50, () => ({ right: [120, 100] }))).hands, "right");
+  const own = capture(3000, 50, (t) => ({ right: [120 + Math.min(Math.max(t - 500, 0), 1000) / 10, 100], left: t >= 1000 && t <= 1100 ? [20, 60] : null }));
+  assert.equal(built(own).hands, "right");
+  // The brief hand moves across while the right hand lies still: read as two hands over that moment, never as the right hand's gesture.
+  const crossing = buildFeatureSequence(capture(3000, 50, (t) => ({ right: [120, 100], left: t >= 1000 && t <= 1500 ? [20 + (t - 1000) / 5, 60] : null })));
+  assert.ok(!crossing.ok || crossing.sequence.hands === "both", JSON.stringify(crossing.ok ? crossing.sequence.hands : crossing.reason));
+});
+
+test("hand kind: a capture that can be read as a one-hand and as a two-hand gesture gives no sequence", () => {
+  // The left hand rests in view, fidgets and leaves; then the right hand makes its gesture. Over the time in which either
+  // moves the left hand is there for half of it (two hands); over the right hand's movement it is all but gone (one hand).
+  const frames = (leftUntil) => capture(3000, 50, (t) => ({
+    right: [100 + Math.min(Math.max(t - 1000, 0), 1000) / 10, 100],
+    left: t <= leftUntil ? [20 - Math.min(Math.max(t - 200, 0), 500) / 10, 100] : null,
+  }));
+  assert.deepEqual(buildFeatureSequence(frames(1100)), unclear);
+  // Gone well before the right hand moves, it is a hand that passed by before the gesture.
+  assert.equal(built(frames(500)).hands, "right");
+  // The right hand lies still and is not seen for a moment while the left hand makes a gesture: the left hand's gesture.
+  // (The right hand, with no movement of its own, is not a gesture, although a hand moved while it was in view.)
+  const occluded = capture(3000, 50, (t) => ({
+    right: t > 900 && t < 1500 ? null : [120, 100],
+    left: t >= 1000 && t <= 1400 ? [20 + (t - 1000) / 5, 60] : null,
+  }));
+  assert.equal(built(occluded).hands, "left");
+});
+
+test("one-hand and two-hand gesture with the same path: an attempt whose second hand is seen too little is never answered with the one-hand concept by a silent drop", () => {
+  const options = { maxDistance: new Map(), minMargin: 0.15 };
+  const right = (t) => [100 + Math.min(Math.max(t - 400, 0), 1000) / 10, 100];
+  // The left hand comes along and is seen for `share` of the right hand's second of movement.
+  const two = (share) => capture(1800, 40, (t) => ({ right: right(t), left: share >= 1 || (t >= 400 && t <= 400 + share * 1000) ? [40 - Math.min(Math.max(t - 400, 0), 1000) / 25, 110] : null }));
+  const examples = [
+    { conceptId: "one", sequence: built(capture(1800, 40, (t) => ({ right: right(t) }))) },
+    { conceptId: "two", sequence: built(two(1)) },
+  ];
+  const answer = (share) => {
+    const result = buildFeatureSequence(two(share));
+    return result.ok ? matchGesture(result.sequence, examples, options).conceptId ?? "unknown" : result.reason;
+  };
+  assert.equal(answer(1), "two");
+  assert.equal(answer(0.75), "two");
+  for (const share of [0.45, 0.4, 0.3, 0.25]) assert.equal(answer(share), "hands_unclear", `seen for ${share}`);
+  // Only a hand seen for under a fifth is taken for a hand passing through; then the attempt is the one-hand gesture.
+  assert.equal(answer(0.1), "one");
 });
 
 test("like with like: an attempt is only compared with examples made with the same hands, and 'unknown' says which examples were missing", () => {
@@ -323,6 +392,11 @@ test("dropout: a hand of the gesture that is lost for up to 500 ms between two s
   const oneHand = (until) => buildFeatureSequence(capture(2000, 50, (t) => ({ right: t > 600 && t < until ? null : [100 + t / 20, 100] })));
   assert.equal(oneHand(1100).ok, true);
   assert.deepEqual(oneHand(1150), { ok: false, reason: "hand_lost" });
+  // A camera that delivers no frames for a while has lost the hand just the same: the limit is on time, not on frames without a hand.
+  const stalled = (ms) => buildFeatureSequence(capture(2000, 50, (t) => ({ right: [100 + t / 20, 100] })).map((frame) => (frame.tMs > 600 ? { ...frame, tMs: frame.tMs + ms - 50 } : frame)));
+  assert.equal(stalled(500).ok, true);
+  assert.deepEqual(stalled(550), { ok: false, reason: "hand_lost" });
+  assert.deepEqual(stalled(60000), { ok: false, reason: "hand_lost" });
 });
 
 test("segmentation: hands that rest in view before and after the movement are not part of the gesture", () => {
@@ -394,7 +468,7 @@ test("time: the sequence is laid out by the timestamps, so a low or unsteady fra
 
 test("a second hand that passes through for a moment changes nothing; one that passes before the gesture does not start it", () => {
   const alone = built(capture(1500, 50, (t) => ({ right: [100 + t / 15, 100] })));
-  const passing = built(capture(1500, 50, (t) => ({ right: [100 + t / 15, 100], left: t >= 500 && t <= 900 ? [20 + (t - 500) / 4, 60] : null })));
+  const passing = built(capture(1500, 50, (t) => ({ right: [100 + t / 15, 100], left: t >= 500 && t <= 700 ? [20 + (t - 500) / 4, 60] : null })));
   assert.equal(passing.hands, "right");
   assert.deepEqual(passing, alone);
   // The right hand rests for a second while the left one crosses the picture, then makes the gesture.
@@ -404,4 +478,12 @@ test("a second hand that passes through for a moment changes nothing; one that p
   })));
   assert.equal(before.hands, "right");
   assert.ok(dtwDistance(before, alone) < 0.03, `distance ${dtwDistance(before, alone)}`);
+});
+
+test("shoulders seen only before the movement still anchor the gesture", () => {
+  const frames = capture(2000, 50, (t) => ({ right: [100 + Math.max(t - 1000, 0) / 10, 100] }));
+  const early = built(frames.map((frame) => (frame.tMs < 600 ? frame : { ...frame, shoulders: null })));
+  assert.equal(early.anchor, "shoulders");
+  assert.ok(dtwDistance(early, built(frames)) < 0.01);
+  assert.equal(built(frames.map((frame) => ({ ...frame, shoulders: null }))).anchor, "hands");
 });

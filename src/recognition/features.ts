@@ -105,7 +105,8 @@ export type FeatureSequenceV1 = FeatureSequence;
  *   view for between `HAND_BRIEF_SHARE` and `HAND_PRESENCE_SHARE` of the time;
  *   or a hand was in view more briefly and the hands that stay show no
  *   movement of their own (so only the brief hand moved, or nothing did); or
- *   no hand is in view for half of the time.
+ *   no hand is in view for half of the time; or the capture can be read both
+ *   as a one-hand and as a two-hand gesture.
  * - "hand_lost": a hand of the gesture was not seen for longer than `MAX_BRIDGED_GAP_MS`.
  */
 export type FeatureFailure = "no_frames" | "bad_timestamps" | "bad_landmarks" | "no_hands" | "too_short" | "hands_unclear" | "hand_lost";
@@ -391,13 +392,17 @@ function resample(rows: readonly number[][], times: readonly number[], steps: nu
 /**
  * Turns raw landmark frames into a comparable sequence.
  *
- * 1. The gesture is cut out of the capture by movement (`segment`), so a
- *    capture may start early and end late and hands may rest in view.
- * 2. A hand belongs to it when it is visible for `HAND_PRESENCE_SHARE` of that
- *    time, moving or not. A hand seen more briefly is dropped, and the gesture
- *    is cut out once more from the movement of the hands that belong to it. If
- *    those do not move themselves, nothing is built ("hands_unclear"): the
- *    hand that stays is never matched on the strength of a hand that left.
+ * 1. The gesture is cut out of the capture by the movement of its hands
+ *    (`segment`), so a capture may start early and end late and hands may
+ *    rest in view.
+ * 2. Its hands are those visible for `HAND_PRESENCE_SHARE` of that time, moving
+ *    or not; a hand seen for less than `HAND_BRIEF_SHARE` of it is left out.
+ *    The capture is a two-hand gesture if that holds for both hands over the
+ *    time in which either moves, and a one-hand gesture if it holds for one
+ *    hand over the time in which that hand moves. If none of the three
+ *    readings holds, or more than one, nothing is built ("hands_unclear"):
+ *    a hand in between, or a hand that stays without a movement of its own
+ *    while another was in view briefly.
  * 3. Gaps of those hands up to `MAX_BRIDGED_GAP_MS` are filled; a longer one
  *    fails with "hand_lost".
  * 4. Positions are made relative to the body, and the result is resampled to
@@ -433,23 +438,20 @@ export function buildFeatureSequence(frames: readonly LandmarkFrame[]): FeatureR
     left: movement(frames, handSpeeds(frames, "left", coarse.scale)),
     right: movement(frames, handSpeeds(frames, "right", coarse.scale)),
   };
-  const rough = segment(frames, SIDES, moves);
-  if (rough === null) {
-    return { ok: false, reason: "no_hands" };
-  }
-  const sides = presentHands(frames, rough);
-  if (sides === null || sides.length === 0) {
+  /** The gesture as made by exactly these hands, if the capture can be read that way. */
+  const read = (sides: readonly Side[]): { sides: readonly Side[]; span: [number, number] } | null => {
+    const span = segment(frames, sides, moves);
+    if (span === null || presentHands(frames, span)?.join() !== sides.join()) return null;
+    // Another hand was in view briefly: these hands have to show a movement of their own.
+    const inView = SIDES.filter((side) => frames.slice(span[0], span[1] + 1).some((frame) => frame[side] !== null));
+    return sides.length < inView.length && !sides.some((side) => moves[side].includes(true)) ? null : { sides, span };
+  };
+  // Exactly one reading has to hold: both hands, the left hand alone or the right hand alone.
+  const readings = [read(SIDES), read(["left"]), read(["right"])].filter((reading) => reading !== null);
+  if (readings.length !== 1) {
     return { ok: false, reason: "hands_unclear" };
   }
-  const inView = SIDES.filter((side) => frames.slice(rough[0], rough[1] + 1).some((frame) => frame[side] !== null));
-  if (sides.length < inView.length && !sides.some((side) => moves[side].includes(true))) {
-    return { ok: false, reason: "hands_unclear" };
-  }
-  // Cut again without the hand that only passed through. The hands that belong must still be the same ones, and no other in between.
-  const span = segment(frames, sides, moves);
-  if (span === null || presentHands(frames, span)?.join() !== sides.join()) {
-    return { ok: false, reason: "hands_unclear" };
-  }
+  const { sides, span } = readings[0]!;
   const gesture = frames.slice(span[0], span[1] + 1);
   const times = gesture.map((frame) => frame.tMs);
   const active = gesture.filter((frame) => sides.some((side) => frame[side] !== null)).length;

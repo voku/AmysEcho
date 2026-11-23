@@ -10,7 +10,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildFeatureSequence } from "../dist/recognition/features.js";
-import { evaluateBySession, simulateProfile } from "../dist/recognition/evaluate.js";
+import { evaluateBySession, simulateHandCases, simulateProfile } from "../dist/recognition/evaluate.js";
 import { createGesture, createSession, renderGesture } from "../dist/recognition/synthetic.js";
 
 const GESTURES = 15;
@@ -102,6 +102,32 @@ test("one-hand, two-hand and mixed profiles under the disturbances of a real cap
     }
   }
   t.diagnostic(`worst "spoken as a wrong concept" over all rows: ${percent(worstWrong)}`);
+});
+
+test("the hand that does not sign is in view, fidgets, trembles or belongs to somebody else: measured and reported", (t) => {
+  const cases = simulateHandCases();
+  t.diagnostic("per case: top-1 / spoken as a wrong concept / answered \"unknown\"; for attempts that are no sign: spoken as a concept");
+  for (const { name, report } of cases) {
+    t.diagnostic(report.knownAttempts > 0
+      ? `${name}: ${percent(report.top1)} / ${percent(report.wrongAccept)} / ${percent(report.falseReject)} (${report.examples} examples, ${report.knownAttempts} attempts)`
+      : `${name}: spoken as a concept ${percent(report.falseAccept)} (${report.examples} examples, ${report.unknownAttempts} attempts)`);
+  }
+  assert.equal(cases.length, 21);
+  // A second hand seen for under a fifth of the movement is taken for a hand passing through, by the rule
+  // (docs/recognition.md). These two rows are measured and reported; a limit here would only pin the weakness in place.
+  const byRule = (name) => /second hand seen for (20|10)% of the movement/.test(name);
+  assert.equal(cases.filter(({ name }) => byRule(name)).length, 2);
+  for (const { name, report } of cases) {
+    if (byRule(name)) continue;
+    // Everywhere else the answer may be "unknown", never another concept.
+    if (report.knownAttempts > 0) assert.equal(report.wrongAccept, 0, name);
+    else assert.equal(report.falseAccept, 0, name);
+  }
+  const top1 = (part) => cases.find(({ name }) => name.includes(part)).report.top1;
+  // Where the attempt shows the hands the examples showed, the sign is still recognised.
+  for (const part of ["the lap hand fidgeted in one of three", "fidgets after the sign", "one hand held still, and a one-hand sign", "differ only in the shape", "both hands tremble", "second hand seen throughout"]) {
+    assert.ok(top1(part) >= 0.95, `${part}: ${percent(top1(part))}`);
+  }
 });
 
 test("a capture from which no sequence can be built counts as an 'unknown' answer, not as a hit or a miss left out", () => {
