@@ -49,7 +49,7 @@ Early rebuild. What exists today:
   control; the camera starts only on its tap, one attempt is recorded after a countdown, and the
   app shows what it understood large with "Ja, sagen" and "Nein". **Nothing is spoken without
   that confirming tap.** An unknown gesture is said to be not understood, with up to three
-  candidates to tap. Tested in Node and in headless Chromium with DGS videos of adult signers;
+  candidates; a candidate is asked about the same way. Tested in Node and in headless Chromium with DGS videos of adult signers;
   not tried with a real camera, on a device or with a child.
 
 Still missing in the caregiver area: rewording a concept, custom concepts, export and import, and

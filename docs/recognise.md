@@ -19,9 +19,9 @@ Code: `src/recognise/recognise.ts` (`createRecogniser`, the controller without D
 - Tested in headless Chromium (Playwright) with DGS sign videos of adult signers fed into the
   app's capture path through the board's own flow (below).
 - **Not tested:** a real camera, a phone or tablet, a child, a screen reader, real speech, an
-  emoji font on the target device (the control's hand symbol is the character ✋). The layout of
-  the gesture view was not measured in a browser at the five window sizes of
-  [board.md](board.md); only its rules are checked as text.
+  emoji font on the target device (the control's hand symbol is the character ✋; the view's
+  button symbols ✓ ✗ ■ ↻ are plain characters), larger text. The layout of every state of the
+  view was measured in headless Chromium at five window sizes ("Layout", below).
 
 ## When the control is there
 
@@ -62,15 +62,21 @@ attached, the board is drawn without the control and the error is reported.
    are compared only with examples of their own kind and anchor (matcher rules); an attempt of
    another kind than every example is `unknown` (`other_hands`) without candidates.
    - **Match**: "Meinst du das?", the concept's symbol (or its text when it has none) large with
-     its label, and two buttons "Nein" and "Ja, sagen". **Only "Ja, sagen" speaks**: the view
+     its label, and two buttons "✗ Nein" and "✓ [picture] Ja, sagen": a cross, and a check mark
+     with the concept's picture small, so a child who does not read sees what will be said; the
+     text stays. "Nein" is left (wide windows: upper), "Ja, sagen" right (lower), always.
+     **Only "Ja, sagen" speaks**: the view
      closes, then the board does exactly what a tap on that tile does (`MountedBoard.say`: select,
      sentence bar, the speech path with its no-voice and failure lines, the rule for a sentence
      that is still being spoken). "Nein" and "Zurück zur Tafel" return to the board silently.
    - **Unknown** (`too_far`, `ambiguous`, `other_hands`, `other_anchor`): "Das habe ich nicht
      verstanden." Nothing is spoken. Up to three candidates (`MAX_CANDIDATES`), the matcher's
      ranking (`rankConcepts`) limited to concepts on the board, are shown as tiles under
-     "Vielleicht eins davon?"; a tap on one closes the view and speaks it like its tile. The way
-     back is "Zurück zur Tafel".
+     "Vielleicht eins davon?". **A tap on a candidate speaks nothing**: it opens the same confirm
+     view for that concept ("Meinst du das?", "Nein" / "Ja, sagen"); only "Ja, sagen" speaks it,
+     like its tile. "Nein" there goes back to the candidates (the child was choosing among them;
+     "Zurück zur Tafel" is always there for the board). So nothing is ever spoken from the view
+     without the confirming "Ja, sagen".
    - **Unusable recording**: a short reason, "Nochmal" (a new attempt, the camera starts again)
      and "Zurück zur Tafel":
 
@@ -83,9 +89,12 @@ attached, the board is drawn without the control and the error is reported.
      | `hands_unclear` | Ich konnte die Hände nicht gut sehen. |
      | `hand_lost` | Eine Hand war zu lange weg. |
 
-   - **Camera problem** (no bridge: "Die Kamera kann gerade nicht starten. Die Tafel funktioniert
-     auch ohne Kamera."; otherwise the capture's German message for a refused or missing camera,
-     the tracker download, a failing camera): the line, "Nochmal" and "Zurück zur Tafel".
+   - **Camera problem**: one short line of this view's own (`RECOGNISE_TEXT.problems`; the
+     capture's texts name "Kamera starten", which this view does not have), "↻ Nochmal" and
+     "Zurück zur Tafel". For example: no bridge "Die Kamera kann gerade nicht starten. Die Tafel
+     geht auch ohne Kamera."; first use offline "Die Handerkennung braucht beim ersten Mal
+     Internet. Mit Internet „Nochmal“ tippen."; refused "Die Kamera ist nicht erlaubt. Eine
+     Bezugsperson kann sie in den Einstellungen erlauben."
 
 **Ways out, and the camera.** The camera is stopped (the capture's cancel signal and `stop()`) on
 "Zurück zur Tafel" at every step (tracker loading, permission asked, countdown, recording), after
@@ -101,14 +110,40 @@ no picture is ever kept ([capture.md](capture.md)).
   `RECOGNISE_GUARD_MS` (700 ms) after it ("Ja, sagen" appears where "Stopp" was; the second tap of
   a double tap must not confirm). A press counts from its `pointerdown`; a key press from its
   click. "Zurück zur Tafel" is never guarded and never moves: the way back always works.
-- **The board** ignores taps on tiles, the sentence bar and "Gebärde" for `BOARD_SHIELD_MS`
-  (700 ms) after the view closed: the tiles appear where the view's buttons were. The speech of
-  "Ja, sagen" or a candidate goes past this shield.
+- **The board** ignores taps on tiles and the sentence bar for `BOARD_SHIELD_MS` (700 ms) after
+  the view closed: the tiles appear where the view's buttons were. "Gebärde" is shielded longer,
+  `GESTURE_SHIELD_MS` (1.5 s): a slow double tap on "Zurück zur Tafel" can come down on it a
+  second later and would start the camera again. The speech of "Ja, sagen" goes past these
+  shields.
 - "Ja, sagen" speaks once: the view is gone before the board speaks, so a second tap finds nothing
-  to confirm. Both values are guesses, not tried with a child.
+  to confirm. A candidate's confirm view is a new view with its own guard. All three times are
+  guesses, not tried with a child.
 - Within one view nothing moves: "Zurück zur Tafel" keeps its place, the button row keeps its
   height (`min-height: var(--tile-min)`) also when it is empty. All buttons of the view are at
   least `--tile-min` high; candidates are a row of tiles of at least that height.
+
+## Layout
+
+The view is one framed column: "Zurück zur Tafel" across the top, then the state's content and its
+buttons, one above the other in a window held upright and side by side in a wide one
+(`orientation: landscape`: content left, buttons stacked in the right 40 %). The content is
+centred only where it fits (`justify-content: safe center`, no scrolling inside the view); the
+concept's picture shrinks to the room left, its label, the buttons and the candidate tiles do not
+(all at least `--tile-min` high, at least 44 px wide). Measured in headless Chromium, every state
+(starting, countdown, recording, confirm, unknown with three candidates, the confirm view of a
+candidate, unusable, problem), nothing off-screen or cut, no page scroll, no target below the
+minimum:
+
+| Window | `--tile-min` | Confirm tile (picture) | Nein / Ja, sagen | Candidates (3) | Back | Stopp, Nochmal |
+| --- | --- | --- | --- | --- | --- | --- |
+| 320x480 | 80 | 160x145 (96x96) | 136x80 each | 89x80 | 279x80 | 279x80 |
+| 360x640 | 112 | 160x158 (108x108) | 156x112 each | 101x112 | 319x112 | 319x112 |
+| 640x360 | 80 | 160x158 (107x107) | 240x90 each | 195x80 | 599x80 | 240x186 |
+| 844x390 | 80 | 160x169 (117x117) | 321x105 each | 263x80 | 803x80 | 321x216 |
+| 820x1180 | 112 | 260x293 (220x220) | 386x112 each | 254x112 | 779x112 | 779x112 |
+
+(The first build centred an overflowing column: at 640x360 the question sat behind "Zurück" and
+the tile showed a cut picture without its label.) Not measured: larger text, a device.
 
 **Mute.** Speech goes only through the board's own path, so everything the board does about speech
 holds here too: no local German voice, a failing engine, the muted bar. The app has no mute setting
@@ -136,7 +171,8 @@ after use), skips with a reason when that history is missing and fails under `CI
 - Asserted: at least one attempt is recognised and "Ja, sagen" speaks exactly its sentence once,
   which the sentence bar then shows; "Nein" is pressed at least once and speaks nothing (on a
   second recognised attempt, or on a repeat of the first); no attempt speaks before a confirming
-  tap; unknown and refused attempts speak nothing; a candidate speaks like its tile; the camera is
+  tap; unknown and refused attempts speak nothing; a candidate tap opens the confirm view and
+  speaks nothing, and "Ja, sagen" there speaks it once (sentence bar too); the camera is
   stopped after every attempt; the examples taught include a one-hand and a two-hand one; no
   request leaves the origin; no page error.
 
@@ -152,7 +188,8 @@ Measured on the desktop VM (headless Chromium, CPU delegate, 2026-11-23), plain 
 | oma_main_oma | not taught | unknown (`too_far`, two-hand attempt) |
 
 That is 4 of 4 taught attempts recognised, no wrong concept shown, both untaught words unknown;
-spoken: once after "Ja, sagen", once after a candidate; "Nein" pressed three times. One of the
+spoken: once after "Ja, sagen" on a match, once after a candidate and "Ja, sagen"; "Nein" pressed
+three times. One of the
 "Trinken" videos is seen as a two-hand sign (the signer's other hand is in the picture), so
 "Trinken" has a one-hand and a two-hand example, and each attempt matched the example of its own
 kind. These are the same videos seen again in other frames, the easiest case
@@ -175,6 +212,6 @@ parallel. The test takes about 70 s, mostly tracking; `npm run verify` took 2 mi
 - **Cancelling the last spoken message.**
 - **A cooldown** against speaking the same gesture twice in a row within a short time.
 - **A profile setting for who confirms** (the child or a caregiver). Today the child confirms.
-- Measuring the gesture view at the five window sizes of [board.md](board.md), and with larger text.
+- Measuring the gesture view with larger text, and on a device.
 - A live line in the view (how many hands are seen) while recording.
 - Trying the flow, the countdown, the 5 s limit and both guard times with a child.

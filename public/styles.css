@@ -43,19 +43,25 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .gesture-start:active { background: #dccbf3; }
 .gesture-symbol { font-size: 1.4em; line-height: 1; pointer-events: none; }
 .gesture-label { pointer-events: none; }
-/* The gesture view covers the board in a frame of its own colour: never taken for the board. Back at the top, the state in the middle, its buttons at the bottom. */
-.recognise { flex: 1 1 auto; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--gap); min-height: 0; margin: 0 0 .5rem; padding: .5rem; border: 6px solid #4b2a7a; border-radius: 1.2rem; background: #f7f2fd; color: #2a1747; }
+/* The gesture view covers the board in a frame of its own colour: never taken for the board. Back at the top; below it the state (middle) and its buttons, one above the other in a window held upright, side by side in a wide one. Everything fits without scrolling: the concept's picture shrinks, labels and buttons do not. */
+.recognise { flex: 1 1 auto; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--gap); min-height: 0; margin: 0 0 .4rem; padding: .4rem; border: 6px solid #4b2a7a; border-radius: 1.2rem; background: #f7f2fd; color: #2a1747; }
 .recognise-top { flex: none; display: flex; }
-.recognise-main { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; min-height: 0; overflow-y: auto; text-align: center; }
-.recognise-line { margin: 0; font: 700 clamp(1.3rem, 5.2vw, 2.2rem)/1.25 system-ui, sans-serif; overflow-wrap: anywhere; }
-.recognise-count { margin: 0; font: 800 clamp(4rem, 22vmin, 9rem)/1 system-ui, sans-serif; }
-.recognise-hint { margin: 0; font-size: 1.1rem; }
-.recognise-concept { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: .6rem 1.2rem; border: 4px solid #143146; border-radius: 1rem; background: white; color: #143146; font: 800 clamp(1.6rem, 7vw, 3rem)/1.15 system-ui, sans-serif; }
-.recognise-concept img { width: clamp(96px, 30vmin, 240px); height: clamp(96px, 30vmin, 240px); object-fit: contain; pointer-events: none; }
-.recognise-candidates { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; grid-template-rows: minmax(var(--tile-min), 1fr); gap: var(--gap); width: 100%; }
+.recognise-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
+.recognise-main { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center; gap: .4rem; min-height: 0; overflow: hidden; text-align: center; }
+.recognise-line { flex: none; max-width: 100%; margin: 0; font: 700 clamp(1.05rem, 5vmin, 2rem)/1.25 system-ui, sans-serif; overflow-wrap: anywhere; }
+.recognise-count { flex: none; margin: 0; font: 800 clamp(3rem, 20vmin, 8rem)/1 system-ui, sans-serif; }
+.recognise-hint { flex: none; margin: 0; font-size: clamp(.9rem, 3.5vmin, 1.1rem); }
+.recognise-concept { flex: 0 1 auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; min-width: min(10rem, 100%); max-width: 100%; min-height: var(--tile-min); padding: .4rem 1rem; border: 4px solid #143146; border-radius: 1rem; background: white; color: #143146; font: 800 clamp(1.3rem, 6vmin, 2.6rem)/1.15 system-ui, sans-serif; overflow: hidden; }
+.recognise-concept img { flex: 0 1 auto; width: auto; height: clamp(48px, 30vmin, 220px); min-height: 32px; max-width: 100%; object-fit: contain; pointer-events: none; }
+.recognise-concept span { flex: none; overflow-wrap: anywhere; }
+.recognise-candidates { flex: none; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; grid-template-rows: var(--tile-min); gap: var(--gap); width: 100%; }
 .recognise-actions { flex: none; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: var(--gap); min-height: var(--tile-min); }
-.recognise-back, .recognise-action { box-sizing: border-box; min-width: 44px; min-height: var(--tile-min); margin: 0; padding: .4rem .9rem; border: 3px solid #215c76; border-radius: 1rem; background: white; color: #143146; font: 700 clamp(1.2rem, 5vw, 2rem)/1.2 system-ui, sans-serif; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
-.recognise-back { flex: 1 1 auto; font-size: clamp(1.1rem, 4.5vw, 1.6rem); }
+.recognise-back, .recognise-action { box-sizing: border-box; min-width: 44px; min-height: var(--tile-min); margin: 0; padding: .3rem .6rem; border: 3px solid #215c76; border-radius: 1rem; background: white; color: #143146; font: 700 clamp(1.1rem, 4.6vmin, 2rem)/1.15 system-ui, sans-serif; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+.recognise-back { flex: 1 1 auto; font-size: clamp(1.05rem, 4.2vmin, 1.6rem); }
+.recognise-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .2rem .5rem; }
+.recognise-mark { flex: none; font-size: 1.6em; line-height: 1; pointer-events: none; }
+.recognise-action-picture { flex: none; width: clamp(28px, 8vmin, 48px); height: clamp(28px, 8vmin, 48px); padding: 2px; border-radius: .4rem; background: white; object-fit: contain; pointer-events: none; }
+.recognise-action-text { pointer-events: none; }
 .recognise-yes { border-color: #1d5e3a; background: #1d6b40; color: white; }
 .recognise-no { border-color: #8c1f14; color: #8c1f14; }
 .recognise-finish { border-color: #4b2a7a; background: #4b2a7a; color: white; }
@@ -160,6 +166,10 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
   .concept-board[data-columns-wide="3"] { --columns: 3; }
   .concept-board[data-columns-wide="4"] { --columns: 4; }
   .concept-board[data-columns-wide="5"] { --columns: 5; }
+  /* The gesture view in a wide window: the state left, its buttons stacked on the right, so the picture keeps the height. "Nein" is the upper, "Ja, sagen" the lower. */
+  .recognise-body { flex-direction: row; }
+  .recognise-actions { flex: 0 0 40%; grid-auto-flow: row; grid-auto-rows: minmax(var(--tile-min), 1fr); grid-auto-columns: auto; align-content: center; min-height: 0; }
+  .recognise-actions:empty { display: none; }
 }
 /* The speech problem line sits in the lower part of the sentence bar, so the tiles do not move when it appears. */
 @supports selector(:has(*)) {

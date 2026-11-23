@@ -7,7 +7,7 @@ import {
   CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_TEXT,
   analyseAttempt, attachRecognise, createRecogniser,
 } from "../dist/recognise/recognise.js";
-import { BOARD_SHIELD_MS, GESTURE_LABEL, mountBoard } from "../dist/board.js";
+import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
 import { CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, nextShoulders, startCapture } from "../dist/capture/capture.js";
 import { sequenceFromRecording } from "../dist/recognition/examples.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
@@ -323,7 +323,7 @@ test("press guard: a press that began before the view appeared, or too soon afte
   assert.equal(context.kind(), "idle");
 });
 
-test("unknown never speaks: it offers at most three candidates on the board, and a tap on one speaks it once", async () => {
+test("unknown never speaks: at most three candidates on the board; a tap on one only asks, 'Ja, sagen' then speaks it once, 'Nein' returns to the candidates", async () => {
   const outcome = { kind: "unknown", reason: "ambiguous", candidates: ["mehr", "nicht-da", "hilfe", "pause", "fertig"], hands: "right" };
   const context = setup({ outcome });
   await attempt(context);
@@ -336,9 +336,24 @@ test("unknown never speaks: it offers at most three candidates on the board, and
   context.recogniser.choose("nicht-da");
   assert.deepEqual(context.spoken, [], "nothing that was not offered, no confirm on unknown");
   assert.equal(context.kind(), "unknown");
+  const unknown = context.recogniser.state();
   context.recogniser.choose("hilfe");
-  context.recogniser.choose("hilfe");
-  assert.deepEqual(context.spoken, ["hilfe"]);
+  assert.deepEqual(context.spoken, [], "a candidate tap speaks nothing");
+  assert.deepEqual(context.recogniser.state(), { kind: "confirm", conceptId: "hilfe", hands: "right", from: unknown });
+  // The confirm view of the candidate has its own guard: the second tap of a double tap does nothing.
+  context.recogniser.confirm();
+  context.recogniser.reject();
+  assert.equal(context.kind(), "confirm");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  context.recogniser.reject();
+  assert.equal(context.recogniser.state(), unknown, "'Nein' goes back to the candidates");
+  assert.deepEqual(context.spoken, []);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  context.recogniser.choose("pause");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  context.recogniser.confirm();
+  context.recogniser.confirm();
+  assert.deepEqual(context.spoken, ["pause"]);
   assert.equal(context.kind(), "idle");
 
   const back = setup({ outcome });
@@ -380,7 +395,7 @@ test("camera problems: no bridge, a refused camera, a camera that fails while re
   const refused = setup({ camera: fakeCamera({ cameraError: "NotAllowedError" }), outcome: MATCH });
   refused.recogniser.start();
   await settle();
-  assert.deepEqual(refused.recogniser.state(), { kind: "problem", line: CAPTURE_TEXT.problems.denied });
+  assert.deepEqual(refused.recogniser.state(), { kind: "problem", line: RECOGNISE_TEXT.problems.denied });
   assert.equal(refused.camera.log.trackerClosed, 1);
 
   const failing = setup({ outcome: MATCH });
@@ -388,7 +403,7 @@ test("camera problems: no bridge, a refused camera, a camera that fails while re
   await failing.camera.feed(MOVES_RIGHT(0));
   failing.camera.fail();
   await settle();
-  assert.deepEqual(failing.recogniser.state(), { kind: "problem", line: CAPTURE_TEXT.problems.busy });
+  assert.deepEqual(failing.recogniser.state(), { kind: "problem", line: RECOGNISE_TEXT.problems.busy });
   assert.equal(failing.camera.log.trackerClosed, 1);
   assert.equal(failing.time.pending(), 0);
   assert.deepEqual([...none.spoken, ...refused.spoken, ...failing.spoken], []);
@@ -590,6 +605,14 @@ test("view: the gesture view covers the board in its own frame; 'Ja, sagen' spea
     assert.equal(shown.children[1].textContent, "Trinken");
     assert.deepEqual(speech.spoken, [], "nothing spoken before 'Ja, sagen'");
     assert.equal(camera.running, false);
+    // Symbols for a child who does not read: a cross on "Nein", a check mark and the tile's picture on "Ja, sagen"; "Nein" left, "Ja, sagen" right.
+    const actionsRow = tree(panel()).find((element) => hasClass(element, "recognise-actions"));
+    assert.deepEqual(actionsRow.children.map((element) => element.attributes["aria-label"]), ["Nein", "Ja, sagen"]);
+    const [noButton, yesButton] = actionsRow.children;
+    assert.deepEqual(noButton.children.map((element) => element.textContent || element.tagName), ["\u2717", "Nein"]);
+    assert.deepEqual(yesButton.children.map((element) => element.textContent || element.tagName), ["\u2713", "img", "Ja, sagen"]);
+    assert.equal(yesButton.children[1].src, "./icons/trinken.svg");
+    assert.equal(yesButton.children[0].attributes["aria-hidden"], "true");
     time.advance(RECOGNISE_GUARD_MS);
     const yes = buttonNamed("Ja, sagen");
     yes.click();
@@ -621,6 +644,10 @@ test("view: 'Nein' and 'Zurück zur Tafel' return to the board without speaking;
     time.advance(BOARD_SHIELD_MS);
     context.tile("Hilfe").click();
     assert.deepEqual(speech.spoken, ["Ich brauche Hilfe."]);
+    // "Gebärde" stays shielded longer: it must not start the camera again from a slow double tap.
+    context.gestureButton().click();
+    assert.equal(panel(), null);
+    time.advance(GESTURE_SHIELD_MS - BOARD_SHIELD_MS);
 
     // "Zurück zur Tafel" from the countdown.
     context.gestureButton().click();
@@ -631,10 +658,20 @@ test("view: 'Nein' and 'Zurück zur Tafel' return to the board without speaking;
     assert.equal(camera.running, false);
     assert.equal(root.children.every((child) => !child.hidden), true);
     assert.deepEqual(speech.spoken, ["Ich brauche Hilfe."]);
+    // A second tap on "Zurück" a second later lands on "Gebärde": nothing starts.
+    time.advance(1000);
+    context.gestureButton().click();
+    await settle();
+    assert.equal(panel(), null);
+    assert.equal(camera.log.cameraRequests, 2);
+    time.advance(GESTURE_SHIELD_MS - 1000);
+    context.gestureButton().click();
+    await settle();
+    assert.equal(panel().dataset.state, "countdown");
   });
 });
 
-test("view: unknown says so, speaks nothing, and offers candidate tiles that speak like board tiles", async () => {
+test("view: unknown says so, speaks nothing, and offers candidate tiles; a candidate opens the confirm view, only 'Ja, sagen' speaks", async () => {
   await withView(async (context) => {
     const { panel, buttonNamed, time, camera, speech } = context;
     await viewToRecording(context);
@@ -660,6 +697,19 @@ test("view: unknown says so, speaks nothing, and offers candidate tiles that spe
     panel().dispatch("pointerdown");
     time.advance(10);
     ball.click();
+    assert.deepEqual(speech.spoken, [], "a candidate tap speaks nothing");
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(panel().dataset.concept, "ball");
+    assert.equal(panel().dataset.from, "candidates");
+    assert.match(textOf(panel()), /Meinst du das\?/);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nein").click();
+    assert.equal(panel().dataset.state, "unknown", "'Nein' returns to the candidates");
+    assert.deepEqual(speech.spoken, []);
+    time.advance(RECOGNISE_GUARD_MS);
+    tree(panel()).find((element) => element.dataset.concept === "ball").click();
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Ja, sagen").click();
     assert.deepEqual(speech.spoken, ["Ich möchte mit dem Ball spielen."]);
     assert.equal(panel(), null);
     assert.equal(context.sentence(), "Ich möchte mit dem Ball spielen.");

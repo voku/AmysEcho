@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { BOARD_SHIELD_MS, GESTURE_LABEL, SPEECH_GRACE_MS, SPEECH_MAX_MS, boardColumns, createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
+import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, SPEECH_GRACE_MS, SPEECH_MAX_MS, boardColumns, createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import {
   BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, isBoardConceptId, listCustomConcepts, normalizeWording,
@@ -2462,7 +2462,7 @@ test("gesture: a tap on the control starts recognising and speaks nothing; say()
   });
 });
 
-test("gesture: cover hides the board and shows the view; after uncover, presses on tiles, bar and control are ignored for BOARD_SHIELD_MS", () => {
+test("gesture: cover hides the board and shows the view; after uncover, presses on tiles and bar are ignored for BOARD_SHIELD_MS, on the control for GESTURE_SHIELD_MS", () => {
   withGestureBoard(true, ({ root, handle, control, starts, clock, spoken, buttons, bar }) => {
     const own = [...root.children];
     const view = fakeElement("section");
@@ -2491,6 +2491,12 @@ test("gesture: cover hides the board and shows the view; after uncover, presses 
     buttons[1].click();
     control.click();
     assert.deepEqual(spoken, ["Ich möchte mit dem Ball spielen.", "Ich möchte Saft."]);
+    assert.equal(starts.count, 0, "the gesture control is shielded longer");
+    clock.time += GESTURE_SHIELD_MS - BOARD_SHIELD_MS - 1;
+    control.click();
+    assert.equal(starts.count, 0);
+    clock.time += 1;
+    control.click();
     assert.equal(starts.count, 1);
   });
 });
@@ -2517,7 +2523,8 @@ test("gesture: the stylesheet gives the control and the gesture view big targets
   assert.match(rule(".recognise-back, .recognise-action"), /touch-action: manipulation/);
   // The button row keeps its height also when empty, so nothing in the view moves within one state.
   assert.match(rule(".recognise-actions"), /min-height: var\(--tile-min\)/);
-  assert.match(rule(".recognise-candidates"), /minmax\(var\(--tile-min\), 1fr\)/);
+  assert.match(rule(".recognise-candidates"), /grid-template-rows: var\(--tile-min\)/);
+  assert.match(rule(".recognise-main"), /justify-content: safe center/, "never centred into an overflow that cannot be reached");
   // Never taken for the board: a thick frame and a background of its own.
   assert.match(rule(".recognise"), /border: 6px solid #4b2a7a/);
   assert.match(rule(".recognise"), /background: #f7f2fd/);

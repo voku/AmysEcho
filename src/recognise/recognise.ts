@@ -23,7 +23,7 @@
  */
 import type { BoardEntry } from "../board-data.js";
 import type { MountedBoard } from "../board.js";
-import type { CaptureBridge, CaptureSession } from "../capture/capture.js";
+import type { CaptureBridge, CaptureProblem, CaptureSession } from "../capture/capture.js";
 import { sequenceFromRecording } from "../recognition/examples.js";
 import type { FeatureFailure, HandKind } from "../recognition/features.js";
 import { DEFAULT_MIN_MARGIN, calibrateMaxDistance, matchGesture } from "../recognition/matcher.js";
@@ -65,7 +65,23 @@ export const RECOGNISE_TEXT = {
   unknown: "Das habe ich nicht verstanden.",
   candidates: "Vielleicht eins davon?",
   again: "Nochmal",
-  noCamera: "Die Kamera kann gerade nicht starten. Die Tafel funktioniert auch ohne Kamera.",
+  noCamera: "Die Kamera kann gerade nicht starten. Die Tafel geht auch ohne Kamera.",
+  /**
+   * The capture's problems, short and for this view: its retry is "Nochmal", not "Kamera starten"
+   * (the capture's own texts name that button of the camera test and teaching).
+   */
+  problems: {
+    denied: "Die Kamera ist nicht erlaubt. Eine Bezugsperson kann sie in den Einstellungen erlauben.",
+    no_camera: "Es wurde keine Kamera gefunden.",
+    busy: "Die Kamera ist gerade besetzt. Bitte „Nochmal“ tippen.",
+    unsupported: "Dieser Browser kann die Kamera nicht benutzen.",
+    tracker_download: "Die Handerkennung braucht beim ersten Mal Internet. Mit Internet „Nochmal“ tippen.",
+    tracker_storage: "Für die Handerkennung ist nicht genug Speicher frei.",
+    tracker_timeout: "Die Handerkennung lädt nicht weiter. Bitte „Nochmal“ tippen.",
+    tracker_unavailable: "Die Handerkennung startet gerade nicht.",
+    tracker_failed: "Die Handerkennung ist ausgefallen. Bitte „Nochmal“ tippen.",
+  } satisfies Record<CaptureProblem, string>,
+  stopped: "Die Kamera ist ausgegangen. Bitte „Nochmal“ tippen.",
   unusable: {
     no_frames: "Die Kamera hat kein Bild geschickt.",
     bad_timestamps: "Die Aufnahme hat nicht geklappt.",
@@ -97,6 +113,9 @@ export function analyseAttempt(frames: readonly TrackerFrame[], examples: readon
   return { kind: "unknown", reason: result.reason, candidates: result.ranked.slice(0, MAX_CANDIDATES).map((entry) => entry.conceptId), hands };
 }
 
+/** No match: why, and up to `MAX_CANDIDATES` concepts of the board to choose from. */
+export interface UnknownState { readonly kind: "unknown"; readonly reason: UnknownReason; readonly candidates: readonly string[]; readonly hands: HandKind }
+
 export type RecogniseState =
   /** The board is shown; the camera is off. */
   | { readonly kind: "idle" }
@@ -105,8 +124,12 @@ export type RecogniseState =
   | { readonly kind: "countdown"; readonly left: number }
   | { readonly kind: "recording" }
   /** `hands`: which hands the attempt showed (one-hand and two-hand attempts are compared with examples of their kind only). */
-  | { readonly kind: "confirm"; readonly conceptId: string; readonly hands: HandKind }
-  | { readonly kind: "unknown"; readonly reason: UnknownReason; readonly candidates: readonly string[]; readonly hands: HandKind }
+  /**
+   * `from`: the unknown answer whose candidate the child tapped; "Nein" goes back to it. Absent
+   * when the matcher itself proposed the concept; "Nein" then goes back to the board.
+   */
+  | { readonly kind: "confirm"; readonly conceptId: string; readonly hands: HandKind; readonly from?: UnknownState }
+  | UnknownState
   | { readonly kind: "unusable"; readonly reason: FeatureFailure }
   /** The camera or tracker could not start or failed; `line` says why. */
   | { readonly kind: "problem"; readonly line: string };
@@ -143,9 +166,9 @@ export interface Recogniser {
   finish(pressAt?: number): void;
   /** "Ja, sagen": back to the board, which then speaks the concept once. */
   confirm(pressAt?: number): void;
-  /** "Nein": back to the board, nothing spoken. */
+  /** "Nein": back to the board, or to the candidates the concept was chosen from; nothing spoken. */
   reject(pressAt?: number): void;
-  /** A candidate of an unknown answer: back to the board, which speaks it like its tile. */
+  /** A candidate of an unknown answer: the confirm view for it ("Nein" returns to the candidates). Speaks nothing. */
   choose(conceptId: string, pressAt?: number): void;
   /** "Zurück zur Tafel", from every state: camera off, nothing spoken. Always takes effect. */
   back(): void;
@@ -280,12 +303,12 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
         },
       });
     } catch {
-      failed(text.problems.tracker_unavailable);
+      failed(RECOGNISE_TEXT.problems.tracker_unavailable);
       return;
     }
     void Promise.resolve(started).then((answer) => {
       if (!answer.ok) {
-        if ("problem" in answer) failed(text.problems[answer.problem]);
+        if ("problem" in answer) failed(RECOGNISE_TEXT.problems[answer.problem]);
         else if (camera === own) leave();
         return;
       }
@@ -297,10 +320,10 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       void answer.session.ended.then((end) => {
         // Ended by this module (a way out, or after the attempt): nothing to say.
         if (camera !== own) return;
-        failed(end.kind === "problem" ? text.problems[end.problem] : text.stopped);
+        failed(end.kind === "problem" ? RECOGNISE_TEXT.problems[end.problem] : RECOGNISE_TEXT.stopped);
       });
       countdown(own, RECOGNISE_COUNTDOWN_S);
-    }, () => failed(text.problems.tracker_unavailable));
+    }, () => failed(RECOGNISE_TEXT.problems.tracker_unavailable));
   };
 
   return {
@@ -324,12 +347,14 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       options.speak(conceptId);
     },
     reject(pressAt) {
-      if (current.kind === "confirm" && aimed(pressAt)) show({ kind: "idle" });
+      if (current.kind !== "confirm" || !aimed(pressAt)) return;
+      // A candidate's "Nein" goes back to the candidates: the child was choosing among them.
+      show(current.from ?? { kind: "idle" });
     },
     choose(conceptId, pressAt) {
       if (current.kind !== "unknown" || !current.candidates.includes(conceptId) || !aimed(pressAt)) return;
-      show({ kind: "idle" });
-      options.speak(conceptId);
+      // Nothing is spoken from the view without "Ja, sagen": a candidate is asked about like a match.
+      show({ kind: "confirm", conceptId, hands: current.hands, from: current });
     },
     back: leave,
     dispose() {
@@ -391,6 +416,34 @@ function conceptContent(target: HTMLElement, entry: BoardEntry, size: number): v
   target.append(element("span", "", entry.labelDe));
 }
 
+/** The symbols on the view's buttons, for a child who does not read: the text stays next to them. */
+export const RECOGNISE_SYMBOLS = { yes: "\u2713", no: "\u2717", finish: "\u25A0", again: "\u21BB" } as const;
+
+/**
+ * A big button of the view: a symbol first, then the text; `picture` (the
+ * concept's symbol) between them on "Ja, sagen", so the child sees what will
+ * be said. The accessible name is the text alone.
+ */
+function actionButton(className: string, symbol: string, text: string, picture: string | null = null): HTMLElement {
+  const node = button(`recognise-action ${className}`, "");
+  node.setAttribute("aria-label", text);
+  const mark = element("span", "recognise-mark", symbol);
+  mark.setAttribute("aria-hidden", "true");
+  node.append(mark);
+  if (picture !== null) {
+    const image = document.createElement("img") as HTMLImageElement;
+    image.className = "recognise-action-picture";
+    image.src = picture;
+    image.alt = "";
+    image.width = 40;
+    image.height = 40;
+    image.draggable = false;
+    node.append(image);
+  }
+  node.append(element("span", "recognise-action-text", text));
+  return node;
+}
+
 const defaultTimer: SetTimer = (callback, milliseconds) => {
   const timer = setTimeout(callback, milliseconds);
   return () => clearTimeout(timer);
@@ -412,9 +465,12 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   const top = element("div", "recognise-top");
   const back = button("recognise-back", RECOGNISE_TEXT.back);
   top.append(back);
+  // The state's content and its buttons: one above the other in a window held upright, side by side in a wide one (style sheet).
+  const body = element("div", "recognise-body");
   const main = element("div", "recognise-main");
   const actions = element("div", "recognise-actions");
-  panel.append(top, main, actions);
+  body.append(main, actions);
+  panel.append(top, body);
 
   /** When the latest press on the view began; a click without a pointer (a key) counts from the click. */
   let pressedAt: number | null = null;
@@ -431,6 +487,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     delete panel.dataset["concept"];
     delete panel.dataset["reason"];
     delete panel.dataset["hands"];
+    delete panel.dataset["from"];
     if (state.kind === "idle") {
       board.uncover();
       return;
@@ -452,7 +509,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         break;
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;
-        const finish = button("recognise-action recognise-finish", RECOGNISE_TEXT.finish);
+        const finish = actionButton("recognise-finish", RECOGNISE_SYMBOLS.finish, RECOGNISE_TEXT.finish);
         finish.addEventListener("click", () => recogniser.finish(pressStart()));
         buttons.push(finish);
         break;
@@ -465,9 +522,10 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         const shown = element("div", "recognise-concept");
         if (entry !== undefined) conceptContent(shown, entry, 160);
         content.push(shown);
-        const no = button("recognise-action recognise-no", RECOGNISE_TEXT.no);
+        if (state.from !== undefined) panel.dataset["from"] = "candidates";
+        const no = actionButton("recognise-no", RECOGNISE_SYMBOLS.no, RECOGNISE_TEXT.no);
         no.addEventListener("click", () => recogniser.reject(pressStart()));
-        const yes = button("recognise-action recognise-yes", RECOGNISE_TEXT.yes);
+        const yes = actionButton("recognise-yes", RECOGNISE_SYMBOLS.yes, RECOGNISE_TEXT.yes, entry?.symbolPath ?? null);
         yes.addEventListener("click", () => recogniser.confirm(pressStart()));
         buttons.push(no, yes);
         break;
@@ -510,7 +568,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     }
   };
   const againButton = (): HTMLElement => {
-    const again = button("recognise-action recognise-again", RECOGNISE_TEXT.again);
+    const again = actionButton("recognise-again", RECOGNISE_SYMBOLS.again, RECOGNISE_TEXT.again);
     again.addEventListener("click", () => recogniser.start(pressStart()));
     return again;
   };

@@ -29,8 +29,10 @@ const REF = process.env.DGS_REF ?? "origin/main_old";
 const VIDEO_DIR = "server/data/dgs_video_examples";
 /** Frames per second of video handed to the tracker, as in dgs-capture.test.mjs. */
 const CAPTURE_RATE = 10;
-/** The press shield of the board after the gesture view closed (BOARD_SHIELD_MS), plus a margin. */
+/** The press guard of a view (RECOGNISE_GUARD_MS), plus a margin. */
 const AFTER_VIEW_MS = 900;
+/** The shield of "Gebärde" after the gesture view closed (GESTURE_SHIELD_MS), plus a margin. */
+const BEFORE_GESTURE_MS = 1600;
 
 /**
  * Taught words: an app concept signed with one hand and a two-hand sign as a custom concept
@@ -303,7 +305,7 @@ test("recognising on the board: DGS videos taught as examples, attempted through
 
     /** One attempt through the board: tap "Gebärde", wait for the recording, feed the frames, tap "Stopp"; returns the view it ends in. */
     const attempt = async (name, pass) => {
-      await page.waitForTimeout(AFTER_VIEW_MS);
+      await page.waitForTimeout(BEFORE_GESTURE_MS);
       await gesture.click();
       await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state === "recording", undefined, { timeout: 90_000 });
       assert.ok(await gesture.isHidden(), "the board is covered while recording");
@@ -365,7 +367,14 @@ test("recognising on the board: DGS videos taught as examples, attempted through
             await page.waitForTimeout(AFTER_VIEW_MS);
             const chosen = await candidates.first().getAttribute("data-concept");
             await candidates.first().click();
-            assert.deepEqual(await spoken(), [...before, SPEECH[chosen]], `${name}: a candidate speaks like its tile`);
+            // A candidate only asks: the same confirm view, and nothing is spoken before "Ja, sagen".
+            assert.deepEqual(await panelState(), { state: "confirm", concept: chosen, reason: null, hands: result.hands }, `${name}: a candidate tap`);
+            assert.deepEqual(await spoken(), before, `${name}: a candidate tap spoke`);
+            await page.waitForTimeout(AFTER_VIEW_MS);
+            await page.getByRole("button", { name: "Ja, sagen" }).click();
+            assert.equal(await panelState(), null);
+            assert.deepEqual(await spoken(), [...before, SPEECH[chosen]], `${name}: 'Ja, sagen' after a candidate speaks it once`);
+            assert.equal(await sentence(), SPEECH[chosen]);
             candidateSpoken += 1;
             return;
           }
@@ -391,7 +400,7 @@ test("recognising on the board: DGS videos taught as examples, attempted through
         + `wrong concept shown ${count(taughtOutcomes, (outcome) => outcome.state === "confirm" && outcome.concept !== wordOf(outcome.name))}, `
         + `unknown ${count(taughtOutcomes, (outcome) => outcome.state === "unknown")}, refused ${count(taughtOutcomes, (outcome) => outcome.state === "unusable")})`,
       `  untaught words ${untaughtOutcomes.length}: confirm view shown ${count(untaughtOutcomes, (outcome) => outcome.state === "confirm")}, unknown ${count(untaughtOutcomes, (outcome) => outcome.state === "unknown")}, refused ${count(untaughtOutcomes, (outcome) => outcome.state === "unusable")}`,
-      `  spoken: after 'Ja, sagen' ${confirmedSpoken}, after a candidate ${candidateSpoken}; 'Nein' pressed ${rejected}; recordings cut by the time limit ${count(outcomes, (outcome) => outcome.cut)}`,
+      `  spoken: after 'Ja, sagen' on a match ${confirmedSpoken}, after a candidate and 'Ja, sagen' ${candidateSpoken}; 'Nein' pressed ${rejected}; recordings cut by the time limit ${count(outcomes, (outcome) => outcome.cut)}`,
       ...outcomes.map((outcome) => `    ${outcome.name} (${outcome.frames} frames): ${outcome.state}${outcome.concept === null ? "" : ` ${outcome.concept}`}${outcome.reason === null ? "" : ` (${outcome.reason})`}${outcome.hands === null ? "" : `, attempt ${outcome.hands === "both" ? "two-hand" : "one-hand"}`}`),
     ];
     console.log(lines.join("\n"));

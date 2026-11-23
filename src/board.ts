@@ -103,6 +103,12 @@ const GESTURE_SYMBOL = "\u270B";
  * a double tap must not speak a word. A guess.
  */
 export const BOARD_SHIELD_MS = 700;
+/**
+ * The gesture control itself stays shielded longer after that view closed: a
+ * slow double tap on "Zurück zur Tafel" can come down on it a second later,
+ * and it would start the camera again. A guess.
+ */
+export const GESTURE_SHIELD_MS = 1500;
 
 /** What a mounted board offers besides `BoardHandle`: for the view that recognises a gesture (src/recognise/recognise.ts). */
 export interface MountedBoard extends BoardHandle {
@@ -387,6 +393,7 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
   /** Until when presses on the board are ignored: see `BOARD_SHIELD_MS`. */
   let shieldUntil = Number.NEGATIVE_INFINITY;
   const shielded = (): boolean => now() < shieldUntil;
+  let gestureShieldUntil = Number.NEGATIVE_INFINITY;
   /** What a tap on the tile of `concept` does. */
   const tap = (concept: BoardEntry, tile: HTMLElement): void => {
     // Another tile always takes over at once; the same tile again is a repeat.
@@ -453,7 +460,7 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
     label.textContent = GESTURE_LABEL;
     control.append(symbol, label);
     control.addEventListener("click", () => {
-      if (!shielded() && !covered) onStart();
+      if (!shielded() && now() >= gestureShieldUntil && !covered) onStart();
     });
     control.addEventListener("contextmenu", noMenu);
     gestureControls.push(control);
@@ -488,6 +495,7 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
       for (const element of own) element.hidden = false;
       root.replaceChildren(...own);
       shieldUntil = now() + BOARD_SHIELD_MS;
+      gestureShieldUntil = now() + GESTURE_SHIELD_MS;
       // Keyboard and switch users come back to the control that opened the view.
       const control = gestureControls[0];
       if (control !== undefined && typeof control.focus === "function") control.focus();
