@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
     "history": [
         {
@@ -134,6 +134,44 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:eed2790d",
                 "summary": "Second build: presence decides hand membership, 20-50 percent band and still-hand-with-other-hand fail closed as hands_unclear; wrong-concept cases from both reviews in tests and evaluation; 472 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T00:12:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T00:12:35+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:bfcee80e29a0678c57fd00cdb4575e97135448a99129a0170d202506a4b22a2f",
+                    "execution-evidence:sha256:c937e59a2215e43e48571e69112cfe02be9fe8b629b15e573b91a15c07edad8e"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:bfcee80e29a0678c57fd00cdb4575e97135448a99129a0170d202506a4b22a2f",
+                    "execution-evidence:sha256:c937e59a2215e43e48571e69112cfe02be9fe8b629b15e573b91a15c07edad8e"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:684ddf3ad74db1c74fce14e198f9d651de049214",
+                "context_id": "correctness-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:08fadeb4",
+                "summary": "A one-hand reading measures the other hand only over the kept hand's own movement span (features.ts:442-448): a second hand that moved and left just before or after is ignored and a two-hand sign is spoken as its one-hand twin, 0 before, 40 of 40 now. One doc figure is not printed by the harness.",
                 "task_id": "NG-18",
                 "validation_references": []
             }
