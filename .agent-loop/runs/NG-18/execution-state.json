@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
     "contract_revision": 1,
-    "current_attempt": 4,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 5,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
     "history": [
         {
@@ -279,10 +279,50 @@
                 "task_id": "NG-18",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-23T05:34:27+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T05:34:27+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:04a572747d883df69ac10b22dab7a1fb192ea73abec802c47361d26a6f1b64bf",
+                    "execution-evidence:sha256:0ddf2a1d59e74388567fd6b54086c0a4be3d868c45908b1bed9654f6203d0435",
+                    "execution-evidence:sha256:0e676a9c7078c0b544a01115848c177c2f66294cbc22203e5bacb1b446782d3b"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:04a572747d883df69ac10b22dab7a1fb192ea73abec802c47361d26a6f1b64bf",
+                    "execution-evidence:sha256:0ddf2a1d59e74388567fd6b54086c0a4be3d868c45908b1bed9654f6203d0435",
+                    "execution-evidence:sha256:0e676a9c7078c0b544a01115848c177c2f66294cbc22203e5bacb1b446782d3b"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:c206e6d613d9a8d1f3c2c251d9654f31bdb729d2",
+                "context_id": "correctness-review-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:663e9b69",
+                "summary": "Per-hands calibration can widen a limit beyond the old whole-concept limit (old 120, new 340 wrong). A one-frame tracker jump or jitter above 0.02 lets the movement cut trim shape-only signs to rest frames (old 0, new up to 25 of 1200 wrong). Look-alikes accepted rise from 2.5 to 5 percent and from 0 to 1 percent at 7 fps; one doc cell names the wrong profile.",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": "attention:71e2f58728066485",
+    "last_attention_id": null,
     "recovery_history": [],
     "run_id": "run:NG-18:3da5f471dc313675",
     "schema_version": "1.0",
