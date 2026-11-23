@@ -181,6 +181,14 @@ export type CaptureEnd = { readonly kind: "stopped" } | { readonly kind: "proble
 export interface CaptureSession {
   /** Ends the capture: camera off, tracker closed. Returns the recorded frames (empty without `record`) and forgets them. Safe to call twice. */
   stop(): TrackerFrame[];
+  /**
+   * Starts keeping the landmark frames of this capture from now on, in
+   * memory, and forgets any kept before. The camera keeps running. Does
+   * nothing after the capture ended.
+   */
+  startRecording(): void;
+  /** Stops keeping frames and returns those kept since `startRecording` (or the start with `record`). The camera keeps running. */
+  stopRecording(): TrackerFrame[];
   /** Settles when the capture ends, by `stop()` or by a problem. */
   readonly ended: Promise<CaptureEnd>;
 }
@@ -253,6 +261,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
 
   const limit = Math.max(1, options.maxRecordedFrames ?? MAX_RECORDED_FRAMES);
   let recorded: TrackerFrame[] = [];
+  let keeping = options.record === true;
   let running = true;
   let finish: (end: CaptureEnd) => void = () => undefined;
   const ended = new Promise<CaptureEnd>((resolve) => { finish = resolve; });
@@ -303,7 +312,7 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
       index += 1;
       if (!running) return;
       const tracked: TrackerFrame = { timestampMs, imageWidth: frame.width, imageHeight: frame.height, hands: result.hands, pose: result.pose, poseRan };
-      if (options.record === true) {
+      if (keeping) {
         recorded.push(tracked);
         if (recorded.length > limit) recorded.splice(0, recorded.length - limit);
       }
@@ -311,7 +320,22 @@ export async function startCapture(environment: CaptureEnvironment, options: Cap
     }
   })();
 
-  return { ok: true, session: { stop: () => shutDown({ kind: "stopped" }), ended } };
+  const session: CaptureSession = {
+    stop: () => shutDown({ kind: "stopped" }),
+    startRecording() {
+      if (!running) return;
+      recorded = [];
+      keeping = true;
+    },
+    stopRecording() {
+      const frames = recorded;
+      recorded = [];
+      keeping = false;
+      return frames;
+    },
+    ended,
+  };
+  return { ok: true, session };
 }
 
 function closeImage(image: unknown): void {
@@ -669,8 +693,34 @@ export function browserEnvironment(host: HTMLElement, options: BrowserCaptureOpt
 }
 
 // ---------------------------------------------------------------------------
-// The capture entry: `index.html#kamera-testen` (card NG-3). Teaching and
-// recognising come with cards NG-19 and NG-20 in the caregiver area.
+// The bridge for the caregiver area (card NG-19). The area is part of the
+// board's module graph and must not import this module: a failure here (it is
+// loaded by index.html as a module of its own) must never stop the board. So
+// this module, when the page loads it, leaves what the area needs under one
+// global name, and the area looks for it when "Kamera starten" is tapped.
+
+/** The global name of the bridge. `src/caregiver.ts` has the same string; a test compares them. */
+export const CAPTURE_BRIDGE_KEY = "amysEchoCapture";
+
+export interface CaptureBridge {
+  /** `startCapture` with the browser's camera and tracker; `host` receives the hidden video element. */
+  start(host: HTMLElement, options: CaptureOptions): Promise<CaptureStart>;
+  readonly text: typeof CAPTURE_TEXT;
+  readonly nextShoulders: typeof nextShoulders;
+}
+
+export function captureBridge(options: BrowserCaptureOptions = {}): CaptureBridge {
+  return {
+    start: (host, captureOptions) => startCapture(browserEnvironment(host, options), captureOptions),
+    text: CAPTURE_TEXT,
+    nextShoulders,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The capture entry: `index.html#kamera-testen` (card NG-3). Teaching is in
+// the caregiver area through the bridge above (card NG-19); recognising comes
+// with card NG-20.
 
 export const CAPTURE_ROUTE = "#kamera-testen";
 
@@ -810,6 +860,11 @@ export function mountCaptureEntry(doc: Document, region: HTMLElement, options: B
 
 // Wires the entry when loaded by index.html; importing this module elsewhere (a Node test, the browser test) does nothing more.
 if (typeof document !== "undefined") {
+  try {
+    Object.defineProperty(globalThis, CAPTURE_BRIDGE_KEY, { value: captureBridge(), configurable: true });
+  } catch (error) {
+    console.warn("Camera for teaching unavailable:", error);
+  }
   const region = document.querySelector<HTMLElement>("#capture-region");
   if (region !== null && region.dataset["mounted"] !== "true") {
     region.dataset["mounted"] = "true";

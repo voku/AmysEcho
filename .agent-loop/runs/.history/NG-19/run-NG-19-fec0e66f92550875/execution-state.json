@@ -1,0 +1,48 @@
+{
+    "attention": null,
+    "candidate_revision": "b2ce5b6851056aff6a7432af665104f185fac543",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:74f1b6e58e2f78de3513bed645414d5246a552c1d3231297591183397cb9bab9",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T12:05:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T12:05:18+00:00",
+                "artifact_references": [],
+                "candidate_revision": "b2ce5b6851056aff6a7432af665104f185fac543",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:74f1b6e58e2f78de3513bed645414d5246a552c1d3231297591183397cb9bab9",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-19:fec0e66f92550875",
+                "schema_version": "1.0",
+                "task_id": "NG-19",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "b2ce5b6851056aff6a7432af665104f185fac543",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:74f1b6e58e2f78de3513bed645414d5246a552c1d3231297591183397cb9bab9",
+                "outcome": "completed",
+                "run_id": "run:NG-19:fec0e66f92550875",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:ed125606",
+                "summary": "Profile store keeps JSON per data name with a 64 MiB / 10000-name export limit and usage(); features.ts builds versioned FeatureSequence (schema 2) from landmark frames; capture.ts startCapture with record:true returns tracker frames and tracker-adapter turns them into landmark frames; caregiver.ts has the takeover-view pattern (rewording) and the press rules to follow.",
+                "task_id": "NG-19",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-19:fec0e66f92550875",
+    "schema_version": "1.0",
+    "task_id": "NG-19"
+}

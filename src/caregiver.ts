@@ -21,6 +21,23 @@ import type { ProfileV1 } from "./profiles/profile.js";
 import { ProfileSizeError, UnknownProfileError } from "./profiles/store.js";
 import type { ProfileStore } from "./profiles/store.js";
 import { STARTUP_WAIT_MS } from "./startup.js";
+import type { CaptureBridge, CaptureSession } from "./capture/capture.js";
+import { frameSummary } from "./recognition/tracker-adapter.js";
+import {
+  ExampleFormatError, RECOMMENDED_EXAMPLES, countExamples, deleteExample, deleteExamples, isExampleConceptId, listExamples, saveExample,
+  sequenceFromRecording, usageLevel,
+} from "./recognition/examples.js";
+import type { ExampleListing, UsageLevel } from "./recognition/examples.js";
+import type { FeatureFailure, FeatureSequence, HandKind } from "./recognition/features.js";
+
+/** A recording of a gesture example stops by itself after this long (card NG-19). */
+export const TEACH_MAX_RECORDING_MS = 8000;
+/**
+ * The global name under which `capture/capture.js` leaves its bridge
+ * (`CAPTURE_BRIDGE_KEY` there; a test compares the two). This module does not
+ * import the capture module: a failure in it must never stop the board.
+ */
+export const CAPTURE_BRIDGE_KEY = "amysEchoCapture";
 
 /** How long the opening control has to be held. A guess; not tried with a child (card NG-14). */
 export const HOLD_DURATION_MS = 3000;
@@ -169,6 +186,14 @@ export interface CaregiverOptions {
   readonly onPageHidden?: (callback: () => void) => void;
   /** The time in milliseconds, for "when did this press begin" and "when was this put on screen"; for tests. Default: `Date.now`. */
   readonly now?: () => number;
+  /**
+   * The camera for teaching gestures; for tests. Default: the bridge that
+   * `capture/capture.js` leaves under `CAPTURE_BRIDGE_KEY`, looked up when
+   * "Kamera starten" is tapped. Null or missing: the camera cannot start.
+   */
+  readonly capture?: CaptureBridge | null;
+  /** The wall clock for the capture time of a gesture example; for tests. Default: `new Date()`. */
+  readonly date?: () => Date;
 }
 
 export interface CaregiverHandle {
@@ -210,7 +235,8 @@ const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wi
 const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt.";
 const NAME_DETAILS = "Was wird gespeichert?";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
-  + "Der Name, die ausgewählten Begriffe und eigene Texte dazu werden nur in diesem Browser auf diesem Gerät gespeichert. "
+  + "Der Name, die ausgewählten Begriffe, eigene Texte dazu und beigebrachte Gebärden werden nur in diesem Browser auf diesem Gerät gespeichert. "
+  + "Von einer Gebärde werden nur Zahlen zur Bewegung der Hände gespeichert, kein Bild und kein Video. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -239,7 +265,7 @@ const DELETE = "Löschen";
 const DELETE_FOR_GOOD = "Endgültig löschen";
 const CANCEL = "Abbrechen";
 const SAVE = "Speichern";
-const DELETE_LOSS = "Alle ausgewählten Begriffe dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
+const DELETE_LOSS = "Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
 const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel aktiv ist.";
 const AFTER_CLOSE = "Nach dem Schließen:";
 const afterDamagedLine = (count: number): string => (count === 1
@@ -276,6 +302,51 @@ const REWORD_SPEECH = "Gesprochener Satz";
 const RESET_WORDING = "Text der App wiederherstellen";
 const RESET_CONFIRM = "Wiederherstellen";
 const REWORD_FULL = "Der Platz für dieses Profil ist voll. Der Text wurde nicht gespeichert. Entferne Begriffe oder kürze Texte, dann ist wieder Platz.";
+
+// Teaching a gesture (card NG-19).
+const TEACH = "Gebärde beibringen";
+const TEACH_INTRO = "Tippe auf „Kamera starten“. Tippe dann auf „Aufnahme starten“, mache die Gebärde einmal und tippe auf „Aufnahme beenden“. "
+  + `Nach ${TEACH_MAX_RECORDING_MS / 1000} Sekunden endet die Aufnahme von selbst. `
+  + `Am besten mindestens ${RECOMMENDED_EXAMPLES} Beispiele aufnehmen, so wie das Kind später vor dem Gerät sitzt. `
+  + "Gespeichert werden nur Zahlen zur Bewegung der Hände, kein Bild und kein Video.";
+const CAMERA_START = "Kamera starten";
+const RECORD_START = "Aufnahme starten";
+const RECORD_STOP = "Aufnahme beenden";
+const RECORDING = "Die Aufnahme läuft. Jetzt die Gebärde machen.";
+const KEEP = "Behalten";
+const DISCARD = "Verwerfen";
+const BACK = "Zurück";
+const DELETE_ALL_EXAMPLES = "Alle Beispiele löschen";
+const STORED_EXAMPLES = "Gespeicherte Beispiele";
+const NO_CAMERA_BRIDGE = "Die Kamera kann hier gerade nicht gestartet werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera.";
+const USAGE_LINES: Readonly<Record<Exclude<UsageLevel, "ok">, string>> = {
+  near: "Der Platz für dieses Profil ist fast voll. Es passen nur noch wenige Beispiele hinein. Lösche Beispiele, die nicht mehr gebraucht werden.",
+  full: "Der Platz für dieses Profil ist voll. Neue Beispiele können erst gespeichert werden, wenn Beispiele gelöscht sind.",
+};
+const USAGE_UNKNOWN = "Wie viel Platz dieses Profil noch hat, konnte nicht geprüft werden. Ein Beispiel wird nur gespeichert, wenn es noch passt.";
+const EXAMPLE_FULL = "Das Profil ist voll. Das Beispiel wurde nicht gespeichert. Bitte nicht mehr gebrauchte Beispiele löschen.";
+const EXAMPLE_NOT_SAVED = `Das konnte gerade nicht gespeichert werden. Tippe noch einmal auf „${KEEP}“ oder verwirf die Aufnahme.`;
+const NEWER_EXAMPLE = "Dieses Beispiel wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
+const EXAMPLE_DELETE_LOSS = "Das kann nicht rückgängig gemacht werden. Die Gebärde kann danach neu aufgenommen werden.";
+/** Why a recording cannot be used, and what to do: one sentence each, from the feature builder's reason. */
+const UNUSABLE: Readonly<Record<FeatureFailure, string>> = {
+  no_frames: "Von der Kamera kam kein Bild an. Bitte noch einmal aufnehmen.",
+  bad_timestamps: "Die Aufnahme ist fehlerhaft. Bitte noch einmal aufnehmen.",
+  bad_landmarks: "Die Aufnahme ist fehlerhaft. Bitte noch einmal aufnehmen.",
+  no_hands: "Es war keine Hand zu sehen. Bitte so sitzen, dass die Hände gut im Bild sind, und noch einmal aufnehmen.",
+  too_short: "Die Aufnahme war zu kurz. Bitte erst „Aufnahme starten“ tippen, dann die Gebärde machen und danach „Aufnahme beenden“ tippen.",
+  hands_unclear: "Es war nicht klar, ob die Gebärde mit einer oder mit beiden Händen gemacht wird: Eine Hand war nur zeitweise im Bild. "
+    + "Bitte die Hände der Gebärde die ganze Zeit im Bild lassen, andere Hände aus dem Bild nehmen und noch einmal aufnehmen.",
+  hand_lost: "Eine Hand war zwischendurch zu lange nicht zu sehen. Bitte die Hände im Bild lassen und noch einmal aufnehmen.",
+};
+const handsText = (hands: HandKind): string => (hands === "both" ? "mit beiden Händen" : `mit einer Hand (${hands === "left" ? "links" : "rechts"})`);
+const examplesText = (count: number): string => (count === 1 ? "1 Beispiel" : `${count} Beispiele`);
+const two = (value: number): string => String(value).padStart(2, "0");
+/** A capture time for the list of examples, in the device's time zone. */
+function shownTime(iso: string): string {
+  const date = new Date(iso);
+  return `${two(date.getDate())}.${two(date.getMonth() + 1)}.${date.getFullYear()}, ${two(date.getHours())}:${two(date.getMinutes())} Uhr`;
+}
 
 /** A refusal of a wording, with the field the focus goes back to. */
 class WordingRefusal extends Error {
@@ -335,7 +406,39 @@ type Mode =
   | { readonly kind: "rename"; readonly id: string; readonly draft: string }
   | { readonly kind: "delete"; readonly id: string }
   | RewordMode
+  | TeachMode
   | null;
+/**
+ * Teaching a gesture for one concept of the profile `id`. It takes over the
+ * body like the rewording. The object is the same while the view is open;
+ * `state` holds what changes: the camera, the recording and its result (kept
+ * in memory until "Behalten" or "Verwerfen"), and an open delete confirmation.
+ */
+interface TeachMode {
+  readonly kind: "teach";
+  readonly id: string;
+  readonly conceptId: string;
+  readonly state: TeachState;
+}
+type TeachResult =
+  | { readonly usable: true; readonly sequence: FeatureSequence; readonly frames: number; readonly durationMs: number; readonly capturedAt: Date; readonly auto: boolean }
+  | { readonly usable: false; readonly reason: FeatureFailure; readonly auto: boolean };
+type TeachConfirm = { readonly kind: "one"; readonly name: string; readonly number: number } | { readonly kind: "all"; readonly count: number };
+interface TeachState {
+  /** What `store.usage` said when the view opened (or after a delete); null while it is being read. */
+  usage: UsageLevel | "unknown" | null;
+  camera: "off" | "starting" | "on";
+  /** The camera's step or problem, in German; empty when there is nothing to say. */
+  cameraLine: string;
+  cameraProblem: boolean;
+  /** The live line: hands and shoulders in the picture now. */
+  live: string;
+  recording: boolean;
+  result: TeachResult | null;
+  confirm: TeachConfirm | null;
+  /** A keep or delete is asked for and has not ended. */
+  busy: boolean;
+}
 /**
  * Rewording one concept of the profile `id`. It takes over the body like the
  * delete confirmation. The object is the same for as long as the rewording
@@ -578,6 +681,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let mode: Mode = null;
   /** The held buttons of the body that is on screen. Only these can act; they are cancelled when the body is swapped. */
   let bodyHolds: HeldButton[] = [];
+  /** The camera of the open teaching view, if it runs or starts: ended whenever that view is left, the area closes or another view opens. */
+  let teachCamera: { readonly mode: TeachMode; readonly controller: AbortController; session: CaptureSession | null; stopTimer: () => void } | null = null;
+  /** The live line of the teaching view on screen; written on every camera frame without a redraw. */
+  let teachLive: HTMLElement | null = null;
+  let teachCameraLine: HTMLElement | null = null;
+  const date = options.date ?? (() => new Date());
   /** What was typed into the create field, kept while a view without that field is shown. */
   let createDraft = "";
   /** True from a press that retires the message until the redraw for that press: the text keeps its place meanwhile. */
@@ -757,11 +866,31 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return { control, cancel: abort };
   };
 
+  /**
+   * Ends the camera of the teaching view, at whatever step it is (the tracker
+   * loading, the permission asked, running, recording), through the capture's
+   * own cancel signal and `stop`. A recording that was not stopped is dropped.
+   */
+  const stopTeachCamera = (): void => {
+    const camera = teachCamera;
+    if (camera === null) return;
+    teachCamera = null;
+    camera.stopTimer();
+    camera.controller.abort();
+    camera.session?.stop();
+    const { state } = camera.mode;
+    state.camera = "off";
+    state.recording = false;
+    state.live = "";
+    if (!state.cameraProblem) state.cameraLine = "";
+  };
+
   /** What every press of a button starts with: the earlier message goes, and so does an open rename field or confirmation unless the press belongs to it. */
   const begin = (keepMode = false): void => {
     clearStatus();
     if (keepMode) return;
     mode = null;
+    stopTeachCamera();
     dropHold();
   };
 
@@ -966,6 +1095,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (!isOpen || mine !== session || body === null) return;
     // A hold dies with its button: whatever was held on the content that goes now ends here, not when its successor was built.
     dropHold();
+    // The camera belongs to the teaching view that started it: whatever took that view's place, the camera stops.
+    if (teachCamera !== null && teachCamera.mode !== mode) stopTeachCamera();
+    if (mode === null || mode.kind !== "teach") {
+      teachLive = null;
+      teachCameraLine = null;
+    }
     body.replaceChildren(...built.content);
     bodyHolds = nextHolds;
     markSwap();
@@ -1087,6 +1222,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   const openMode = (next: Exclude<Mode, null>, focus: string): void => {
     clearStatus();
     dropHold();
+    stopTeachCamera();
     mode = next;
     // A confirmation is the whole body: it starts right under the block.
     run(() => draw([focus], { toTop: next.kind !== "rename" }));
@@ -1104,8 +1240,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       run(() => draw(["reword-reset"], { toTop: true }));
       return;
     }
+    // The delete confirmation of an example goes back to the teaching view, to the button that opened it.
+    if (was.kind === "teach" && was.state.confirm !== null) {
+      const confirm = was.state.confirm;
+      was.state.confirm = null;
+      run(() => draw([confirm.kind === "one" ? `teach-delete:${confirm.name}` : "teach-delete-all", "teach-heading"]));
+      return;
+    }
+    stopTeachCamera();
     mode = null;
-    run(() => draw([was.kind === "reword" ? `reword:${was.conceptId}` : `${was.kind}:${was.id}`]));
+    run(() => draw([was.kind === "reword" || was.kind === "teach" ? `${was.kind}:${was.conceptId}` : `${was.kind}:${was.id}`]));
   };
 
   /** One German sentence for a wording that could not be saved or reset. */
@@ -1181,6 +1325,271 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return `${quoted(known?.labelDe ?? open.conceptId)} hat wieder den Text der App.`;
   });
 
+  /** The teaching view of `mode`, while it is the open one. */
+  const teaching = (open: TeachMode): boolean => mode === open && isOpen;
+
+  /** Redraws the teaching view (queued), with the focus on the first of `focus` that is there. */
+  const drawTeach = (open: TeachMode, focus: readonly string[]): void => {
+    run(async () => {
+      if (mode === open) await draw([...focus, "teach-back"]);
+    });
+  };
+
+  /**
+   * Opens the teaching view of one concept. Before anything is recorded, the
+   * profile's size is read (`store.usage`, which counts the whole profile:
+   * once per opening, not on every redraw), so that a profile near or at its
+   * limit is said before recording.
+   */
+  const openTeach = (profileId: string, conceptId: string): void => {
+    clearStatus();
+    dropHold();
+    stopTeachCamera();
+    const open: TeachMode = {
+      kind: "teach", id: profileId, conceptId,
+      state: { usage: null, camera: "off", cameraLine: "", cameraProblem: false, live: "", recording: false, result: null, confirm: null, busy: false },
+    };
+    mode = open;
+    run(async () => {
+      if (store !== null && mode === open) {
+        try {
+          open.state.usage = usageLevel(await store.usage(profileId));
+        } catch {
+          open.state.usage = "unknown";
+        }
+      }
+      await draw(["teach-heading"], { toTop: true });
+    });
+  };
+
+  /** "Kamera starten": the camera only after this tap, through the capture module's bridge. */
+  const startTeachCamera = (open: TeachMode): void => {
+    const { state } = open;
+    if (!teaching(open) || teachCamera !== null || state.usage === "full" || state.confirm !== null) return;
+    clearStatus();
+    const bridge = options.capture === undefined
+      ? ((globalThis as Record<string, unknown>)[CAPTURE_BRIDGE_KEY] as CaptureBridge | undefined) ?? null
+      : options.capture;
+    if (bridge === null) {
+      state.cameraLine = NO_CAMERA_BRIDGE;
+      state.cameraProblem = true;
+      drawTeach(open, ["teach-camera"]);
+      return;
+    }
+    const controller = new AbortController();
+    const camera: { readonly mode: TeachMode; readonly controller: AbortController; session: CaptureSession | null; stopTimer: () => void } = {
+      mode: open, controller, session: null, stopTimer: () => undefined,
+    };
+    teachCamera = camera;
+    const ours = (): boolean => teachCamera === camera && !controller.signal.aborted;
+    let shoulders = { seen: false, posesWithout: 0 };
+    state.camera = "starting";
+    state.cameraLine = bridge.text.preparing;
+    state.cameraProblem = false;
+    state.live = "";
+    drawTeach(open, ["teach-camera"]);
+    const ended = (line: string, problem: boolean): void => {
+      if (teachCamera === camera) {
+        teachCamera = null;
+        camera.stopTimer();
+      }
+      state.camera = "off";
+      state.recording = false;
+      state.live = "";
+      state.cameraLine = line;
+      state.cameraProblem = problem;
+      if (teaching(open) && state.confirm === null) drawTeach(open, ["teach-camera"]);
+    };
+    let started: Promise<Awaited<ReturnType<CaptureBridge["start"]>>>;
+    try {
+      started = bridge.start(caregiverRegion, {
+        signal: controller.signal,
+        onStep: (step) => {
+          if (!ours() || step === "stopped" || step === "running") return;
+          state.cameraLine = bridge.text[step];
+          if (teachCameraLine !== null && teachCameraLine.textContent !== state.cameraLine) {
+            teachCameraLine.textContent = state.cameraLine;
+            // The line may change its height: what is below it moves.
+            markSwap();
+          }
+        },
+        onFrame: (frame) => {
+          if (!ours()) return;
+          const summary = frameSummary(frame);
+          shoulders = bridge.nextShoulders(shoulders, summary.shoulders, frame.poseRan);
+          state.live = `${bridge.text.hands[summary.hands]} ${bridge.text.shoulders[shoulders.seen ? 1 : 0]}`;
+          // Written in place, without a redraw and without counting as a swap: the line is below the buttons and keeps its height.
+          if (teachLive !== null && teachLive.textContent !== state.live) teachLive.textContent = state.live;
+        },
+      });
+    } catch {
+      ended(bridge.text.problems.tracker_unavailable, true);
+      return;
+    }
+    void started.then((answer) => {
+      if (!answer.ok) {
+        if (teachCamera === camera) ended("problem" in answer ? bridge.text.problems[answer.problem] : "", "problem" in answer);
+        return;
+      }
+      if (!ours()) {
+        answer.session.stop();
+        return;
+      }
+      camera.session = answer.session;
+      state.camera = "on";
+      state.cameraLine = "";
+      drawTeach(open, ["teach-record"]);
+      void answer.session.ended.then((end) => {
+        if (teachCamera !== camera) return;
+        ended(end.kind === "problem" ? bridge.text.problems[end.problem] : bridge.text.stopped, end.kind === "problem");
+      });
+    }, () => {
+      if (teachCamera === camera) ended(bridge.text.problems.tracker_unavailable, true);
+    });
+  };
+
+  /** "Aufnahme starten": frames are kept from now, in memory, until "Aufnahme beenden" or `TEACH_MAX_RECORDING_MS`. */
+  const startTeachRecording = (open: TeachMode): void => {
+    const { state } = open;
+    const camera = teachCamera;
+    if (!teaching(open) || camera === null || camera.mode !== open || camera.session === null || state.recording || state.result?.usable === true) return;
+    clearStatus();
+    camera.session.startRecording();
+    state.recording = true;
+    state.result = null;
+    const capturedAt = date();
+    let stopTimer = (): void => undefined;
+    try {
+      stopTimer = setTimer(() => stopTeachRecording(open, true, capturedAt), TEACH_MAX_RECORDING_MS);
+    } catch {
+      // Without a timer the recording ends by the tap only; the capture keeps at most MAX_RECORDED_FRAMES.
+    }
+    camera.stopTimer = stopTimer;
+    recordingStartedAt = capturedAt;
+    drawTeach(open, ["teach-stop"]);
+  };
+  /** When the running recording began: the capture time of the example. */
+  let recordingStartedAt = new Date(0);
+
+  /** "Aufnahme beenden", or the time is up: the recording goes through the matcher's feature building, nothing is stored yet. */
+  const stopTeachRecording = (open: TeachMode, auto: boolean, capturedAt: Date = recordingStartedAt): void => {
+    const { state } = open;
+    const camera = teachCamera;
+    if (camera === null || camera.mode !== open || camera.session === null || !state.recording) return;
+    if (!auto) clearStatus();
+    camera.stopTimer();
+    camera.stopTimer = () => undefined;
+    const frames = camera.session.stopRecording();
+    state.recording = false;
+    const result = sequenceFromRecording(frames);
+    state.result = result.ok
+      ? { usable: true, sequence: result.sequence, frames: result.frames, durationMs: result.durationMs, capturedAt, auto }
+      : { usable: false, reason: result.reason, auto };
+    drawTeach(open, result.ok ? ["teach-keep"] : ["teach-record"]);
+  };
+
+  /** "Behalten": one write through the store. A refusal is said and not retried by itself. */
+  const keepTeachResult = (open: TeachMode): void => {
+    const { state } = open;
+    const result = state.result;
+    if (!teaching(open) || result === null || !result.usable || state.busy) return;
+    clearStatus();
+    state.busy = true;
+    runWrite(async () => {
+      try {
+        if (store === null || mode !== open || state.result !== result) return;
+        try {
+          await saveExample(store, open.id, open.conceptId, result.sequence, { capturedAt: result.capturedAt, frames: result.frames, durationMs: result.durationMs });
+          writes += 1;
+          state.result = null;
+          const count = (await listExamples(store, open.id, open.conceptId)).examples.length;
+          say(`Das Beispiel wurde gespeichert. Für diese Taste ${count === 1 ? "ist" : "sind"} jetzt ${examplesText(count)} gespeichert.`);
+        } catch (error) {
+          if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
+            stopTeachCamera();
+            if (acting === session && mode === open) mode = null;
+            say(PROFILE_GONE, true);
+            await draw(["profiles-heading"]);
+            return;
+          }
+          if (error instanceof ProfileSizeError) {
+            // Not tried again: the store counted the whole profile to refuse it. The recording goes, and so does the camera's offer.
+            state.result = null;
+            state.usage = "full";
+            stopTeachCamera();
+            say(EXAMPLE_FULL, true);
+          } else {
+            say(EXAMPLE_NOT_SAVED, true);
+          }
+        }
+        await draw(["teach-record", "teach-keep", "teach-camera"]);
+      } finally {
+        state.busy = false;
+      }
+    });
+  };
+
+  /** "Verwerfen": the recording is forgotten; nothing was stored. */
+  const discardTeachResult = (open: TeachMode): void => {
+    if (!teaching(open) || open.state.result === null || open.state.busy) return;
+    clearStatus();
+    open.state.result = null;
+    run(async () => {
+      say("Die Aufnahme wurde verworfen. Es wurde nichts gespeichert.");
+      if (mode === open) await draw(["teach-record", "teach-camera"]);
+    });
+  };
+
+  /** Opens the delete confirmation of one example or of all of them. The camera stops: the confirmation takes over the body. */
+  const confirmTeachDelete = (open: TeachMode, confirm: TeachConfirm): void => {
+    const { state } = open;
+    if (!teaching(open) || state.recording || state.result !== null || state.busy) return;
+    clearStatus();
+    dropHold();
+    stopTeachCamera();
+    state.cameraLine = "";
+    state.cameraProblem = false;
+    state.confirm = confirm;
+    run(() => draw(["confirm-cancel"], { toTop: true }));
+  };
+
+  /** Carries out the open delete confirmation, if it is still the open one at the release and when the queue gets to it. */
+  const deleteTeachExamples = (open: TeachMode, confirm: TeachConfirm): boolean => {
+    if (mode !== open || open.state.confirm !== confirm) return false;
+    begin(true);
+    runWrite(async () => {
+      if (store === null || mode !== open || open.state.confirm !== confirm) return;
+      try {
+        if (confirm.kind === "one") {
+          await deleteExample(store, open.id, confirm.name);
+          writes += 1;
+          say(`Beispiel ${confirm.number} wurde gelöscht.`);
+        } else {
+          const count = await deleteExamples(store, open.id, open.conceptId);
+          writes += 1;
+          say(count === 1 ? "1 Beispiel wurde gelöscht." : `${count} Beispiele wurden gelöscht.`);
+        }
+      } catch (error) {
+        if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
+          if (acting === session && mode === open) mode = null;
+          say(PROFILE_GONE, true);
+          await draw(["profiles-heading"]);
+          return;
+        }
+        say(error instanceof ExampleFormatError && error.kind === "unsupported-version" ? NEWER_EXAMPLE : `${WRITE_FAILED} Es wurde nichts gelöscht.`, true);
+      }
+      if (acting === session && mode === open) open.state.confirm = null;
+      // There may be room again: the size is read once more (a deliberate action, not a loop).
+      try {
+        open.state.usage = usageLevel(await store.usage(open.id));
+      } catch {
+        open.state.usage = "unknown";
+      }
+      await draw(["teach-heading"]);
+    });
+    return true;
+  };
+
   /** `raw` is the name as it was when the form was sent. */
   const renameProfile = (id: string, raw: string): void => {
     clearStatus();
@@ -1251,7 +1660,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   };
 
   /** Picture (if any), label and sentence of one row. */
-  const conceptText = (shown: { labelDe: string; speechDe: string; symbolPath: string | null } | null, fallback: string): HTMLElement => {
+  const conceptText = (shown: { labelDe: string; speechDe: string; symbolPath: string | null } | null, fallback: string, examples?: number): HTMLElement => {
     const text = element("div", "caregiver-concept-text");
     if (shown === null) {
       text.append(element("span", "caregiver-concept-name", fallback));
@@ -1267,6 +1676,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       text.append(picture);
     }
     text.append(element("span", "caregiver-concept-name", shown.labelDe), element("span", "caregiver-concept-sentence", shown.speechDe));
+    const gesture = gestureLine(examples);
+    if (gesture !== null) text.append(gesture);
     return text;
   };
 
@@ -1285,6 +1696,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
 
   const boardRow = (
     profileId: string, entry: BoardEntry, place: number, editableOrder: readonly string[], register: Map<string, Focusable>, newer: boolean,
+    examples: number | undefined,
   ): HTMLElement => {
     const { id } = entry;
     const row = element("li", "caregiver-concept");
@@ -1334,8 +1746,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
     register.set(`remove:${id}`, remove);
     // An entry a newer app wrote is not overwritten: no rewording, and a line that says what to do.
-    actions.append(move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1), ...(newer ? [] : [rewordButton(profileId, entry, register)]), remove);
-    row.append(conceptText(entry, ""), actions);
+    const teach = teachButton(profileId, entry, register);
+    actions.append(
+      move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1),
+      ...(newer ? [] : [rewordButton(profileId, entry, register)]), ...(teach === null ? [] : [teach]), remove,
+    );
+    row.append(conceptText(entry, "", examples), actions);
     if (newer) row.append(element("p", "caregiver-concept-note", NEWER_ENTRY));
     return row;
   };
@@ -1345,15 +1761,18 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * at its place with the reason. One that the board shows (a custom or a
    * retired concept) can be reworded; one it cannot show has no button.
    */
-  const lockedRow = (profileId: string, id: string, entry: BoardEntry | undefined, register: Map<string, Focusable>, newer: boolean): HTMLElement => {
+  const lockedRow = (
+    profileId: string, id: string, entry: BoardEntry | undefined, register: Map<string, Focusable>, newer: boolean, examples: number | undefined,
+  ): HTMLElement => {
     const row = element("li", "caregiver-concept caregiver-concept-locked");
     if (entry === undefined) {
       row.append(conceptText(null, `Begriff ${quoted(id)}`), element("p", "caregiver-concept-note", newer ? NEWER_ENTRY : NOT_EDITABLE));
       return row;
     }
     const actions = element("div", "caregiver-row-actions");
-    actions.append(rewordButton(profileId, entry, register));
-    row.append(conceptText(entry, ""), actions, element("p", "caregiver-concept-note", entry.source === "retired" ? `${RETIRED} ${LOCKED_PLACE}` : LOCKED_PLACE));
+    const teach = teachButton(profileId, entry, register);
+    actions.append(rewordButton(profileId, entry, register), ...(teach === null ? [] : [teach]));
+    row.append(conceptText(entry, "", examples), actions, element("p", "caregiver-concept-note", entry.source === "retired" ? `${RETIRED} ${LOCKED_PLACE}` : LOCKED_PLACE));
     return row;
   };
 
@@ -1452,6 +1871,137 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return view;
   };
 
+  /** "Gebärde beibringen" for one concept of a board; null for an id examples cannot be stored under. */
+  const teachButton = (profileId: string, entry: BoardEntry, register: Map<string, Focusable>): HTMLButtonElement | null => {
+    if (!isExampleConceptId(entry.id)) return null;
+    const control = button(TEACH);
+    control.setAttribute("aria-label", `${TEACH}: ${entry.labelDe}`);
+    control.addEventListener("click", () => openTeach(profileId, entry.id));
+    register.set(`teach:${entry.id}`, control);
+    return control;
+  };
+
+  /** The line under a concept's text that says how many gesture examples it has; null without any. */
+  const gestureLine = (count: number | undefined): HTMLElement | null => (count === undefined || count === 0
+    ? null
+    : element("span", "caregiver-concept-gesture", `Gebärde: ${examplesText(count)}`));
+
+  /** The two-step delete of examples: a hold and a release on "Endgültig löschen", as for a profile (rule 12). */
+  const teachConfirmView = (open: TeachMode, confirm: TeachConfirm, entry: BoardEntry, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-confirm");
+    const title = confirm.kind === "one"
+      ? `Beispiel ${confirm.number} von ${quoted(entry.labelDe)} löschen?`
+      : `Alle ${examplesText(confirm.count)} von ${quoted(entry.labelDe)} löschen?`;
+    view.append(element("h2", "caregiver-confirm-title", title), element("p", "caregiver-confirm-text", EXAMPLE_DELETE_LOSS));
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("confirm-cancel", cancel);
+    register.set("anchor:confirm-cancel", view);
+    const { control, parts } = deleteHold(holds, () => deleteTeachExamples(open, confirm));
+    const actions = element("div", "caregiver-profile-actions");
+    actions.append(cancel, control);
+    view.append(actions, ...parts);
+    return view;
+  };
+
+  /** The teaching view of one concept. Like the rewording it is the whole body while it is open. */
+  const teachView = (open: TeachMode, entry: BoardEntry, profileLabel: string, listing: ExampleListing | null, register: Map<string, Focusable>): HTMLElement => {
+    const { state } = open;
+    const view = element("section", "caregiver-section caregiver-takeover caregiver-teach");
+    const title = element("h2", "", `Gebärde für ${quoted(entry.labelDe)} beibringen – Tafel von ${quoted(profileLabel)}`);
+    title.tabIndex = -1;
+    register.set("teach-heading", title);
+    register.set("anchor:teach-heading", view);
+    view.append(title, element("p", "caregiver-notice", TEACH_INTRO));
+    if (state.usage === "near" || state.usage === "full") view.append(element("p", "caregiver-notice caregiver-warning", USAGE_LINES[state.usage]));
+    else if (state.usage === "unknown") view.append(element("p", "caregiver-notice caregiver-warning", USAGE_UNKNOWN));
+
+    const examples = listing?.examples ?? [];
+    const count = examples.length;
+    const recommend = count < RECOMMENDED_EXAMPLES ? ` Empfohlen sind mindestens ${RECOMMENDED_EXAMPLES}.` : "";
+    view.append(element("p", "caregiver-notice caregiver-teach-count", `${count === 0 ? "Noch kein Beispiel" : examplesText(count)} gespeichert.${recommend}`));
+    if (listing === null) view.append(element("p", "caregiver-notice caregiver-warning", "Die gespeicherten Beispiele können gerade nicht gelesen werden."));
+    const damaged = listing?.damaged ?? [];
+    const newer = damaged.filter((item) => item.kind === "unsupported-version").length;
+    const unreadable = damaged.length - newer;
+    if (newer > 0) view.append(element("p", "caregiver-notice caregiver-warning", `${newer === 1 ? "1 Beispiel wurde" : `${newer} Beispiele wurden`} mit einer neueren Version gespeichert. Bitte die App aktualisieren.`));
+    if (unreadable > 0) {
+      view.append(element("p", "caregiver-notice caregiver-warning", `${unreadable === 1 ? "1 Beispiel kann" : `${unreadable} Beispiele können`} nicht verwendet werden und ${unreadable === 1 ? "muss" : "müssen"} neu aufgenommen werden. „${DELETE_ALL_EXAMPLES}“ entfernt ${unreadable === 1 ? "es" : "sie"}.`));
+    }
+
+    const result = state.result;
+    if (result !== null) {
+      const auto = result.auto ? `Die Aufnahme hat nach ${TEACH_MAX_RECORDING_MS / 1000} Sekunden von selbst geendet. ` : "";
+      if (result.usable) {
+        const shoulders = result.sequence.anchor === "hands" ? " Die Schultern waren nicht zu sehen. Am besten so aufnehmen, dass die Schultern im Bild sind." : "";
+        view.append(element("p", "caregiver-teach-result", `${auto}Die Aufnahme kann verwendet werden: Gebärde ${handsText(result.sequence.hands)}.${shoulders} Behalten oder verwerfen?`));
+      } else {
+        view.append(element("p", "caregiver-teach-result caregiver-teach-refused", `${auto}Diese Aufnahme kann nicht verwendet werden. ${UNUSABLE[result.reason]} Es wurde nichts gespeichert.`));
+      }
+    }
+
+    const actions = element("div", "caregiver-profile-actions caregiver-teach-actions");
+    const add = (key: string, text: string, onClick: () => void, className = "caregiver-button"): HTMLButtonElement => {
+      const control = button(text, className);
+      control.addEventListener("click", onClick);
+      register.set(key, control);
+      actions.append(control);
+      return control;
+    };
+    if (result?.usable === true) {
+      add("teach-keep", KEEP, () => keepTeachResult(open), "caregiver-button caregiver-primary");
+      add("teach-discard", DISCARD, () => discardTeachResult(open));
+    } else if (state.usage !== "full") {
+      if (state.camera !== "on") {
+        const start = add("teach-camera", CAMERA_START, () => startTeachCamera(open));
+        // While the camera starts, a second tap does nothing; the button stays where it is.
+        if (state.camera === "starting") start.setAttribute("aria-disabled", "true");
+      } else if (state.recording) {
+        add("teach-stop", RECORD_STOP, () => stopTeachRecording(open, false), "caregiver-button caregiver-primary caregiver-recording");
+      } else {
+        add("teach-record", RECORD_START, () => startTeachRecording(open), "caregiver-button caregiver-primary");
+      }
+    }
+    add("teach-back", BACK, leaveMode);
+    view.append(actions);
+    const cameraLine = element("p", state.cameraProblem ? "caregiver-teach-camera caregiver-warning" : "caregiver-teach-camera", state.recording ? RECORDING : state.cameraLine);
+    teachCameraLine = cameraLine;
+    const live = element("p", "caregiver-teach-live", state.camera === "on" ? state.live : "");
+    teachLive = live;
+    view.append(cameraLine, live);
+
+    if (count > 0) {
+      view.append(element("h3", "", STORED_EXAMPLES));
+      // Not while a recording runs or waits for "Behalten": nothing is deleted under it.
+      const deletable = !state.recording && result === null;
+      const list = element("ol", "caregiver-examples");
+      examples.forEach((example, at) => {
+        const row = element("li", "caregiver-example");
+        const number = at + 1;
+        row.append(element("span", "caregiver-example-text", `Beispiel ${number}: ${handsText(example.record.hands)}, ${shownTime(example.record.capturedAt)}`));
+        if (deletable) {
+          const remove = button(DELETE, "caregiver-button caregiver-danger-quiet");
+          remove.setAttribute("aria-label", `Beispiel ${number} löschen`);
+          remove.addEventListener("click", () => confirmTeachDelete(open, { kind: "one", name: example.name, number }));
+          register.set(`teach-delete:${example.name}`, remove);
+          row.append(remove);
+        }
+        list.append(row);
+      });
+      view.append(list);
+    }
+    const all = count + unreadable;
+    if (all >= 2 || unreadable > 0) {
+      if (!state.recording && result === null) {
+        const removeAll = button(DELETE_ALL_EXAMPLES, "caregiver-button caregiver-danger-quiet");
+        removeAll.addEventListener("click", () => confirmTeachDelete(open, { kind: "all", count: all }));
+        register.set("teach-delete-all", removeAll);
+        view.append(removeAll);
+      }
+    }
+    return view;
+  };
+
   /** A catalogue concept that is not on the board. */
   const moreRow = (profileId: string, concept: CatalogueConcept, place: number, rest: readonly CatalogueConcept[], register: Map<string, Focusable>): HTMLElement => {
     const { id } = concept;
@@ -1509,6 +2059,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     section.append(element("p", "caregiver-notice", CONCEPT_HELP));
     if (board.entries.length > BOARD_COMFORT_MAX) section.append(element("p", "caregiver-notice caregiver-warning", MANY_CONCEPTS));
 
+    // From the data names only: reading every example on each redraw would cost a read of each.
+    const examples = await countExamples(current, profile.id).catch(() => new Map<string, number>());
     const ids = board.profile.conceptIds;
     const editable = editableIds(board);
     const editableOrder = ids.filter((id) => editable.has(id));
@@ -1521,8 +2073,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         const entry = board.entries.find((candidate) => candidate.id === id);
         const newer = board.problems.some((problem) => problem.conceptId === id && problem.damage === "unsupported-version");
         onBoard.append(entry !== undefined && editable.has(id)
-          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register, newer)
-          : lockedRow(profile.id, id, entry, register, newer));
+          ? boardRow(profile.id, entry, editableOrder.indexOf(id), editableOrder, register, newer, examples.get(id))
+          : lockedRow(profile.id, id, entry, register, newer, examples.get(id)));
       }
       section.append(onBoard);
     }
@@ -1556,18 +2108,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   };
 
   /**
-   * The delete confirmation. While it is open it is the whole body: no card,
-   * no editor and no form is on screen, so nothing else can be hit, and
-   * nothing can be drawn under a finger that rests on it.
+   * "Endgültig löschen" of a confirmation: no click handler, it has to be held
+   * for `DELETE_HOLD_MS` and is carried out on the release on the button
+   * (rules 12 and 20). `act` asks for the delete and says whether it did.
+   * Returns the button and what goes below it (its bar and its line).
    */
-  const confirmView = (profile: ProfileV1, label: string, isActive: boolean, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
-    const view = element("section", "caregiver-section caregiver-confirm");
-    view.append(element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
-    if (isActive) view.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
-    const cancel = button(CANCEL);
-    cancel.addEventListener("click", leaveMode);
-    register.set("confirm-cancel", cancel);
-    register.set("anchor:confirm-cancel", view);
+  const deleteHold = (holds: HeldButton[], act: () => boolean): { control: HTMLButtonElement; parts: HTMLElement[] } => {
     // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
     const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
     const holdProgress = element("progress", "caregiver-delete-progress");
@@ -1606,14 +2152,31 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       },
       act: () => {
         idle();
-        if (current() && deleteProfile(profile, label)) holdHint.textContent = DELETING;
+        if (current() && act()) holdHint.textContent = DELETING;
       },
     });
     holds.push(held);
+    return { control: confirm, parts: [holdProgress, holdHint] };
+  };
+
+  /**
+   * The delete confirmation. While it is open it is the whole body: no card,
+   * no editor and no form is on screen, so nothing else can be hit, and
+   * nothing can be drawn under a finger that rests on it.
+   */
+  const confirmView = (profile: ProfileV1, label: string, isActive: boolean, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-confirm");
+    view.append(element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
+    if (isActive) view.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("confirm-cancel", cancel);
+    register.set("anchor:confirm-cancel", view);
+    const { control: confirm, parts } = deleteHold(holds, () => deleteProfile(profile, label));
     // "Abbrechen" first, and nothing below "Endgültig löschen" but its own bar and line.
     const actions = element("div", "caregiver-profile-actions");
     actions.append(cancel, confirm);
-    view.append(actions, holdProgress, holdHint);
+    view.append(actions, ...parts);
     return view;
   };
 
@@ -1723,6 +2286,22 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       mode = null;
     }
 
+    // And teaching a gesture, while the concept is on the board and shown there.
+    if (mode !== null && mode.kind === "teach") {
+      const open = mode;
+      const owner = profiles.find((profile) => profile.id === open.id);
+      const board = owner === undefined ? null : await resolveBoard(current, owner.id, catalogue).catch(() => null);
+      const entry = board?.entries.find((candidate) => candidate.id === open.conceptId);
+      if (owner !== undefined && entry !== undefined) {
+        if (open.state.confirm !== null) {
+          return { content: [teachConfirmView(open, open.state.confirm, entry, register, holds)], afterClose: header, confirming: true };
+        }
+        const listing = await listExamples(current, owner.id, open.conceptId).catch(() => null);
+        return { content: [teachView(open, entry, labelOf(owner), listing, register)], afterClose: header, confirming: true };
+      }
+      mode = null;
+    }
+
     const profileSection = element("section", "caregiver-section");
     const profilesHeading = element("h2", "", "Profile");
     profilesHeading.tabIndex = -1;
@@ -1776,6 +2355,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     cancelIdle();
     // The next opening edits the active profile again, whatever was picked this time.
     selectedId = null;
+    stopTeachCamera();
+    teachLive = null;
+    teachCameraLine = null;
     mode = null;
     createDraft = "";
     dropHold();

@@ -7,11 +7,11 @@
         "The profile size limit is checked when teaching opens and a refused write is reported, never retried in a loop"
     ],
     "acceptance_observations": [],
-    "approved_at": "2026-11-23T12:05:16+00:00",
+    "approved_at": "2026-11-23T12:39:01+00:00",
     "approved_by": "Lars Moelleken (delegated to Claude for this session)",
     "base_commit": "b2ce5b6851056aff6a7432af665104f185fac543",
     "behavior_anchors": [],
-    "created_at": "2026-11-23T12:05:15+00:00",
+    "created_at": "2026-11-23T12:39:01+00:00",
     "goal": "A caregiver teaches a gesture for a tile on the child's board: in the caregiver area they record a few examples with the camera, one- or two-handed, which are stored per profile, survive export and restore, and are deleted with the profile.",
     "kind": "task_contract",
     "non_goals": [],
@@ -21,7 +21,7 @@
     "rejected_at": null,
     "rejected_by": null,
     "rejection_reason": null,
-    "revision": 1,
+    "revision": 2,
     "schema_version": "1.0",
     "scope": [
         "src/recognition/examples.ts",
@@ -34,12 +34,13 @@
         "docs/storage.md",
         "docs/caregiver.md",
         "docs/capture.md",
-        "public/styles.css"
+        "public/styles.css",
+        "public/sw.js"
     ],
     "status": "approved",
     "tags": [],
     "task_id": "NG-19",
-    "updated_at": "2026-11-23T12:05:16+00:00",
+    "updated_at": "2026-11-23T12:39:01+00:00",
     "validation": [
         "npm ci --ignore-scripts",
         "npm run verify"
