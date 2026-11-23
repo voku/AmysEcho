@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:035ac725a80e1b0e7b82f22f39c13f5f6f4cb452",
+    "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
     "contract_revision": 2,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
     "history": [
         {
@@ -102,6 +102,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:1061669d",
                 "summary": "In the camera test the preview box is hidden while the camera is off (.capture-preview-holder:empty display none), so the controls jump when it starts: 320 px sideways at 640x360, 250 px down at 360x640.",
+                "task_id": "NG-42",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T16:58:37+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T16:58:37+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "schema_version": "1.0",
+                "task_id": "NG-42",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "context_id": "build-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "outcome": "completed",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:b4b95600",
+                "summary": "Preview holder has a fixed size and background in every state; measured control positions identical with camera off and on at 640x360, 360x640, 320x480; verify passes",
                 "task_id": "NG-42",
                 "validation_references": []
             }
