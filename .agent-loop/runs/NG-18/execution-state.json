@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
     "history": [
         {
@@ -66,6 +66,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:b240f95c",
                 "summary": "Contract revision 2: hand membership over the whole visible capture, limits capped at the old whole-concept limit, no movement trim (every cut tried could speak a wrong concept), steps in frame order; wrong concept and unknown accepted no higher than 70bf62b in every evaluation row and reviewer probe; 475 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T06:20:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T06:20:48+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d578d35be942105007d7a1a1065d8c1407c4db1e006327f6e14fa7a3533f52ac",
+                    "execution-evidence:sha256:26052992d1f4ab306ba6b54b31f3495d15b371330e172b23ba7cbcda553221f2",
+                    "execution-evidence:sha256:4f616eb984f323be1bf89ee3506d9ad4745d41d1330882f00da18ecb178eac9b"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d578d35be942105007d7a1a1065d8c1407c4db1e006327f6e14fa7a3533f52ac",
+                    "execution-evidence:sha256:26052992d1f4ab306ba6b54b31f3495d15b371330e172b23ba7cbcda553221f2",
+                    "execution-evidence:sha256:4f616eb984f323be1bf89ee3506d9ad4745d41d1330882f00da18ecb178eac9b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:1bc1efaa90f33c19d8b19edc71b4e10c8a4fd94a",
+                "context_id": "correctness-review-r2-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ac925525e93c6eced8d59d765171bb298d706299dfa4e91d22456a8a50b57ea8",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:7f5011adee9b0b31",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:ef90cae4",
+                "summary": "The whole-concept cap is keyed by concept and anchor, while 70bf62b pooled all anchors: unknown no-shoulder attempts accepted 0 of 40 old, 40 of 40 new. A still held hand detected in scattered single frames is dropped as brief and the one-hand twin is spoken more often than old (e.g. 22 to 32 percent at 15 fps).",
                 "task_id": "NG-18",
                 "validation_references": []
             }
