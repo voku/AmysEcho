@@ -52,9 +52,11 @@ Early rebuild. What exists today:
   candidates; a candidate is asked about the same way. Tested in Node and in headless Chromium with DGS videos of adult signers;
   not tried with a real camera, on a device or with a child.
 
-Still missing in the caregiver area: rewording a concept, custom concepts, export and import, and
-help with damaged entries; those exist as library code only or not at all. Also not built:
-symbols for custom concepts. The caregiver area
+The caregiver area also rewords a concept (card NG-33) and creates own concepts, a word and a
+sentence that only this profile has, which can be moved, taken off, given a gesture and deleted
+(card NG-34). Still missing there: export and import, and help with damaged entries; those exist
+as library code only or not at all. Also not built: pictures for concepts (card
+NG-8673323346005092805). The caregiver area
 is tested in Node against a fake DOM and was looked at in headless Chromium with a hand-run
 script; there is no browser test in CI, and the browser storage adapter has no automated test.
 Nothing here has been verified on a physical device, with a caregiver or with a child.

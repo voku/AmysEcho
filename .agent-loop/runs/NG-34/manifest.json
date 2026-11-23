@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-34 before calling agent-loop finish NG-34",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T20:02:18+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-34/contract.json",
+                "sha256": "sha256:92ce18a90d27c8d6ccbccb951ac6506da8f1bcfecbc047a4b098ee824836fa47"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-34",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "ceae8f36250608642ec83add46c281ee8081dab1cc772512a95c70485324fcff",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-34.md",
+                "sha256": "sha256:ceae8f36250608642ec83add46c281ee8081dab1cc772512a95c70485324fcff"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "\"Eigenen Begriff anlegen\" takes a word and a sentence with the same cleaning and German refusals as rewording; saving writes a generated id (never derived from the label) and puts it at the end of the board",
+                "If the entry was written but the board write failed, the concept is listed under own concepts not on the board and can be added from there",
+                "Own concepts can be moved and taken off the board like catalogue concepts; taken off, they stay listed as own concepts and can be added back",
+                "\"Endgültig löschen\" for an own concept needs a confirmation and removes it from board and profile; entries a newer app wrote are never offered for deletion",
+                "listCustomConcepts reports the damage kind of unreadable ids, and the 500-id cap counts ids that cannot be shown"
+            ],
+            "goal": "In the caregiver area a caregiver creates a concept of their own (word and spoken sentence), it goes onto the board of the edited profile, can be moved, taken off, put back and deleted for good after a confirmation; the child's board shows and speaks it.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-34/contract.json",
+                "sha256": "sha256:92ce18a90d27c8d6ccbccb951ac6506da8f1bcfecbc047a4b098ee824836fa47"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-34/contract.json",
+                "sha256": "sha256:92ce18a90d27c8d6ccbccb951ac6506da8f1bcfecbc047a4b098ee824836fa47"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-34:5ba4b6153fcd27fd",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:aef48691f05715e06428b9e698a797d914636f0146b8226e625ad8d17ec6d973",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:b6acc1f1ca5c889ff0d3cd81da72492cfb47e515c64ce0fa308ac2dc068da395"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-34:5ba4b6153fcd27fd",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "c6acf06a849825480ee36f705d464f364c33648ab67877346ffe735ee5caf3b5",
+            "compilation_id": "compilation.NG-34.2026-11-23-201034.846568ef",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "fe6656dcece946f03c718ce1b753bab6c4d8c2960247ebbb82df4179cd3b37c7",
+            "source": {
+                "path": ".agent-loop/recall/NG-34/meta.json",
+                "sha256": "sha256:400e14d5f70113a1946da284d40c9b356efca7519be45109b5db6349e3b86ae7"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-34/reviews/NG-34.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-34-r1-daf78f65",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-34-r1-daf78f65/session.json",
+                "sha256": "sha256:3f6d0e99623b378df79c3bcf8ac19df8d75b0a92542d07ec952db616172d2637"
+            },
+            "state": "active",
+            "task_id": "NG-34"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-34 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-34",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:310c9131d85326d84a5d4d970070b37b47cff281e8518d2f1d0ccfeab62b718b",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-34:5ba4b6153fcd27fd",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-34"
+}

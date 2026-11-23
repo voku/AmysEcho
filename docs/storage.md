@@ -229,7 +229,7 @@ All writes validate first and store nothing when they refuse. A refusal by this 
 | `clearWording(store, id, conceptId, catalogue)` | For a catalogue concept on the board: stores the current catalogue wording again, as a copy, whether the entry was readable or unreadable. For a catalogue concept that is not on the board: deletes the entry, readable or unreadable. Under an id the catalogue does not have: deletes an unreadable entry. Refuses a custom concept (`custom-concept`), a readable retired one (`retired-concept`) and an entry written by a newer app version (`unsupported-entry`). | 1 |
 | `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. Refuses to replace an entry written by a newer app version (`unsupported-entry`). | 1 |
 | `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom or retired concept off the board and deletes its entry. Also clears an unreadable or missing entry, but only under an id that is not in the catalogue. | 2 |
-| `listCustomConcepts(store, id)` | Read only: the profile's custom concepts (not the retired ones), and the ids of unreadable entries. | 0 |
+| `listCustomConcepts(store, id)` | Read only: the profile's custom concepts (not the retired ones), the ids of unreadable entries (`unreadableIds`), and the same ids with their damage kind (`unreadable`: `unsupported-version` or `unreadable`; card NG-34). | 0 |
 
 When `setBoardConcepts` stores a copy for a chosen catalogue concept. "Newly chosen" means: in
 the list of this call and not on the board when the call starts.

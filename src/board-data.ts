@@ -18,7 +18,7 @@
  * `custom` under an id the current catalogue does not have is therefore the
  * stored wording of a dropped ("retired") concept, and a valid board member.
  *
- * A custom concept has no symbol yet (symbol images are a later card).
+ * A custom concept has no symbol yet (symbol images are card NG-8673323346005092805).
  *
  * Writes are strict: anything that is not valid is rejected and nothing is
  * stored. Reads are tolerant: `resolveBoard` never throws for a bad concept
@@ -123,6 +123,12 @@ export interface CustomConceptListing {
   readonly concepts: readonly CustomConcept[];
   /** Concept ids whose stored entry cannot be read (custom concept or wording; the entry does not say which). */
   readonly unreadableIds: readonly string[];
+  /**
+   * The same ids, in the same order, with why they cannot be read.
+   * "unsupported-version": a newer app version wrote the entry and it is
+   * probably intact; never offer to delete it. "unreadable": the rest.
+   */
+  readonly unreadable: readonly { readonly id: string; readonly damage: "unsupported-version" | "unreadable" }[];
 }
 
 export type BoardDataErrorKind =
@@ -292,15 +298,15 @@ export async function resolveBoard(store: ProfileStore, profileId: string, catal
 export async function listCustomConcepts(store: ProfileStore, profileId: string): Promise<CustomConceptListing> {
   const data = store.data(profileId);
   const concepts: CustomConcept[] = [];
-  const unreadableIds: string[] = [];
+  const unreadable: { id: string; damage: "unsupported-version" | "unreadable" }[] = [];
   for (const name of (await data.names()).sort()) {
     if (!name.startsWith(DATA_NAME_PREFIX)) continue;
     const id = name.slice(DATA_NAME_PREFIX.length);
     const stored = isBoardConceptId(id) ? readEntry(await data.get(name)) : ({ state: "damaged", damage: "unreadable" } as const);
-    if (stored.state === "damaged") unreadableIds.push(id);
+    if (stored.state === "damaged") unreadable.push({ id, damage: stored.damage });
     if (stored.state === "ok" && stored.custom) concepts.push({ id, ...stored.wording });
   }
-  return { concepts, unreadableIds };
+  return { concepts, unreadableIds: unreadable.map((entry) => entry.id), unreadable };
 }
 
 /**

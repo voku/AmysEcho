@@ -1,0 +1,47 @@
+{
+    "attention": null,
+    "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T20:10:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:10:39+00:00",
+                "artifact_references": [],
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "schema_version": "1.0",
+                "task_id": "NG-34",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "outcome": "completed",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:6399c01d",
+                "summary": "caregiver.ts: editableIds limits move/remove to catalogue; 'Weitere Begriffe' lists catalogue only; putCustomConcept/removeCustomConcept/listCustomConcepts exist in board-data.ts; listCustomConcepts.unreadableIds has no damage kind; examples.deleteExamples exists to drop taught gestures of a deleted concept; mixed-board tests in test/caregiver.test.mjs assert custom concepts are locked and will change.",
+                "task_id": "NG-34",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-34:5ba4b6153fcd27fd",
+    "schema_version": "1.0",
+    "task_id": "NG-34"
+}

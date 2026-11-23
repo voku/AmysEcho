@@ -2,7 +2,8 @@
  * The caregiver area (cards NG-29 and NG-31): a deliberate way in from the
  * child's screen, and inside it a header that says which board the child
  * sees after closing, the profiles as cards (make active, edit, rename,
- * delete), creating a profile, and a board editor of two lists.
+ * delete), creating a profile, and a board editor of two lists, with own
+ * concepts of a profile (card NG-34).
  *
  * This module writes into the caregiver region and into the entry element
  * that holds the opening control. Of the board region it only reads
@@ -14,8 +15,11 @@
  * See docs/caregiver.md.
  */
 import type { App } from "./app.js";
-import { BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, normalizeWording, resolveBoard, setBoardConcepts, setWording } from "./board-data.js";
-import type { BoardEntry, CatalogueConcept, ResolvedBoard } from "./board-data.js";
+import {
+  BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, listCustomConcepts, normalizeWording, putCustomConcept, removeCustomConcept, resolveBoard,
+  setBoardConcepts, setWording,
+} from "./board-data.js";
+import type { BoardEntry, CatalogueConcept, CustomConcept, ResolvedBoard } from "./board-data.js";
 import { MAX_CONCEPT_IDS, MAX_DISPLAY_NAME_LENGTH, ProfileFormatError } from "./profiles/profile.js";
 import type { ProfileV1 } from "./profiles/profile.js";
 import { ProfileSizeError, UnknownProfileError } from "./profiles/store.js";
@@ -306,6 +310,13 @@ const NOT_EDITABLE = "Dieser Begriff kann in dieser Version nicht bearbeitet wer
 const RETIRED = "Dieser Begriff ist nicht mehr in der Auswahl.";
 const LOCKED_PLACE = "Dieser Begriff kann hier nicht verschoben oder entfernt werden.";
 const REWORD = "Text ändern";
+const CREATE_CONCEPT = "Eigenen Begriff anlegen";
+const OWN_CONCEPTS = "Eigene Begriffe, nicht auf der Tafel";
+const OWN_HELP = "Eigene Begriffe gibt es nur in diesem Profil. Von der Tafel genommen, bleiben sie hier, bis sie endgültig gelöscht werden.";
+const OWN_CREATE_NOTE = "Der Begriff kommt ans Ende der Tafel. Danach kann ihm eine Gebärde beigebracht werden.";
+const OWN_DELETE_LOSS = "Das Wort, der Satz und die beigebrachten Gebärden dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.";
+/** Prefix of the ids of own concepts; the rest is random, never taken from the label (card NG-34). */
+const OWN_ID_PREFIX = "eigen-";
 const NEWER_ENTRY = "Diese Taste wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
 const REWORD_LABEL = "Wort auf der Taste";
 const REWORD_SPEECH = "Gesprochener Satz";
@@ -427,7 +438,15 @@ type Mode =
   | { readonly kind: "delete"; readonly id: string }
   | RewordMode
   | TeachMode
+  | CreateConceptMode
+  | { readonly kind: "delete-concept"; readonly id: string; readonly conceptId: string; readonly title: string }
   | null;
+/** Creating an own concept for the profile `id`: like a rewording, but nothing is stored before "Speichern". */
+interface CreateConceptMode {
+  readonly kind: "create-concept";
+  readonly id: string;
+  readonly draft: { label: string; speech: string; busy: boolean };
+}
 /**
  * Teaching a gesture for one concept of the profile `id`. It takes over the
  * body like the rewording. The object is the same while the view is open;
@@ -629,9 +648,22 @@ function defaultPageHidden(callback: () => void): void {
   });
 }
 
-/** The ids of a board this screen may uncheck and move: catalogue concepts that the board shows as such. */
+/**
+ * The ids of a board this screen may take off and move: catalogue concepts
+ * and own concepts (card NG-34) that the board shows as such. An own concept
+ * under an id the catalogue uses too stays locked: taken off, the catalogue
+ * would offer that id again and adding it would bring back the own concept.
+ */
 function editableIds(board: ResolvedBoard): Set<string> {
-  return new Set(board.entries.filter((entry) => entry.source === "catalogue").map((entry) => entry.id));
+  const shadowed = new Set(board.problems.filter((problem) => problem.kind === "custom-shadows-catalogue").map((problem) => problem.conceptId));
+  return new Set(board.entries.filter((entry) => entry.source === "catalogue" || (entry.source === "custom" && !shadowed.has(entry.id))).map((entry) => entry.id));
+}
+
+/** A new id for an own concept: random, so that a label never becomes part of a storage key. */
+function newOwnConceptId(): string {
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  return OWN_ID_PREFIX + [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 /**
@@ -1322,7 +1354,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     stopTeachCamera();
     mode = null;
-    run(() => draw([was.kind === "reword" || was.kind === "teach" ? `${was.kind}:${was.conceptId}` : `${was.kind}:${was.id}`]));
+    const back = was.kind === "reword" || was.kind === "teach" || was.kind === "delete-concept"
+      ? `${was.kind}:${was.conceptId}`
+      : was.kind === "create-concept" ? "create-concept" : `${was.kind}:${was.id}`;
+    run(() => draw([back]));
   };
 
   /** One German sentence for a wording that could not be saved or reset. */
@@ -1391,6 +1426,99 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const saved = await setWording(current, open.id, open.conceptId, wording, catalogue);
     return `Gespeichert: neuer Text für ${quoted(saved.labelDe)}.`;
   });
+
+  /**
+   * Saves the open "Eigenen Begriff anlegen" (card NG-34): the entry with a
+   * new random id (`putCustomConcept`), then the board with that id at its
+   * end (`setBoardConcepts`). Two writes: when the second fails, the concept
+   * exists and is listed under OWN_CONCEPTS, from where it can be added.
+   * After a refusal the fields stay open with what was typed.
+   */
+  const saveNewConcept = (): void => {
+    const mine = mode;
+    if (mine === null || mine.kind !== "create-concept" || mine.draft.busy) return;
+    mine.draft.busy = true;
+    clearStatus();
+    const leave = (): void => {
+      if (acting === session && mode === mine) mode = null;
+    };
+    runWrite(async () => {
+      try {
+        if (store === null || mode !== mine) return;
+        let created: CustomConcept;
+        try {
+          const wording = checkedWording(mine.draft.label, mine.draft.speech);
+          const before = await store.get(mine.id);
+          // Ids that cannot be shown count too: the cap is on the stored list.
+          if (before.conceptIds.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+          const taken = new Set([...(await store.data(mine.id).names()), ...before.conceptIds.map((id) => `concept.${id}`)]);
+          let id = newOwnConceptId();
+          while (taken.has(`concept.${id}`) || catalogue.some((concept) => concept.id === id)) id = newOwnConceptId();
+          created = await putCustomConcept(store, mine.id, id, wording, catalogue);
+          writes += 1;
+        } catch (error) {
+          if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
+            leave();
+            say(PROFILE_GONE, true);
+            await draw(["profiles-heading"]);
+            return;
+          }
+          say(error instanceof Refusal ? error.message : wordingErrorLine(error).replace("Der Text ist unverändert.", "Es wurde nichts gespeichert."), true);
+          await draw([error instanceof WordingRefusal && error.field === "speech" ? "new-concept-speech" : "new-concept-label"], { toTop: true });
+          return;
+        }
+        leave();
+        try {
+          const ids = (await store.get(mine.id)).conceptIds;
+          if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+          await setBoardConcepts(store, mine.id, [...ids, created.id], catalogue);
+          writes += 1;
+          say(`Gespeichert: ${quoted(created.labelDe)} ist jetzt auf der Tafel.`);
+          await draw([`row:${created.id}`, "editor-heading"]);
+        } catch {
+          say(`${quoted(created.labelDe)} wurde angelegt, aber nicht auf die Tafel gesetzt. Der Begriff steht unten unter ${quoted(OWN_CONCEPTS)} und kann von dort hinzugefügt werden.`, true);
+          await draw([`add:${created.id}`, "editor-heading"]);
+        }
+      } finally {
+        mine.draft.busy = false;
+      }
+    });
+  };
+
+  /**
+   * Deletes the own concept whose confirmation is open: first its gesture
+   * examples, then the concept (`removeCustomConcept`: off the board, then the
+   * entry). A failure leaves the concept listed, so that a second try finishes
+   * the job. False when nothing was asked for.
+   */
+  const deleteOwnConcept = (): boolean => {
+    const mine = mode;
+    if (mine === null || mine.kind !== "delete-concept") return false;
+    begin(true);
+    runWrite(async () => {
+      if (store === null || mode !== mine) return;
+      const leave = (): void => {
+        if (acting === session && mode === mine) mode = null;
+      };
+      try {
+        // Only a readable own concept: an entry a newer app wrote is never deleted here.
+        const own = (await listCustomConcepts(store, mine.id)).concepts.some((concept) => concept.id === mine.conceptId);
+        if (!own) throw new Refusal("Dieser Begriff kann in dieser Version nicht gelöscht werden.");
+        await deleteExamples(store, mine.id, mine.conceptId);
+        await removeCustomConcept(store, mine.id, mine.conceptId, catalogue);
+        writes += 1;
+        leave();
+        dropUndo((offer) => offer.profileId === mine.id && offer.id === mine.conceptId);
+        say(`${quoted(mine.title)} wurde endgültig gelöscht.`);
+        await draw(["own-heading", "more-heading"]);
+      } catch (error) {
+        leave();
+        say(error instanceof Refusal ? error.message : error instanceof UnknownProfileError ? PROFILE_GONE : `${WRITE_FAILED} ${quoted(mine.title)} ist noch da.`, true);
+        await draw([`delete-concept:${mine.conceptId}`, "own-heading", "more-heading"]);
+      }
+    });
+    return true;
+  };
 
   const resetWording = (): void => settleWording(async (current, open) => {
     await clearWording(current, open.id, open.conceptId, catalogue);
@@ -2250,6 +2378,103 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return view;
   };
 
+  /** The fields of "Eigenen Begriff anlegen". Like the rewording it is the whole body while it is open. */
+  const createConceptView = (open: CreateConceptMode, profileLabel: string, register: Map<string, Focusable>): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-takeover");
+    view.append(element("h2", "", `Eigener Begriff für die Tafel von ${quoted(profileLabel)}`));
+    const form = element("form", "caregiver-reword caregiver-new-concept");
+    const field = <K extends "input" | "textarea">(tag: K, id: string, text: string, key: "label" | "speech"): HTMLElementTagNameMap[K] => {
+      const label = element("label", "", text);
+      label.htmlFor = id;
+      const control = element(tag, "caregiver-input");
+      control.id = id;
+      control.autocomplete = "off";
+      // The same care as for a rewording: nothing typed here goes to a spelling service.
+      control.spellcheck = false;
+      control.setAttribute("autocorrect", "off");
+      control.value = open.draft[key];
+      control.addEventListener("input", () => {
+        open.draft[key] = control.value;
+      });
+      register.set(`new-concept-${key}`, control);
+      form.append(label, control);
+      return control;
+    };
+    const labelField = field("input", "caregiver-new-concept-label", REWORD_LABEL, "label");
+    labelField.type = "text";
+    labelField.setAttribute("enterkeyhint", "next");
+    const speechField = field("textarea", "caregiver-new-concept-speech", REWORD_SPEECH, "speech");
+    speechField.rows = 3;
+    labelField.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      if (!event.isComposing) speechField.focus();
+    });
+    register.set("anchor:new-concept-label", view);
+    form.append(element("p", "caregiver-notice caregiver-name-notice", OWN_CREATE_NOTE));
+    const save = element("button", "caregiver-button caregiver-primary", SAVE);
+    save.type = "submit";
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!aimed(now())) return;
+      open.draft.label = labelField.value;
+      open.draft.speech = speechField.value;
+      saveNewConcept();
+    });
+    const actions = element("div", "caregiver-profile-actions");
+    actions.append(save, cancel);
+    form.append(actions);
+    view.append(form);
+    return view;
+  };
+
+  /** The confirmation before an own concept is deleted for good: a hold and a release, as for a profile. */
+  const deleteConceptView = (title: string, profileLabel: string, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-confirm");
+    view.append(
+      element("h2", "caregiver-confirm-title", `${quoted(title)} aus dem Profil ${quoted(profileLabel)} endgültig löschen?`),
+      element("p", "caregiver-confirm-text", OWN_DELETE_LOSS),
+    );
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("confirm-cancel", cancel);
+    register.set("anchor:confirm-cancel", view);
+    const { control, parts } = deleteHold(holds, deleteOwnConcept);
+    const actions = element("div", "caregiver-profile-actions");
+    actions.append(cancel, control);
+    view.append(actions, ...parts);
+    return view;
+  };
+
+  /** An own concept that is not on the board: it can be added back or deleted for good. */
+  const ownRow = (profileId: string, concept: CustomConcept, register: Map<string, Focusable>): HTMLElement => {
+    const { id } = concept;
+    const row = element("li", "caregiver-concept");
+    const add = button(ADD);
+    add.setAttribute("aria-label", `${ADD}: ${concept.labelDe}`);
+    add.addEventListener("click", () => {
+      begin();
+      changeBoard(profileId, [`row:${id}`], [`add:${id}`], `Gespeichert: ${quoted(concept.labelDe)} ist jetzt auf der Tafel.`, (ids) => {
+        if (ids.includes(id)) return null;
+        if (ids.length >= MAX_CONCEPT_IDS) throw new Refusal(BOARD_FULL);
+        return [...ids, id];
+      }, (succeeded) => {
+        if (succeeded) dropUndo((offer) => offer.profileId === profileId && offer.id === id);
+      });
+    });
+    register.set(`add:${id}`, add);
+    const remove = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger-quiet");
+    remove.setAttribute("aria-label", `${DELETE_FOR_GOOD}: ${concept.labelDe}`);
+    remove.addEventListener("click", () => openMode({ kind: "delete-concept", id: profileId, conceptId: id, title: concept.labelDe }, "confirm-cancel"));
+    register.set(`delete-concept:${id}`, remove);
+    const actions = element("div", "caregiver-row-actions");
+    actions.append(add, remove);
+    row.append(conceptText({ ...concept, symbolPath: null }, ""), actions);
+    return row;
+  };
+
   /** A catalogue concept that is not on the board. */
   const moreRow = (profileId: string, concept: CatalogueConcept, place: number, rest: readonly CatalogueConcept[], register: Map<string, Focusable>): HTMLElement => {
     const { id } = concept;
@@ -2326,6 +2551,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       }
       section.append(onBoard);
     }
+    const create = button(CREATE_CONCEPT);
+    create.addEventListener("click", () => openMode({ kind: "create-concept", id: profile.id, draft: { label: "", speech: "", busy: false } }, "new-concept-label"));
+    register.set("create-concept", create);
+    section.append(create);
 
     const moreHeading = element("h3", "", MORE_CONCEPTS);
     moreHeading.tabIndex = -1;
@@ -2338,6 +2567,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       const more = element("ul", "caregiver-concepts");
       rest.forEach((concept, place) => more.append(moreRow(profile.id, concept, place, rest, register)));
       section.append(more);
+    }
+    // Own concepts that are not on the board (taken off, or a creation whose second write failed).
+    const own = await listCustomConcepts(current, profile.id).then((listing) => listing.concepts.filter((concept) => !ids.includes(concept.id)), () => []);
+    if (own.length > 0) {
+      const ownHeading = element("h3", "", OWN_CONCEPTS);
+      ownHeading.tabIndex = -1;
+      register.set("own-heading", ownHeading);
+      const ownList = element("ul", "caregiver-concepts");
+      for (const concept of own) ownList.append(ownRow(profile.id, concept, register));
+      section.append(ownHeading, element("p", "caregiver-notice", OWN_HELP), ownList);
     }
     return section;
   };
@@ -2514,6 +2753,23 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const confirming = mode !== null && mode.kind === "delete" ? profiles.find((profile) => profile.id === mode?.id) : undefined;
     if (confirming !== undefined) {
       return { content: [confirmView(confirming, labelOf(confirming), confirming.id === activeId, register, holds)], afterClose: header, confirming: true };
+    }
+
+    // So do creating an own concept and the confirmation before one is deleted (card NG-34).
+    if (mode !== null && mode.kind === "create-concept") {
+      const open = mode;
+      const owner = profiles.find((profile) => profile.id === open.id);
+      if (owner !== undefined) return { content: [createConceptView(open, labelOf(owner), register)], afterClose: header, confirming: true };
+      mode = null;
+    }
+    if (mode !== null && mode.kind === "delete-concept") {
+      const open = mode;
+      const owner = profiles.find((profile) => profile.id === open.id);
+      const own = owner === undefined ? [] : await listCustomConcepts(current, owner.id).then((listing) => listing.concepts, () => []);
+      if (owner !== undefined && own.some((concept) => concept.id === open.conceptId)) {
+        return { content: [deleteConceptView(open.title, labelOf(owner), register, holds)], afterClose: header, confirming: true };
+      }
+      mode = null;
     }
 
     // So does the rewording of a concept, while that concept is on the board and this version may write its entry.

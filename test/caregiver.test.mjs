@@ -1043,7 +1043,8 @@ const seedMixedBoard = async (store) => {
   return mia;
 };
 const MIXED_IDS = ["hilfe", "mein.ball", "neu", "trinken", "geist", "alt", "ball", "pause"];
-const LOCKED_IDS = ["mein.ball", "neu", "geist", "alt", "ball"];
+/** The ids that stay where they are: "ball" is an own concept and can be moved and taken off (card NG-34). */
+const LOCKED_IDS = ["mein.ball", "neu", "geist", "alt"];
 
 test("board editor: a mixed board shows editable rows with buttons and each kind of locked row at its real place, with its explanation and no buttons", async () => {
   await withArea({ seed: seedMixedBoard }, async ({ holdOpen, concepts }) => {
@@ -1055,21 +1056,21 @@ test("board editor: a mixed board shows editable rows with buttons and each kind
       ["Trinken", true, false, null],
       ["Begriff „geist“", true, true, NOT_EDITABLE],
       ["Schaukel", true, true, `Dieser Begriff ist nicht mehr in der Auswahl. ${LOCKED_PLACE}`],
-      ["Ball", true, true, LOCKED_PLACE],
+      ["Ball", true, false, null],
       ["Pause", true, false, null],
       ["Mehr", false, false, null],
       ["Fertig", false, false, null],
     ]);
     // A locked row cannot be moved or taken off. One that the board shows can be reworded and taught a gesture; one that it cannot show has no button at all.
     assert.deepEqual(concepts().filter((candidate) => candidate.locked).map((row) => [row.name, row.buttons]), [
-      ["Begriff „mein.ball“", []], ["Begriff „neu“", []], ["Begriff „geist“", []], ["Schaukel", ["Text ändern", "Gebärde beibringen"]], ["Ball", ["Text ändern", "Gebärde beibringen"]],
+      ["Begriff „mein.ball“", []], ["Begriff „neu“", []], ["Begriff „geist“", []], ["Schaukel", ["Text ändern", "Gebärde beibringen"]],
     ]);
-    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Gebärde beibringen", "Entfernen"]));
+    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(4).fill(["nach oben", "nach unten", "Text ändern", "Gebärde beibringen", "Entfernen"]));
     assert.equal(concepts().find((row) => row.name === "Schaukel").sentence, "Ich möchte schaukeln.");
     assert.equal(concepts().find((row) => row.name === "Ball").sentence, "Ich möchte mit dem Ball spielen.");
     // "nach oben" / "nach unten" end at the ends of the editable sequence, not of the list.
     const editable = concepts().filter((row) => row.onBoard && !row.locked);
-    assert.deepEqual(editable.map((row) => [row.name, row.up.disabled, row.down.disabled]), [["Hilfe", true, false], ["Trinken", false, false], ["Pause", false, true]]);
+    assert.deepEqual(editable.map((row) => [row.name, row.up.disabled, row.down.disabled]), [["Hilfe", true, false], ["Trinken", false, false], ["Ball", false, false], ["Pause", false, true]]);
   });
 });
 
@@ -1082,23 +1083,23 @@ test("board editor: add and move write the full conceptIds with every locked id 
     const lockedBefore = lockedAt(MIXED_IDS);
     await holdOpen();
 
-    // Move: the two editable concepts trade places; every other id keeps its index.
+    // Move: two editable concepts trade places (an own concept is one of them); every other id keeps its index.
     await act(() => concept("Pause").up.click());
-    assert.deepEqual(await ids(), ["hilfe", "mein.ball", "neu", "pause", "geist", "alt", "ball", "trinken"]);
+    assert.deepEqual(await ids(), ["hilfe", "mein.ball", "neu", "trinken", "geist", "alt", "pause", "ball"]);
     await act(() => concept("Hilfe").down.click());
-    assert.deepEqual(await ids(), ["pause", "mein.ball", "neu", "hilfe", "geist", "alt", "ball", "trinken"]);
+    assert.deepEqual(await ids(), ["trinken", "mein.ball", "neu", "hilfe", "geist", "alt", "pause", "ball"]);
     assert.deepEqual(lockedAt(await ids()), lockedBefore);
     // Add: at the end; nothing else moves.
     await add("Mehr");
-    assert.deepEqual(await ids(), ["pause", "mein.ball", "neu", "hilfe", "geist", "alt", "ball", "trinken", "mehr"]);
+    assert.deepEqual(await ids(), ["trinken", "mein.ball", "neu", "hilfe", "geist", "alt", "pause", "ball", "mehr"]);
     assert.deepEqual(lockedAt(await ids()), lockedBefore);
     // Remove: only that id leaves; the rest keeps its order, locked ids included.
     await remove("Hilfe");
-    assert.deepEqual(await ids(), ["pause", "mein.ball", "neu", "geist", "alt", "ball", "trinken", "mehr"]);
+    assert.deepEqual(await ids(), ["trinken", "mein.ball", "neu", "geist", "alt", "pause", "ball", "mehr"]);
     await remove("Pause");
     await remove("Trinken");
     await remove("Mehr");
-    assert.deepEqual(await ids(), LOCKED_IDS);
+    assert.deepEqual(await ids(), [...LOCKED_IDS, "ball"]);
     assert.equal(entries(), before);
 
     // The board shows what it can of them, as before.
@@ -1115,10 +1116,10 @@ test("board editor: on screen, an action changes the place of the acted row only
     assert.deepEqual(start, ["Hilfe", "Begriff „mein.ball“", "Begriff „neu“", "Trinken", "Begriff „geist“", "Schaukel", "Ball", "Pause", "Mehr", "Fertig"]);
     const without = (list, ...gone) => list.filter((name) => !gone.includes(name));
 
-    // Move: "Trinken" and "Pause" swap; every other row is where it was.
+    // Move: "Trinken" and the own concept "Ball" swap; every other row is where it was.
     await act(() => concept("Trinken").down.click());
     const afterMove = names();
-    assert.deepEqual(afterMove.map((name, index) => (name === start[index] ? null : name)).filter((name) => name !== null), ["Pause", "Trinken"]);
+    assert.deepEqual(afterMove.map((name, index) => (name === start[index] ? null : name)).filter((name) => name !== null), ["Ball", "Trinken"]);
     // Remove: the row leaves the board list and appears in "Weitere Begriffe" at its catalogue place; the others keep their order.
     await remove("Hilfe");
     assert.deepEqual(without(names(), "Hilfe"), without(afterMove, "Hilfe"));
@@ -1155,12 +1156,14 @@ test("focus: after a move it follows the moved row's same button, or the opposit
 test("focus: after 'Entfernen' it goes to the next row's 'Entfernen', else the previous one, else the heading 'Weitere Begriffe'; locked rows are passed over", async () => {
   await withArea({ seed: seedMixedBoard }, async ({ holdOpen, remove, concept, focused, caregiverRegion }) => {
     await holdOpen();
-    // Editable order: Hilfe, Trinken, Pause (locked rows between them).
+    // Editable order: Hilfe, Trinken, Ball, Pause (locked rows between them).
     await remove("Hilfe");
     assert.equal(focused.current, concept("Trinken").remove);
     await remove("Pause");
-    assert.equal(focused.current, concept("Trinken").remove);
+    assert.equal(focused.current, concept("Ball").remove);
     await remove("Trinken");
+    assert.equal(focused.current, concept("Ball").remove);
+    await remove("Ball");
     const heading = tree(caregiverRegion).find((element) => element.tagName === "h3" && element.textContent === "Weitere Begriffe");
     assert.equal(heading.tabIndex, -1);
     assert.equal(focused.current, heading);
@@ -1169,7 +1172,7 @@ test("focus: after 'Entfernen' it goes to the next row's 'Entfernen', else the p
   await withArea({ seed: seedMixedBoard }, async ({ holdOpen, remove, concept, focused }) => {
     await holdOpen();
     await remove("Trinken");
-    assert.equal(focused.current, concept("Pause").remove);
+    assert.equal(focused.current, concept("Ball").remove);
   });
 });
 
@@ -6707,5 +6710,212 @@ test("teach: a camera that fails during the countdown ends it: the problem is sh
     await area.handle.settled();
     assert.equal(teachViewOf(area.caregiverRegion).camera, CAPTURE_TEXT.problems.busy);
     assert.equal(area.button("Aufnahme beenden"), undefined);
+  });
+});
+
+// --- Own concepts (card NG-34) ---
+
+/** The fields of "Eigenen Begriff anlegen" while they are the body of the area, or null. */
+const creating = (caregiverRegion) => {
+  const view = byClass(caregiverRegion, "caregiver-takeover");
+  if (view === undefined || byClass(view, "caregiver-new-concept") === undefined) return null;
+  const find = (id) => tree(view).find((element) => element.id === id) ?? null;
+  return {
+    view, texts: textsIn(view), form: byClass(view, "caregiver-new-concept"),
+    label: find("caregiver-new-concept-label"), speech: find("caregiver-new-concept-speech"), cancel: buttonNamed(view, "Abbrechen"),
+  };
+};
+const createOwn = async ({ act, button, caregiverRegion }, label, speech) => {
+  await act(() => button("Eigenen Begriff anlegen").click());
+  const fields = creating(caregiverRegion);
+  fields.label.value = label;
+  fields.speech.value = speech;
+  await act(() => fields.form.dispatch("submit"));
+};
+const ownEntries = (backend, profile) => Object.entries(backend.snapshot())
+  .filter(([key, value]) => key.startsWith(`profile/${profile.id}/data/concept.`) && value.custom === true)
+  .map(([key, value]) => [key.slice(`profile/${profile.id}/data/concept.`.length), value]);
+const OWN_HEADING = "Eigene Begriffe, nicht auf der Tafel";
+
+test("own concepts: 'Eigenen Begriff anlegen' takes over the body with a word and a sentence; saving puts a concept with a random id at the end of the board, and the child's board shows and speaks it", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, act, button, caregiverRegion, focused, status, store, seeded, backend, handle, tiles, boardRegion, speech, concept, onBoard } = area;
+    await holdOpen();
+    await act(() => button("Eigenen Begriff anlegen").click());
+    const open = creating(caregiverRegion);
+    assert.deepEqual(open.texts, [
+      "Eigener Begriff für die Tafel von „Mia“", "Wort auf der Taste", "Gesprochener Satz",
+      "Der Begriff kommt ans Ende der Tafel. Danach kann ihm eine Gebärde beigebracht werden.", "Speichern", "Abbrechen",
+    ]);
+    assert.equal(focused.current, open.label);
+    assert.deepEqual([open.label.value, open.speech.value, open.speech.tagName, open.label.spellcheck], ["", "", "textarea", false]);
+    assert.deepEqual(byClass(caregiverRegion, "caregiver-body").children, [open.view]);
+    open.label.value = "  Ball​ ";
+    open.speech.value = "Ich möchte mit dem\nBall spielen.";
+    await act(() => open.form.dispatch("submit"));
+    assert.equal(status(), "Gespeichert: „Ball“ ist jetzt auf der Tafel.");
+    assert.equal(creating(caregiverRegion), null);
+    const own = ownEntries(backend, seeded);
+    assert.equal(own.length, 1);
+    const [id, entry] = own[0];
+    // The id is generated, never taken from the label.
+    assert.match(id, /^eigen-[0-9a-f]{8}$/);
+    assert.deepEqual(entry, { version: 1, labelDe: "Ball", speechDe: "Ich möchte mit dem Ball spielen.", custom: true });
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause", id]);
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause", "Ball"]);
+    // A full row: it can be moved, reworded, taught a gesture and taken off.
+    assert.deepEqual(concept("Ball").buttons, ["nach oben", "nach unten", "Text ändern", "Gebärde beibringen", "Entfernen"]);
+    assert.equal(concept("Ball").picture, null);
+    assert.equal(focused.current, concept("Ball").row);
+    await handle.close();
+    assert.deepEqual(tiles(), ["Hilfe", "Trinken", "Pause", "Ball"]);
+    const board = boardRegion.children.find((child) => child.className.split(" ")[0] === "concept-board");
+    board.children.filter((child) => child.tagName === "button")[3].click();
+    assert.deepEqual(speech.spoken.slice(-1), ["Ich möchte mit dem Ball spielen."]);
+  });
+});
+
+test("own concepts: refusals are explained in German, nothing is written and the typed text stays; 'Abbrechen' writes nothing", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, act, caregiverRegion, status, backend, focused, seeded } = area;
+    await holdOpen();
+    const before = JSON.stringify(backend.snapshot());
+    await createOwn(area, "Ball", "   ");
+    assert.equal(status(), "Bitte gib einen Satz ein, den das Gerät sprechen soll.");
+    let open = creating(caregiverRegion);
+    assert.equal(open.label.value, "Ball");
+    assert.equal(focused.current, open.speech);
+    open.label.value = "x".repeat(41);
+    open.speech.value = "Satz.";
+    await act(() => open.form.dispatch("submit"));
+    assert.equal(status(), "Das Wort ist zu lang. Es darf höchstens 40 Zeichen haben.");
+    open = creating(caregiverRegion);
+    assert.equal(open.label.value, "x".repeat(41));
+    assert.equal(focused.current, open.label);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    await act(() => open.cancel.click());
+    assert.equal(creating(caregiverRegion), null);
+    assert.equal(focused.current, area.button("Eigenen Begriff anlegen"));
+    assert.deepEqual(ownEntries(backend, seeded), []);
+  });
+});
+
+test("own concepts: when the board write fails after the concept was stored, that is said and the concept can be added from the list of own concepts", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, act, status, store, seeded, backend, concept, more, focused, caregiverRegion } = area;
+    await holdOpen();
+    // The first write stores the concept, the second (the board) fails.
+    backend.failWrite(2);
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    assert.equal(status(), "„Ball“ wurde angelegt, aber nicht auf die Tafel gesetzt. Der Begriff steht unten unter „Eigene Begriffe, nicht auf der Tafel“ und kann von dort hinzugefügt werden.");
+    assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause"]);
+    assert.deepEqual(more(), ["Mehr", "Fertig", "Ball"]);
+    assert.ok(textsIn(caregiverRegion).includes(OWN_HEADING));
+    assert.deepEqual(concept("Ball").buttons, ["Hinzufügen", "Endgültig löschen"]);
+    assert.equal(focused.current, concept("Ball").add);
+    await area.add("Ball");
+    const [id] = ownEntries(backend, seeded)[0];
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause", id]);
+    assert.ok(!textsIn(caregiverRegion).includes(OWN_HEADING));
+  });
+});
+
+test("own concepts: taken off the board, an own concept stays as an own concept, can be put back, and 'Rückgängig' works for it", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, remove, act, concept, more, onBoard, store, seeded, backend, undo, takeBack } = area;
+    await holdOpen();
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    const [id] = ownEntries(backend, seeded)[0];
+    await act(() => concept("Ball").up.click());
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Ball", "Pause"]);
+    await remove("Ball");
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause"]);
+    assert.deepEqual(more(), ["Mehr", "Fertig", "Ball"]);
+    assert.equal(undo().textContent, "Rückgängig: „Ball“");
+    await takeBack();
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", id, "pause"]);
+    await remove("Ball");
+    await area.add("Ball");
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause", "Ball"]);
+    assert.equal(undo(), null);
+  });
+});
+
+test("own concepts: 'Endgültig löschen' asks first; a hold deletes the concept and its gesture examples; 'Abbrechen' keeps everything", async () => {
+  const seed = async (store) => {
+    const mia = await createMia(store);
+    await store.setConceptIds(mia.id, ["hilfe"]);
+    const data = store.data(mia.id);
+    await data.set("concept.eigen-0badc0de", { version: 1, labelDe: "Ball", speechDe: "Ich möchte Ball spielen.", custom: true });
+    // A synthetic example record that this version cannot read: it goes with the concept all the same.
+    await data.set("gesture.eigen-0badc0de.0123456789ab", { synthetic: true });
+    await data.set("gesture.hilfe.0123456789ab", { synthetic: true });
+    return mia;
+  };
+  await withArea({ seed }, async (area) => {
+    const { holdOpen, act, concept, confirmation, confirmDelete, status, seeded, backend, focused, more, caregiverRegion } = area;
+    await holdOpen();
+    assert.deepEqual(more(), ["Trinken", "Pause", "Mehr", "Fertig", "Ball"]);
+    const deleteOf = () => buttonNamed(concept("Ball").row, "Endgültig löschen");
+    assert.equal(deleteOf()["aria-label"], "Endgültig löschen: Ball");
+    await act(() => deleteOf().click());
+    let view = confirmation();
+    assert.deepEqual(view.texts.slice(0, 2), [
+      "„Ball“ aus dem Profil „Mia“ endgültig löschen?",
+      "Das Wort, der Satz und die beigebrachten Gebärden dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.",
+    ]);
+    assert.equal(focused.current, view.cancel);
+    // A tap deletes nothing: it has to be held.
+    view.confirm.click();
+    await area.handle.settled();
+    assert.ok(backend.snapshot()[`profile/${seeded.id}/data/concept.eigen-0badc0de`] !== undefined);
+    await act(() => view.cancel.click());
+    assert.equal(confirmation(), null);
+    assert.equal(focused.current, deleteOf());
+    await act(() => focused.current.click());
+    view = confirmation();
+    await confirmDelete();
+    assert.equal(status(), "„Ball“ wurde endgültig gelöscht.");
+    const keys = Object.keys(backend.snapshot());
+    assert.ok(!keys.some((key) => key.includes("eigen-0badc0de")), keys.join(", "));
+    assert.ok(keys.includes(`profile/${seeded.id}/data/gesture.hilfe.0123456789ab`));
+    assert.deepEqual(more(), ["Trinken", "Pause", "Mehr", "Fertig"]);
+    assert.ok(!textsIn(caregiverRegion).includes(OWN_HEADING));
+  });
+});
+
+test("own concepts: an entry a newer app wrote or one that cannot be read is never offered as an own concept to add or delete", async () => {
+  const seed = async (store) => {
+    const mia = await createMia(store);
+    const data = store.data(mia.id);
+    await data.set("concept.neu", { version: 2, labelDe: "Neu", speechDe: "Etwas Neues.", custom: true, colour: "blau" });
+    await data.set("concept.kaputt", { version: 1, labelDe: "", speechDe: "x", custom: true });
+    return mia;
+  };
+  await withArea({ seed }, async ({ holdOpen, more, caregiverRegion }) => {
+    await holdOpen();
+    assert.deepEqual(more(), ["Hilfe", "Trinken", "Pause", "Mehr", "Fertig"]);
+    assert.ok(!textsIn(caregiverRegion).includes(OWN_HEADING));
+    assert.equal(buttonNamed(caregiverRegion, "Endgültig löschen"), undefined);
+  });
+});
+
+test("own concepts: a board at the limit of ids refuses a new concept before anything is written; ids that cannot be shown count", async () => {
+  const seed = async (store) => {
+    const mia = await createMia(store);
+    const ids = Array.from({ length: 499 }, (_, at) => `geist-${at}`);
+    await store.setConceptIds(mia.id, ["hilfe", ...ids]);
+    return mia;
+  };
+  await withArea({ seed }, async (area) => {
+    const { holdOpen, status, backend, seeded, caregiverRegion } = area;
+    await holdOpen();
+    const before = JSON.stringify(backend.snapshot());
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    assert.equal(status(), "Auf eine Tafel passen höchstens 500 Begriffe. Es wurde nichts geändert.");
+    assert.notEqual(creating(caregiverRegion), null);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    assert.deepEqual(ownEntries(backend, seeded), []);
   });
 });

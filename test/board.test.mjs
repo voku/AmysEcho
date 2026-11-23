@@ -694,6 +694,22 @@ test("an over-long stored label or sentence is refused by length, before any nor
   assert.ok(Math.max(...normalized) <= 2 * MAX_SPEECH_LENGTH, `normalize saw a string of ${Math.max(...normalized)} units`);
 });
 
+test("custom concepts: the listing says why an entry cannot be read, so a newer app's entry is never offered for deletion", async () => {
+  const { store } = await openStore();
+  const profile = await store.create("Mia", []);
+  const data = store.data(profile.id);
+  await data.set("concept.ball", { version: 1, ...BALL, custom: true });
+  await data.set("concept.neu", { version: 2, labelDe: "Neu", speechDe: "Etwas Neues.", custom: true, colour: "blau" });
+  await data.set("concept.kaputt", { version: 1, labelDe: "", speechDe: "x", custom: true });
+  await data.set("concept.x_y", { version: 1, ...BALL, custom: true });
+  const listing = await listCustomConcepts(store, profile.id);
+  assert.deepEqual(listing.concepts, [{ id: "ball", ...BALL }]);
+  assert.deepEqual(listing.unreadable, [
+    { id: "kaputt", damage: "unreadable" }, { id: "neu", damage: "unsupported-version" }, { id: "x_y", damage: "unreadable" },
+  ]);
+  assert.deepEqual(listing.unreadableIds, listing.unreadable.map((entry) => entry.id));
+});
+
 // --- Wording is copied when a concept is chosen ---
 
 const withCatalogue = (changes, dropped = []) => CONCEPTS
