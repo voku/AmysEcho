@@ -1,0 +1,40 @@
+{
+    "acceptance_criteria": [
+        "A workflow builds the app with npm ci and npm run build and deploys dist to GitHub Pages on push to main and on manual dispatch, with the permissions Pages needs and nothing more",
+        "The deployed app works under the repository sub-path: board, service worker and the tracker files resolve relative to it",
+        "The test file server resolves the requested path inside dist and answers 404 for anything outside it, in a form static analysis recognises",
+        "README says where the deployed app is and how to try the camera test"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-23T10:13:10+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "6d14770a8508ef725fe870b2541befa165baab20",
+    "behavior_anchors": [],
+    "created_at": "2026-11-23T10:13:10+00:00",
+    "goal": "The app on main is deployed to GitHub Pages by GitHub Actions so the owner can open it on a phone, and the test file server can no longer serve a path outside dist.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 2,
+    "schema_version": "1.0",
+    "scope": [
+        ".github/workflows/pages.yml",
+        "scripts/offline-smoke.mjs",
+        "README.md",
+        "scripts/assemble.mjs",
+        "test/bootstrap.test.mjs"
+    ],
+    "status": "superseded",
+    "tags": [],
+    "task_id": "NG-39",
+    "updated_at": "2026-11-23T10:14:13+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

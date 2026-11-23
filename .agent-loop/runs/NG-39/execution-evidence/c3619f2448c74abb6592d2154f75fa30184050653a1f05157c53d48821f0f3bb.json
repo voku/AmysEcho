@@ -1,0 +1,16 @@
+{
+    "attempt": 2,
+    "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+    "contract_revision": 3,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-23T10:22:11+00:00",
+    "reference": "execution-evidence:sha256:c3619f2448c74abb6592d2154f75fa30184050653a1f05157c53d48821f0f3bb",
+    "run_id": "run:NG-39:7933f01bb3748647",
+    "schema_version": "1.0",
+    "source_digest": "sha256:e79604ab87343e0c10b01e87a0812ab36ce0679b2fcc84caed47b83999d389e2",
+    "source_reference": "workspace-file:scripts/assemble.mjs",
+    "stage_id": "correctness-review",
+    "task_id": "NG-39"
+}

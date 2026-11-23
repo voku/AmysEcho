@@ -1,0 +1,165 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-23T10:14:13+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 3,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-39/contract.json",
+                "sha256": "sha256:4a172eecba276c4a320bebd2f99a48195187c57113661b252730ca8203b3d023"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-39",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "a16d194e03a75fdadf2bf166829b21e593de9e8ae75f732efcc1cbb9075fdc8b",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-39.md",
+                "sha256": "sha256:a16d194e03a75fdadf2bf166829b21e593de9e8ae75f732efcc1cbb9075fdc8b"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A workflow builds the app with npm ci and npm run build and deploys dist to GitHub Pages on push to main and on manual dispatch, with the permissions Pages needs and nothing more",
+                "The deployed app works under the repository sub-path: board, service worker and the tracker files resolve relative to it",
+                "The test file server resolves the requested path inside dist and answers 404 for anything outside it, in a form static analysis recognises",
+                "README says where the deployed app is and how to try the camera test"
+            ],
+            "goal": "The app on main is deployed to GitHub Pages by GitHub Actions so the owner can open it on a phone, and the test file server can no longer serve a path outside dist.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 3,
+            "run_revision": 3,
+            "source": {
+                "path": ".agent-loop/contracts/NG-39/contract.json",
+                "sha256": "sha256:4a172eecba276c4a320bebd2f99a48195187c57113661b252730ca8203b3d023"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 3,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-39/contract.json",
+                "sha256": "sha256:4a172eecba276c4a320bebd2f99a48195187c57113661b252730ca8203b3d023"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-23T10:27:10+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-39:7933f01bb3748647",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/780037d14dabc5b15acb49ae7ae39fbc361a63677ccf18746aa257a891487d28.json",
+                "sha256": "sha256:f783081150a1434abdf57e455385c4516ca5049fab72e1714bf18e4dd9f5cc86"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:b5216b15ebf72516492b1b4c15eb2e3f1955b5eb8545186a2b7d840132d55641",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:5f8e95995826daf242f3fa4001035a3a224dae4aa646bb69b113753657fb6762"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-39:7933f01bb3748647",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "be3123fc16e4e051aa74973776f5c0fea5ae63cc98add5ae19abaa1a40779965",
+            "compilation_id": "compilation.NG-39.2026-11-23-101414.66a1cfbd",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "008c207180039e3ddba187263ea8ef68e9417f73c9e115c80e29fe72976f8000",
+            "source": {
+                "path": ".agent-loop/recall/NG-39/meta.json",
+                "sha256": "sha256:35b362c7a5072582304b13b2aa6cc13214e050504c486c656f3a91b5d7186984"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-39/reviews/NG-39.blindspots.json",
+                "sha256": "sha256:ea08e561a18d67841f5930369a444355df61a8beff1b02798be81d79cd0fdcaf"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "6d14770a8508ef725fe870b2541befa165baab20",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-23-ng-39-r3-e684762b",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-23-ng-39-r3-e684762b/session.json",
+                "sha256": "sha256:6b7c079848489940dabfa1a89a0fb3ac4bb20b3324352754954cf2c44899fd9e"
+            },
+            "state": "done",
+            "task_id": "NG-39"
+        },
+        "verification": {
+            "contract_revision": 3,
+            "implementation_snapshot": "sha256:872dbc972a116feb31624d699bc8a73cb623d9b6d9c5d3fcad185b8f70ebc86f",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-39:7933f01bb3748647",
+            "source": {
+                "path": ".agent-loop/runs/NG-39/verification.json",
+                "sha256": "sha256:0caea314740faab9a5b9316b04149d2155132943382752fa15313cd030021cbc"
+            },
+            "source_session_id": "2026-11-23-ng-39-r3-e684762b",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-39:7933f01bb3748647",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-39"
+}

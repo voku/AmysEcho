@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-23T10:13:10+00:00",
+    "reference": "execution-evidence:sha256:9d6ddad4d7cf236bd6a1aaf9b5b430877d33210973b8a9bb294c4945cbee2d67",
+    "run_id": "run:NG-39:721d4237c2367f09",
+    "schema_version": "1.0",
+    "source_digest": "sha256:4d7074759cc1a18d5d099d007ead6c0b2ccf340d15e4191d58ddb3f85727b3f7",
+    "source_reference": "workspace-file:.github/workflows/pages.yml",
+    "stage_id": "correctness-review",
+    "task_id": "NG-39"
+}

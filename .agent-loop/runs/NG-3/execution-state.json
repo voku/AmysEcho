@@ -1,0 +1,328 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T07:18:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T07:18:22+00:00",
+                "artifact_references": [],
+                "candidate_revision": "79aa1c6bbaf58a27e6c7d5550c6c562d02891c23",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "79aa1c6bbaf58a27e6c7d5550c6c562d02891c23",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "outcome": "completed",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:be7e7b4d",
+                "summary": "main_old holds 314 SignDict DGS videos with variants per word under server/data/dgs_video_examples (licence to be checked per video, so they stay in history and are not re-added); the NG-16 spike proved tasks-vision 0.10.35 runs same-origin in a module worker under the app CSP plus wasm-unsafe-eval; ffmpeg is available to turn mp4 into y4m for Chromium's fake camera; Playwright is preinstalled locally and must become a dev dependency for CI.",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T08:53:04+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T08:53:04+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:62e11a89e9cc264952119124569cf25a2e4048f3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:62e11a89e9cc264952119124569cf25a2e4048f3",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "outcome": "completed",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:36887c28",
+                "summary": "Capture controller and tracker worker, tracker adapter, tracker cache separate from the board, CSP wasm-unsafe-eval, Kamera testen entry, DGS browser test with fixed frame times through the app's capture path; verify passes 3 of 3",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T09:00:36+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T09:00:36+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7fbc1f757e32923e4377f3c78f11437931b6466af1f0f27c691a0a0057063eac",
+                    "execution-evidence:sha256:d76a32c06f583c471005c15f04fe067cfac5f1cf1479de3da6ebf15869a0bfc3",
+                    "execution-evidence:sha256:40fdd88cc9c97f8c777d023f0727112148ba2ac6cdd5daf2fd12c0a0d7a19302"
+                ],
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:62e11a89e9cc264952119124569cf25a2e4048f3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7fbc1f757e32923e4377f3c78f11437931b6466af1f0f27c691a0a0057063eac",
+                    "execution-evidence:sha256:d76a32c06f583c471005c15f04fe067cfac5f1cf1479de3da6ebf15869a0bfc3",
+                    "execution-evidence:sha256:40fdd88cc9c97f8c777d023f0727112148ba2ac6cdd5daf2fd12c0a0d7a19302"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:62e11a89e9cc264952119124569cf25a2e4048f3",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "outcome": "changes_required",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:24d83aa0",
+                "summary": "A tracker update makes the camera fail for good: the service worker answers tracker paths from the old cache and the checksum fails on every start. Leaving or hiding the page while the tracker prepares still turns the camera on later (on the board, or in the background). Docs claim a new build fills a new cache.",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T09:34:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T09:34:59+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "context_id": "build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "outcome": "completed",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:4fd58601",
+                "summary": "Second build: tracker files in a content-hash folder and served only from the current cache; cancel signal through every start step and no camera while hidden; 30 s download bound; quota message; single-frame hands kept; verify passes 3 of 3",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T09:52:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T09:52:45+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8fdbcf27f28ea107fac53720a103972ed4a4bb634650b338ae8db468a07a1f21",
+                    "execution-evidence:sha256:d5bfe1575766fafb35d40ed5873f71a2bb782f501ffa4a32dbe562555ec06095",
+                    "execution-evidence:sha256:36ee0e8a8f25903523163929121c4a4e71f12349ec30296dd03997e90de5a92b",
+                    "execution-evidence:sha256:d5391dbb014407fa6d988182b1243262ab1fe8e5ded54a09437d1ddc1566fc4b",
+                    "execution-evidence:sha256:252487290e3292567fccb32b34c5e00fd84b8de001bfb8d0b72ae11dc7709052",
+                    "execution-evidence:sha256:52ed2169fe2153216c62ae0b9b0d21cfac6402d9f45756db3bf137b74e59dbf5",
+                    "execution-evidence:sha256:51b4e21c5dc53540889fe0688f6a7543aae81d87b43edede9c7b9c9a460323d7",
+                    "execution-evidence:sha256:e608270cbe9e4445261c75d9f369cfd826b11a577e130aaebae736fc03cac5ca",
+                    "execution-evidence:sha256:6945fdc0c5364a6f8ed6dee1148b6a55279dd510d0d27bd06fe0c0e87b7a34a3",
+                    "execution-evidence:sha256:dba66689ca4f05bc692ebe892eabafeda6176b9196ec7d39d12cd9722991f36a",
+                    "execution-evidence:sha256:fe2a45f2e126c3c5ce9073ee1e5610d4745c9227bd872e624898f19d4743f977",
+                    "execution-evidence:sha256:5b5c6853d038e66597d2337b98c20d5fc677bc211fdf82c4674f2071164bd944",
+                    "execution-evidence:sha256:cb90e2f6cf555443d91046afb6ac8228c7fe933e3ec243977d28d59c29bf610b",
+                    "execution-evidence:sha256:8e66f90a57ce20f1ecde1c71cb747a74f5a30df9c148083ff8cc9c9894fa8005",
+                    "execution-evidence:sha256:de5bc10278ad9e2cb42e515a35d983264b8d2e0bb13c31a53d1e462da8213738"
+                ],
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8fdbcf27f28ea107fac53720a103972ed4a4bb634650b338ae8db468a07a1f21",
+                    "execution-evidence:sha256:d5bfe1575766fafb35d40ed5873f71a2bb782f501ffa4a32dbe562555ec06095",
+                    "execution-evidence:sha256:36ee0e8a8f25903523163929121c4a4e71f12349ec30296dd03997e90de5a92b",
+                    "execution-evidence:sha256:d5391dbb014407fa6d988182b1243262ab1fe8e5ded54a09437d1ddc1566fc4b",
+                    "execution-evidence:sha256:252487290e3292567fccb32b34c5e00fd84b8de001bfb8d0b72ae11dc7709052",
+                    "execution-evidence:sha256:52ed2169fe2153216c62ae0b9b0d21cfac6402d9f45756db3bf137b74e59dbf5",
+                    "execution-evidence:sha256:51b4e21c5dc53540889fe0688f6a7543aae81d87b43edede9c7b9c9a460323d7",
+                    "execution-evidence:sha256:e608270cbe9e4445261c75d9f369cfd826b11a577e130aaebae736fc03cac5ca",
+                    "execution-evidence:sha256:6945fdc0c5364a6f8ed6dee1148b6a55279dd510d0d27bd06fe0c0e87b7a34a3",
+                    "execution-evidence:sha256:dba66689ca4f05bc692ebe892eabafeda6176b9196ec7d39d12cd9722991f36a",
+                    "execution-evidence:sha256:fe2a45f2e126c3c5ce9073ee1e5610d4745c9227bd872e624898f19d4743f977",
+                    "execution-evidence:sha256:5b5c6853d038e66597d2337b98c20d5fc677bc211fdf82c4674f2071164bd944",
+                    "execution-evidence:sha256:cb90e2f6cf555443d91046afb6ac8228c7fe933e3ec243977d28d59c29bf610b",
+                    "execution-evidence:sha256:8e66f90a57ce20f1ecde1c71cb747a74f5a30df9c148083ff8cc9c9894fa8005",
+                    "execution-evidence:sha256:de5bc10278ad9e2cb42e515a35d983264b8d2e0bb13c31a53d1e462da8213738"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "context_id": "correctness-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "observations": [
+                    "docs/capture.md:160 says keeping single-frame hands can never make a wrong concept more likely; per attempt 6 become wrong and 6 stop being wrong (net equal) (NG-38).",
+                    "docs/capture.md lists Kamera stoppen as a way to cancel while loading, but the button is hidden until the camera runs (NG-38).",
+                    "Two tabs filling different builds delete each other's tracker caches; a worker start over 60 s shows tracker_timeout; a video.play that never settles keeps the camera until stop (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:d427be65",
+                "summary": "Second build passes correctness: tracker update and cancel-during-start fixed and verified, stall timeout, board offline and camera-free, single-frame hands do not weaken safety",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T09:52:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T09:52:46+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e63c263da2905fe37974f7e5fd27d685886c9716531d0a3ccbbe809efe92c884",
+                    "execution-evidence:sha256:6c0aee0ccd3b2c6dd11932981717b3dc8da8a055b6a22e751db2094e9c149c32",
+                    "execution-evidence:sha256:cbef92a05cd6edf875f1576f5dc028fedc3ba075ff99c43d674fa67c0d1d0fdc",
+                    "execution-evidence:sha256:d849721f91a4a452e4d8336bd076f483c7042502e78898f3260bbdfe0886800a",
+                    "execution-evidence:sha256:b853b1a783af0e0e0925f7d1f1cd04c5f108445475804e054ce5ba371e5ca810",
+                    "execution-evidence:sha256:7c1a1a6f41118d71f5256c523c4fd565dc54efc5ee58bed8931190d88b9384ee",
+                    "execution-evidence:sha256:d392537e54d15dd18e85a4f9826f6b5b1ec14d0b58adb30683071455ff892c5b",
+                    "execution-evidence:sha256:9be7ed71dba91c78dfd2af1856d159bb37f267edc19866ecdc2476da1a4ec547",
+                    "execution-evidence:sha256:a924986a6dde53c826083c7b9b3b74419e5c10b745a7d354ea5301b5c92ac761",
+                    "execution-evidence:sha256:d906740e128fa6b51e218b3fcf9f2d1acc19b0960cd7b211563d1583db76c949",
+                    "execution-evidence:sha256:c9b6ab8a3f506a334f0371417094ac8c6fcf92cd799dfc4cfe55147ddd0af69c",
+                    "execution-evidence:sha256:1b00da9ea8fb43db9327921401cdef46a67c6f351d4a812f8304ef3d4ed5efbe",
+                    "execution-evidence:sha256:69139eccb46268ee94a6a6f87ae8f7355da6c60565316a926eba5a825a3dd48f",
+                    "execution-evidence:sha256:5cd0d92add688d7a813ac908b76c2d588cca6380ebb22f4ccc6db3a8747ae5b8",
+                    "execution-evidence:sha256:cae53454a17351ba64d2dbce3ec9ef456578e011a06118b17346c9120209e412"
+                ],
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e63c263da2905fe37974f7e5fd27d685886c9716531d0a3ccbbe809efe92c884",
+                    "execution-evidence:sha256:6c0aee0ccd3b2c6dd11932981717b3dc8da8a055b6a22e751db2094e9c149c32",
+                    "execution-evidence:sha256:cbef92a05cd6edf875f1576f5dc028fedc3ba075ff99c43d674fa67c0d1d0fdc",
+                    "execution-evidence:sha256:d849721f91a4a452e4d8336bd076f483c7042502e78898f3260bbdfe0886800a",
+                    "execution-evidence:sha256:b853b1a783af0e0e0925f7d1f1cd04c5f108445475804e054ce5ba371e5ca810",
+                    "execution-evidence:sha256:7c1a1a6f41118d71f5256c523c4fd565dc54efc5ee58bed8931190d88b9384ee",
+                    "execution-evidence:sha256:d392537e54d15dd18e85a4f9826f6b5b1ec14d0b58adb30683071455ff892c5b",
+                    "execution-evidence:sha256:9be7ed71dba91c78dfd2af1856d159bb37f267edc19866ecdc2476da1a4ec547",
+                    "execution-evidence:sha256:a924986a6dde53c826083c7b9b3b74419e5c10b745a7d354ea5301b5c92ac761",
+                    "execution-evidence:sha256:d906740e128fa6b51e218b3fcf9f2d1acc19b0960cd7b211563d1583db76c949",
+                    "execution-evidence:sha256:c9b6ab8a3f506a334f0371417094ac8c6fcf92cd799dfc4cfe55147ddd0af69c",
+                    "execution-evidence:sha256:1b00da9ea8fb43db9327921401cdef46a67c6f351d4a812f8304ef3d4ed5efbe",
+                    "execution-evidence:sha256:69139eccb46268ee94a6a6f87ae8f7355da6c60565316a926eba5a825a3dd48f",
+                    "execution-evidence:sha256:5cd0d92add688d7a813ac908b76c2d588cca6380ebb22f4ccc6db3a8747ae5b8",
+                    "execution-evidence:sha256:cae53454a17351ba64d2dbce3ec9ef456578e011a06118b17346c9120209e412"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "context_id": "blindspot-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "observations": [
+                    "A very slow trickle has no total limit and shows no progress; an app update during the tracker download says braucht Internet although online; Android behaviour with the permission prompt open needs the device trial (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:2750458c",
+                "summary": "Blind-spot passes: all first-round findings fixed in real Chromium, slow download completes, retry reuses finished files, rapid switching and permission prompt cases leave no camera running",
+                "task_id": "NG-3",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T09:55:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T09:55:23+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "schema_version": "1.0",
+                "task_id": "NG-3",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:16debf3248f85f22a0d91a6daf0a7238c7f7554710e2b0e78856d0e74134ee2c",
+                    "execution-evidence:sha256:0f4efb3c256925a18482dc8235437379a055495d3d9a9d27e741868c9732e515"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:79aa1c6bbaf58a27e6c7d5550c6c562d02891c23:c1ecaadacd66b6cdeba2090ccf628a6e8f4bbf75",
+                "consistency_references": [
+                    "execution-evidence:sha256:cd2d83b2bbe90b112fd2c3afb29c7d2c33dc32af0cdf44d2e4ec9bc3109e4519"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:03c3f8f1bc890e1d1d6e05d21a94b8cd95afa88999d917fc25b4509ed6cd12f3",
+                "outcome": "pass",
+                "run_id": "run:NG-3:b7e51e8c420ee570",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:009f9e15d52d4b3a95461a34feae774fbd59b0549920d88b8ba8293e1c1e69cb",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-3: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-3 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-3:b7e51e8c420ee570 binds active Session 2026-11-23-ng-3-r1-b77a47ef to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-3 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-3",
+                "validation_references": [
+                    "execution-evidence:sha256:16debf3248f85f22a0d91a6daf0a7238c7f7554710e2b0e78856d0e74134ee2c",
+                    "execution-evidence:sha256:0f4efb3c256925a18482dc8235437379a055495d3d9a9d27e741868c9732e515"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-3:b7e51e8c420ee570",
+    "schema_version": "1.0",
+    "task_id": "NG-3"
+}

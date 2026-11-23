@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-23T10:13:10+00:00",
+    "reference": "execution-evidence:sha256:21d07a53864e7d95496f565e20b53e229819277e01d25d59290ea75301b8a77a",
+    "run_id": "run:NG-39:721d4237c2367f09",
+    "schema_version": "1.0",
+    "source_digest": "sha256:aadbc413d7be1931e39c138fdd6ebd0c7515c92336bd681bd4fa246b2e40b674",
+    "source_reference": "workspace-file:scripts/offline-smoke.mjs",
+    "stage_id": "correctness-review",
+    "task_id": "NG-39"
+}

@@ -1,0 +1,14 @@
+{
+    "contract_revision": 1,
+    "contract_source": {
+        "path": ".agent-loop/contracts/NG-40/contract.json",
+        "sha256": "sha256:d0e2708c65fcd1204da1673341036916dd07b42f403d442c68b05ba75b19b140"
+    },
+    "kind": "governed_run",
+    "learning_root": ".agent-loop/learning",
+    "prepared_at": "2026-11-23T10:35:06+00:00",
+    "run_id": "run:NG-40:7c15e701ebb70add",
+    "schema_version": "1.0",
+    "session_id": "2026-11-23-ng-40-r1-f9e7d809",
+    "task_id": "NG-40"
+}

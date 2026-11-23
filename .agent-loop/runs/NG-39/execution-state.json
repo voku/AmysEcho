@@ -1,0 +1,283 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+    "contract_revision": 3,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T10:17:12+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:17:12+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6d14770a8508ef725fe870b2541befa165baab20",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6d14770a8508ef725fe870b2541befa165baab20",
+                "context_id": "investigate-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "outcome": "completed",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:48809a8a",
+                "summary": "Deploy runs after CI succeeded on main (workflow_run, tested commit) or by hand, permissions only on the deploy job, no cancelling a running deploy; build stamps the board cache name with a digest of the pre-cached files, tested; containment check uses relative/isAbsolute; verify passes",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:17:12+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:17:12+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:c16645269c6e26fbdec60591580a2017a5373249",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:c16645269c6e26fbdec60591580a2017a5373249",
+                "context_id": "build-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "outcome": "completed",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:d5024d98",
+                "summary": "Deploy runs after CI succeeded on main (workflow_run, tested commit) or by hand, permissions only on the deploy job, no cancelling a running deploy; build stamps the board cache name with a digest of the pre-cached files, tested; containment check uses relative/isAbsolute; verify passes",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:19:03+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:19:03+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:bdd0624c7e27d77cc63ebd680454d44e805d818a5f2494d27945e90b0cf19a06"
+                ],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:c16645269c6e26fbdec60591580a2017a5373249",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:bdd0624c7e27d77cc63ebd680454d44e805d818a5f2494d27945e90b0cf19a06"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:c16645269c6e26fbdec60591580a2017a5373249",
+                "context_id": "correctness-review-r3-1",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "outcome": "changes_required",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:c9236ff3",
+                "summary": "workflow_run branches filter matches a fork PR's head branch named main, so a fork's commit could be deployed with pages write; a manual run from another branch deploys that branch.",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:21:32+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:21:32+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "context_id": "build-r3-2",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "outcome": "completed",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:f9bc68d0",
+                "summary": "Deploy condition requires a successful CI run of a push to main in this repository, or a manual run on main; verify passes",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:22:11+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:22:11+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:f31aee5b971fd421e6a681b940fa11e3a7687552c1ff7c1f05f879cb5b13b1a2",
+                    "execution-evidence:sha256:5362c17c1dc90514ac535dbaca559143e29bcce22fd61098306297b01cd325a4",
+                    "execution-evidence:sha256:23130d955315f1980940471093201447c3771c9aad24f6614844e8f9015787bb",
+                    "execution-evidence:sha256:c3619f2448c74abb6592d2154f75fa30184050653a1f05157c53d48821f0f3bb",
+                    "execution-evidence:sha256:49662aaf9e0a607382248499df83542b5a4fc5ca9c35893d3884a05b5d14edc4",
+                    "execution-evidence:sha256:c35fa2f39ab4f95e4259dc62618b1ce3d815ca6048dc1b481a8e0a5d2b9f199c"
+                ],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:f31aee5b971fd421e6a681b940fa11e3a7687552c1ff7c1f05f879cb5b13b1a2",
+                    "execution-evidence:sha256:5362c17c1dc90514ac535dbaca559143e29bcce22fd61098306297b01cd325a4",
+                    "execution-evidence:sha256:23130d955315f1980940471093201447c3771c9aad24f6614844e8f9015787bb",
+                    "execution-evidence:sha256:c3619f2448c74abb6592d2154f75fa30184050653a1f05157c53d48821f0f3bb",
+                    "execution-evidence:sha256:49662aaf9e0a607382248499df83542b5a4fc5ca9c35893d3884a05b5d14edc4",
+                    "execution-evidence:sha256:c35fa2f39ab4f95e4259dc62618b1ce3d815ca6048dc1b481a8e0a5d2b9f199c"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "context_id": "correctness-review-r3-2",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "outcome": "pass",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:d1fcfd1b",
+                "summary": "Deploy condition admits only a CI-passed push to main of this repository or a manual run on main; checkout ref correct",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:22:12+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:22:12+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e40728b376c709f7b512ccd7f04d137083e0d7f4caff9f617b890f557b00fc38",
+                    "execution-evidence:sha256:8a7881fa0ba50a3b5cabf152d94f84f17aea329bc8e5e35c40f86766741ed79d",
+                    "execution-evidence:sha256:9bd572421b90f3f1e362086f2596cae64406368c0e106fa6890043bad378c49d",
+                    "execution-evidence:sha256:33abbb1b7869cb2a6613dec6d82138c52da72f960f3aee56a6ea422e0d4c9ab4",
+                    "execution-evidence:sha256:af6cb97ed54870102ad6d426b7beb15f366df84569522e27234286e27f333e93",
+                    "execution-evidence:sha256:f17ed5293e7d924331290cd95e16067faf97189b424a38043e2a65a3e7dbaf4b"
+                ],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e40728b376c709f7b512ccd7f04d137083e0d7f4caff9f617b890f557b00fc38",
+                    "execution-evidence:sha256:8a7881fa0ba50a3b5cabf152d94f84f17aea329bc8e5e35c40f86766741ed79d",
+                    "execution-evidence:sha256:9bd572421b90f3f1e362086f2596cae64406368c0e106fa6890043bad378c49d",
+                    "execution-evidence:sha256:33abbb1b7869cb2a6613dec6d82138c52da72f960f3aee56a6ea422e0d4c9ab4",
+                    "execution-evidence:sha256:af6cb97ed54870102ad6d426b7beb15f366df84569522e27234286e27f333e93",
+                    "execution-evidence:sha256:f17ed5293e7d924331290cd95e16067faf97189b424a38043e2a65a3e7dbaf4b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "context_id": "blindspot-review-r3-2",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "observations": [
+                    "A manual dispatch deploys the tip of main without checking CI; deploys run in trigger order, so a re-run of an old CI run or out-of-order runs can put an older commit on the site; skip a deploy whose head_sha is no longer the tip of main (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:c51f8616",
+                "summary": "No path for untrusted or untested code to reach the site",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:24:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:24:42+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:1d25768a2253cc4541ee353693a47a159050b80cd30957c9834e94cfd990de49",
+                    "execution-evidence:sha256:a54d2a96bfa23af124660e94fd6f919b1a342213fe1bd80b1eeeef4a5196c3b9"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:3c4910e0e5e06ab7be34a410f7601c741e209e5c",
+                "consistency_references": [
+                    "execution-evidence:sha256:0ac7a5f9e138ce82d1b0c12391f17176a70e885f41e426a21656b8f36cb4bd23"
+                ],
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:a72a1efae7aeb784a3e96f36e53894d5c1e558dc060a0289c7da64b11662f9e4",
+                "outcome": "pass",
+                "run_id": "run:NG-39:7933f01bb3748647",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:a87dfcbd4bc552f1de716b6b958d7f709ff969e7244e36ce59ffd8379795be45",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-39: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-39 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-39:7933f01bb3748647 binds active Session 2026-11-23-ng-39-r3-e684762b to approved Contract revision 3\n[OK] sessions: 3 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-39 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-39",
+                "validation_references": [
+                    "execution-evidence:sha256:1d25768a2253cc4541ee353693a47a159050b80cd30957c9834e94cfd990de49",
+                    "execution-evidence:sha256:a54d2a96bfa23af124660e94fd6f919b1a342213fe1bd80b1eeeef4a5196c3b9"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-39:7933f01bb3748647",
+    "schema_version": "1.0",
+    "task_id": "NG-39"
+}

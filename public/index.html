@@ -3,12 +3,13 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'">
     <meta name="theme-color" content="#174e6c">
     <title>Amy's Echo NG</title>
     <link rel="stylesheet" href="./styles.css">
     <link rel="manifest" href="./manifest.webmanifest">
     <script type="module" src="./main.js"></script>
+    <script type="module" src="./capture/capture.js"></script>
   </head>
   <body>
     <main id="app">
@@ -18,6 +19,7 @@
         <noscript><p class="board-notice board-line">Diese Seite braucht JavaScript. Ohne JavaScript kann die Tafel nicht starten.</p></noscript>
       </section>
       <section id="caregiver-region" class="caregiver-region" aria-label="Bereich für Bezugspersonen" hidden></section>
+      <section id="capture-region" class="capture-region" aria-label="Kamera testen" hidden></section>
     </main>
     <footer id="caregiver-entry" class="caregiver-entry" hidden></footer>
   </body>

@@ -1,0 +1,39 @@
+{
+    "acceptance_criteria": [
+        "CI deploys through a reusable Pages workflow only after the test job passed and only for a push to main; pull requests and other branches never deploy; a manual run deploys only on main",
+        "The deploy workflow checks out the commit that triggered it without a ref override and without a dependency cache",
+        "The script-tag check in the tests matches tags in any letter case and still requires exactly the two expected scripts",
+        "CodeQL reports no alert on the pull request"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-23T10:35:05+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "e6d40a515e8e5733bb7846b3fb8eb5174c8ad4a7",
+    "behavior_anchors": [],
+    "created_at": "2026-11-23T10:35:05+00:00",
+    "goal": "The app is deployed to GitHub Pages only after the CI tests passed on a push to main, without any CodeQL alert.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (delegated to Claude for this session)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/pages.yml",
+        "test/bootstrap.test.mjs",
+        "README.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-40",
+    "updated_at": "2026-11-23T10:35:05+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

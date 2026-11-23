@@ -14,7 +14,7 @@ jobs:
   app:
     name: Build and test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       matrix:
         node: ['22', '24']
@@ -30,7 +30,16 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --ignore-scripts
-      - name: Verify (type check, build, tests, offline asset smoke)
+      # The browser test (test/browser/, card NG-3) plays DGS sign videos as a fake camera. They live in the
+      # history of main_old (Git LFS) and are read at test time, never added to this branch. The checkout
+      # above fetches only this commit, so main_old is fetched on its own.
+      - name: Fetch the DGS videos' branch (main_old)
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main_old:refs/remotes/origin/main_old
+      - name: Install Chromium for the browser test
+        run: npx playwright install --with-deps chromium
+      - name: Install ffmpeg for the browser test
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg)
+      - name: Verify (type check, build, tests, offline asset smoke, browser test)
         run: npm run verify
       - name: Audit dependencies
         run: npm audit --audit-level=high
@@ -58,3 +67,14 @@ jobs:
         run: php vendor/bin/agent-loop workflow help
       - name: Verify Composer inputs are unchanged
         run: git diff --exit-code -- composer.json composer.lock
+
+  # Deploys to GitHub Pages after the tests passed, for a push to main only.
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: app
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
