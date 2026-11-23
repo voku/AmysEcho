@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { once } from "node:events";
-import { extname, relative, resolve, sep } from "node:path";
+import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const DIST = new URL("../dist/", import.meta.url);
@@ -70,7 +70,7 @@ export async function serveDist(dist = DIST, onRequest = () => undefined) {
       const root = resolve(fileURLToPath(dist));
       const target = resolve(root, file);
       const inside = relative(root, target);
-      if (type === undefined || inside === "" || inside.startsWith(`..${sep}`) || inside === ".." || resolve(root, inside) !== target) throw new Error("not served");
+      if (type === undefined || inside === "" || inside.startsWith("..") || isAbsolute(inside)) throw new Error("not served");
       const body = await readFile(target);
       response.writeHead(200, { "content-type": type, "cache-control": "no-store" });
       response.end(body);

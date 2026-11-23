@@ -822,7 +822,8 @@ test("the service worker keeps the tracker out of the board's install and never 
   assert.ok(!added.some((url) => url.includes("/vendor/")), "tracker files in the board's pre-cache");
   listeners.activate({ waitUntil(promise) { pending = promise; } });
   await pending;
-  assert.deepEqual(deleted, ["amysecho-ng-capture-v1"]);
+  // The built name carries a digest of the assets (card NG-39), so both older board caches go.
+  assert.deepEqual(deleted, ["amysecho-ng-capture-v1", "amysecho-ng-capture-v2"]);
   // App files are matched in all caches, exactly (tracker files: the test above).
   let response;
   listeners.fetch({ request: new Request("https://app.example/echo/board.js"), respondWith(promise) { response = promise; } });

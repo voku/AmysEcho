@@ -279,3 +279,19 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
   assert.ok(added.some((request) => request.url === "https://app.example/echo/board-data.js"));
   assert.ok(added.some((request) => request.url === "https://app.example/echo/icons/sprechen.svg"));
 });
+
+test("the built cache name carries a digest of every pre-cached file, so a changed asset reaches an installed app", async () => {
+  const { createHash } = await import("node:crypto");
+  const { precacheList } = await import("../scripts/offline-smoke.mjs");
+  const dist = new URL("../dist/", import.meta.url);
+  const worker = await readFile(new URL("sw.js", dist), "utf8");
+  const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(worker)?.[1] ?? "";
+  const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  const base = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
+  const hash = createHash("sha256");
+  for (const asset of [...await precacheList(worker)].sort()) {
+    const file = asset === "" ? "index.html" : asset.endsWith("/") ? `${asset}index.html` : asset;
+    hash.update(`${asset}\0`).update(await readFile(new URL(file, dist))).update("\0");
+  }
+  assert.equal(name, `${base}-${hash.digest("hex").slice(0, 12)}`);
+});

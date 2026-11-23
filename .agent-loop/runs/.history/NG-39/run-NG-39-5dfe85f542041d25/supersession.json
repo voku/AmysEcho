@@ -1,0 +1,12 @@
+{
+    "approved_at": "2026-11-23T10:14:13+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "kind": "governed_run_supersession",
+    "recorded_at": "2026-11-23T10:14:14+00:00",
+    "replacement_contract_revision": 3,
+    "replacement_run_id": "run:NG-39:7933f01bb3748647",
+    "schema_version": "1.0",
+    "superseded_contract_revision": 2,
+    "superseded_run_id": "run:NG-39:5dfe85f542041d25",
+    "task_id": "NG-39"
+}

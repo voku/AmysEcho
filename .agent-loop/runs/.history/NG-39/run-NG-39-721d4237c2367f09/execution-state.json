@@ -1,0 +1,159 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+    "contract_revision": 1,
+    "current_attempt": 2,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T10:11:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:11:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6d14770a8508ef725fe870b2541befa165baab20",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6d14770a8508ef725fe870b2541befa165baab20",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "outcome": "completed",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:9dc894ed",
+                "summary": "Pages workflow (npm ci, typecheck, build, upload dist, deploy) on push to main and dispatch; serveDist resolves paths inside dist and answers 404 otherwise (../, %2e%2e, %2f probed); README Try it section; Chromium probe under /AmysEcho/: board, service worker, offline start and camera test work",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:11:50+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:11:50+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "context_id": "build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "outcome": "completed",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:1c2bb782",
+                "summary": "Pages workflow (npm ci, typecheck, build, upload dist, deploy) on push to main and dispatch; serveDist resolves paths inside dist and answers 404 otherwise (../, %2e%2e, %2f probed); README Try it section; Chromium probe under /AmysEcho/: board, service worker, offline start and camera test work",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:13:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:13:10+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:9d6ddad4d7cf236bd6a1aaf9b5b430877d33210973b8a9bb294c4945cbee2d67",
+                    "execution-evidence:sha256:21d07a53864e7d95496f565e20b53e229819277e01d25d59290ea75301b8a77a",
+                    "execution-evidence:sha256:4b812de6ea391c0f12a0373d5e270b9678c8ac2a305420b5884f5474db6a8189"
+                ],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:9d6ddad4d7cf236bd6a1aaf9b5b430877d33210973b8a9bb294c4945cbee2d67",
+                    "execution-evidence:sha256:21d07a53864e7d95496f565e20b53e229819277e01d25d59290ea75301b8a77a",
+                    "execution-evidence:sha256:4b812de6ea391c0f12a0373d5e270b9678c8ac2a305420b5884f5474db6a8189"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "observations": [
+                    "Deploy permissions are workflow-wide and cancel-in-progress can cancel a running deploy; CodeQL may not recognise the template-literal sanitizer."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:b9823181",
+                "summary": "Workflow, sub-path and server containment correct; README accurate",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T10:13:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T10:13:10+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:62f67521b7114ffcd9aa0db373991c907c0f60f139da1c7e31b99e6c2c1d9ac6"
+                ],
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "schema_version": "1.0",
+                "task_id": "NG-39",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:62f67521b7114ffcd9aa0db373991c907c0f60f139da1c7e31b99e6c2c1d9ac6"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d14770a8508ef725fe870b2541befa165baab20:9186217cfb1688a07060989fb9fbee45d2f90afb",
+                "context_id": "blindspot-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:c817284ec10e86e1bae2d4a8a9b74578de0c679fe659bc2038be4308c44616af",
+                "outcome": "changes_required",
+                "run_id": "run:NG-39:721d4237c2367f09",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:f80d4621",
+                "summary": "With a deploy on every push, the hand-set service-worker cache name means an asset change without a name change never reaches an installed phone, or mixes old and new modules; the deploy also does not wait for the tests.",
+                "task_id": "NG-39",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-39:721d4237c2367f09",
+    "schema_version": "1.0",
+    "task_id": "NG-39"
+}

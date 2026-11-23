@@ -128,3 +128,22 @@ await writeFile(new URL("manifest.json", vendor), `${JSON.stringify({
   cache: `amysecho-tracker-${directory}`,
   files,
 }, null, 2)}\n`);
+
+/*
+ * The board's cache name carries a digest of every pre-cached file, so any
+ * change to a shipped asset gives the service worker new bytes, and an
+ * installed app picks up the whole new set instead of mixing old and new
+ * files (card NG-39). The hand-set part of the name stays in public/sw.js.
+ */
+const { precacheList } = await import("./offline-smoke.mjs");
+const workerUrl = new URL("../dist/sw.js", import.meta.url);
+const worker = await readFile(workerUrl, "utf8");
+const NAME = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/;
+const base = NAME.exec(worker)?.[1];
+if (base === undefined) throw new Error("dist/sw.js: CACHE_NAME not found");
+const assetHash = createHash("sha256");
+for (const asset of [...await precacheList(worker)].sort()) {
+  const file = new URL(asset.replace(/^\.\//, "").replace(/^$/, "index.html").replace(/\/$/, "/index.html"), new URL("../dist/", import.meta.url));
+  assetHash.update(`${asset}\0`).update(await readFile(file)).update("\0");
+}
+await writeFile(workerUrl, worker.replace(NAME, `const CACHE_NAME = CACHE_PREFIX + "${base}-${assetHash.digest("hex").slice(0, 12)}";`));
