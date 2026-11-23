@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
     "history": [
         {
@@ -66,6 +66,111 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:016f69ac",
                 "summary": "Recognise view over the board with countdown, Stopp, 5 s limit; confirm view speaks only on Ja, sagen through the tile path; unknown speaks nothing with up to three candidates; camera stopped on every exit; DGS browser test 4 of 4 taught attempts recognised, 0 wrong shown, 2 untaught unknown; verify passes",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:13:17+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:13:17+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a69a53cfa2f42c5405cc069628a5c279675b5d8622acd2c3134084f68d3a6a8c",
+                    "execution-evidence:sha256:bf7fdbac2a66ad4c8daf4fc1cd07627e93f2ad27738f63081c4d12122d8963d4",
+                    "execution-evidence:sha256:849a5b74bc0e2e6d287cc5b28eae83b2e1c012ba8e714a0a0a9c0081a1cba8d7",
+                    "execution-evidence:sha256:819fd10984138954ae41922753d0d6f8b12fc061be6a6c44c2202fbf07cbc1fa",
+                    "execution-evidence:sha256:86e62932ca048248a9c7791a129da392ab7dde8bb2cd0e8fd3fd6192535eb2b2",
+                    "execution-evidence:sha256:b60a399453bb4329d06405409d41c1bd6cadb3ff816c74d3b644e2014d9f1d18",
+                    "execution-evidence:sha256:d4d6de1a94650469687512dc0525629850ecc570b3b3fa0f1b3662cac5b7cc6a",
+                    "execution-evidence:sha256:d80140f999befc01a65e65d3c7decd5d55bd5baf5294e66341bb10c719c5e42c",
+                    "execution-evidence:sha256:46c7f04a5f14513d43ee0cbdcb874c8ee73970c1eb01595c21d756f8e9f00e98",
+                    "execution-evidence:sha256:8c12e1d07e6bfce355f392e61d4c228bcd5e4c17475c7d475f383cbd854cd4b0",
+                    "execution-evidence:sha256:f229f5a38d46d650a06758f971f9a84995866bd414b569dc0a668554d9fc3284",
+                    "execution-evidence:sha256:9d47ce04e6a648de86dc8472a3ba5f2eebf563c5e82fea0525c30b6281d61582",
+                    "execution-evidence:sha256:de831e1f9c9fb8344a0a82f2d2b689851354baa302444a67b610130f4cf76937",
+                    "execution-evidence:sha256:645c10af6aeb03759d69d436437426f5569093bfe15b042e6d7e1cc761516e6a",
+                    "execution-evidence:sha256:3239b027091c62fc0ca6b640eadcdf73241cf0e0abb9bc0c86491a6511a8729d"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a69a53cfa2f42c5405cc069628a5c279675b5d8622acd2c3134084f68d3a6a8c",
+                    "execution-evidence:sha256:bf7fdbac2a66ad4c8daf4fc1cd07627e93f2ad27738f63081c4d12122d8963d4",
+                    "execution-evidence:sha256:849a5b74bc0e2e6d287cc5b28eae83b2e1c012ba8e714a0a0a9c0081a1cba8d7",
+                    "execution-evidence:sha256:819fd10984138954ae41922753d0d6f8b12fc061be6a6c44c2202fbf07cbc1fa",
+                    "execution-evidence:sha256:86e62932ca048248a9c7791a129da392ab7dde8bb2cd0e8fd3fd6192535eb2b2",
+                    "execution-evidence:sha256:b60a399453bb4329d06405409d41c1bd6cadb3ff816c74d3b644e2014d9f1d18",
+                    "execution-evidence:sha256:d4d6de1a94650469687512dc0525629850ecc570b3b3fa0f1b3662cac5b7cc6a",
+                    "execution-evidence:sha256:d80140f999befc01a65e65d3c7decd5d55bd5baf5294e66341bb10c719c5e42c",
+                    "execution-evidence:sha256:46c7f04a5f14513d43ee0cbdcb874c8ee73970c1eb01595c21d756f8e9f00e98",
+                    "execution-evidence:sha256:8c12e1d07e6bfce355f392e61d4c228bcd5e4c17475c7d475f383cbd854cd4b0",
+                    "execution-evidence:sha256:f229f5a38d46d650a06758f971f9a84995866bd414b569dc0a668554d9fc3284",
+                    "execution-evidence:sha256:9d47ce04e6a648de86dc8472a3ba5f2eebf563c5e82fea0525c30b6281d61582",
+                    "execution-evidence:sha256:de831e1f9c9fb8344a0a82f2d2b689851354baa302444a67b610130f4cf76937",
+                    "execution-evidence:sha256:645c10af6aeb03759d69d436437426f5569093bfe15b042e6d7e1cc761516e6a",
+                    "execution-evidence:sha256:3239b027091c62fc0ca6b640eadcdf73241cf0e0abb9bc0c86491a6511a8729d"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
+                "context_id": "correctness-review-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "observations": [
+                    "Confirming the already-selected tile while it speaks says nothing; a stale pointerdown ignores the next key press once; the browser test attempts the taught videos so its numbers are optimistic (NG-38)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:649de2dc",
+                "summary": "Every speech path needs the confirming tap; camera stops on every exit; teach and recognise build the same input; offline board intact; DGS browser test passes",
+                "task_id": "NG-20",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T14:13:17+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T14:13:17+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c1f4e7e1bc44f661873982a2dabfdace71942e18b02e0a7e7154310d2c177ad0",
+                    "execution-evidence:sha256:7dbfdd70d2b558a52354efda705c7f504480f6fa732761f55a7886dc91e5b905"
+                ],
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "schema_version": "1.0",
+                "task_id": "NG-20",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c1f4e7e1bc44f661873982a2dabfdace71942e18b02e0a7e7154310d2c177ad0",
+                    "execution-evidence:sha256:7dbfdd70d2b558a52354efda705c7f504480f6fa732761f55a7886dc91e5b905"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:99ea48f4cfac0a6cead0ec3ffe8754f9c11de451:14e97fd80ec2344f5330cb42280d51a5631afdf0",
+                "context_id": "blindspot-review-1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:80c5deb1fdf861e86bd4519bfbeb6b98ed80a203ac0015aed871fbf7853e0425",
+                "outcome": "changes_required",
+                "run_id": "run:NG-20:e8e98ad451e8b421",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:24ff7b0c",
+                "summary": "Decision before a trial with the child: in phone landscape (640x360, 844x390) the confirm and unknown views are cut off (question behind Zurück, tile cropped without label, candidates below the 80 px minimum); Nein and Ja, sagen are text only; candidates speak on one tap; the offline line names the wrong button.",
                 "task_id": "NG-20",
                 "validation_references": []
             }
