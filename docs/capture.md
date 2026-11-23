@@ -149,12 +149,24 @@ should send the same policy as a header (decision record).
 4. **DGS videos as the camera**. The videos are SignDict.org community videos of adult signers
    (CC licences, to be verified per video), kept with Git LFS on `main_old` in
    `server/data/dgs_video_examples/`. The test reads them at test time with `git show
-   origin/main_old:<file>` and `git lfs smudge`, converts each to y4m with ffmpeg in a temporary
-   directory and deletes it after use. Nothing of them is added to `main` or uploaded. Each video
-   is played by Chromium's fake camera (it starts the file at its first frame when the camera
-   opens, and loops it); the app's own `startCapture`, worker and vendored tracker record two
-   passes of it. The frames then go through the adapter, `buildFeatureSequence`, `calibrateMaxDistance`
-   and `matchGesture` in Node.
+   origin/main_old:<file>` and `git lfs smudge` into a temporary directory and deletes them after
+   use. Nothing of them is added to `main` or uploaded.
+   - **Tracked at fixed frames, through the app's own capture path.** ffmpeg decodes each video;
+     the test hands its frames to the app's `startCapture` with the real `browserEnvironment`
+     tracker (the worker and the vendored tracker), replacing only the camera: frame *i* of a pass
+     is the video frame at (*i* + phase) / 10 s, with that time as its timestamp (10 frames per
+     second, about what the live pipeline reached). Two passes per video, at phases 0 and 0.5, in
+     one page. **Why not the live fake camera for this:** with it, which frames the tracker gets
+     depends on the timing of the machine, so every number differed from run to run; in five runs
+     in a row of the plain set, left/right agreement ranged 89.4% (one run of the coordinator's)
+     to 100%, same-video top-1 27.3% to 40.9%, wrong concept 0% to 18.2%, the frame rate 8.7 to
+     9.5 per second, and the number of words measured as two-hand 1 to 3; two of the five runs
+     failed an assertion. With fixed frames the landmarks are identical from run to run on one
+     machine (asserted: one video is tracked a second time in a fresh browser and must give the
+     same frames).
+   - **The live fake camera is still tested**: the same video (`trinken_main_kaffee.mp4`) is also
+     played through Chromium's fake camera into the unchanged capture path; at least 3 frames per
+     second must arrive and a hand must be seen. No rate is computed from it.
    - **Words**: every word with at least three distinct videos (`<group>_main_<word>.mp4`,
      `<group>_var_<word>_<n>.mp4`, duplicates removed by LFS object id; each word on its own, so
      `trinken_*_kaffee` is "kaffee"). "äpfel" is left out as the plural of "apfel". Of the app's
@@ -166,102 +178,111 @@ should send the same policy as a header (decision record).
      videos both hands are seen in at least half of the frames with a hand.
    - **Other signers** (leave one out): each video is attempted against a profile of all other
      videos, so its word has two or three examples, all by other signers.
-   - **Same video again**: each video's second pass through the camera is attempted against a
-     profile of all first passes (its own included). Only the tracker and the timing of the capture
-     differ between the passes.
+   - **Same video again**: each video's second pass (phase 0.5) is attempted against a profile of
+     all first passes (phase 0, its own included). The two passes see the same signing in
+     different frames, as two looks at the same movement would; the signer does not change.
 
 ### Measured
 
-Desktop VM, headless Chromium, two browsers at once, CPU delegate, 2026-11-23. Cells are
-top-1 / spoken as a wrong concept / answered "unknown". "Chance" is top-1 by guessing one of the
-taught words.
+Desktop VM, headless Chromium, CPU delegate, 2026-11-23, fixed frames as described above (these
+numbers repeat exactly on this machine). Cells are top-1 / spoken as a wrong concept / answered
+"unknown" (attempts). "Chance" is top-1 by guessing one of the taught words.
 
 **Full set, `DGS_FULL=1 npm run test:browser`** (27 words, 86 videos of taught words, 96 videos of
-71 never-taught words; 9.4 frames per second median; videos 1.3 to 7.4 s, median 3.2 s):
+71 never-taught words; videos 1.3 to 7.4 s, median 3.2 s):
 
 | Attempt | One-hand (20 words) | Two-hand (7 words) | All (chance 3.7%) |
 | --- | --- | --- | --- |
-| Other signers (leave one out) | 3.1% / 18.8% / 78.1% (64) | 13.6% / 31.8% / 54.5% (22) | 5.8% / 22.1% / 72.1% (86), top-3 13/86 |
-| Same video, second pass | 57.8% / 0.0% / 42.2% (64) | 59.1% / 0.0% / 40.9% (22) | 58.1% / 0.0% / 41.9% (86) |
+| Other signers (leave one out) | 12.5% / 17.2% / 70.3% (64) | 9.1% / 13.6% / 77.3% (22) | 11.6% / 16.3% / 72.1% (86), top-3 22/86 |
+| Same video, second pass | 59.4% / 1.6% / 39.1% (64) | 59.1% / 4.5% / 36.4% (22) | 59.3% / 2.3% / 38.4% (86) |
 
-- Two-hand words in that run: banane, bruder, kaffee, milch, mittagessen, orange, weinen; the
-  other 20 one-hand.
-- Never-taught words: 22 of 96 videos were spoken as one of the 27 concepts.
-- No sequence built (first passes, all 182 videos): `hands_unclear` 32, `no_hands` 2 (in
-  `ja_main_ja.mp4` and `nein_var_nein_0.mp4` the tracker never saw a hand). Unknown answers of the
-  taught attempts: `ambiguous` 29, `hands_unclear` 17, `too_far` 15, `other_hands` 1.
-- Left/right against the pose model's wrists: 453 of 463 hand sightings agree (97.8%).
+- Two-hand words: banane, bruder, kaffee, mittagessen, orange, saft, weinen; the other 20 one-hand.
+- Never-taught words: 19 of 96 videos were spoken as one of the 27 concepts.
+- No sequence built (first passes, 182 videos): `hands_unclear` 38, `hand_lost` 5, `no_hands` 2 (in
+  `ja_main_ja.mp4` and `nein_var_nein_0.mp4` the tracker never sees a hand). Unknown answers of
+  the taught attempts: `ambiguous` 27, `hands_unclear` 19, `too_far` 13, `hand_lost` 2,
+  `other_hands` 1.
+- Left/right against the pose model's wrists: 1214 of 1270 hand sightings agree (95.6%).
 
-**Plain run (CI subset), `npm run test:browser`** (7 words, 22 videos; chance 14.3%), three local
-runs (the third is the final `npm run verify`):
+**Plain run (CI subset), `npm run test:browser`** (7 words, 22 videos; chance 14.3%). One-hand:
+danke, fertig, milch, oma, trinken; two-hand: banane, kaffee.
 
-| Run | Attempt | One-hand | Two-hand | All |
-| --- | --- | --- | --- | --- |
-| 1 | Other signers | 0% / 25.0% / 75.0% (12) | 10.0% / 0% / 90.0% (10) | 4.5% / 13.6% / 81.8% |
-| 1 | Same video, second pass | 50.0% / 0% / 50.0% (12) | 40.0% / 0% / 60.0% (10) | 45.5% / 0% / 54.5% |
-| 2 | Other signers | 0% / 6.3% / 93.8% (16) | 16.7% / 16.7% / 66.7% (6) | 4.5% / 9.1% / 86.4% |
-| 2 | Same video, second pass | 37.5% / 12.5% / 50.0% (16) | 66.7% / 0% / 33.3% (6) | 45.5% / 9.1% / 45.5% |
-| 3 | Other signers | 0% / 31.3% / 68.8% (16) | 16.7% / 16.7% / 66.7% (6) | 4.5% / 27.3% / 68.2%, top-3 8/22 |
-| 3 | Same video, second pass | 43.8% / 0% / 56.3% (16) | 50.0% / 0% / 50.0% (6) | 45.5% / 0% / 54.5% |
+| Attempt | One-hand | Two-hand | All |
+| --- | --- | --- | --- |
+| Other signers | 26.7% / 20.0% / 53.3% (15) | 14.3% / 0% / 85.7% (7) | 22.7% / 13.6% / 63.6% (22), top-3 10/22 |
+| Same video, second pass | 66.7% / 0% / 33.3% (15) | 85.7% / 0% / 14.3% (7) | 72.7% / 0% / 27.3% (22) |
 
-Run 1 measured banane, fertig, kaffee as two-hand; runs 2 and 3 kaffee and milch. **Which group a word
-falls into changes between runs**: the frames differ from run to run (which camera frames the
-tracker gets depends on timing), and for several signers the second hand is in view for about half
-of the time, the matcher's own limit (`HAND_PRESENCE_SHARE`). Left/right agreed with the pose
-wrists in 51/56, 50/54 and 59/60 sightings.
+Left/right: 143 of 150 sightings agree (95.3%). The live fake camera gave 8.0 frames per second,
+a hand in 9 of 24 frames.
+
+**How much frame timing alone moves these** (`DGS_PHASES=0,0.25,0.5,0.75`, plain set, all 12
+ordered pairs of passes taught and attempted): same-video top-1 63.6% to 77.3%, wrong concept 0%
+to 4.5% (never more than 1 of 22); left/right per pass 94.7% to 98.8%.
 
 What the numbers say:
 
-- **Across signers the matcher is at about chance.** Each word's two or three examples are other
-  adults, often with another variant of the sign, in another framing; most attempts are `unknown`
-  and about a fifth are spoken as a wrong concept. This is not the product's case (one child
-  teaching and repeating its own gestures), but it is a warning: examples that differ as much as
-  different signers do are not separated by the matcher, and a wrong concept is then common, so
-  the UI must confirm before speaking (recognition.md, "Known limits").
-- **The same signing seen again is recognised about half of the time and was spoken as a wrong
-  concept in 2 of 152 attempts over the four runs.** Between the passes only the tracker and the
-  frame timing differ, so this is the floor of what tracker noise at about 9 frames per second
-  costs. The misses are mostly `hands_unclear` (a second hand in view for a fifth to a half of the
-  time), then `too_far` and `ambiguous`.
+- **Across signers the matcher is weak**: 11.6% top-1 against 3.7% by chance in the full set,
+  and a wrong concept in about one attempt of six. Each word's two or three examples are other
+  adults, often with another variant of the sign, in another framing. This is not the product's
+  case (one child teaching and repeating its own gestures), but examples that differ as much as
+  different signers do are not separated, and a wrong concept is then common, so the UI must
+  confirm before speaking (recognition.md, "Known limits").
+- **The same signing seen in other frames is recognised in about 60 to 75% of the attempts and
+  spoken as a wrong concept in 2 of 86 (full set).** The misses are mostly `hands_unclear` (a
+  second hand in view for a fifth to a half of the time), then `too_far` and `ambiguous`.
+- The live-camera numbers in the first version of this card (same-video top-1 around 45%) were
+  lower because the live pipeline dropped frames unevenly; they are superseded by these.
 - No limit of the matcher was changed for these numbers.
 
-### What the DGS test asserts, and why
+### What the DGS test asserts, and how each bar was derived
 
-- **Pipeline**: every video gives at least 3 tracked frames per second, with the image size; pose
-  ran in every video; a hand is seen in at least 90% of the videos (two SignDict videos never
-  show one); at least two words are measured as two-hand and two as one-hand; in no frame do both
-  slots hold the same hand; no request leaves the app's origin.
-- **Determinism**: the adapter, feature builder and matcher give identical answers when the same
-  frames are evaluated twice (other-signer and second-pass evaluation).
-- **Left/right**: at least 90% of hand sightings agree with the pose model's wrists (measured
-  97.8%, 91%, 93%, 98%).
-- **Same video, second pass**: top-1 at least **twice chance** (14.3% x 2 = 28.6% in the plain run,
-  7.4% in the full set; measured 45.5%, 45.5%, 45.5% and 58.1%) and spoken as a wrong concept at most
-  **20%** (measured 0%, 9.1%, 0% and 0%). Both bounds are well inside what was measured, and with 22
-  attempts a stricter ceiling (10% is two attempts) would fail on noise: run 2 had two.
-- **Other signers: nothing is asserted.** The measured top-1 is at chance and the wrong-concept
-  share is 9% to 27%; asserting "above chance" would be false, and a ceiling on wrong concepts
-  would only encode today's noise. The rates are printed for the record.
+On one machine the DGS numbers are now the same in every run, so a bar cannot flip by chance
+there. The margins are for another machine, where the tracker's arithmetic may differ slightly;
+each bar sits well below the lowest value seen over all frame timings measured (the four phases
+above), so that a change as large as moving every frame by a quarter of a frame interval still
+passes.
+
+- **Pipeline**: every frame handed in comes back tracked, with its size; pose ran in every video;
+  a hand is seen in at least 90% of the videos (two SignDict videos never show one); at least one
+  word is measured as one-hand and one as two-hand; in no frame do both slots hold the same hand;
+  no request leaves the app's origin. The live fake camera delivers at least 3 frames per second
+  (measured 8.0 to 9.5) with a hand in some of them.
+- **Reproducible frames**: the same video tracked again in a fresh browser gives identical
+  landmarks; the adapter, feature builder and matcher give identical answers for the same frames.
+- **Left/right**: at least 100 hand sightings with pose, and at least **85%** agree with the pose
+  model's wrists. Lowest per-pass value over the four phases 94.7%, CI set 95.3%, full set 95.6%;
+  the bar is 10 points under the lowest. The earlier bar of 90% on the live camera was wrong: on
+  about 50 sightings that changed with the machine's timing it was within the run-to-run spread
+  (89.4% to 100%), so it flipped.
+- **Same video, second pass**: top-1 at least **40%** (lowest of the 12 phase pairs 63.6%; full
+  set 59.3%; 2.8 times chance in the plain set) and wrong concept at most **20%** (highest 4.5%,
+  1 of 22; full set 2.3%). The earlier "twice chance" bar (28.6%) was measured on the live camera,
+  where top-1 ranged 27.3% to 45.5%, and flipped; it was wrong for that set-up.
+- **Other signers: nothing is asserted.** Top-1 is above chance in these runs (11.6% against
+  3.7%; 22.7% against 14.3%), but with 22 attempts in the plain set the margin is three attempts,
+  and a ceiling on wrong concepts would only encode today's numbers. They are printed for the
+  record.
 
 ### Time
 
-The plain browser test (`npm run test:browser`) took 110 s locally (board and camera tests about
-5 s, DGS capture 107 s for 22 videos, two passes each, two browsers); all of `npm run verify` took
-2 min 16 s. The full set took 15 min of capture (182 videos). A CI runner is slower; the job's
-time limit was raised from 10 to 20 minutes.
+The plain browser test (`npm run test:browser`) takes about 100 s locally (board and camera tests
+about 5 s, DGS 96 s: 22 videos with two passes each in three browsers, the repeat of one video and
+the live fake camera). The full set took 12.5 min. A CI runner is slower; the job's time limit was
+raised from 10 to 20 minutes.
 
 ### Running it
 
 - Locally: `npm run verify` (needs `origin/main_old` fetched, Git LFS, ffmpeg and Playwright's
   Chromium). Without `origin/main_old` (an exported copy without Git history) the DGS test is
   skipped with that reason; under `CI=true` it fails instead. `DGS_FULL=1 npm run test:browser`
-  for the full set; `DGS_PARALLEL=<n>` browsers at once (default 2).
+  for the full set; `DGS_PARALLEL=<n>` browsers at once (default 3; the results do not depend on
+  it); `DGS_PHASES=0,0.25,0.5,0.75` tracks four passes and prints every taught/attempted pair.
 - CI (`.github/workflows/ci.yml`) fetches `main_old` with depth 1 (the checkout fetches only the
   tested commit), installs Chromium with `npx playwright install --with-deps chromium`, installs
   ffmpeg if the runner lacks it, and runs `npm run verify` on Node 22 and 24. The LFS videos are
   downloaded anonymously from GitHub's LFS storage (about 4 MB per run), which counts against the
   repository's LFS bandwidth.
-- `DGS_FRAMES_OUT=<file>` writes the recorded tracker frames, `DGS_FRAMES_IN=<file>` evaluates
+- `DGS_FRAMES_OUT=<file>` writes the tracked frames, `DGS_FRAMES_IN=<file>` evaluates
   such a file again without capturing. These are adult signers' landmarks from public videos, not
   child data, but they are not to be committed either (`*.landmarks.json` is ignored).
 
@@ -278,6 +299,9 @@ time limit was raised from 10 to 20 minutes.
   one without are not comparable (recognition.md, "Input contract").
 - The camera test entry is reached only by its address; the caregiver area gets a proper entry with
   cards NG-19 and NG-20.
-- The frame rate in the browser test (about 10 per second on the desktop VM with two browsers at
-  once) is the rate of the whole pipeline (camera frame, bitmap, worker round trip with pose on
-  every fifth frame), not a phone number.
+- The live fake camera reached 8 to 9.5 frames per second on the desktop VM (camera frame, bitmap,
+  worker round trip with pose on every fifth frame); not a phone number. The DGS rates are
+  measured at a fixed 10 frames per second of video instead.
+- The DGS numbers are reproducible on one machine. Another CPU may run the tracker's arithmetic
+  slightly differently (other SIMD kernels), which can change some landmarks; the bars below have
+  margins for that, but CI on GitHub's runners has not been run from here.

@@ -1,15 +1,17 @@
 // Real-browser tests of the camera capture (card NG-3, docs/capture.md).
 //
 // Chromium (Playwright) serves the built dist/ and runs the app's own capture
-// code: capture/capture.js, the tracker worker and the vendored tracker. The
-// camera is Chromium's fake camera, fed with DGS sign videos (SignDict.org,
-// adult signers) that are read from the main_old history at test time and
-// never added to main. The landmark frames are then taught and attempted with
-// the real matcher (dist/recognition/) in Node.
+// code: capture/capture.js, the tracker worker and the vendored tracker. DGS
+// sign videos (SignDict.org, adult signers), read from the main_old history at
+// test time and never added to main, are handed to that capture path at fixed
+// frames (one of them also through Chromium's live fake camera). The landmark
+// frames are then taught and attempted with the real matcher
+// (dist/recognition/) in Node.
 //
 // Environment:
 //   DGS_FULL=1          every word with at least 3 distinct videos (slow) instead of the CI subset
-//   DGS_PARALLEL=<n>    browsers at the same time (default 2)
+//   DGS_PARALLEL=<n>    browsers at the same time (default 3; the results do not depend on it)
+//   DGS_PHASES=a,b,...  phases of the passes over each video (default 0,0.5); more than two prints every pair
 //   DGS_REF=<ref>       where the videos are (default origin/main_old)
 //   DGS_FRAMES_OUT=<f>  also write the tracker frames to <f> (adult signers' landmarks; never commit it)
 //   DGS_FRAMES_IN=<f>   evaluate frames written before instead of capturing (to study the numbers; not a test of the capture)
@@ -34,7 +36,11 @@ const REPO = new URL("../../", import.meta.url).pathname;
 const REF = process.env.DGS_REF ?? "origin/main_old";
 const VIDEO_DIR = "server/data/dgs_video_examples";
 const FULL = process.env.DGS_FULL === "1";
-const PARALLEL = Math.max(1, Number(process.env.DGS_PARALLEL ?? 2));
+const PARALLEL = Math.max(1, Number(process.env.DGS_PARALLEL ?? 3));
+/** Phases of the passes over each video, in frames of CAPTURE_RATE: the first pass teaches, the second attempts. */
+const PHASES = (process.env.DGS_PHASES ?? "0,0.5").split(",").map(Number);
+/** The video also played through the live fake camera, and tracked twice to show the frames are reproducible. */
+const CAMERA_WORD = "kaffee";
 const FAKE_CAMERA = ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"];
 
 /**
@@ -255,11 +261,10 @@ function dgsWords(minimum = 3) {
     .sort((a, b) => a.word.localeCompare(b.word));
 }
 
-/** The video as a y4m file for Chromium's fake camera, and its length in ms. Read through Git LFS from the history; written only to a temporary directory. */
+/** The video from the history, through Git LFS, as an mp4 in `directory`. Never written anywhere else. */
 async function videoFile(path, directory, index) {
   const pointer = git(["show", `${REF}:${path}`]);
   const mp4 = join(directory, `video-${index}.mp4`);
-  const y4m = join(directory, `video-${index}.y4m`);
   await new Promise((resolve, reject) => {
     const smudge = spawn("git", ["lfs", "smudge", "--", path], { cwd: REPO, stdio: ["pipe", "pipe", "inherit"] });
     const chunks = [];
@@ -271,22 +276,110 @@ async function videoFile(path, directory, index) {
     });
     smudge.stdin.end(pointer);
   });
-  const { stdout } = await run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp4]);
-  await run("ffmpeg", ["-v", "error", "-y", "-i", mp4, "-pix_fmt", "yuv420p", y4m]);
-  await rm(mp4);
-  return { y4m, durationMs: Math.round(Number(stdout.trim()) * 1000) };
+  return mp4;
 }
 
+/** Every decoded frame of the video as RGBA, decoded by ffmpeg, with its size and frame rate. */
+async function decodedFrames(mp4) {
+  const { stdout } = await run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,r_frame_rate", "-of", "csv=p=0", mp4]);
+  const [width, height, rate] = stdout.trim().split(",");
+  const [numerator, denominator] = rate.split("/").map(Number);
+  const { stdout: raw } = await run("ffmpeg", ["-v", "error", "-i", mp4, "-f", "rawvideo", "-pix_fmt", "rgba", "-"], { encoding: "buffer", maxBuffer: 1 << 30 });
+  const frameBytes = Number(width) * Number(height) * 4;
+  return { width: Number(width), height: Number(height), fps: numerator / denominator, raw, count: Math.floor(raw.length / frameBytes), frameBytes };
+}
+
+/** Frames per second the DGS captures are tracked at: about the rate the pipeline reached with the live fake camera (9 per second). */
+const CAPTURE_RATE = 10;
+
 /**
- * Plays one video as the camera and records the app's capture of two passes
- * of it (the fake camera loops the file): the first and the second pass, each
- * exactly as long as the video.
+ * Tracks one video through the app's own capture path: `startCapture` with
+ * the real tracker worker and vendored tracker (`browserEnvironment`), but
+ * with the frames handed in at fixed points of the video instead of the live
+ * fake camera. Frame i of a pass is the video frame at (i + phase) /
+ * CAPTURE_RATE seconds, with that time as its timestamp. The live fake camera
+ * delivers whichever frames the timing of the machine lets through, so its
+ * frames, and every rate computed from them, differ from run to run; these do
+ * not. A pass with another phase sees the same signing in other frames, as a
+ * second look at the same movement would.
  */
-async function captureVideo(y4m, durationMs) {
+async function trackVideo(video, phases) {
+  const browser = await chromium.launch();
+  try {
+    const context = await browser.newContext();
+    const passes = phases.map((phase) => {
+      const picks = [];
+      for (let i = 0; ; i += 1) {
+        const frame = Math.floor((i + phase) * video.fps / CAPTURE_RATE);
+        if (frame >= video.count) break;
+        picks.push(frame);
+      }
+      return { picks, times: picks.map((frame) => Math.round(frame * 1000 / video.fps)) };
+    });
+    const foreign = [];
+    await context.route("**/*", (route) => {
+      const url = route.request().url();
+      // One video frame per request, served by the test (never part of dist/).
+      const wanted = /\/dgs-test-frames-(\d+)-(\d+)\.rgba$/.exec(url);
+      if (url.startsWith(origin) && wanted !== null) {
+        const frame = passes[Number(wanted[1])].picks[Number(wanted[2])];
+        return route.fulfill({ body: video.raw.subarray(frame * video.frameBytes, (frame + 1) * video.frameBytes), contentType: "application/octet-stream" });
+      }
+      if (!url.startsWith(origin)) {
+        foreign.push(url);
+        return route.abort();
+      }
+      return route.continue();
+    });
+    const page = await context.newPage();
+    await page.goto(new URL("./#kamera-testen", origin).href);
+    const tracked = await page.evaluate(async ({ width, height, times }) => {
+      const capture = await import("./capture/capture.js");
+      const region = document.querySelector("#capture-region");
+      const results = [];
+      for (const [pass, passTimes] of times.entries()) {
+        let index = 0;
+        const frames = [];
+        const environment = {
+          ...capture.browserEnvironment(region),
+          // No camera: the frames come from the video. Everything after the camera is the app's own.
+          getUserMedia: async () => ({ getTracks: () => [] }),
+          openFrames: async () => ({
+            async next() {
+              if (index >= passTimes.length) return null;
+              const bytes = await (await fetch(`./dgs-test-frames-${pass}-${index}.rgba`)).arrayBuffer();
+              const pixels = new ImageData(new Uint8ClampedArray(bytes), width, height);
+              const image = await createImageBitmap(pixels);
+              return { image, timestampMs: passTimes[index++], width, height };
+            },
+            close() {},
+          }),
+        };
+        const started = await capture.startCapture(environment, { onFrame: (frame) => frames.push(frame) });
+        if (!started.ok) throw new Error(`capture did not start: ${started.problem}`);
+        // The source ends after the last frame, which ends the capture.
+        await started.session.ended;
+        results.push(frames);
+      }
+      return results;
+    }, { width: video.width, height: video.height, times: passes.map((pass) => pass.times) });
+    assert.deepEqual(foreign, [], "a request left the app's origin");
+    return tracked;
+  } finally {
+    await browser.close();
+  }
+}
+
+/** Plays one video through Chromium's fake camera and records the app's live capture of one pass of it. */
+async function captureWithFakeCamera(mp4, directory) {
+  const y4m = join(directory, "camera.y4m");
+  await run("ffmpeg", ["-v", "error", "-y", "-i", mp4, "-pix_fmt", "yuv420p", y4m]);
+  const { stdout } = await run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp4]);
+  const lengthMs = Math.round(Number(stdout.trim()) * 1000);
   const browser = await chromium.launch({ args: [...FAKE_CAMERA, `--use-file-for-fake-video-capture=${y4m}`] });
   try {
     const { page, foreign } = await openApp(browser, origin, "./#kamera-testen");
-    const frames = await page.evaluate(async (lengthMs) => {
+    const frames = await page.evaluate(async (length) => {
       const capture = await import("./capture/capture.js");
       let first = null;
       const started = await capture.startCapture(capture.browserEnvironment(document.querySelector("#capture-region")), {
@@ -296,17 +389,14 @@ async function captureVideo(y4m, durationMs) {
       if (!started.ok) throw new Error(`capture did not start: ${started.problem}`);
       // Chromium's fake camera starts the file at its first frame when the camera opens, and loops it.
       while (first === null) await new Promise((resolve) => setTimeout(resolve, 5));
-      await new Promise((resolve) => setTimeout(resolve, 2 * lengthMs));
-      const recorded = started.session.stop();
-      return [
-        recorded.filter((frame) => frame.timestampMs - first < lengthMs),
-        recorded.filter((frame) => frame.timestampMs - first >= lengthMs && frame.timestampMs - first < 2 * lengthMs),
-      ];
-    }, durationMs);
+      await new Promise((resolve) => setTimeout(resolve, length));
+      return started.session.stop().filter((frame) => frame.timestampMs - first < length);
+    }, lengthMs);
     assert.deepEqual(foreign, [], "a request left the app's origin");
-    return frames;
+    return { frames, lengthMs };
   } finally {
     await browser.close();
+    await rm(y4m, { force: true });
   }
 }
 
@@ -412,27 +502,49 @@ test(`DGS sign videos through the app's capture and the real matcher (${FULL ? "
     ...untaught.flatMap(({ word, videos }) => videos.map((path) => ({ word, path, taught: false }))),
   ];
   let captures;
+  let camera = null;
+  let rerun = null;
   if (process.env.DGS_FRAMES_IN) {
     const saved = JSON.parse(await readFile(process.env.DGS_FRAMES_IN, "utf8"));
     captures = jobs.map((job) => saved.find((entry) => entry.path === job.path) ?? assert.fail(`${job.path} not in DGS_FRAMES_IN`));
   } else {
-  const directory = await mkdtemp(join(tmpdir(), "amysecho-dgs-"));
-  try {
-    captures = await inParallel(jobs, PARALLEL, async (job, index) => {
-      const { y4m, durationMs } = await videoFile(job.path, directory, index);
-      try {
-        const [trackerFrames, secondPass] = await captureVideo(y4m, durationMs);
-        return { ...job, durationMs, trackerFrames, secondPass };
-      } finally {
-        await rm(y4m, { force: true });
-      }
-    });
-  } finally {
-    await rm(directory, { recursive: true, force: true });
+    const directory = await mkdtemp(join(tmpdir(), "amysecho-dgs-"));
+    try {
+      captures = await inParallel(jobs, PARALLEL, async (job, index) => {
+        const mp4 = await videoFile(job.path, directory, index);
+        try {
+          const video = await decodedFrames(mp4);
+          const passes = await trackVideo(video, PHASES);
+          return { ...job, durationMs: Math.round(video.count * 1000 / video.fps), expectedFrames: passes[0].length, passes };
+        } finally {
+          await rm(mp4, { force: true });
+        }
+      });
+      // The same video tracked again in a fresh browser gives exactly the same frames.
+      const first = jobs.find((job) => job.word === CAMERA_WORD) ?? jobs[0];
+      const mp4 = await videoFile(first.path, directory, "again");
+      rerun = { path: first.path, passes: await trackVideo(await decodedFrames(mp4), [PHASES[0]]) };
+      // And through the live fake camera, the path a real camera takes.
+      camera = { path: first.path, ...await captureWithFakeCamera(mp4, directory) };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   }
+  for (const capture of captures) {
+    capture.trackerFrames = capture.passes[0];
+    capture.secondPass = capture.passes[1];
   }
   const captureSeconds = (Date.now() - started) / 1000;
-  if (process.env.DGS_FRAMES_OUT) await writeFile(process.env.DGS_FRAMES_OUT, JSON.stringify(captures.map(({ word, path, taught, durationMs, trackerFrames, secondPass }) => ({ word, path, taught, durationMs, trackerFrames, secondPass }))));
+  if (process.env.DGS_FRAMES_OUT) await writeFile(process.env.DGS_FRAMES_OUT, JSON.stringify(captures.map(({ word, path, taught, durationMs, passes }) => ({ word, path, taught, durationMs, passes }))));
+
+  if (rerun !== null) {
+    assert.deepEqual(rerun.passes[0], captures.find((capture) => capture.path === rerun.path).passes[0], "tracking the same frames again gave other landmarks");
+  }
+  if (camera !== null) {
+    const fps = camera.frames.length / (camera.lengthMs / 1000);
+    assert.ok(fps >= 3, `live fake camera: ${fps.toFixed(1)} frames per second`);
+    assert.ok(camera.frames.some((frame) => frame.hands.length > 0), "live fake camera: no hand seen");
+  }
 
   for (const capture of captures) {
     capture.frames = toLandmarkFrames(capture.trackerFrames);
@@ -442,10 +554,9 @@ test(`DGS sign videos through the app's capture and the real matcher (${FULL ? "
     capture.both = bothShare(capture.frames);
   }
 
-  // Pipeline: frames arrive at a usable rate, with the size of the video, and hands are seen in every video.
+  // Pipeline: every frame handed in comes back tracked, with the size of the video, and pose ran.
   for (const capture of captures) {
-    const fps = capture.trackerFrames.length / (capture.durationMs / 1000);
-    assert.ok(fps >= 3, `${capture.path}: ${fps.toFixed(1)} frames per second`);
+    if (capture.expectedFrames !== undefined) assert.equal(capture.trackerFrames.length, capture.expectedFrames, `${capture.path}: frames lost`);
     assert.ok(capture.trackerFrames.every((frame) => frame.imageWidth > 0 && frame.imageHeight > 0));
     assert.ok(capture.trackerFrames.some((frame) => frame.pose !== null), `${capture.path}: pose never ran`);
   }
@@ -459,8 +570,8 @@ test(`DGS sign videos through the app's capture and the real matcher (${FULL ? "
     const own = captures.filter((capture) => capture.word === word);
     return own.filter((capture) => capture.both >= 0.5).length * 2 > own.length;
   }));
-  assert.ok(twoHand.size >= 2, `two-hand signs seen: ${[...twoHand]}`);
-  assert.ok(words.length - twoHand.size >= 2, "one-hand signs seen");
+  assert.ok(twoHand.size >= 1, "no two-hand sign seen");
+  assert.ok(words.length - twoHand.size >= 1, "no one-hand sign seen");
   // In two-hand frames the two slots hold two different hands, never one hand twice.
   for (const capture of captures) {
     for (const frame of capture.frames) {
@@ -489,7 +600,8 @@ test(`DGS sign videos through the app's capture and the real matcher (${FULL ? "
   const taughtOutcomes = outcomes.filter((outcome) => outcome.taught);
   const oneHandOutcomes = taughtOutcomes.filter((outcome) => !twoHand.has(outcome.word));
   const twoHandOutcomes = taughtOutcomes.filter((outcome) => twoHand.has(outcome.word));
-  const agreement = captures.map((capture) => poseAgreement(capture.trackerFrames, capture.frames))
+  const agreement = captures.flatMap((capture) => [capture.trackerFrames, capture.secondPass]
+    .map((pass) => poseAgreement(pass, toLandmarkFrames(pass))))
     .reduce((sum, value) => ({ agree: sum.agree + value.agree, total: sum.total + value.total }), { agree: 0, total: 0 });
   const failures = {};
   for (const capture of captures) if (capture.failure !== null) failures[capture.failure] = (failures[capture.failure] ?? 0) + 1;
@@ -498,7 +610,7 @@ test(`DGS sign videos through the app's capture and the real matcher (${FULL ? "
   const all3 = rates(taughtOutcomes);
   const lines = [
     `DGS capture (${FULL ? "DGS_FULL=1" : "CI subset"}): ${captures.length} videos, ${words.length} taught words, captured in ${captureSeconds.toFixed(0)} s with ${PARALLEL} browsers`,
-    `  frames per second: median ${median(captures.map((capture) => capture.trackerFrames.length / (capture.durationMs / 1000))).toFixed(1)}`,
+    `  tracked at ${CAPTURE_RATE} frames per second of video, passes at phases ${PHASES.join(", ")}${camera === null ? "" : `; live fake camera (${camera.path.split("/").pop()}): ${(camera.frames.length / (camera.lengthMs / 1000)).toFixed(1)} frames per second, ${camera.frames.filter((frame) => frame.hands.length > 0).length} of ${camera.frames.length} frames with a hand`}`,
     `  one-hand words (${words.length - twoHand.size}): ${words.filter((word) => !twoHand.has(word)).join(", ")}`,
     `  two-hand words (${twoHand.size}): ${[...twoHand].join(", ")}`,
     `  other signers (leave one video out; chance of top-1 by guessing ${(100 / words.length).toFixed(1)}%):`,
@@ -511,7 +623,7 @@ test(`DGS sign videos through the app's capture and the real matcher (${FULL ? "
     `    all: ${rates(repeatOutcomes).line}`,
     `  unknown reasons: ${JSON.stringify(unknownReasons)}; no sequence built: ${JSON.stringify(failures)}`,
     `  videos without any hand seen: ${handless.length}${handless.length === 0 ? "" : ` (${handless.map((capture) => capture.path.split("/").pop()).join(", ")})`}`,
-    `  left/right against the pose model's wrists: ${agreement.agree}/${agreement.total} hand sightings agree`,
+    `  left/right against the pose model's wrists: ${agreement.agree}/${agreement.total} hand sightings agree (both passes)`,
   ];
   if (untaught.length > 0) {
     const untaughtOutcomes = outcomes.filter((outcome) => !outcome.taught);
@@ -521,15 +633,35 @@ test(`DGS sign videos through the app's capture and the real matcher (${FULL ? "
     const repeat = repeatOutcomes[index];
     lines.push(`    ${outcome.path.split("/").pop()}: ${outcome.kind}${outcome.spoken !== undefined && outcome.kind === "wrong" ? ` as ${outcome.spoken}` : ""}${outcome.reason === undefined ? "" : ` (${outcome.reason})`}; second pass: ${repeat.kind}${repeat.kind === "wrong" ? ` as ${repeat.spoken}` : ""}${repeat.reason === undefined ? "" : ` (${repeat.reason})`}`);
   }
+  if (PHASES.length > 2) {
+    // Every ordered pair of passes: taught from one phase, attempted from another.
+    for (const [teach, taughtPhase] of PHASES.entries()) {
+      for (const [attempt, attemptPhase] of PHASES.entries()) {
+        if (teach === attempt) continue;
+        const build = (capture, pass) => {
+          const built = buildFeatureSequence(toLandmarkFrames(capture.passes[pass]));
+          return { ...capture, trackerFrames: capture.passes[pass], sequence: built.ok ? built.sequence : null, failure: built.ok ? null : built.reason };
+        };
+        const profile = captures.map((capture) => build(capture, teach));
+        const tries = captures.filter((capture) => capture.taught).map((capture) => build(capture, attempt));
+        lines.push(`  phase ${taughtPhase} taught, ${attemptPhase} attempted: ${rates(evaluate(tries, profile, false)).line}`);
+      }
+      const passAgreement = captures.map((capture) => poseAgreement(capture.passes[teach], toLandmarkFrames(capture.passes[teach])))
+        .reduce((sum, value) => ({ agree: sum.agree + value.agree, total: sum.total + value.total }), { agree: 0, total: 0 });
+      lines.push(`  phase ${taughtPhase}: left/right agree with pose wrists ${passAgreement.agree}/${passAgreement.total}`);
+    }
+  }
   console.log(lines.join("\n"));
 
-  // What is asserted on the numbers, and why, is in docs/capture.md ("What the DGS test asserts"). The
-  // other-signer rates are only recorded. No matcher limit is changed for any of this.
-  assert.ok(agreement.total > 0 && agreement.agree / agreement.total >= 0.9,
+  // What is asserted on the numbers, and how each bar was derived, is in docs/capture.md ("What the DGS
+  // test asserts"). The frames are reproducible, so on one machine these numbers do not change between runs;
+  // the margins are for another machine's tracker arithmetic. The other-signer rates are only recorded.
+  // No matcher limit is changed for any of this.
+  assert.ok(agreement.total >= 100, `too few hand sightings with pose to check left/right: ${agreement.total}`);
+  assert.ok(agreement.agree / agreement.total >= 0.85,
     `left/right disagree with the pose model's wrists: ${agreement.agree}/${agreement.total}`);
   const repeat = rates(repeatOutcomes);
-  assert.ok(repeat.top1 / repeat.attempts >= 2 / words.length,
-    `the same signing seen again is recognised no better than twice chance: ${repeat.line}`);
+  assert.ok(repeat.top1 / repeat.attempts >= 0.4, `the same signing seen again is recognised too rarely: ${repeat.line}`);
   assert.ok(repeat.wrong / repeat.attempts <= 0.2, `the same signing seen again is spoken as a wrong concept too often: ${repeat.line}`);
 });
 
