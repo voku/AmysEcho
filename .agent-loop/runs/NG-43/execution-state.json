@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:9a2b946dd97a35d69af95ce2bf606973ebcf3a10",
+    "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
     "contract_revision": 1,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
     "history": [
         {
@@ -158,6 +158,38 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:1:be884641",
                 "summary": "The child's view uses the stored device choice: after teaching with the back camera it points away from the child alone, every attempt has no hands and nothing says why. Decision: the child's gesture view always uses the front camera; the choice applies to teaching and the camera test.",
+                "task_id": "NG-43",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T18:23:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T18:23:44+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "schema_version": "1.0",
+                "task_id": "NG-43",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:973ea927c6c904afafa780006b9fe4306b2e114f:d11dcf2f1843e08b9049d587cfd2552ce95596c9",
+                "context_id": "build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:796e33285d28d6160aded24a9f549d73d0090412b248dacee1dec33d2001299a",
+                "outcome": "completed",
+                "run_id": "run:NG-43:72ceadb9ff9cb5c5",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:a59e90d0",
+                "summary": "Child's view requests the front camera with fallback off, ignoring the stored choice; fallback note removed there; tests for front-only child view, no back-camera retry, back-taught examples matching front attempts; docs corrected; verify passes",
                 "task_id": "NG-43",
                 "validation_references": []
             }
