@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
     "contract_revision": 2,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 1,
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
     "history": [
         {
@@ -134,6 +134,56 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:b4b95600",
                 "summary": "Preview holder has a fixed size and background in every state; measured control positions identical with camera off and on at 640x360, 360x640, 320x480; verify passes",
+                "task_id": "NG-42",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T16:59:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T16:59:01+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:f00ffe9efb4509c306c1dc2194c24a775f08d81d2fbdc8db7f2f6b1c8dcc1bd0",
+                    "execution-evidence:sha256:7a0d3b3884691cf65f00234bf5402ccbed69af541738bdf409a83b07b93522a5",
+                    "execution-evidence:sha256:5369fb5ba60ed44b4903328c4eff2428cd0d9311be4bdf2d2f40b6e059077d5d",
+                    "execution-evidence:sha256:290c2df5b89250b9e8edd2a11f1d42a4b86908f4dea56f089f5bc7117ccbedc7",
+                    "execution-evidence:sha256:dc8ad63b7d41bee2e3c0cf46c894fbd1570c90f9a8ed3d148dd478cf2142dbaa",
+                    "execution-evidence:sha256:bfa146a3fba85623fa9dd777686dc8649b7aaa2d3343a806095176b087498813",
+                    "execution-evidence:sha256:17f6e858b9a8af292eb1e556504d560e6b2075a7d4cd8d56d9f3481a63460de9",
+                    "execution-evidence:sha256:27d03cc095e05de728c786dc4418dfe268807b2bf42fb37d5be30600bb419ba0"
+                ],
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "schema_version": "1.0",
+                "task_id": "NG-42",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:f00ffe9efb4509c306c1dc2194c24a775f08d81d2fbdc8db7f2f6b1c8dcc1bd0",
+                    "execution-evidence:sha256:7a0d3b3884691cf65f00234bf5402ccbed69af541738bdf409a83b07b93522a5",
+                    "execution-evidence:sha256:5369fb5ba60ed44b4903328c4eff2428cd0d9311be4bdf2d2f40b6e059077d5d",
+                    "execution-evidence:sha256:290c2df5b89250b9e8edd2a11f1d42a4b86908f4dea56f089f5bc7117ccbedc7",
+                    "execution-evidence:sha256:dc8ad63b7d41bee2e3c0cf46c894fbd1570c90f9a8ed3d148dd478cf2142dbaa",
+                    "execution-evidence:sha256:bfa146a3fba85623fa9dd777686dc8649b7aaa2d3343a806095176b087498813",
+                    "execution-evidence:sha256:17f6e858b9a8af292eb1e556504d560e6b2075a7d4cd8d56d9f3481a63460de9",
+                    "execution-evidence:sha256:27d03cc095e05de728c786dc4418dfe268807b2bf42fb37d5be30600bb419ba0"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6963b5be29a4a23599dc6ed8712b9fbccbfb88d5:7c096088ce1abde6a73bca84d04e8603e922e5d2",
+                "context_id": "correctness-review-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:12f9d87db9aa0eac95facf7c337f50d438cb085be3f0bb512da68417003cf594",
+                "outcome": "pass",
+                "run_id": "run:NG-42:687b23eb37b093eb",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:a6c51f21",
+                "summary": "Preview holder fixed in every state; controls keep positions with camera off and on; privacy, unflipped tracker frames, mirror mapping and closing on every exit verified earlier",
                 "task_id": "NG-42",
                 "validation_references": []
             }
