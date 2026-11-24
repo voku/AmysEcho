@@ -871,8 +871,9 @@ export interface CapturePreview extends PreviewSink {
 export interface CapturePreviewOptions {
   /**
    * False: no camera picture at all, only the tracked points on the box's calm background (the
-   * box is marked `data-picture="points"`). The child's gesture view uses it: nobody and no room is
-   * on screen, only where the hands are. Default true (teaching and the camera test).
+   * box is marked `data-picture="points"`): nobody and no room is on screen, only where the hands
+   * are. The child's gesture view asks for it after "Bild aus" (card NG-52); `setVideo` switches it
+   * while the preview runs. Default true (teaching, the camera test, the gesture view).
    */
   readonly video?: boolean;
 }

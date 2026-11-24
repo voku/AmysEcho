@@ -1595,12 +1595,13 @@ test("view: 'Bild aus' and 'Bild an' in the picture's corner switch the camera p
     assert.equal(toggle.tagName, "button");
     assert.equal(slotOf(panel()).children.at(-1), toggle, "in the picture's box");
     assert.equal(textOf(toggle), "◐ Bild aus", "the words say what a tap does");
-    assert.equal(toggle.attributes["aria-label"], "Kamerabild ausblenden");
+    assert.equal(toggle.attributes["aria-label"], "Kamerabild", "one name in both states: aria-pressed says which");
     assert.equal(toggle.attributes["aria-pressed"], "true");
     toggle.click();
     assert.deepEqual(previews.made[0].videoSet, [false]);
     assert.equal(textOf(toggle), "◐ Bild an");
-    assert.equal(toggle.attributes["aria-label"], "Kamerabild zeigen");
+    assert.equal(toggle.attributes["aria-label"], "Kamerabild");
+    assert.equal(toggle.attributes["aria-pressed"], "false");
     assert.equal(choice.items.get(RECOGNISE_PICTURE_KEY), "off");
     assert.equal(panel().dataset.state, "countdown", "the countdown goes on");
     // Into the recording, then back on: the camera never restarts, no frame is lost.

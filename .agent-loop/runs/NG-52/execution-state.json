@@ -1,11 +1,131 @@
 {
     "attention": null,
-    "candidate_revision": "7cd7290ab3dcb917bca8c402901dc3389c5c168b",
+    "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:36196a512ff4440605f5ec976afac7d20d28458f",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-24T17:07:30+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T17:07:30+00:00",
+                "artifact_references": [],
+                "candidate_revision": "7cd7290ab3dcb917bca8c402901dc3389c5c168b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "schema_version": "1.0",
+                "task_id": "NG-52",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "7cd7290ab3dcb917bca8c402901dc3389c5c168b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "outcome": "completed",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:e27982d0",
+                "summary": "The gesture view's preview is created in attachRecognise with createPreview(document, { video: false }) since NG-49; createCapturePreview decides video once in show. Change sites: a setVideo on the capture preview, a picture toggle placed in the preview box by draw(), a stored choice; tests that assert the box's children.",
+                "task_id": "NG-52",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T17:07:33+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T17:07:33+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:fb2c32ca07e46d1de0a35b7e6ca239b74e6d723f5e8a35340c7b850fc4c2882a",
+                    "execution-evidence:sha256:b569a49e233e9709d4b17f9b95bed3fe98e636ea94c1bf2fba00316aaae09f0a",
+                    "execution-evidence:sha256:0157e296f9444c77c12dac3608e15ae67e8283fcfb02a1934a327ccebf4ecd15",
+                    "execution-evidence:sha256:b261aab1d110f2608c881457f08784a2ffcd6473b2451fba996189415b1228e5",
+                    "execution-evidence:sha256:0588e3478247103a7db0b196001dc3c8f6042d0edd8b461a17af23f7511679f7",
+                    "execution-evidence:sha256:286200f732d0743e222ab807dc4956efc339bc52d65403d2d18784b439694c01",
+                    "execution-evidence:sha256:ad6490a24a636878fe08f012b9ef7a24ff403f0e66a3fd0f8e8cbd6b30e152e6"
+                ],
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:36196a512ff4440605f5ec976afac7d20d28458f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "schema_version": "1.0",
+                "task_id": "NG-52",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:fb2c32ca07e46d1de0a35b7e6ca239b74e6d723f5e8a35340c7b850fc4c2882a",
+                    "execution-evidence:sha256:b569a49e233e9709d4b17f9b95bed3fe98e636ea94c1bf2fba00316aaae09f0a",
+                    "execution-evidence:sha256:0157e296f9444c77c12dac3608e15ae67e8283fcfb02a1934a327ccebf4ecd15",
+                    "execution-evidence:sha256:b261aab1d110f2608c881457f08784a2ffcd6473b2451fba996189415b1228e5",
+                    "execution-evidence:sha256:0588e3478247103a7db0b196001dc3c8f6042d0edd8b461a17af23f7511679f7",
+                    "execution-evidence:sha256:286200f732d0743e222ab807dc4956efc339bc52d65403d2d18784b439694c01",
+                    "execution-evidence:sha256:ad6490a24a636878fe08f012b9ef7a24ff403f0e66a3fd0f8e8cbd6b30e152e6"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:36196a512ff4440605f5ec976afac7d20d28458f",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "outcome": "completed",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:7d524d9c",
+                "summary": "setVideo(on) on createCapturePreview (same stream, video added/removed under the canvas); toggle 'Bild aus/an' in the preview box (place), aria-pressed and name, stored under amysecho-recognise-picture, default on; createPreview asked with { video: picture }; focus handed on when the toggle goes. 4 new tests + 3 updated; 4 mutants caught; Chromium at 5 sizes no scroll. npm run verify 685/685 + 7/7.",
+                "task_id": "NG-52",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T17:08:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T17:08:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ee53a4e79dbc2695728311e77fa558f26c4c730d87f57d82dcd1665e12fa9b3d",
+                    "execution-evidence:sha256:0c2131c450bd79e9365eabc5fe9973c415d4ac862dbbb67fd80de96e3f4092eb",
+                    "execution-evidence:sha256:443e82e3db8ae695542e3e057da944eaa9a1a4f81f1cc2893d901e50c53f3c57"
+                ],
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:36196a512ff4440605f5ec976afac7d20d28458f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "schema_version": "1.0",
+                "task_id": "NG-52",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ee53a4e79dbc2695728311e77fa558f26c4c730d87f57d82dcd1665e12fa9b3d",
+                    "execution-evidence:sha256:0c2131c450bd79e9365eabc5fe9973c415d4ac862dbbb67fd80de96e3f4092eb",
+                    "execution-evidence:sha256:443e82e3db8ae695542e3e057da944eaa9a1a4f81f1cc2893d901e50c53f3c57"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:36196a512ff4440605f5ec976afac7d20d28458f",
+                "context_id": "claude-subagent-ng52-correctness",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "outcome": "changes_required",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:a72fed05",
+                "summary": "Code and tests meet the acceptance criteria (194 tests pass; setVideo, toggle placement, focus, z-order and stored key checked). Three statements still say the gesture view shows no camera picture, the opposite of acceptance 1: docs/recognise.md:105-106, src/recognise/recognise.ts:33-35 (module comment) and src/capture/capture.ts:873-876 (CapturePreviewOptions.video doc: 'The child's gesture view uses it'). Fix: reword them to say the picture is on by default and points-only is the 'Bild aus' choice (card NG-52).",
+                "task_id": "NG-52",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],

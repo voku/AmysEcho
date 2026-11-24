@@ -30,10 +30,10 @@
  *
  * A live preview (card NG-44): while the camera runs (countdown and
  * recording) the view shows the tracked hands ("L"/"R") and shoulders, so
- * whoever makes the gesture sees whether the hands are in the picture. Since
- * card NG-49 without the camera's picture: only the points, on a calm
- * background, mirrored for the front camera only; nobody and no room is on
- * screen. It comes from the bridge (`createPreview`); a
+ * whoever makes the gesture sees whether the hands are in the picture: over
+ * the camera's picture, or alone on a calm background after "Bild aus" (cards
+ * NG-49 and NG-52, remembered on the device); mirrored for the front camera
+ * only. It comes from the bridge (`createPreview`); a
  * bridge without one, or a preview that fails, leaves the view as before.
  * Nothing of the picture is kept or sent.
  *
@@ -106,7 +106,8 @@ export const RECOGNISE_TEXT = {
   noCamera: "Die Kamera kann gerade nicht starten. Die Tafel geht auch ohne Kamera.",
   /** Card NG-52: the toggle on the picture; its words say what a tap does, its name what is shown. */
   picture: { on: "Bild aus", off: "Bild an" },
-  pictureName: (on: boolean): string => (on ? "Kamerabild ausblenden" : "Kamerabild zeigen"),
+  /** Its accessible name, the same in both states; `aria-pressed` says whether the picture is shown. */
+  pictureName: "Kamerabild",
   /** Card NG-49: the camera switch at the top, its words, and its accessible name. */
   camera: { user: "Kamera: vorne", environment: "Kamera: hinten" },
   cameraSwitch: (facing: CameraFacing): string => `Kamera wechseln, jetzt ${facing === "user" ? "vorne" : "hinten"}`,
@@ -764,8 +765,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     pictureButton.dataset["picture"] = picture ? "on" : "off";
     pictureButton.setAttribute("aria-pressed", String(picture));
     pictureWords.textContent = picture ? RECOGNISE_TEXT.picture.on : RECOGNISE_TEXT.picture.off;
-    pictureButton.setAttribute("aria-label", RECOGNISE_TEXT.pictureName(picture));
   };
+  pictureButton.setAttribute("aria-label", RECOGNISE_TEXT.pictureName);
   showPicture();
   // The state's content and its buttons: one above the other in a window held upright, side by side in a wide one (style sheet).
   const body = element("div", "recognise-body");
@@ -835,7 +836,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   const draw = (state: RecogniseState): void => {
     const active = typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null);
     // The camera switch counts too when this draw hides it (card NG-49): a hidden button holds no focus.
-    const switchFocused = active !== null && (active === cameraButton || active === pictureButton);
+    const switchFocused = active !== null && active === cameraButton;
     let focusLost = active !== null && focusable.includes(active);
     focusable = [];
     panel.dataset["state"] = state.kind;
@@ -845,7 +846,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     delete panel.dataset["from"];
     if (state.kind !== "countdown" && state.kind !== "recording") delete panel.dataset["seen"];
     cameraButton.hidden = !(state.kind === "starting" || state.kind === "countdown" || state.kind === "recording" || state.kind === "problem");
-    if (switchFocused && active === cameraButton && cameraButton.hidden) focusLost = true;
+    if (switchFocused && cameraButton.hidden) focusLost = true;
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
     if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording") previewSlot.replaceChildren();
