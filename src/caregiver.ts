@@ -2779,7 +2779,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           const play = button(playing ? "Anhalten" : "Abspielen");
           play.setAttribute("aria-label", `Beispiel ${number} ${playing ? "anhalten" : "abspielen"}`);
           if (state.replay !== null && state.replay.name === example.name) replayButton = { control: play, label: `Beispiel ${number} abspielen` };
-          play.addEventListener("click", () => (playing ? stopExample(open) : playExample(open, example.name)));
+          // Decided at the tap: a replay that has played through since the row was drawn says "Abspielen" again.
+          play.addEventListener("click", () => {
+            const now = state.replay;
+            if (now !== null && now.name === example.name && !now.done) stopExample(open);
+            else playExample(open, example.name);
+          });
           register.set(`teach-play:${example.name}`, play);
           row.append(play);
         }
