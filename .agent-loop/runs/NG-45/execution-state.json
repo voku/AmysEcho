@@ -1,0 +1,223 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T01:05:09+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T01:05:09+00:00",
+                "artifact_references": [],
+                "candidate_revision": "b79f77e2e31272fdb03d6b45405f799df06fdbd9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "schema_version": "1.0",
+                "task_id": "NG-45",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "b79f77e2e31272fdb03d6b45405f799df06fdbd9",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "outcome": "completed",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:0ac11d6b",
+                "summary": "Gesture view (recognise.ts attachRecognise/createRecogniser) had preview but no child-readable feedback. Change sites: controller onFrame (count hands via toLandmarkFrame), a once-a-second tick during recording (separate timer, no redraw to keep the press guard), view row under the picture; preview factory for the NG-44 failure follow-ups; styles; tests; docs.",
+                "task_id": "NG-45",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T01:05:09+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T01:05:09+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:1896b895ad6f0fd8b4f4939c05871ee3d3a6eaf43d514622318ffa0e6eda6eb8",
+                    "execution-evidence:sha256:5b3f64dfa35f58457962099ce784ef45d1525fa42592693550322d95ee236296",
+                    "execution-evidence:sha256:c870ec96ebc8a5540d14618359d5fc14cea16904e6e5df93ddb2ecd42f3ae3bf",
+                    "execution-evidence:sha256:f05a2d86d4ec388bd969766cff703ae357c6cf09496fcbc67678d40798c52e5e"
+                ],
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "schema_version": "1.0",
+                "task_id": "NG-45",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:1896b895ad6f0fd8b4f4939c05871ee3d3a6eaf43d514622318ffa0e6eda6eb8",
+                    "execution-evidence:sha256:5b3f64dfa35f58457962099ce784ef45d1525fa42592693550322d95ee236296",
+                    "execution-evidence:sha256:c870ec96ebc8a5540d14618359d5fc14cea16904e6e5df93ddb2ecd42f3ae3bf",
+                    "execution-evidence:sha256:f05a2d86d4ec388bd969766cff703ae357c6cf09496fcbc67678d40798c52e5e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "outcome": "completed",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:9e398dfe",
+                "summary": "Feedback row (hands seen: lit hand symbols, orange/green frame; time left: 5 dots, stepwise) in countdown and recording; preview failure follow-ups fixed. npm run verify: 626/626 Node, 6/6 browser. Layout measured at 5 sizes in headless Chromium, no page scroll.",
+                "task_id": "NG-45",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T01:06:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T01:06:23+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:9b2f2ddeeb7b76d3120ba2506e650b317683cb002a302c6c0f0791d9057931e1",
+                    "execution-evidence:sha256:f6f3211256f2409c1d0874daac91aede4c05f6a2256725498cee1180edaaded7",
+                    "execution-evidence:sha256:2447b286ee26e3f573518b9c22f87b6b4951e3576098fdd5b483770ddf78f59b",
+                    "execution-evidence:sha256:fe8f2848c962120bacaf95579781cc81ac99f1a703c106ad6d272e820f40a4ff"
+                ],
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "schema_version": "1.0",
+                "task_id": "NG-45",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:9b2f2ddeeb7b76d3120ba2506e650b317683cb002a302c6c0f0791d9057931e1",
+                    "execution-evidence:sha256:f6f3211256f2409c1d0874daac91aede4c05f6a2256725498cee1180edaaded7",
+                    "execution-evidence:sha256:2447b286ee26e3f573518b9c22f87b6b4951e3576098fdd5b483770ddf78f59b",
+                    "execution-evidence:sha256:fe8f2848c962120bacaf95579781cc81ac99f1a703c106ad6d272e820f40a4ff"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "context_id": "claude-subagent-ng45-correctness-review",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "observations": [
+                    "src/recognise/recognise.ts:644 draw('starting') calls showSeen(0) after the data-seen deletion at :627, so the panel carries data-seen=\"0\" during starting although the docs describe it for countdown/recording only; no visible effect because the preview slot is not in the starting content.",
+                    "src/recognise/recognise.ts:341 the ticks are a chain of 1000 ms timers next to a single 5000 ms finish timer; with real timer drift the last dot may still be lit when the recording ends. Display-only, not a correctness issue.",
+                    "docs/recognise.md:158 the 320x480 to 820x1180 fit is evidenced by recorded headless Chromium measurements only; not re-measured in this review, and not tried on a device or with a child."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:1ddc8745",
+                "summary": "Reviewed the full diff of recognise.ts, styles.css, recognise.test.mjs and recognise.md against the NG-45 contract. Hands-seen row uses handsSeen via toLandmarkFrame (same sides as previewShapes), updated per frame only in countdown/recording without show(); reset to 0 and 5 dots on each starting. Tick chain 5..1 is scheduled at recording start, cancelled in stopCamera (covers finish, back, failure, dispose) and never calls show, so the press guard is untouched; tests confirm time.pending()==0 after Stopp and after the time limit. Preview wrapper drops and closes a preview whose show throws (capture already swallows the rethrow and later draw is a no-op on a closed preview); a later throwing createPreview finds preview=null and an empty slot. Built and ran test/recognise.test.mjs: 35/35 pass. Layout fit at 320x480..820x1180 is only checked through the documented headless measurements, not re-measured here.",
+                "task_id": "NG-45",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T01:07:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T01:07:29+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d2b8332b2bbdd43d28c2d0f177c616667bd572a40ea4ee2cb36357f58b371977",
+                    "execution-evidence:sha256:1ba70023966eb2b9d7a1f80e77f62a5d64c691a90c7d9185618b26f34aca6411",
+                    "execution-evidence:sha256:8efc798b0fee5df20b6201acfc826b9057e177a75d4289921b532ad9d92c0470",
+                    "execution-evidence:sha256:def9760d0e32f45f2077b44b8c4fd7261334133045fe0af6c3e62fe395be3ba3"
+                ],
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "schema_version": "1.0",
+                "task_id": "NG-45",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d2b8332b2bbdd43d28c2d0f177c616667bd572a40ea4ee2cb36357f58b371977",
+                    "execution-evidence:sha256:1ba70023966eb2b9d7a1f80e77f62a5d64c691a90c7d9185618b26f34aca6411",
+                    "execution-evidence:sha256:8efc798b0fee5df20b6201acfc826b9057e177a75d4289921b532ad9d92c0470",
+                    "execution-evidence:sha256:def9760d0e32f45f2077b44b8c4fd7261334133045fe0af6c3e62fe395be3ba3"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "context_id": "claude-subagent-ng45-blindspot-review",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "observations": [
+                    "src/recognise/recognise.ts:396-403 hand count follows every tracked frame with no hysteresis: a tracker dropping a hand on single frames toggles the row and the 6px picture frame between orange and green at frame rate; orange #b35400 and green #1d6b40 have similar luminance so this is not a WCAG 2.3.1 flash, but it may be restless or alarming for motion-sensitive children; a short hold (e.g. require ~300 ms before turning orange) is a candidate follow-up for the child trial.",
+                    "public/styles.css:58 the orange frame appears whenever no hand is seen, including right at countdown start when the child has just tapped and lowered the hand; whether an orange 'warning' at the start reads as an error to a child is untested (docs/recognise.md lists children and colour understanding as not tried).",
+                    "src/recognise/recognise.ts:585 the hand symbol is the emoji U+270B; its look depends on the device's emoji font and it is aria-hidden, so the only accessible signal for hands seen is the non-live caregiver text; acceptable for this slice."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:3938830e",
+                "summary": "Blind-spot review of the NG-45 feedback row: no blocking issue. Per-frame hand updates go to a non-live text span (only on change) outside the role=status line, so screen readers are not flooded; the dots' aria-label on role=img changes without a live region. Meaning is not colour-only (number of lit hands plus words). Dots step without transition. The tick is guarded by camera identity and recording state, cancelled in stop, and tested to leave no pending timer. The show-throws wrapper closes an idempotent preview (createCapturePreview close is idempotent, draw is a no-op after close). Nothing is stored or sent; handsSeen only counts. Back button path unchanged. Layout measured 320x480 to 820x1180 in docs; not re-run here.",
+                "task_id": "NG-45",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T01:10:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T01:10:28+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "schema_version": "1.0",
+                "task_id": "NG-45",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:856afa02bf9bbed53bdf01b6e4c3a80702847b0cdc6fa6362260fb8eae228ee3",
+                    "execution-evidence:sha256:c3a0bd6aa9ade950e4cd46b6f787ed41b9e5af2e8d44817c6855dbcea948a081"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b79f77e2e31272fdb03d6b45405f799df06fdbd9:966a6f0aeef9da293b9843364232d71109d800ce",
+                "consistency_references": [
+                    "execution-evidence:sha256:0a9ad2d8a18469c005c509b42246c49ca3220804a1eda1d56c6c2871588a203e"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:e10693838e92203f8977c5500f0ea650949fa42a684b4c534ec4eab3f4129bb3",
+                "outcome": "pass",
+                "run_id": "run:NG-45:20a5a856e9c02e22",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:f1fe27466d4d4ce3286cea37e87d13c785bd0bb4f390d20a6578e130674ece58",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-45: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-45 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-45:20a5a856e9c02e22 binds active Session 2026-11-24-ng-45-r1-ef3553a7 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-45 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-45",
+                "validation_references": [
+                    "execution-evidence:sha256:856afa02bf9bbed53bdf01b6e4c3a80702847b0cdc6fa6362260fb8eae228ee3",
+                    "execution-evidence:sha256:c3a0bd6aa9ade950e4cd46b6f787ed41b9e5af2e8d44817c6855dbcea948a081"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-45:20a5a856e9c02e22",
+    "schema_version": "1.0",
+    "task_id": "NG-45"
+}
