@@ -1,11 +1,214 @@
 {
     "attention": null,
-    "candidate_revision": "3c1b89bc166d76bf93f9682c201f58119cf344e7",
+    "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-24T12:50:05+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:50:05+00:00",
+                "artifact_references": [],
+                "candidate_revision": "3c1b89bc166d76bf93f9682c201f58119cf344e7",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "schema_version": "1.0",
+                "task_id": "NG-48",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "3c1b89bc166d76bf93f9682c201f58119cf344e7",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "outcome": "completed",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:43890e16",
+                "summary": "Buttons and candidate tiles are rebuilt in attachRecognise draw() (actions.replaceChildren, unknown candidates); focus is set only on first cover. The late-timer test is in test/recognise.test.mjs ('seconds left come from the recording deadline'). Change sites: track the last draw's focusables and move a lost focus; extend the test to 3.9 s.",
+                "task_id": "NG-48",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:50:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:50:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:72828153c1a9aa8ac6888907b7c511a2ebeaf22e19bb3a26d1a2ae5b7fc5180f",
+                    "execution-evidence:sha256:82f0bcc1610f157f2819d62ed0538a30c9a46f8c640391f10be231ee7f0491b1",
+                    "execution-evidence:sha256:2959f2a4345eaa0428190040be06ffb12fdbd219411d26daa39e714fc498a292"
+                ],
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "schema_version": "1.0",
+                "task_id": "NG-48",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:72828153c1a9aa8ac6888907b7c511a2ebeaf22e19bb3a26d1a2ae5b7fc5180f",
+                    "execution-evidence:sha256:82f0bcc1610f157f2819d62ed0538a30c9a46f8c640391f10be231ee7f0491b1",
+                    "execution-evidence:sha256:2959f2a4345eaa0428190040be06ffb12fdbd219411d26daa39e714fc498a292"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "outcome": "completed",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:00bc6681",
+                "summary": "draw() records whether document.activeElement was one of the last draw's buttons/candidates; after placing, a lost focus moves to the first new button, else first candidate, else Zurück; first cover still focuses Zurück. Late-timer test checks [5,4,3,2] at 3.9 s with a corrected comment. New focus test fails when the focus move is removed. npm run verify 675/675 + 7/7.",
+                "task_id": "NG-48",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:52:04+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:52:04+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a3bda90f488081cc6c5d45f3ab1cc5765caa2e808f804767d62964189128d805",
+                    "execution-evidence:sha256:9efe440a6b8d50ab83b03623dc90dbf7f9b8e47aeba6ddd9558f6b0480763f46",
+                    "execution-evidence:sha256:4fb5f1bc3ad073b4ff8dbea2df06e74c72598484c340b77d9a0016016133f8ac"
+                ],
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "schema_version": "1.0",
+                "task_id": "NG-48",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a3bda90f488081cc6c5d45f3ab1cc5765caa2e808f804767d62964189128d805",
+                    "execution-evidence:sha256:9efe440a6b8d50ab83b03623dc90dbf7f9b8e47aeba6ddd9558f6b0480763f46",
+                    "execution-evidence:sha256:4fb5f1bc3ad073b4ff8dbea2df06e74c72598484c340b77d9a0016016133f8ac"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "context_id": "claude-subagent-ng48-correctness",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "observations": [
+                    "test/recognise.test.mjs:1279 The late-timer test proves the wake schedule is deadline-aligned, not that the shown value comes from the deadline: a mutation that keeps the deadline-aligned wake but decrements a counter per callback passes all 40 tests (verified on dist). With late=900 every callback still lands in the right second. A late value over 1000 ms (a skipped second) would separate the two.",
+                    "src/recognise/recognise.ts:824 next.focus() runs without {preventScroll:true}. After a pointer tap in Chrome/Android the tapped button holds focus, so the redraw moves focus by script. The :focus-visible heuristic should keep the ring hidden, and iOS Safari does not focus tapped buttons, so there is no effect there. Not checked on a device: possible scroll-into-view, and a screen reader announcing the newly focused button over the polite status line (fits card NG-48 item 3)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:8c9c4915",
+                "summary": "Focus restore in draw() is correct across idle, first cover, starting, countdown, recording, problem, unusable, confirm and unknown (with and without candidates). The new view test fails when focusLost is forced false. The late-timer test fails for fixed-1s re-arm, both when counting callbacks and when reading the deadline, and its timing comment matches the computed schedule (ticks at 1.0/2.9/3.9 s showing 4/3/2; fixed re-arm fires at 4.8 s).",
+                "task_id": "NG-48",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:53:40+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:53:40+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:190ad881b48ec0814111b1e951a958e6def7aedd4270002725408eb14679285d",
+                    "execution-evidence:sha256:a03efb84de1c0832a3fa186273b9ba0c004b04f1a217b789fb5c14943b882caa",
+                    "execution-evidence:sha256:0758c9ca42630ecc9c845227611bbeb0188141c9ada34215df7fc3636b7456c5"
+                ],
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "schema_version": "1.0",
+                "task_id": "NG-48",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:190ad881b48ec0814111b1e951a958e6def7aedd4270002725408eb14679285d",
+                    "execution-evidence:sha256:a03efb84de1c0832a3fa186273b9ba0c004b04f1a217b789fb5c14943b882caa",
+                    "execution-evidence:sha256:0758c9ca42630ecc9c845227611bbeb0188141c9ada34215df7fc3636b7456c5"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "context_id": "claude-subagent-ng48-blindspot",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "observations": [
+                    "docs/recognise.md:173 and test/recognise.test.mjs:1280 say a count per callback 'would fall behind' at 3.9 s; that holds only for a per-callback 1 s re-arm. A mutant that wakes on deadline boundaries but decrements per callback still passes, so the test proves the wake schedule, not that the shown value is derived from the deadline. A lateness over 1000 ms would close it.",
+                    "src/recognise/recognise.ts:814 comment lists 'Ja, sagen' as where focus goes, but confirm pushes [no, yes] (line 776), so focus lands on 'Nein'. Safe default, comment inaccurate.",
+                    "src/recognise/recognise.ts:724-727 creates the role=status line anew on every draw, already filled; freshly inserted live regions are often not announced, and the focus move to e.g. 'Nochmal' now speaks the button name, so a screen-reader user may hear the button without the reason line. Needs a check on a real screen reader (TalkBack/VoiceOver).",
+                    "Timer-driven end of recording (RECOGNISE_MAX_RECORDING_MS) with 'Stopp' focused goes through the same draw/focusLost path, but no test covers it; the NG-48 test only covers click-driven redraws.",
+                    "src/recognise/recognise.ts:824 focus() without {preventScroll: true}: after a tap on Android Chrome the script focus may scroll the view."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:079f4289",
+                "summary": "Focus hand-off is sound: focusLost is read before the redraw, only from the view's own previous buttons/candidates, and draw is the single path for click- and timer-driven redraws; idle and hidden-page paths are left to board.uncover. No blocker; residual risks recorded as observations.",
+                "task_id": "NG-48",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:56:52+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:56:52+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "schema_version": "1.0",
+                "task_id": "NG-48",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:7bc6d2c65960631286b99697f391512ecae48179399bf10f6bd74bfc9ce22303",
+                    "execution-evidence:sha256:3c15485317b3fd1d5d5f73fbd9548113243e38f72a2de26f3be6f4427c81ce2e"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:3c1b89bc166d76bf93f9682c201f58119cf344e7:46eb0f6f5aa74a690f9ec4312aafe6fb73395226",
+                "consistency_references": [
+                    "execution-evidence:sha256:a459e34a58c18383ab9e0ea7ec103cbd41839a0555923f1518362bbb5070c964"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:86fc02226f4ff55b0805f5f0a894856000440751344162030206620f9044d31c",
+                "outcome": "pass",
+                "run_id": "run:NG-48:f62a89dbcc6714e8",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:64596c5eece4060d6acbebb6623cc9afb0a5adecb67cbdee145f55192c2c88c7",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-48: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-48 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-48:f62a89dbcc6714e8 binds active Session 2026-11-24-ng-48-r1-1ed0b7aa to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-48 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-48",
+                "validation_references": [
+                    "execution-evidence:sha256:7bc6d2c65960631286b99697f391512ecae48179399bf10f6bd74bfc9ce22303",
+                    "execution-evidence:sha256:3c15485317b3fd1d5d5f73fbd9548113243e38f72a2de26f3be6f4427c81ce2e"
+                ]
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
