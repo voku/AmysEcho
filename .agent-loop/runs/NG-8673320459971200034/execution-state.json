@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "d1cc898e7cd1720732a18de760d7c3572275ecfd",
+    "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
     "contract_revision": 2,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
     "history": [
         {
@@ -33,6 +33,48 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:b8555694",
                 "summary": "Same investigation as run 1 (profile delete confirmView/deleteHold/heldButton allowed()); run 1 retired because its base predated NG-4.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:34:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:34:43+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:20ca5031d835f9970d24d4eeeaae19d14c7f62b115a8234c4d977f20601e025d",
+                    "execution-evidence:sha256:c310e59fc94d78b2a7ce494a9d6680ab01ff31864a7805084ed1feac3d51846c",
+                    "execution-evidence:sha256:61a86cf307d917c4f974b584f769b999f7a11029702deb070e8d0a2c17c01dbf",
+                    "execution-evidence:sha256:09bca77f54376a9866a5752bb5a438cba154fbd64bbbd12d84fb7f50e16561ee"
+                ],
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:20ca5031d835f9970d24d4eeeaae19d14c7f62b115a8234c4d977f20601e025d",
+                    "execution-evidence:sha256:c310e59fc94d78b2a7ce494a9d6680ab01ff31864a7805084ed1feac3d51846c",
+                    "execution-evidence:sha256:61a86cf307d917c4f974b584f769b999f7a11029702deb070e8d0a2c17c01dbf",
+                    "execution-evidence:sha256:09bca77f54376a9866a5752bb5a438cba154fbd64bbbd12d84fb7f50e16561ee"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "outcome": "completed",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:d63c7a44",
+                "summary": "Unchanged implementation from run 1 (typed name gates the profile delete hold; see contract rev 2), now on base d1cc898 (NG-4 closed) so src/teach exists in the exported candidate. npm run verify passed in the workspace: 659 node tests; browser 4 pass 2 skipped.",
                 "task_id": "NG-8673320459971200034",
                 "validation_references": []
             }
