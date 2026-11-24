@@ -27,12 +27,20 @@
  * replaced by the back one (`fallback: false`): the capture's own problem line
  * says so instead.
  *
+ * A live preview (card NG-44): while the camera runs (countdown and
+ * recording) the view shows the camera's picture, mirrored, with the tracked
+ * hands ("L"/"R") and shoulders drawn over it, the preview of teaching and
+ * the camera test (card NG-42), so whoever makes the gesture sees whether the
+ * hands are in the picture. It comes from the bridge (`createPreview`); a
+ * bridge without one, or a preview that fails, leaves the view as before.
+ * Nothing of the picture is kept or sent.
+ *
  * The controller (`createRecogniser`) has no DOM and is tested in Node; the
  * view (`attachRecognise`) draws its states into the board region.
  */
 import type { BoardEntry } from "../board-data.js";
 import type { MountedBoard } from "../board.js";
-import type { CaptureBridge, CaptureProblem, CaptureSession } from "../capture/capture.js";
+import type { CaptureBridge, CapturePreview, CaptureProblem, CaptureSession, PreviewSink } from "../capture/capture.js";
 import { sequenceFromRecording } from "../recognition/examples.js";
 import type { FeatureFailure, HandKind } from "../recognition/features.js";
 import { DEFAULT_MIN_MARGIN, calibrateMaxDistance, matchGesture } from "../recognition/matcher.js";
@@ -163,6 +171,11 @@ export interface RecogniserOptions {
   readonly onChange: (state: RecogniseState) => void;
   /** False while the board region is not on screen (the caregiver area took over): the attempt ends. */
   readonly stillShown?: () => boolean;
+  /**
+   * A live preview for one camera start (card NG-44), or null for none. Asked once per start,
+   * before the camera; the capture closes it when it ends, and so does the controller.
+   */
+  readonly preview?: (bridge: CaptureBridge) => PreviewSink | null;
   /** Replaces `analyseAttempt`; for tests. */
   readonly analyse?: (frames: readonly TrackerFrame[]) => AttemptOutcome;
 }
@@ -189,6 +202,7 @@ interface Camera {
   readonly controller: AbortController;
   session: CaptureSession | null;
   cancelTimer: () => void;
+  readonly preview: PreviewSink | null;
 }
 
 export function createRecogniser(options: RecogniserOptions): Recogniser {
@@ -217,6 +231,12 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     const frames = running.session?.stopRecording() ?? [];
     running.controller.abort();
     running.session?.stop();
+    // The capture closes its preview when it ends; a start cancelled before the camera opened never showed it.
+    try {
+      running.preview?.close();
+    } catch {
+      // Nothing: the preview only shows.
+    }
     return frames;
   };
 
@@ -290,7 +310,13 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       return;
     }
     const text = bridge.text;
-    const own: Camera = { controller: new AbortController(), session: null, cancelTimer: () => undefined };
+    let preview: PreviewSink | null = null;
+    try {
+      preview = options.preview?.(bridge) ?? null;
+    } catch {
+      // Without a preview the view works as before.
+    }
+    const own: Camera = { controller: new AbortController(), session: null, cancelTimer: () => undefined, preview };
     camera = own;
     const ours = (): boolean => camera === own && !own.controller.signal.aborted;
     const failed = (line: string): void => {
@@ -306,6 +332,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
         // The front camera only, and no other in its place: a back camera cannot see a child facing the screen.
         facing: "user",
         fallback: false,
+        ...(preview === null ? {} : { preview }),
         onStep: (step) => {
           if (!ours() || current.kind !== "starting" || (step !== "preparing" && step !== "asking")) return;
           show({ kind: "starting", line: text[step] });
@@ -429,7 +456,7 @@ function conceptContent(target: HTMLElement, entry: BoardEntry, size: number): v
 }
 
 /** The symbols on the view's buttons, for a child who does not read: the text stays next to them. */
-export const RECOGNISE_SYMBOLS = { yes: "\u2713", no: "\u2717", finish: "\u25A0", again: "\u21BB" } as const;
+export const RECOGNISE_SYMBOLS = { yes: "✓", no: "✗", finish: "■", again: "↻" } as const;
 
 /**
  * A big button of the view: a symbol first, then the text; `picture` (the
@@ -483,6 +510,10 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   const actions = element("div", "recognise-actions");
   body.append(main, actions);
   panel.append(top, body);
+  /** The preview of the current camera start (card NG-44); shown while the camera runs. */
+  let preview: CapturePreview | null = null;
+  /** The box the preview sits in, the same for countdown and recording, so the picture does not jump. */
+  const previewSlot = element("div", "recognise-preview");
 
   /** When the latest press on the view began; a click without a pointer (a key) counts from the click. */
   let pressedAt: number | null = null;
@@ -500,6 +531,9 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     delete panel.dataset["reason"];
     delete panel.dataset["hands"];
     delete panel.dataset["from"];
+    // The camera is off in every other state; its preview was closed with it. While it starts the
+    // preview waits in the box, which is shown from the countdown on.
+    if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording") previewSlot.replaceChildren();
     if (state.kind === "idle") {
       board.uncover();
       return;
@@ -517,10 +551,20 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         break;
       case "countdown":
         line.textContent = RECOGNISE_TEXT.countdown(state.left);
-        content.push(element("p", "recognise-count", String(state.left)));
+        if (preview === null) {
+          content.push(element("p", "recognise-count", String(state.left)));
+        } else {
+          // The number large over the picture: the picture keeps its size from the countdown into the recording.
+          previewSlot.replaceChildren(preview.element, element("p", "recognise-count", String(state.left)));
+          content.push(previewSlot);
+        }
         break;
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;
+        if (preview !== null) {
+          previewSlot.replaceChildren(preview.element);
+          content.push(previewSlot);
+        }
         const finish = actionButton("recognise-finish", RECOGNISE_SYMBOLS.finish, RECOGNISE_TEXT.finish);
         finish.addEventListener("click", () => recogniser.finish(pressStart()));
         buttons.push(finish);
@@ -593,6 +637,12 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       ? ((globalThis as Record<string, unknown>)[CAPTURE_BRIDGE_KEY] as CaptureBridge | undefined) ?? null
       : options.capture),
     host: () => panel,
+    preview: (bridge) => {
+      // The picture is mirrored for the front camera, which this view always uses.
+      preview = typeof bridge.createPreview === "function" ? bridge.createPreview(document) : null;
+      previewSlot.replaceChildren(...(preview === null ? [] : [preview.element]));
+      return preview;
+    },
     setTimer: options.setTimer ?? defaultTimer,
     now,
     speak: (conceptId) => { board.say(conceptId); },
