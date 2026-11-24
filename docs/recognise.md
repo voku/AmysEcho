@@ -166,6 +166,11 @@ see without reading:
   timer that fires late shows the count of the time actually left instead of falling one step
   behind per tick. Tested with a hand lost for single frames, a lasting drop, and a timer that
   fires 900 ms late.
+- **Heard, not only seen** (card NG-47): the words next to the hand symbols ("Eine Hand im Bild")
+  are a polite, atomic status region that stays in the page through countdown and recording. They
+  follow the steady signal and are only rewritten when the shown count changes, so a screen reader
+  says when a hand comes into or leaves the picture, not on every frame. The seconds are not a live
+  region: the line above already speaks the countdown, and a voice every second would cover it.
 
 Measured in headless Chromium (as above, synthetic tracker frames, two hands): no page scroll and
 nothing outside the window; picture and row keep their boxes from the countdown into the

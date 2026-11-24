@@ -1264,3 +1264,42 @@ test("seconds left come from the recording's deadline: a late timer shows the ri
   recogniser.finish();
   assert.equal(time.pending(), 0, "no tick left after the recording");
 });
+
+// --- Heard, not only seen (card NG-47) ---
+
+test("view: the hands-seen words are a polite status region, rewritten only when the shown count changes", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera } = context;
+    context.gestureButton().click();
+    await settle();
+    const feedback = feedbackOf(panel());
+    const words = tree(feedback).find((element) => hasClass(element, "recognise-seen-text"));
+    assert.equal(words.attributes.role, "status");
+    assert.equal(words.attributes["aria-live"], "polite");
+    assert.equal(words.attributes["aria-atomic"], "true");
+    const time5 = tree(feedback).find((element) => hasClass(element, "recognise-time"));
+    assert.equal(time5.attributes["aria-live"], undefined, "the seconds are not announced");
+    assert.equal(time5.attributes.role, "img");
+    // Count every write to the words: equal text must not be written again (it can be read out again).
+    const writes = [];
+    let text = words.textContent;
+    Object.defineProperty(words, "textContent", { get: () => text, set: (value) => { writes.push(value); text = value; } });
+    await camera.feed(MOVES_RIGHT(0));
+    await camera.feed(MOVES_RIGHT(1));
+    time.advance(1000);
+    await camera.feed(MOVES_RIGHT(2));
+    time.advance((RECOGNISE_COUNTDOWN_S - 1) * 1000);
+    assert.equal(panel().dataset.state, "recording");
+    await camera.feed(MOVES_RIGHT(3));
+    await camera.feed([]);
+    await camera.feed(MOVES_RIGHT(4));
+    assert.deepEqual(writes, ["Eine Hand im Bild"], "one announcement for a hand that stays, none for a frame without it");
+    await camera.feed(BOTH_APART(0));
+    time.advance(SEEN_HOLD_MS);
+    await camera.feed([]);
+    time.advance(SEEN_HOLD_MS);
+    await camera.feed([]);
+    assert.deepEqual(writes, ["Eine Hand im Bild", "Zwei H\u00e4nde im Bild", "Keine Hand im Bild"]);
+    assert.equal(tree(feedbackOf(panel())).find((element) => hasClass(element, "recognise-seen-text")), words, "the same region throughout");
+  });
+});

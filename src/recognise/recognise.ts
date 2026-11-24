@@ -643,7 +643,14 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   const seenBox = element("div", "recognise-seen");
   const seenHands = [element("span", "recognise-seen-hand", "✋"), element("span", "recognise-seen-hand", "✋")];
   for (const hand of seenHands) hand.setAttribute("aria-hidden", "true");
+  // Card NG-47: the words are a polite status region, so a screen reader says when a hand is seen
+  // or gone. They follow the steady signal (NG-46) and are only rewritten when the count changes:
+  // rewriting the same text can be announced again. The seconds are not announced; the line above
+  // already speaks the countdown.
   const seenText = element("span", "recognise-seen-text");
+  seenText.setAttribute("role", "status");
+  seenText.setAttribute("aria-live", "polite");
+  seenText.setAttribute("aria-atomic", "true");
   seenBox.append(...seenHands, seenText);
   const timeBox = element("div", "recognise-time");
   timeBox.setAttribute("role", "img");
@@ -657,7 +664,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     panel.dataset["seen"] = String(hands);
     feedback.dataset["seen"] = String(hands);
     seenHands.forEach((hand, index) => { hand.dataset["lit"] = String(index < hands); });
-    seenText.textContent = RECOGNISE_TEXT.seen[hands];
+    if (seenText.textContent !== RECOGNISE_TEXT.seen[hands]) seenText.textContent = RECOGNISE_TEXT.seen[hands];
   };
   const showTimeLeft = (seconds: number): void => {
     const left = Math.max(0, Math.min(RECOGNISE_SECONDS, seconds));
