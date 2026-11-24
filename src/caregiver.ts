@@ -625,7 +625,7 @@ interface TeachState {
   /** How the result fits the profile's examples (card NG-4), worked out once per result; null until then or when it cannot be read. */
   fit: { readonly result: TeachResult; readonly fit: ExampleFit | null } | null;
   /** The example that is being replayed and the step shown; a new object for every start, so a timer of an earlier one stops. */
-  replay: { readonly name: string; step: number } | null;
+  replay: { readonly name: string; step: number; done: boolean } | null;
 }
 /**
  * Rewording one concept of the profile `id`. It takes over the body like the
@@ -903,6 +903,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let teachLabels: (conceptId: string) => string = () => "einen anderen Begriff dieses Profils";
   /** The canvas of the example being replayed, while it is on screen (card NG-4). */
   let replayCanvas: HTMLCanvasElement | null = null;
+  /** Its "Anhalten" button, which says "Abspielen" again once the replay has played through. */
+  let replayButton: { readonly control: HTMLButtonElement; readonly label: string } | null = null;
   const date = options.date ?? (() => new Date());
   const makePicture = options.pictureFromFile ?? pictureFromFile;
   const cameraStorage = options.cameraStorage ?? browserFacingStorage;
@@ -2614,7 +2616,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const { state } = open;
     if (!teaching(open)) return;
     clearStatus();
-    const replay = { name, step: 0 };
+    const replay = { name, step: 0, done: false };
     state.replay = replay;
     run(async () => {
       if (mode !== open || store === null) return;
@@ -2631,7 +2633,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       const tick = (): void => {
         if (!teaching(open) || state.replay !== replay) return;
         if (replayCanvas !== null) drawReplayStep(replayCanvas, steps, replay.step, shoulders);
-        if (replay.step >= steps.length - 1) return;
+        if (replay.step >= steps.length - 1) {
+          // Played through: the last step stays, and the button offers to play it again.
+          replay.done = true;
+          if (replayButton !== null) {
+            replayButton.control.textContent = "Abspielen";
+            replayButton.control.setAttribute("aria-label", replayButton.label);
+          }
+          return;
+        }
         replay.step += 1;
         setTimer(tick, stepMs);
       };
@@ -2755,6 +2765,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     // Nothing is replayed while a recording counts down, runs or waits for "Behalten".
     if (busy) state.replay = null;
     replayCanvas = null;
+    replayButton = null;
     const count = examples.length;
     if (count > 0) {
       view.append(element("h3", "", STORED_EXAMPLES));
@@ -2764,9 +2775,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         const number = at + 1;
         row.append(element("span", "caregiver-example-text", `Beispiel ${number}: ${handsText(example.record.hands)}, ${shownTime(example.record.capturedAt)}`));
         if (!busy) {
-          const playing = state.replay !== null && state.replay.name === example.name;
+          const playing = state.replay !== null && state.replay.name === example.name && !state.replay.done;
           const play = button(playing ? "Anhalten" : "Abspielen");
           play.setAttribute("aria-label", `Beispiel ${number} ${playing ? "anhalten" : "abspielen"}`);
+          if (state.replay !== null && state.replay.name === example.name) replayButton = { control: play, label: `Beispiel ${number} abspielen` };
           play.addEventListener("click", () => (playing ? stopExample(open) : playExample(open, example.name)));
           register.set(`teach-play:${example.name}`, play);
           row.append(play);

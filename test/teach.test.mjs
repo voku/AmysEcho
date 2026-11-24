@@ -68,6 +68,21 @@ test("fit: examples recorded with the shoulders seen are not compared with one r
   assert.deepEqual(exampleFit(withoutShoulders, "hilfe", examples), { kind: "other-anchor" });
 });
 
+test("fit: accepted by its own examples but closer to another concept's, the recording 'resembles' that one, never 'differs'", () => {
+  // Hand-made sequences that stay at one point, so each distance is the distance of the points.
+  const at = (x, y) => ({ schemaVersion: 2, anchor: "shoulders", hands: "right", steps: Array.from({ length: SEQUENCE_STEPS }, () => { const step = new Array(86).fill(0); step[0] = x; step[1] = y; return step; }) });
+  // Own examples 1.0 apart (limit 1.25), another concept's single example (limit 0.75).
+  const examples = [{ conceptId: "own", sequence: at(0, 0) }, { conceptId: "own", sequence: at(1, 0) }, { conceptId: "oth", sequence: at(1.5, 1) }];
+  // 1.005 from "oth" (beyond its 0.75), 1.03 from both own examples (within 1.25): the matcher says too_far for "oth".
+  assert.deepEqual(exampleFit(at(0.5, 0.9), "own", examples), { kind: "resembles", otherId: "oth" });
+  // Far from everything and closest to its own examples: "differs".
+  assert.deepEqual(exampleFit(at(0.5, -2), "own", examples), { kind: "differs" });
+  // Far from everything, closest to "oth": its own examples do not accept it either, so it "differs".
+  assert.deepEqual(exampleFit(at(3, 3), "own", examples), { kind: "differs" });
+  // A first example far from everything is not said to resemble anything.
+  assert.deepEqual(exampleFit(at(3, 3), "neu", examples), { kind: "first" });
+});
+
 // --- The replay (src/teach/replay.ts) ---
 
 test("replay: bones and colours are those of the camera preview", () => {

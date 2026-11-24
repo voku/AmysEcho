@@ -10,7 +10,7 @@
  * stored. The answer is advice: keeping the recording stays possible.
  */
 import type { FeatureSequence } from "../recognition/features.js";
-import { DEFAULT_MIN_MARGIN, calibrateMaxDistance, matchGesture } from "../recognition/matcher.js";
+import { DEFAULT_MIN_MARGIN, FALLBACK_MAX_DISTANCE, calibrateMaxDistance, limitKey, matchGesture } from "../recognition/matcher.js";
 import type { GestureExample } from "../recognition/matcher.js";
 
 /**
@@ -23,8 +23,9 @@ import type { GestureExample } from "../recognition/matcher.js";
  *   (`hands` of the earliest one), so they are never compared with this one.
  * - "other-anchor": the concept's examples were all recorded with the
  *   shoulders seen and this one without, or the other way round.
- * - "resembles": another concept would take the recording (`otherId`), or is
- *   about as close as this one, so the two could be mistaken for each other.
+ * - "resembles": another concept would take the recording (`otherId`), is
+ *   about as close as this one, or is closer than this concept's own examples
+ *   although these accept it, so the two could be mistaken for each other.
  */
 export type ExampleFit =
   | { readonly kind: "first" | "fits" | "differs" | "other-anchor" }
@@ -32,11 +33,20 @@ export type ExampleFit =
   | { readonly kind: "resembles"; readonly otherId: string };
 
 export function exampleFit(sequence: FeatureSequence, conceptId: string, examples: readonly GestureExample[]): ExampleFit {
-  const result = matchGesture(sequence, examples, { maxDistance: calibrateMaxDistance(examples), minMargin: DEFAULT_MIN_MARGIN });
+  const limits = calibrateMaxDistance(examples);
+  const result = matchGesture(sequence, examples, { maxDistance: limits, minMargin: DEFAULT_MIN_MARGIN });
   if (result.kind === "match") return result.conceptId === conceptId ? { kind: "fits" } : { kind: "resembles", otherId: result.conceptId };
   // About as close to another concept as to this one, or closest to another one: either way the two may be mixed up.
   const other = result.ranked.find((ranked) => ranked.conceptId !== conceptId);
   if (result.reason === "ambiguous" && other !== undefined) return { kind: "resembles", otherId: other.conceptId };
+  // Within this concept's own limit, yet another concept's examples are closer (and beyond theirs, so the
+  // matcher answers "too far"): the board could not tell the two apart, so the other one is named, never "differs".
+  const closest = result.ranked[0];
+  const mine = result.ranked.find((ranked) => ranked.conceptId === conceptId);
+  if (result.reason === "too_far" && closest !== undefined && closest.conceptId !== conceptId && mine !== undefined
+    && mine.distance <= (limits.get(limitKey(conceptId, sequence)) ?? FALLBACK_MAX_DISTANCE)) {
+    return { kind: "resembles", otherId: closest.conceptId };
+  }
   const own = examples.filter((example) => example.conceptId === conceptId);
   if (own.length === 0) return { kind: "first" };
   const sameAnchor = own.filter((example) => example.sequence.anchor === sequence.anchor);

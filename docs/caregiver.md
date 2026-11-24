@@ -577,7 +577,8 @@ stored. "Behalten" and "Verwerfen" stay as they are: the line is advice.
   am besten die Gebärde immer gleich machen." (a warning)
 - the shoulders were seen in the earlier examples and not now, or the other way round: a warning
   that such recordings are not compared with each other;
-- another tile would take it, or is about as close: "Achtung: Die Aufnahme ähnelt der Gebärde für
+- another tile would take it, is about as close, or is closer than the tile's own examples while
+  these accept it: "Achtung: Die Aufnahme ähnelt der Gebärde für
   „<other label>“. Wird sie behalten, können die beiden verwechselt werden." (a warning)
 - the tile's first example, and nothing else takes it: no line.
 
@@ -592,7 +593,8 @@ gespeicherten Werten gezeichnet. Ein Video gibt es nicht." It is drawn from the 
 (`src/teach/replay.ts`): per step, the joints relative to the wrist and the wrist relative to the
 shoulders. The size of the hand is not stored, so every hand is drawn at a third of a shoulder
 width. One step is shown for the recorded length divided by its 32 steps (between 40 and 250 ms);
-the last step stays. While it plays the button says "Anhalten". It stops on "Anhalten", on
+the last step stays and the button says "Abspielen" again. While it plays the button says
+"Anhalten". It stops on "Anhalten", on
 another "Abspielen", when the view closes, and when a recording starts; it is not offered while a
 recording counts down, runs or waits for "Behalten". Where the canvas has no 2D context nothing is
 drawn and nothing fails. Tested in Node with a recording fake canvas; not looked at in a browser,

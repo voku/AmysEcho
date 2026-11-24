@@ -7270,6 +7270,12 @@ test("teach: 'Abspielen' draws a stored example as a moving hand on a canvas, on
     const drawn = calls.length;
     clock.advance(10_000);
     assert.equal(calls.length, drawn);
+    // Played through: the last step stays on the canvas and the button offers to play again.
+    await act(() => area.button("Abspielen").click());
+    clock.advance(10_000);
+    assert.notEqual(byClass(caregiverRegion, "caregiver-replay"), undefined);
+    assert.equal(area.button("Anhalten"), undefined);
+    assert.equal(area.button("Abspielen")["aria-label"], "Beispiel 1 abspielen");
     // Leaving the view stops a running replay too.
     await act(() => area.button("Abspielen").click());
     await act(() => area.button("Zurück").click());
