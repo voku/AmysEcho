@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "5718d85e7371edeeec1ccb7674b4f743d6cbeb99",
+    "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
     "contract_revision": 2,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
     "history": [
         {
@@ -33,6 +33,48 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:e7ec940f",
                 "summary": "deleteHold's refusal line was only set on press and reset by idle(); act() did not re-check the name with a reason; names compared after NFC+trim only; label without overflow-wrap; the field had no aria-describedby; refusal tested with pointer only.",
+                "task_id": "NG-8673319027843774136",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:17:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:17:49+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7bac804692c33cca842e92b94b1e56f3dab52a94b82b5bc4138b2cf530f267c4",
+                    "execution-evidence:sha256:092139093f7b3fce1d00e04f36c6722816135479197be3f1d249f26c22651051",
+                    "execution-evidence:sha256:c497411204bcd35bb7ab0953a18f8654d6dbc776697d393935f2616f5708ba0c",
+                    "execution-evidence:sha256:91764cac6e32501e63670bb970c04cc343417e2f4ec67dfe7d294556a4bd6c87"
+                ],
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319027843774136",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7bac804692c33cca842e92b94b1e56f3dab52a94b82b5bc4138b2cf530f267c4",
+                    "execution-evidence:sha256:092139093f7b3fce1d00e04f36c6722816135479197be3f1d249f26c22651051",
+                    "execution-evidence:sha256:c497411204bcd35bb7ab0953a18f8654d6dbc776697d393935f2616f5708ba0c",
+                    "execution-evidence:sha256:91764cac6e32501e63670bb970c04cc343417e2f4ec67dfe7d294556a4bd6c87"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "outcome": "completed",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:78e3d411",
+                "summary": "deleteHold: refused flag; rearm() puts the hold hint back as soon as the name is right; idle() keeps a refusal; act() refuses with the reason when the name became wrong during the hold. deleteNameForm (NFC, no U+FE0F, whitespace runs incl. NBSP as one space, trimmed) on both sides; refusal adds 'Achte auf die Leerzeichen.' or 'Achte auf große und kleine Buchstaben.' when only those differ. Field aria-describedby = title, loss text, active line; label overflow-wrap: anywhere. 3 new tests (Enter/Space refusal, line follows input, change during hold, spacing/emoji/case/hints, describedby, CSS). Docs caregiver.md. npm run verify passed: 672 node tests; browser 7 pass.",
                 "task_id": "NG-8673319027843774136",
                 "validation_references": []
             }
