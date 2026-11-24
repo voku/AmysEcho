@@ -15,9 +15,10 @@ Code: `src/recognise/recognise.ts` (`createRecogniser`, the controller without D
 ## Status
 
 - Tested in Node against a fake document, the real capture path (`startCapture`) on a fake camera
-  and tracker, made-up tracker hands, and the real feature builder and matcher; that it always asks
-  for the front camera (card NG-43), with the capture module's own bridge on a fake camera and a
-  stand-in storage holding "hinten".
+  and tracker, made-up tracker hands, and the real feature builder and matcher; that it asks for
+  its own camera (card NG-49: front unless switched in the view), never teaching's stored choice,
+  with the capture module's own bridge on a fake camera and one stand-in storage holding "hinten"
+  for teaching.
 - Tested in headless Chromium (Playwright) with DGS sign videos of adult signers fed into the
   app's capture path through the board's own flow (below).
 - **Not tested:** a real camera, a phone or tablet, a child, a screen reader, real speech, an
@@ -101,8 +102,8 @@ attached, the board is drawn without the control and the error is reported.
 **Live picture with the detected hands** (card NG-44; owner request 2026-11-23: whoever makes
 the gesture, the child or a caregiver beside it, should see where the gesture is captured). While
 the camera runs, in the countdown and the recording, the view shows the preview of the camera test
-and teaching (card NG-42, [capture.md](capture.md), "Live preview"): the front camera's picture
-mirrored like a mirror, each tracked hand drawn as its 21 points and bones, the child's own left
+and teaching (card NG-42, [capture.md](capture.md), "Live preview"), since card NG-49 without the
+camera's picture (below): mirrored like a mirror for the front camera, each tracked hand drawn as its 21 points and bones, the child's own left
 hand orange with "L", the right one cyan with "R", and the shoulders as a yellow line. Without a
 hand in the picture nothing is drawn over it, so an empty picture says "no hand seen". The view
 asks the bridge for one preview per camera start (`createPreview`, passed to `start` as

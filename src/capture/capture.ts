@@ -16,7 +16,8 @@
  *   checked here on the first start, never by the board's install.
  * - Front or back camera (card NG-43): chosen in the camera test and in
  *   teaching, remembered on the device (`CAMERA_FACING_KEY`). The child's
- *   gesture view always asks for the front camera, without fallback. Frames of either camera go to
+ *   gesture view names its own camera, without fallback (card NG-49: front
+ *   unless switched there, never this choice). Frames of either camera go to
  *   the tracker unflipped; nothing on the way to the matcher depends on it.
  */
 import { frameSummary, shouldersOf, toLandmarkFrame, type TrackerFrame, type TrackerHand, type TrackerPoint } from "../recognition/tracker-adapter.js";

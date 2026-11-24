@@ -112,12 +112,11 @@ child with the back camera.
   teaching keep the default (`data-picture="video"`).
 - **Used by the camera test and teaching only.** `startCapture(environment, { facing })`; the
   bridge's `start` fills in the stored choice when a caller names none. **The child's gesture view
-  always asks for the front camera** (`facing: "user"`, `fallback: false`; second build of the
-  card, coordinator's decision delegated by the owner): the child uses the board alone, facing the
-  screen. After a parent taught with "hinten", the stored choice would point the back camera away
-  from the child; every attempt would end in "no hands", with no explanation and no way out the
-  child could find. For the same reason a front camera that does not open is not replaced by the
-  back one there: the view shows its camera problem line and "Nochmal".
+  never uses this choice**: it names its own camera (`facing`, `fallback: false`), the front one
+  unless switched in that view (card NG-49, its own key `amysecho-recognise-facing`). After a parent
+  taught with "hinten", the stored choice would point the back camera away from a child using the
+  board alone. A camera that does not open is not replaced by the other one there: the view shows
+  its problem line and keeps its switch.
 - **What is asked for.** The back camera with `facingMode: { exact: "environment" }`, so a device
   without one refuses instead of quietly giving the front camera. The front camera as before,
   `facingMode: "user"` as a preference (`CAMERA_CONSTRAINTS`, unchanged): desktop webcams and

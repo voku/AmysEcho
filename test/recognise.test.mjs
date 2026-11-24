@@ -1455,7 +1455,6 @@ const cameraSwitch = (panel) => tree(panel).find((element) => hasClass(element, 
 
 test("view: the camera switch is next to the way back while the camera starts or runs; a tap there films with the other camera and is remembered apart from teaching's choice", async () => {
   const choice = memoryStorage();
-  const teaching = choiceStorage("user");
   await withView(async (context) => {
     const { panel, buttonNamed, time, camera } = context;
     context.gestureButton().click();
@@ -1473,7 +1472,6 @@ test("view: the camera switch is next to the way back while the camera starts or
     assert.equal(textOf(switcher), "⇄ Kamera: hinten");
     assert.equal(switcher.attributes["aria-label"], "Kamera wechseln, jetzt hinten");
     assert.equal(choice.items.get(RECOGNISE_FACING_KEY), "environment", "remembered on the device");
-    assert.equal(teaching.items.get("amysecho-camera-facing"), "user", "teaching's choice is not touched");
     await settle();
     assert.deepEqual(camera.log.asked, ["user", { exact: "environment" }]);
     assert.equal(panel().dataset.state, "countdown");
@@ -1530,5 +1528,42 @@ test("view: the gesture view asks the bridge for a preview without the camera pi
     await settle();
     assert.deepEqual(asked, [{ video: false }]);
     assert.equal(slotOf(panel()).children[0], previews.made[0].element);
+  });
+});
+
+test("view: one device storage for teaching and the gesture view: teaching's 'hinten' is never read here, and the switch never writes teaching's key", async () => {
+  assert.equal(RECOGNISE_FACING_KEY, "amysecho-recognise-facing");
+  assert.notEqual(RECOGNISE_FACING_KEY, CAMERA_FACING_KEY);
+  const device = choiceStorage("environment");
+  await withView(async (context) => {
+    const { panel, time, camera } = context;
+    context.gestureButton().click();
+    await settle();
+    assert.deepEqual(camera.log.asked, ["user"], "teaching's 'hinten' on the same storage is not this view's choice");
+    assert.equal(cameraSwitch(panel()).dataset.facing, "user");
+    time.advance(RECOGNISE_GUARD_MS);
+    cameraSwitch(panel()).click();
+    await settle();
+    assert.equal(device.items.get(RECOGNISE_FACING_KEY), "environment");
+    time.advance(RECOGNISE_GUARD_MS);
+    cameraSwitch(panel()).click();
+    await settle();
+    assert.equal(device.items.get(RECOGNISE_FACING_KEY), "user");
+    assert.equal(device.items.get(CAMERA_FACING_KEY), "environment", "teaching's choice is left as it was");
+    assert.deepEqual(camera.log.asked, ["user", { exact: "environment" }, "user"]);
+  }, { camera: { storage: device }, choice: device });
+});
+
+test("view: when the camera switch has the focus and hides with the answer, the focus moves to the answer's first button", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, doc, buttonNamed } = context;
+    await viewToRecording(context);
+    await camera.feedAll(MOVES_RIGHT);
+    cameraSwitch(panel()).focus();
+    // The recording ends at its deadline; the switch is hidden with the answer.
+    time.advance(RECOGNISE_MAX_RECORDING_MS);
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(cameraSwitch(panel()).hidden, true);
+    assert.equal(doc.activeElement, buttonNamed("Nein"), "not dropped to the page");
   });
 });

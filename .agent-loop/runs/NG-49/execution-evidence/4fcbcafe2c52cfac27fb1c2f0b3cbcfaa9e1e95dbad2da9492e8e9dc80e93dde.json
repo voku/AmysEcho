@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:9c32eae55f5510935b97a1a009021a4844d1dd46",
+    "contract_revision": 2,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-24T13:09:57+00:00",
+    "reference": "execution-evidence:sha256:4fcbcafe2c52cfac27fb1c2f0b3cbcfaa9e1e95dbad2da9492e8e9dc80e93dde",
+    "run_id": "run:NG-49:5b16043e39c88b4f",
+    "schema_version": "1.0",
+    "source_digest": "sha256:082358da7adf8b66131e8ee55a996561f9675203573d8fd9737141a4be950602",
+    "source_reference": "workspace-file:test/recognise.test.mjs",
+    "stage_id": "correctness-review",
+    "task_id": "NG-49"
+}

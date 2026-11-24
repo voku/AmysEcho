@@ -794,7 +794,9 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   let focusable: HTMLElement[] = [];
   const draw = (state: RecogniseState): void => {
     const active = typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null);
-    const focusLost = active !== null && focusable.includes(active);
+    // The camera switch counts too when this draw hides it (card NG-49): a hidden button holds no focus.
+    const switchFocused = active !== null && active === cameraButton;
+    let focusLost = active !== null && focusable.includes(active);
     focusable = [];
     panel.dataset["state"] = state.kind;
     delete panel.dataset["concept"];
@@ -803,6 +805,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     delete panel.dataset["from"];
     if (state.kind !== "countdown" && state.kind !== "recording") delete panel.dataset["seen"];
     cameraButton.hidden = !(state.kind === "starting" || state.kind === "countdown" || state.kind === "recording" || state.kind === "problem");
+    if (switchFocused && cameraButton.hidden) focusLost = true;
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
     if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording") previewSlot.replaceChildren();

@@ -1,11 +1,143 @@
 {
     "attention": null,
-    "candidate_revision": "6bf9d88dd43957d72170a018044f7692456c91f2",
+    "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:9c32eae55f5510935b97a1a009021a4844d1dd46",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-24T13:08:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T13:08:20+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6bf9d88dd43957d72170a018044f7692456c91f2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "schema_version": "1.0",
+                "task_id": "NG-49",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6bf9d88dd43957d72170a018044f7692456c91f2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "outcome": "completed",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:106d58c5",
+                "summary": "Camera facing for the gesture view was hard-coded in createRecogniser startCamera (facing: 'user', fallback false); the preview is made in attachRecognise via bridge.createPreview(document); createCapturePreview in capture.ts always adds a video. Change sites: a facing option and switchCamera in the controller, a switch button and own storage key in the view, a video option in createCapturePreview; the NG-43 'no camera control' test, the board stylesheet test.",
+                "task_id": "NG-49",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T13:08:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T13:08:20+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:cc6263447a9cbec7ba10413415f89d6cfb0e0432ae511c40c8fd7f548abc6ae1",
+                    "execution-evidence:sha256:9f6df8bac3b091374c70ece606baf20aa0568a9d107ca74e8ef12cd473fddd77",
+                    "execution-evidence:sha256:adb1ecdd386d9f782bb26785acac70a7464574efd068a5dbf4e8add5507b0102",
+                    "execution-evidence:sha256:0e37a30fb1311acb2dfbb4a45ba08f8bb8b22c26d3997b7d9ce03579dc72fc76",
+                    "execution-evidence:sha256:84fe675e374070e1609f9f4292103da7214f9c65d1780f7ae7c9d2ecf8df3c94",
+                    "execution-evidence:sha256:bed4486a2f940e05bc5e710ceb1076056ddcc148c3cd8c7626f0aad5f555c633",
+                    "execution-evidence:sha256:8116e723296d21404eb93b36a81d45ef9c3718a9499d2b6b03fafc14196665d2",
+                    "execution-evidence:sha256:a2823008a89cee0f8662603fe5427ac1f9d0d034fca4416980f84c3ac94f0ebf"
+                ],
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:9c32eae55f5510935b97a1a009021a4844d1dd46",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "schema_version": "1.0",
+                "task_id": "NG-49",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:cc6263447a9cbec7ba10413415f89d6cfb0e0432ae511c40c8fd7f548abc6ae1",
+                    "execution-evidence:sha256:9f6df8bac3b091374c70ece606baf20aa0568a9d107ca74e8ef12cd473fddd77",
+                    "execution-evidence:sha256:adb1ecdd386d9f782bb26785acac70a7464574efd068a5dbf4e8add5507b0102",
+                    "execution-evidence:sha256:0e37a30fb1311acb2dfbb4a45ba08f8bb8b22c26d3997b7d9ce03579dc72fc76",
+                    "execution-evidence:sha256:84fe675e374070e1609f9f4292103da7214f9c65d1780f7ae7c9d2ecf8df3c94",
+                    "execution-evidence:sha256:bed4486a2f940e05bc5e710ceb1076056ddcc148c3cd8c7626f0aad5f555c633",
+                    "execution-evidence:sha256:8116e723296d21404eb93b36a81d45ef9c3718a9499d2b6b03fafc14196665d2",
+                    "execution-evidence:sha256:a2823008a89cee0f8662603fe5427ac1f9d0d034fca4416980f84c3ac94f0ebf"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:9c32eae55f5510935b97a1a009021a4844d1dd46",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "outcome": "completed",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:861f7387",
+                "summary": "switchCamera(change, pressAt) restarts the attempt with the other camera in starting/countdown/recording/problem (guard from camera ask); RECOGNISE_FACING_KEY separate from teaching; back-camera problem line with the switch kept; preview video:false (canvas only, data-picture=points). 5 new tests, each fails against a mutant; NG-43 test revised; layout measured in Chromium at 5 sizes, no scroll, no video. npm run verify 680/680 + 7/7.",
+                "task_id": "NG-49",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T13:09:57+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T13:09:57+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:584c6e8f391e8040fa8193e72688316ce7e84ae655b737d7c3f98f63ddcb5059",
+                    "execution-evidence:sha256:dae7a0900da12d0857cdca6edf8d6ba3516d65ca21a8245df66121aa2e2ab54f",
+                    "execution-evidence:sha256:60675ea2cd0946ca89edb3d76a7f9df06628ae396caa657d1b15a118310d1a5a",
+                    "execution-evidence:sha256:4fcbcafe2c52cfac27fb1c2f0b3cbcfaa9e1e95dbad2da9492e8e9dc80e93dde",
+                    "execution-evidence:sha256:5a6c5469981d7d9189589925de875d0592fb310317736140d198a1d067677232",
+                    "execution-evidence:sha256:d73b078a0a4bc80fff8f1e064c460ab057a729ecd8f6ec6a16c25f4236e93a5a",
+                    "execution-evidence:sha256:4066248f8305278e14f90f07f2e292b9ad07b684ff1c6070bb53916086628256",
+                    "execution-evidence:sha256:ba73090bf8a59d32b21b148f4a66b73ff9b48975a219a5850cbbaedeff857231"
+                ],
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:9c32eae55f5510935b97a1a009021a4844d1dd46",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "schema_version": "1.0",
+                "task_id": "NG-49",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:584c6e8f391e8040fa8193e72688316ce7e84ae655b737d7c3f98f63ddcb5059",
+                    "execution-evidence:sha256:dae7a0900da12d0857cdca6edf8d6ba3516d65ca21a8245df66121aa2e2ab54f",
+                    "execution-evidence:sha256:60675ea2cd0946ca89edb3d76a7f9df06628ae396caa657d1b15a118310d1a5a",
+                    "execution-evidence:sha256:4fcbcafe2c52cfac27fb1c2f0b3cbcfaa9e1e95dbad2da9492e8e9dc80e93dde",
+                    "execution-evidence:sha256:5a6c5469981d7d9189589925de875d0592fb310317736140d198a1d067677232",
+                    "execution-evidence:sha256:d73b078a0a4bc80fff8f1e064c460ab057a729ecd8f6ec6a16c25f4236e93a5a",
+                    "execution-evidence:sha256:4066248f8305278e14f90f07f2e292b9ad07b684ff1c6070bb53916086628256",
+                    "execution-evidence:sha256:ba73090bf8a59d32b21b148f4a66b73ff9b48975a219a5850cbbaedeff857231"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:9c32eae55f5510935b97a1a009021a4844d1dd46",
+                "context_id": "claude-subagent-ng49-correctness",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "outcome": "changes_required",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:85651eaa",
+                "summary": "Controller and preview logic are sound: switchCamera states, the cameraAskedAt guard, change only on effect, problemLine for the back camera only, and the old camera's late answer/ended are all guarded by camera===own, and createPreview stays backward compatible. Changes required: (1) the tests do not guard that the view's key is separate from teaching's. Setting RECOGNISE_FACING_KEY to amysecho-camera-facing in dist still passes all 51 tests in recognise+app. (2) The hidden switch breaks the NG-48 focus guarantee. cameraButton is not in focusable, so when it is focused and hidden by a redraw (recording timer ends, giving confirm/unknown/unusable) focus drops to the page (recognise.ts:794-795,809,914-920). (3) Docs and comments still say the gesture view always uses the front camera with its picture: docs/capture.md:113-120, docs/recognise.md:18-19 and :104, src/capture/capture.ts:17-19.",
+                "task_id": "NG-49",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
