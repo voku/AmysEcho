@@ -2619,8 +2619,9 @@ test("gesture: the stylesheet gives the control and the gesture view big targets
   const rule = (selector) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
   assert.match(rule(".gesture-start"), /min-height: var\(--tile-min\)/);
   assert.match(rule(".gesture-start"), /touch-action: manipulation/);
-  assert.match(rule(".recognise-back, .recognise-action"), /min-height: var\(--tile-min\)/);
-  assert.match(rule(".recognise-back, .recognise-action"), /touch-action: manipulation/);
+  // Card NG-49: the camera switch next to the way back is as big a target.
+  assert.match(rule(".recognise-back, .recognise-action, .recognise-camera"), /min-height: var\(--tile-min\)/);
+  assert.match(rule(".recognise-back, .recognise-action, .recognise-camera"), /touch-action: manipulation/);
   // The button row keeps its height also when empty, so nothing in the view moves within one state.
   assert.match(rule(".recognise-actions"), /min-height: var\(--tile-min\)/);
   assert.match(rule(".recognise-candidates"), /grid-template-rows: var\(--tile-min\)/);

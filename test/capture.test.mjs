@@ -1540,3 +1540,30 @@ test("camera choice: `fallback: false` (the child's gesture view) never tries th
     assert.deepEqual([log.asked, log.trackerClosed], [["user"], 1]);
   }
 });
+
+test("browser preview without video (card NG-49): only the points on the box, never a video element; mirrored for the front camera only", () => {
+  const { doc, made } = previewDocument();
+  const preview = createCapturePreview(doc, { video: false });
+  assert.equal(preview.element.dataset.picture, "points");
+  const stream = { getTracks: () => [] };
+  preview.show(stream, "user");
+  assert.equal(made.videos.length, 0, "the stream is never put into a video element");
+  const [canvas] = made.canvases;
+  assert.deepEqual(preview.element.children, [canvas]);
+  assert.equal(preview.element.dataset.camera, "on");
+  assert.equal(preview.element.dataset.mirrored, "true");
+  preview.draw(frame(0, [hand(0.3, 0.6, "Right")], pose()));
+  assert.ok(canvas.calls.some(([name]) => name === "stroke"), "the hand is drawn as with the video");
+  // The back camera: not mirrored, as in a photo app.
+  preview.show(stream, "environment");
+  assert.equal(made.videos.length, 0);
+  assert.equal(preview.element.dataset.mirrored, "false");
+  preview.close();
+  assert.deepEqual(preview.element.children, []);
+  assert.equal(preview.element.dataset.camera, "off");
+  // The default keeps the video (teaching and the camera test).
+  const withVideo = createCapturePreview(doc);
+  assert.equal(withVideo.element.dataset.picture, "video");
+  withVideo.show(stream, "user");
+  assert.equal(made.videos.length, 1);
+});

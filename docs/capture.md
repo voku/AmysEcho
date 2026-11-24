@@ -97,8 +97,8 @@ child with the back camera.
 
 - **The choice.** "Kamera: vorne / hinten" in the camera test (a row above "Kamera starten") and
   in the teaching view ([caregiver.md](caregiver.md)); two buttons, the pressed one
-  (`aria-pressed`) is the camera used. The child's gesture view has no control and does not use
-  the choice ([recognise.md](recognise.md)), see below. The choice is remembered on the device in `localStorage` under
+  (`aria-pressed`) is the camera used. The child's gesture view does not use this choice: since
+  card NG-49 it has its own switch and key ([recognise.md](recognise.md)), see below. The choice is remembered on the device in `localStorage` under
   `amysecho-camera-facing` (`CAMERA_FACING_KEY`; `src/caregiver.ts` has the same string, a test
   compares them): `"user"` (front, the default) or `"environment"` (back). It is a per-device
   convenience, not data: every read and write is in `try`/`catch`; anything else stored, no
@@ -106,6 +106,10 @@ child with the back camera.
   holds in the open view (the area keeps its own copy) until the page is left. It is not part of
   a profile, a backup or anything sent. In the camera test it can be changed while the camera is
   off ("Kamera stoppen" first).
+- **Preview without video** (card NG-49). `createCapturePreview(doc, { video: false })` puts only
+  the canvas into the box (`data-picture="points"`); the stream is never shown, the points are
+  drawn and mirrored as with the video. The child's gesture view uses it; the camera test and
+  teaching keep the default (`data-picture="video"`).
 - **Used by the camera test and teaching only.** `startCapture(environment, { facing })`; the
   bridge's `start` fills in the stored choice when a caller names none. **The child's gesture view
   always asks for the front camera** (`facing: "user"`, `fallback: false`; second build of the
