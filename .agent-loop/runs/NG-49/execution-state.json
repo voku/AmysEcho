@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:9c32eae55f5510935b97a1a009021a4844d1dd46",
+    "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
     "contract_revision": 2,
-    "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
     "history": [
         {
@@ -135,6 +135,208 @@
                 "summary": "Controller and preview logic are sound: switchCamera states, the cameraAskedAt guard, change only on effect, problemLine for the back camera only, and the old camera's late answer/ended are all guarded by camera===own, and createPreview stays backward compatible. Changes required: (1) the tests do not guard that the view's key is separate from teaching's. Setting RECOGNISE_FACING_KEY to amysecho-camera-facing in dist still passes all 51 tests in recognise+app. (2) The hidden switch breaks the NG-48 focus guarantee. cameraButton is not in focusable, so when it is focused and hidden by a redraw (recording timer ends, giving confirm/unknown/unusable) focus drops to the page (recognise.ts:794-795,809,914-920). (3) Docs and comments still say the gesture view always uses the front camera with its picture: docs/capture.md:113-120, docs/recognise.md:18-19 and :104, src/capture/capture.ts:17-19.",
                 "task_id": "NG-49",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T13:13:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T13:13:43+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4b4e2b5ddfce42777e221ce51670c844fe02267baa1211bfe647f620527df67e",
+                    "execution-evidence:sha256:51af86453330e1caf729aa2dd8b30e6c52b063b4fea47ba146804a4063e8b30d",
+                    "execution-evidence:sha256:c17bec4ee1d77b93107df84717b3e4177e082700c3f843981c2c0fee2446ee03",
+                    "execution-evidence:sha256:9aa30389dc15e80d2dd3630d3b5bbacc380c69d26e6b4dc2377932224d271f7b",
+                    "execution-evidence:sha256:72e2d0d6e6b8098f7696a833f02f89826694a844e8648c286fb50b1290d5e940",
+                    "execution-evidence:sha256:7ea841439142fd1ce053da5a0d43a05cf7feb9bf445874b6a56c4b21927a76ac",
+                    "execution-evidence:sha256:2db076fe88ddf83546f031a18e997bef4549f1d6566350dc372d86b9b14ef613",
+                    "execution-evidence:sha256:0294289d51ff04c169d7aaa31d1794f6931101c5e73bbb928955d3d9a41fbe06"
+                ],
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "schema_version": "1.0",
+                "task_id": "NG-49",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4b4e2b5ddfce42777e221ce51670c844fe02267baa1211bfe647f620527df67e",
+                    "execution-evidence:sha256:51af86453330e1caf729aa2dd8b30e6c52b063b4fea47ba146804a4063e8b30d",
+                    "execution-evidence:sha256:c17bec4ee1d77b93107df84717b3e4177e082700c3f843981c2c0fee2446ee03",
+                    "execution-evidence:sha256:9aa30389dc15e80d2dd3630d3b5bbacc380c69d26e6b4dc2377932224d271f7b",
+                    "execution-evidence:sha256:72e2d0d6e6b8098f7696a833f02f89826694a844e8648c286fb50b1290d5e940",
+                    "execution-evidence:sha256:7ea841439142fd1ce053da5a0d43a05cf7feb9bf445874b6a56c4b21927a76ac",
+                    "execution-evidence:sha256:2db076fe88ddf83546f031a18e997bef4549f1d6566350dc372d86b9b14ef613",
+                    "execution-evidence:sha256:0294289d51ff04c169d7aaa31d1794f6931101c5e73bbb928955d3d9a41fbe06"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "outcome": "completed",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:e9be829a",
+                "summary": "Review fixes: shared device storage test (teaching 'hinten' not read, teaching key never written, literal key asserted); switch focus counts as lost when hidden, moved to the first button (test: recording ends at deadline with switch focused); docs/recognise.md Status and NG-44 paragraph, docs/capture.md and capture.ts header reworded. Mutants: key=teaching's, no focus move, loader reading teaching's key all fail. npm run verify green.",
+                "task_id": "NG-49",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T13:14:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T13:14:59+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7b1c8cfe13105558b9b0a20ffcff86894f1fea26d2e3bf0234788e45d30eeefa",
+                    "execution-evidence:sha256:7d09aeeff964e48a8e47a8d5638e6b0b3d098490437c985906e65afab2554e6e",
+                    "execution-evidence:sha256:2c29ee5cd8323bac9fa9bde3ad6d345fd18d7bd0cb63ecc4e4e032ac7b1164ea",
+                    "execution-evidence:sha256:96af242851be13367c00f72d3ffcc80f6cebbb1a7ab35379c527b920ef2b9d6e",
+                    "execution-evidence:sha256:c62c2ac2113728fdb404b4e5d2a9e76723fad825188ac2fa90cd9698b8d5ca0e",
+                    "execution-evidence:sha256:367491e43609ee61520fd5b7eaafba5af537de48f6ab0a388c73b33b3cb6957d",
+                    "execution-evidence:sha256:b36869ac329dd94e954f873020e407d264773f7a1c332f3d8c75bc02e63e8865",
+                    "execution-evidence:sha256:faf1d5233e4a62aa1b1dbec3a671c5e06564c28f023e3188f6f649751d0629e1"
+                ],
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "schema_version": "1.0",
+                "task_id": "NG-49",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7b1c8cfe13105558b9b0a20ffcff86894f1fea26d2e3bf0234788e45d30eeefa",
+                    "execution-evidence:sha256:7d09aeeff964e48a8e47a8d5638e6b0b3d098490437c985906e65afab2554e6e",
+                    "execution-evidence:sha256:2c29ee5cd8323bac9fa9bde3ad6d345fd18d7bd0cb63ecc4e4e032ac7b1164ea",
+                    "execution-evidence:sha256:96af242851be13367c00f72d3ffcc80f6cebbb1a7ab35379c527b920ef2b9d6e",
+                    "execution-evidence:sha256:c62c2ac2113728fdb404b4e5d2a9e76723fad825188ac2fa90cd9698b8d5ca0e",
+                    "execution-evidence:sha256:367491e43609ee61520fd5b7eaafba5af537de48f6ab0a388c73b33b3cb6957d",
+                    "execution-evidence:sha256:b36869ac329dd94e954f873020e407d264773f7a1c332f3d8c75bc02e63e8865",
+                    "execution-evidence:sha256:faf1d5233e4a62aa1b1dbec3a671c5e06564c28f023e3188f6f649751d0629e1"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "context_id": "claude-subagent-ng49-correctness-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "observations": [
+                    "docs/caregiver.md:661 still says the child's gesture view always uses the front camera; stale since NG-49 but outside this contract's scope, needs a follow-up",
+                    "src/capture/capture.ts:7-10 header and the createCapturePreview JSDoc still describe the preview as always a second <video>; video:false (NG-49) is now optional, a doc nit",
+                    "docs/recognise.md:226-230 layout measurement lists countdown, recording and countdown-after-switch but not the starting and problem states, which now also show the switch; fit there is inferred from the unchanged top-row height, not measured; not re-measured in this review",
+                    "test/recognise.test.mjs:820 test name says the child's view always asks for the front camera; true only for the default, slightly misleading after NG-49"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:ce055cb3",
+                "summary": "All three attempt-1 fixes are real and mutation-tested: using teaching's key fails 3 tests and changing the literal key fails 1 (the key-separation test); disabling the hidden-switch focus rule fails the new focus test. Further mutants were caught: load ignoring the store, press guard removed, preview asked with video, back-camera line, switch hidden in problem. 191/191 tests pass in recognise, capture, app and board. Docs and capture.ts header match the code within scope.",
+                "task_id": "NG-49",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T13:16:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T13:16:16+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2a51e0c3595eb685d62f8393b979512c2554b5b72ed6021e11416db9d9ea9364",
+                    "execution-evidence:sha256:33e65cdd22e44810243cec4c07e5d9e5a9b94e892c5f8cc08a9d844d23179182",
+                    "execution-evidence:sha256:59c1ed554eb1aa10252cfc0d6b073a5caba3195fd90726197353693aa4cdd578",
+                    "execution-evidence:sha256:662ccbcbcf27dec788a0e17484671ca674e06e631322c4ae3a62f55663835fcd",
+                    "execution-evidence:sha256:3286fa8941cbc026c9b5b602c3e768a74f890570fe8567e899292fe93207093b",
+                    "execution-evidence:sha256:2a9d07b65cc1691273e1998176342db5fcc03d4ec69b258e5466e77e68c22d66",
+                    "execution-evidence:sha256:44e6a866b707537b1d88366a57161d02d785d80a030c0ff012f2561cbbc811d6",
+                    "execution-evidence:sha256:50c262e143b7de2f4a87c764f3f92a15343abef37053b8d8ba9cbada49baa6a8"
+                ],
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "schema_version": "1.0",
+                "task_id": "NG-49",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2a51e0c3595eb685d62f8393b979512c2554b5b72ed6021e11416db9d9ea9364",
+                    "execution-evidence:sha256:33e65cdd22e44810243cec4c07e5d9e5a9b94e892c5f8cc08a9d844d23179182",
+                    "execution-evidence:sha256:59c1ed554eb1aa10252cfc0d6b073a5caba3195fd90726197353693aa4cdd578",
+                    "execution-evidence:sha256:662ccbcbcf27dec788a0e17484671ca674e06e631322c4ae3a62f55663835fcd",
+                    "execution-evidence:sha256:3286fa8941cbc026c9b5b602c3e768a74f890570fe8567e899292fe93207093b",
+                    "execution-evidence:sha256:2a9d07b65cc1691273e1998176342db5fcc03d4ec69b258e5466e77e68c22d66",
+                    "execution-evidence:sha256:44e6a866b707537b1d88366a57161d02d785d80a030c0ff012f2561cbbc811d6",
+                    "execution-evidence:sha256:50c262e143b7de2f4a87c764f3f92a15343abef37053b8d8ba9cbada49baa6a8"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "context_id": "claude-subagent-ng49-blindspot",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "observations": [
+                    "src/recognise/recognise.ts:716 loads a remembered 'hinten' from RECOGNISE_FACING_KEY on every open. A child alone after a caregiver session then films away from itself. Without the picture (capture.ts:917) the empty box looks the same as 'no hand in front of the front camera', and no_hands (recognise.ts:136) does not mention the camera. That brings back the NG-43 silent failure for a child who does not read 'Kamera: hinten'. Persistence is owner-approved. Follow-up: give no_hands a camera hint when facing is environment, or test it on a device.",
+                    "src/recognise/recognise.ts:544 counts the press guard only from when the camera was asked for. A stray tap on the switch (same height, next to 'Zurück zur Tafel', styles.css:73-76) during the countdown or the recording restarts the attempt and drops the recording, with no word on why the countdown began again. Not destructive. Unmeasured with children (docs/recognise.md says so).",
+                    "docs/capture.md:159 says a test matches examples taught with the front camera against an attempt with the back camera. The test at test/recognise.test.mjs:848 does the reverse (taught with the back camera, attempt with the front one). The NG-49 controller test does match after switching to 'hinten', and the fake tracker is the same for both cameras, so the real-device equivalence is still the device-trial item at docs/capture.md:161-167.",
+                    "Not checked: whether NG-47's live region announces the restarted countdown after a switch, or stays silent, and so whether a screen-reader or non-reading child gets any cue that the camera changed."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:a3d9351a",
+                "summary": "No blocking blind spot: no video element in the gesture view, back-camera drawing unmirrored with L/R as the child's own hands, cross-camera matching backed by the handedness tests and a match after switching, switch hidden with answers and focus moved. Residual risks are recorded as observations.",
+                "task_id": "NG-49",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T13:19:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T13:19:29+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "schema_version": "1.0",
+                "task_id": "NG-49",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:8436c7ab53cf0e98953d17140f26cd4f368687a88dceaf4661c9587841cac411",
+                    "execution-evidence:sha256:b7416b5a12efbd42ecf3322a3818197fe596ce08df5a3ac97d9573b73bd55716"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6bf9d88dd43957d72170a018044f7692456c91f2:ee3c61ce4af541b9e79a5b08043d4bafe152be2b",
+                "consistency_references": [
+                    "execution-evidence:sha256:0928b2b9b1eb90f739f70715a1c21e92787d22f1296123c1d65fbbf2f33cde44"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:aa228f3c264195a008aa066b5f257ab751547ea4f01f255463128fec98ae8259",
+                "outcome": "pass",
+                "run_id": "run:NG-49:5b16043e39c88b4f",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:46478769eae52552ce29f065a4b8b6a0fec25d9aea3ff7a551d8e26b6f606fcb",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-49: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-49 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-49:5b16043e39c88b4f binds active Session 2026-11-24-ng-49-r2-f56de84e to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-49 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-49",
+                "validation_references": [
+                    "execution-evidence:sha256:8436c7ab53cf0e98953d17140f26cd4f368687a88dceaf4661c9587841cac411",
+                    "execution-evidence:sha256:b7416b5a12efbd42ecf3322a3818197fe596ce08df5a3ac97d9573b73bd55716"
+                ]
             }
         }
     ],
