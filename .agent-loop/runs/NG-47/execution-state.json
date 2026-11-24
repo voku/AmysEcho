@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
+    "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
     "contract_revision": 2,
-    "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
     "history": [
         {
@@ -165,6 +165,181 @@
                 "summary": "place() introduces no focus or media regression: previewSlot and feedback hold no focusable nodes and are no longer moved; every focusable node in main and actions is created new on each draw, as it was before. One docs claim is false: docs/recognise.md:171-172 says that neither the region nor the picture is taken out and in again, but recognise.ts:738 and :745 put preview.element back in its box with replaceChildren on every countdown and recording draw. The doc uses 'picture' for the video and 'the picture's box' for the slot (docs/recognise.md:125,178), and the test at test/recognise.test.mjs only asserts that the picture box is not moved. Fix: say 'the picture's box' (or note that the video is still put back inside its box), matching the recorded known limit.",
                 "task_id": "NG-47",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:38:37+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:38:37+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:f959f6065876239d9bfa6096c71fa0c0664d087562f57792d8ef8f1804de5d77",
+                    "execution-evidence:sha256:3ad3d1cb0adfc62963c780f7f1b04848c3aeb5481e21ed3eac9a56474a152a48",
+                    "execution-evidence:sha256:92c3c5b242a56d1dab7f0fdde4d5c77b014eb6995ca0abdb4ba70d8512ef8736",
+                    "execution-evidence:sha256:cba79e346cc811917f194ea03f66d9de2ab7b967e1b20cecba02ac8bafb254bb"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:f959f6065876239d9bfa6096c71fa0c0664d087562f57792d8ef8f1804de5d77",
+                    "execution-evidence:sha256:3ad3d1cb0adfc62963c780f7f1b04848c3aeb5481e21ed3eac9a56474a152a48",
+                    "execution-evidence:sha256:92c3c5b242a56d1dab7f0fdde4d5c77b014eb6995ca0abdb4ba70d8512ef8736",
+                    "execution-evidence:sha256:cba79e346cc811917f194ea03f66d9de2ab7b967e1b20cecba02ac8bafb254bb"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "outcome": "completed",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:ab3ab3d6",
+                "summary": "Blind-spot attempt 2: docs claimed the picture is not re-placed, but previewSlot.replaceChildren re-placed the video each draw. Now place(previewSlot, ...) keeps the video; test asserts no move of the preview element (fails with replaceChildren); docs name box and picture. npm run verify 652/652 + 6/6.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:41:47+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:41:47+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2fda1f8fcf7ea0afd641ca8ab563250c4641c29097fa0a31592a9d2210ff448b",
+                    "execution-evidence:sha256:1193b8e36c163201fbcee59b83b60ba087e56ab804be5630abd0145e6b6704b9",
+                    "execution-evidence:sha256:daf6614b99bcdcc2b69f93fcfa54b3b8aa57996674c2db0c73cbffa117721a02",
+                    "execution-evidence:sha256:d1b6e59858c14e2bfaa703544d17ce51702b5a20a6d025abd9476410ae05633e"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2fda1f8fcf7ea0afd641ca8ab563250c4641c29097fa0a31592a9d2210ff448b",
+                    "execution-evidence:sha256:1193b8e36c163201fbcee59b83b60ba087e56ab804be5630abd0145e6b6704b9",
+                    "execution-evidence:sha256:daf6614b99bcdcc2b69f93fcfa54b3b8aa57996674c2db0c73cbffa117721a02",
+                    "execution-evidence:sha256:d1b6e59858c14e2bfaa703544d17ce51702b5a20a6d025abd9476410ae05633e"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "context_id": "claude-subagent-ng47-correctness-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "observations": [
+                    "docs/recognise.md:173 one line breaks short after 'moved on each tick, a second one the picture inside its box).' and the parenthetical records review history rather than behaviour; cosmetic.",
+                    "src/recognise/recognise.ts:681 the region is put into the page at countdown already holding 'Keine Hand im Bild', so most screen readers say nothing for the first count; the first announcement comes on the first change. This matches the contract (announce on change).",
+                    "test/app.test.mjs:27 the fake insertBefore splices at -1 when the reference node is not a child, where a real DOM would throw; place() only passes real children, so this does not matter today."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:6e31f2c9",
+                "summary": "place() keeps the hands-seen region, the picture box and the camera picture in place from countdown into recording: the old count is removed and the new one appended on each tick, the count goes away at recording, a new or never-placed preview is inserted at index 0, and without a preview the slot is left out of main. previewSlot is still emptied in every other state (draw line 711) and in the preview callback. The status region is polite and atomic and is written only when the count changes. Docs 169-176 match the code. Mutants that put replaceChildren back for the slot or for main, or drop the text guard, each fail one test; 46/46 pass on the candidate.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:42:47+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:42:47+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:de32f61e9d194ecae49b178c14f1b8f5b23acf5265dcf5d6557e0b901ee6e9de",
+                    "execution-evidence:sha256:d4122c4b089873bf6b0c88920284f26ccba04c86add7328d7edddf766c428ed7",
+                    "execution-evidence:sha256:35f3ca119a23b091ed9465b9d9892a261e34e53e9aeda1dbc505222788ff7ab7",
+                    "execution-evidence:sha256:c38dd6a9ebab676ebecad1e83a3b6df348339e7360d13940ec61a1b009aa953c"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:de32f61e9d194ecae49b178c14f1b8f5b23acf5265dcf5d6557e0b901ee6e9de",
+                    "execution-evidence:sha256:d4122c4b089873bf6b0c88920284f26ccba04c86add7328d7edddf766c428ed7",
+                    "execution-evidence:sha256:35f3ca119a23b091ed9465b9d9892a261e34e53e9aeda1dbc505222788ff7ab7",
+                    "execution-evidence:sha256:c38dd6a9ebab676ebecad1e83a3b6df348339e7360d13940ec61a1b009aa953c"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "context_id": "claude-subagent-ng47-blindspot-4",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "observations": [
+                    "docs/recognise.md:176 and test/recognise.test.mjs:1334 state that the freshly inserted role=status line speaks the countdown; a live region inserted with its text already set is not announced reliably by every screen reader. This behaviour predates NG-47 and has not been checked with a real screen reader, so the docs/test wording asserts it rather than measuring it.",
+                    "docs/recognise.md:171 says each draw leaves nodes in place; that holds for the main area and the picture box only, since actions still uses replaceChildren (the known Stopp rebuild)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:b002d8ef",
+                "summary": "No new blocking blind spot. place() keeps the feedback row, the picture box and the video in place (main/previewSlot); the seen words are role=status polite atomic and written only on a text change; recording ticks go through onTimeLeft without a redraw, so nothing is announced each recording second; the countdown line is still a new role=status node on each countdown draw as before NG-47; the timeBox stays role=img without aria-live; visible order and classes are unchanged.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:45:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:45:43+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:70c47da8c597fab7f05f82e2bbd744f64a54bb1871e5d9870ada99575ec7b735",
+                    "execution-evidence:sha256:fe59d7401dcbe7b3f3710349de09097c33e4caab8d1cbe217808afe7cbe8dcd8"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:fd5b057a69da78029bc68b182a1765f53ae2438d",
+                "consistency_references": [
+                    "execution-evidence:sha256:0fd89193ec9381aa73565feaa8683ea39b1cb4ab6791b2341df6f6b069dc8aab"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "outcome": "pass",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:c4e5c6e3744c4fb59c84d9b4482fafd6b4feab7335b74e8ceff0f5bf72d1b0de",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-47: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-47 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-47:38a85d9034fec0f0 binds active Session 2026-11-24-ng-47-r2-7a03b512 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-47 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-47",
+                "validation_references": [
+                    "execution-evidence:sha256:70c47da8c597fab7f05f82e2bbd744f64a54bb1871e5d9870ada99575ec7b735",
+                    "execution-evidence:sha256:fe59d7401dcbe7b3f3710349de09097c33e4caab8d1cbe217808afe7cbe8dcd8"
+                ]
             }
         }
     ],
