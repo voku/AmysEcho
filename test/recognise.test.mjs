@@ -534,6 +534,7 @@ function fakeElement(tagName) {
     },
     dispatch(name, event = {}) { for (const handler of [...(this.listeners[name] ?? [])]) handler({ preventDefault() {}, ...event }); },
     click() { this.dispatch("click"); },
+    focus() { globalThis.document.activeElement = this; },
   };
 }
 const tree = (node) => [node, ...node.children.flatMap(tree)];
@@ -1268,11 +1269,15 @@ test("seconds left come from the recording's deadline: a late timer shows the ri
   assert.deepEqual(left, [5]);
   late = 900;
   time.advance(1900);
-  // The first tick was due at 1 s and came at 1.9 s; the next one, due at 2 s, also came late.
-  // Counting callbacks would show 4 and then 3 at 2.9 s; the deadline gives 4 at 1.9 s, and 3 at 2.9 s.
+  // The first tick was set before the timers turned late: it comes at 1 s and shows 4. The next one,
+  // due at 2 s, comes at 2.9 s and shows 3; it wakes the one after for 3 s, which comes at 3.9 s
+  // and shows 2. One second per callback would show 3 at 2.9 s as well, but nothing at 3.9 s: its
+  // next callback, set 1 s after 2.9 s, comes only at 4.8 s (card NG-48).
   assert.deepEqual(left, [5, 4]);
   time.advance(1000);
   assert.deepEqual(left, [5, 4, 3], "never behind the time actually left");
+  time.advance(1000);
+  assert.deepEqual(left, [5, 4, 3, 2], "a count per callback would still show [5, 4, 3] here");
   recogniser.finish();
   assert.equal(time.pending(), 0, "no tick left after the recording");
 });
@@ -1343,5 +1348,53 @@ test("view: the hands-seen region and the picture stay in the page from the coun
     buttonNamed("Stopp").click();
     assert.ok(main.moved.some(([kind, node]) => kind === "out" && node === feedback));
     assert.equal(main.children.includes(feedback), false);
+  });
+});
+
+// --- The focus stays in the view (card NG-48) ---
+
+test("view: when the focused button goes with a redraw, the focus moves to the new state's first button or the way back", async () => {
+  await withView(async (context) => {
+    const { panel, buttonNamed, time, camera, doc } = context;
+    // An unusable recording, then "Nochmal" by keyboard: the button goes, the focus goes to "Zurück zur Tafel".
+    await viewToRecording(context);
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back), "the view opens with the focus on the way back");
+    await camera.feed(MOVES_RIGHT(0));
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").focus();
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "unusable");
+    assert.equal(doc.activeElement, buttonNamed("Nochmal"), "from 'Stopp' to the answer's first button");
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nochmal").click();
+    assert.equal(panel().dataset.state, "starting");
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back), "no button while the camera starts: the way back");
+    await settle();
+    time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+    assert.equal(panel().dataset.state, "recording");
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back), "focus that was not lost is not moved");
+    // Not taught: unknown with candidates. A candidate by keyboard, then "Nein": back to the first candidate.
+    await camera.feedAll((i) => [trackerHand(0.7 - i * 0.012, 0.3 + i * 0.012, "Right")]);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").focus();
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "unknown");
+    const candidates = () => tree(panel()).filter((element) => hasClass(element, "recognise-candidate"));
+    assert.equal(doc.activeElement, candidates()[0], "no button on unknown: the first candidate");
+    time.advance(RECOGNISE_GUARD_MS);
+    const ball = candidates().find((candidate) => candidate.dataset.concept === "ball");
+    ball.focus();
+    ball.click();
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(doc.activeElement, buttonNamed("Nein"));
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nein").click();
+    assert.equal(panel().dataset.state, "unknown");
+    assert.equal(doc.activeElement, candidates()[0]);
+    // Focus outside the view's buttons (here on the way back) stays where it is through a redraw.
+    buttonNamed(RECOGNISE_TEXT.back).focus();
+    time.advance(RECOGNISE_GUARD_MS);
+    candidates()[0].click();
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back));
   });
 });

@@ -166,6 +166,11 @@ see without reading:
   timer that fires late shows the count of the time actually left instead of falling one step
   behind per tick. Tested with a hand lost for single frames, a lasting drop, and a timer that
   fires 900 ms late.
+- **The focus stays in the view** (card NG-48): each state draws its buttons anew. When the
+  focused button or candidate goes with a redraw ("Stopp", "Nochmal", "Nein", a candidate pressed
+  by keyboard or switch), the focus moves to the new state's first button, or to the first
+  candidate, or to "Zurück zur Tafel"; it never drops to the page. Focus that was not lost is not
+  moved. The test of late timers now checks 3.9 s, where a count per callback would fall behind.
 - **Heard, not only seen** (card NG-47): the words next to the hand symbols ("Eine Hand im Bild")
   are a polite, atomic status region that stays in the page through countdown and recording (each
   draw leaves the nodes that are already in place where they are, so neither the region, the

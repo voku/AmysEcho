@@ -699,7 +699,16 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   panel.addEventListener("pointerdown", () => { pressedAt = now(); });
   panel.addEventListener("contextmenu", (event: Event) => event.preventDefault());
 
+  /**
+   * The buttons and candidate tiles of the last draw (card NG-48). A draw builds them anew; when the
+   * focus was on one of them, it would drop to the page and a keyboard or switch user would have to
+   * find the view again.
+   */
+  let focusable: HTMLElement[] = [];
   const draw = (state: RecogniseState): void => {
+    const active = typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null);
+    const focusLost = active !== null && focusable.includes(active);
+    focusable = [];
     panel.dataset["state"] = state.kind;
     delete panel.dataset["concept"];
     delete panel.dataset["reason"];
@@ -788,6 +797,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
             conceptContent(tile, entry, 64);
             tile.addEventListener("click", () => recogniser.choose(id, pressStart()));
             list.append(tile);
+            focusable.push(tile);
           }
           content.push(list);
         }
@@ -801,10 +811,17 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     }
     place(main, content);
     actions.replaceChildren(...buttons);
+    // The buttons come first: they are where the next press goes ("Stopp", "Ja, sagen", "Nochmal").
+    focusable = [...buttons, ...focusable];
     if (!board.isCovered()) {
       board.cover(panel);
       // The control that opened the view is hidden now: the focus goes to the way back.
       if (typeof back.focus === "function") back.focus();
+    } else if (focusLost) {
+      // The focused button went with the redraw: the focus stays in the view, on the new state's
+      // first button or candidate, else on the way back. Focus elsewhere is left where it is.
+      const next = focusable[0] ?? back;
+      if (typeof next.focus === "function") next.focus();
     }
   };
   const againButton = (): HTMLElement => {
