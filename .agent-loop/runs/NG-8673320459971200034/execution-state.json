@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
     "history": [
         {
@@ -33,6 +33,48 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:36fafa53",
                 "summary": "Profile delete confirmation (confirmView) uses deleteHold; heldButton's allowed() gates the hold; mode 'delete' had no draft; tests open it via profile(name).remove.click() and act(), 32 hold tests press 'Endgültig löschen' directly.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:30:03+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:30:03+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:86a62a94721401c0139fc56cc6fd428d54fa72052d4d8d7900cb154be1eec2d5",
+                    "execution-evidence:sha256:fe2a6dae3e747bf4c106889938892ee6e6b9ad188794f68f7a168037059b34d2",
+                    "execution-evidence:sha256:34bf5135b0a3a1723520c56f3fe0c85c53bdb4da226fe05e1bfc961702e07f80",
+                    "execution-evidence:sha256:82b833a15134d6994ca92f86be6d4e718d5c47722c2347d27ff1e79e83a6e56e"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:86a62a94721401c0139fc56cc6fd428d54fa72052d4d8d7900cb154be1eec2d5",
+                    "execution-evidence:sha256:fe2a6dae3e747bf4c106889938892ee6e6b9ad188794f68f7a168037059b34d2",
+                    "execution-evidence:sha256:34bf5135b0a3a1723520c56f3fe0c85c53bdb4da226fe05e1bfc961702e07f80",
+                    "execution-evidence:sha256:82b833a15134d6994ca92f86be6d4e718d5c47722c2347d27ff1e79e83a6e56e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "outcome": "completed",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:3b20feff",
+                "summary": "confirmView adds a name field (label 'Zum Bestätigen den Namen „<name>“ eingeben', focused, spellcheck/correct off, draft kept in the delete mode); deleteHold takes an optional armed check: aria-disabled until NFC-trimmed text equals the stored name, a hold before that shows a German refusal and deletes nothing; act also re-checks. Own concepts and examples keep the plain hold. Test harness act() types the name for existing hold tests (typeDeleteName:false for new ones); 2 new tests; 6 updated for texts/focus. Docs caregiver.md; CSS label spacing. npm run verify passed: 659 node tests; browser 4 pass 2 skipped. Hand-run Chromium: button aria-disabled true for 'Testki', false for 'Testkind', no console errors.",
                 "task_id": "NG-8673320459971200034",
                 "validation_references": []
             }
