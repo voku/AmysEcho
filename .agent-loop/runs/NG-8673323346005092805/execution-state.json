@@ -1,5 +1,13 @@
 {
-    "attention": null,
+    "attention": {
+        "created_at": "2026-11-23T20:34:06+00:00",
+        "id": "attention:43f367397a33139b",
+        "kind": "runner_failed",
+        "message": "Verify cannot pass on the reviewed candidate: after both reviews passed, the builder changed src/caregiver.ts and test/caregiver.test.mjs (commit after 9b5ac4d) to fix two review observations (the latest chosen file wins the preview; no 'Bild der App' message for an own concept under a catalogue id). The workspace no longer holds candidate 92ac134c (CANDIDATE_MISMATCH). The changed candidate needs another build/review round. npm run verify on the changed workspace passed: 639 node tests, browser 4 pass 2 skipped.",
+        "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+        "stage_id": "verify",
+        "task_id": "NG-8673323346005092805"
+    },
     "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:92ac134c05272fb7d32f2bc0b2ac5e78bba13c16",
     "contract_revision": 1,
     "current_attempt": 1,
@@ -228,6 +236,24 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:1:134b28ca",
                 "summary": "Blind-spot review of the candidate against Contract rev 1. Privacy, VERIFIED: pictures are only re-encoded through a canvas (src/caregiver.ts:1663-1680), so EXIF/GPS/SVG markup are never stored; nothing is sent over the network (connect-src 'self', and no fetch in the picture path). Licensing: the German rights notice that names METACOM licences appears in the view (caregiver.ts:395) and in docs/assets.md. Export, VERIFIED: 'symbol.<id>' is a valid data name, so pictures travel in exports; docs/storage.md documents this and the size accounting. Child-facing: a damaged picture falls back to the catalogue picture or text and is reported as damaged-symbol (board-data.ts:338-340); the board never shows a broken image. Storage: pictures count toward the profile size limit, and a full profile is refused with a German message (caregiver.ts:1677). No blocking blind spot. Could not check: real devices, a real METACOM export, EXIF orientation on iOS Safari, screen readers.",
+                "task_id": "NG-8673323346005092805",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:34:06+00:00",
+            "handoff": null,
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:92ac134c05272fb7d32f2bc0b2ac5e78bba13c16",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:297e8efe440092ce21771e2650c66c237e308f41cab96e7635bb1a2ea8ecffbb",
+                "outcome": "failed",
+                "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+                "stage_id": "verify",
+                "submission_id": "submission:verify:1:a4852db0",
+                "summary": "Verify cannot pass on the reviewed candidate: after both reviews passed, the builder changed src/caregiver.ts and test/caregiver.test.mjs (commit after 9b5ac4d) to fix two review observations (the latest chosen file wins the preview; no 'Bild der App' message for an own concept under a catalogue id). The workspace no longer holds candidate 92ac134c (CANDIDATE_MISMATCH). The changed candidate needs another build/review round. npm run verify on the changed workspace passed: 639 node tests, browser 4 pass 2 skipped.",
                 "task_id": "NG-8673323346005092805",
                 "validation_references": []
             }

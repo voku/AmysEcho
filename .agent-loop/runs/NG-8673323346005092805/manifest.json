@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-8673323346005092805 before calling agent-loop finish NG-8673323346005092805",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-23T20:02:18+00:00",
@@ -78,7 +78,19 @@
         "learning": {
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
+            "review_observations": [
+                "src/caregiver.ts:1632 choosePicture has no per-choice token: if a second file is chosen while the first is still decoding, whichever decode finishes last wins, and the first one to finish clears draft.reading. An older choice can then replace a newer one in the preview (what is saved still matches the preview). Fix: keep a counter on draft and drop results that are not the latest.",
+                "src/caregiver.ts:1694 removePicture's message checks catalogue.find without the entry source. For a custom concept that shadows a catalogue id it says 'zeigt wieder das Bild der App', but the board shows text. pictureView (caregiver.ts:2258) already checks entry.source === 'catalogue'; use the same check here.",
+                "src/caregiver.ts:2258 an own picture that is unreadable (damaged-symbol, damage unreadable) gets no 'Bild entfernen' button and no note in the picture view, because ownSymbol is unset. It can only be replaced, and the damaged-symbol problem stays until then.",
+                "test/caregiver.test.mjs:6952-7100 no test covers closing the area or leaving the view while a file is still decoding, or a second change event during decoding; the guards at caregiver.ts:1648 are only checked by reading the code.",
+                "Commit 2dbcf42 also adds picture-view.png at the repository root. It is outside the Contract scope and the governed candidate tree does not contain it, but it is in the branch history. The goal says no picture enters the repository, so remove it from the branch before integration.",
+                "src/caregiver.ts:403 PICTURE_LOCAL says 'Die App sendet es nicht', but a profile export (docs/storage.md, own pictures) carries the pictures as plain base64. When an export/import UI is built, it should warn that the backup file contains the chosen pictures (photos included), and that sharing it may be limited by the family's METACOM licence.",
+                "src/caregiver.ts:224 MAX_PICTURE_FILE_BYTES limits the file size but not the pixel count. A 10 MB, highly compressible PNG of very large dimensions is decoded in full before the canvas downscales it, which can exhaust memory on a low-end tablet (nothing persistent is lost). Consider refusing naturalWidth*naturalHeight above a pixel budget after load.",
+                "docs/storage.md (own pictures section): the pictures are only in the browser's origin storage, and src/ has no navigator.storage.persist() call. Eviction or clearing site data loses them together with the profile. This risk already existed, but own pictures (for example a family's METACOM exports) make it more costly. Follow-up: ask for persistent storage, or point to export.",
+                "docs/storage.md: a concept taken off the board keeps its symbol.<id> picture by design. These hidden pictures still count toward the size limit and are in exports, and no UI lists or deletes them, except removeCustomConcept for own concepts.",
+                "src/board-data.ts:335 resolveBoard now does a third sequential read per concept (123 reads for 40 concepts), and every refresh puts data URLs of up to 256 KiB into the DOM. The 1.5 s start-up bound remains unmeasured with pictures.",
+                "Commit 2dbcf42 adds picture-view.png (a synthetic UI screenshot) at the repository root. It is outside the scope and not in the governed candidate tree, but the Contract goal says no picture enters the repository, so drop it from the branch before pushing or merging."
+            ],
             "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
             "state": "missing"
         },
@@ -91,7 +103,34 @@
                 "path": ".agent-loop/map/php-symbols.json",
                 "sha256": "sha256:6bf436fd6f9df2debf916385530cbea2610f86ce313411e3caf989ede8532b6f"
             },
-            "state": "ready"
+            "stale_entries": [
+                {
+                    "path": "public/sw.js",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/board-data.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/board.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 6,
+            "state": "stale"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
@@ -111,6 +150,15 @@
             },
             "state": "compiled"
         },
+        "retirement": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Code changed after both reviews passed (two fixes from review observations); verify refused the changed candidate. Owner chose to retire and rerun under contract revision 2.",
+            "retired_at": "2026-11-24T00:42:30+00:00",
+            "retired_by": "Lars Moelleken (delegated to Claude for this session)",
+            "state": "retired",
+            "status": "superseded"
+        },
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
@@ -121,7 +169,7 @@
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/search.sqlite",
-            "state": "missing"
+            "state": "unavailable"
         },
         "session": {
             "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
@@ -149,10 +197,10 @@
                 "template": false
             },
             "gate": "execution_review",
-            "implementation_snapshot": "sha256:7076ce7afa2e886c68e624ac9214569c3e7b4af436ede1e7a8bf58f40286f40d",
+            "implementation_snapshot": "sha256:6c97640bb1335926554a80e50dfc8b164637ed42283b3c55d8fde12d2871293d",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "independent review pipeline is incomplete at stage investigate",
+            "reason": "independent review pipeline is waiting for Attention",
             "recall_outcome_draft": null,
             "repair_action": null,
             "repair_invocation": null,
@@ -162,6 +210,6 @@
     },
     "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "retired",
     "task_id": "NG-8673323346005092805"
 }
