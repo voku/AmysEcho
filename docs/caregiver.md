@@ -839,9 +839,11 @@ takes over the body:
 - with an own picture stored: "Bild der App wiederherstellen" for a catalogue concept, "Bild
   entfernen" for an own or retired one. One tap: the picture can be chosen again.
 
-Choosing a file stores nothing. `pictureFromFile` refuses a type that is not offered and a file
-over 10 MB, reads the file as a data URL, loads it into an image and draws it onto a canvas of at
-most 256 pixels a side; it keeps the canvas as PNG, or as JPEG on white when the PNG is longer
+Choosing a file stores nothing; it drops a picture chosen before, so while the file is read and
+after a refusal there is nothing to save. `pictureFromFile` refuses a type that is not offered and
+a file over 10 MB, reads the file as a data URL, loads it into an image, refuses a picture of more
+than `MAX_PICTURE_PIXELS` (40 megapixels: "Das Bild ist zu groß (mehr als 40 Megapixel). …")
+before drawing it, and draws it onto a canvas of at most 256 pixels a side; it keeps the canvas as PNG, or as JPEG on white when the PNG is longer
 than 256 KiB. So what is stored is never the file: no SVG markup or script, no camera, place or
 date. Refusals are German error lines and the view stays: "Diese Datei ist kein Bild, das die App
 lesen kann. …", "Die Datei ist zu groß. …", "Das Bild konnte nicht gelesen werden. …", "Das Bild
@@ -854,7 +856,14 @@ neueren Version gespeichert. Bitte die App aktualisieren." Deleting an own conce
 deletes its picture.
 
 The page's Content Security Policy allows `data:` images (`img-src 'self' data:`) for these
-pictures and nothing else new. In headless Chromium (script run by hand, not in CI) an SVG with an
+pictures and nothing else new. Every place that shows a picture (the board's tiles, the rows here,
+the previews) puts into `src` only what `isPictureSource` (`src/board.ts`) accepts: a stored
+picture or a bundled `./icons/*.svg`; anything else is shown as text. `test/browser/pictures.test.mjs`
+runs `pictureFromFile` in Chromium in CI, with synthetic images: an SVG with `onload` and a
+`<script>` becomes a PNG without running either, a 1200 × 900 picture comes out at 256 × 192, a
+42-megapixel SVG, a text file and a broken PNG are refused, and the result loads under the page's
+policy. A backup round trip with pictures is tested in `test/profiles-backup.test.mjs`. Earlier, in
+headless Chromium (script run by hand) an SVG with an
 `onload` attribute and a `<script>` came out as a plain PNG without running either, a 1200 × 900
 synthetic image came out at 256 × 192, a text file and a broken PNG were refused, and the full
 flow (create an own concept, choose a picture, save, close) showed the picture on the child's

@@ -1,8 +1,21 @@
 import { CONCEPTS } from "./concepts.js";
+import { isSymbolDataUrl } from "./board-data.js";
 import type { BoardEntry } from "./board-data.js";
 import { hasLocalGermanVoice, onVoicesChanged, requestLocalGermanSpeech, speechActivity, type SpeechAttempt } from "./speech.js";
 import { fallbackCause, isTroubled, showsExamples } from "./startup.js";
 import type { BoardHandle, BoardView, FallbackCause, StartupHost } from "./startup.js";
+
+/** A bundled picture of the app, as the catalogue names it. */
+const BUNDLED_PICTURE = /^\.\/icons\/[a-z0-9-]+\.svg$/;
+
+/**
+ * True for a picture source the app shows: a picture board data stores
+ * (`isSymbolDataUrl`) or a bundled icon. Anything else is never put into an
+ * image's `src` (card NG-8673317704447615766); the concept is shown as text.
+ */
+export function isPictureSource(source: string | null): source is string {
+  return source !== null && (isSymbolDataUrl(source) || BUNDLED_PICTURE.test(source));
+}
 
 function paragraph(className: string, text: string): HTMLElement {
   const element = document.createElement("p");
@@ -411,8 +424,8 @@ export function mountBoard(root: HTMLElement, view: BoardView, options: BoardOpt
     const label = document.createElement("span");
     label.textContent = concept.labelDe;
 
-    if (concept.symbolPath === null) {
-      // No symbol: a text-only button, never an image that cannot load.
+    if (!isPictureSource(concept.symbolPath)) {
+      // No symbol, or none the app shows: a text-only button, never an image that cannot load.
       button.className = "concept concept-text";
       button.append(label);
     } else {

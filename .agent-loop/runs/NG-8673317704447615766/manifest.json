@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-8673317704447615766 before calling agent-loop finish NG-8673317704447615766",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T12:00:55+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673317704447615766/contract.json",
+                "sha256": "sha256:d0f59b0fbc0eff1e9614d05ce5e79c6550b0668c5c1a034c4f6b7922776a2d01"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673317704447615766",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "c4f265723ffe48f9c05e1c5e7fd2cb1fa0a4286b6f91575660f2fd197b3b7c8e",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673317704447615766.md",
+                "sha256": "sha256:c4f265723ffe48f9c05e1c5e7fd2cb1fa0a4286b6f91575660f2fd197b3b7c8e"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "While a chosen file is still being read, no 'Speichern' for an earlier picture is shown; a refused later file drops the earlier preview",
+                "pictureFromFile refuses an image above 40 megapixels after loading its size and before drawing it, in German ('Das Bild ist zu groß …')",
+                "Board tiles (src/board.ts) and caregiver rows use the same rule as the picture view: a src only for isSymbolDataUrl or a bundled ./icons/*.svg path; a test ties every CONCEPTS symbolPath to that rule",
+                "A test exports a profile with a symbol.<id> entry and imports it under a new id; the board of the copy shows the same picture",
+                "A browser test (test/browser, synthetic images only) runs pictureFromFile in Chromium: an SVG with a script becomes a PNG without running it, a large image is scaled to at most 256 px, a text file and a broken PNG are refused"
+            ],
+            "goal": "Tighten the picture import that shipped: the view never offers to save a picture that is about to be replaced or that a refused later file superseded, very large images are refused before they are decoded in full, every place that shows a picture accepts only a stored picture or a bundled icon, and the conversion and the backup round trip are covered by tests.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673317704447615766/contract.json",
+                "sha256": "sha256:d0f59b0fbc0eff1e9614d05ce5e79c6550b0668c5c1a034c4f6b7922776a2d01"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673317704447615766/contract.json",
+                "sha256": "sha256:d0f59b0fbc0eff1e9614d05ce5e79c6550b0668c5c1a034c4f6b7922776a2d01"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:cecb634f75276ec1dbb3d67732ed3b7c622e93caf3ae653695b7cb41901ef083",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:75e87ecc86070a236daf85b0fb9edfbd0255c1dc3042f5512638b04831c2d843"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "24d476ba08b3c0619ae289a8f5bdc98f366a7c7d5679bd4edddddc8c6ecea015",
+            "compilation_id": "compilation.NG-8673317704447615766.2026-11-24-120056.9b2a1b3f",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "45f6452632e6526e3762f0694fa735139f260222f00c0ab0d92f10eacb0e696b",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673317704447615766/meta.json",
+                "sha256": "sha256:a74d4de17d0764c624876d1ff21474096494c127ddb559c02e085864f9de8e87"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-8673317704447615766/reviews/NG-8673317704447615766.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-8673317704447615766-r1-67ed6447",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673317704447615766-r1-67ed6447/session.json",
+                "sha256": "sha256:365f132098772b119043c6ee60c2b1582d8f4e5d93317c6e1734a39a0f8550b6"
+            },
+            "state": "active",
+            "task_id": "NG-8673317704447615766"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-8673317704447615766 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-8673317704447615766",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "implementation",
+            "implementation_snapshot": null,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Implementation snapshot scoped path does not exist yet: test/browser/pictures.test.mjs (a deleted path needs a Contract base_commit that tracks it)",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-8673317704447615766"
+}

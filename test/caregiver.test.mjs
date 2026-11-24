@@ -7377,3 +7377,50 @@ test("delete: Escape in the name field leaves the confirmation without deleting,
     assert.equal(focused.current, buttonNamed(caregiverRegion, "Löschen"));
   });
 });
+
+// --- Picture view polish (card NG-8673317704447615766); the picture data is synthetic ---
+
+test("pictures: choosing another file drops the earlier picture at once: no 'Speichern' while it is read, and none next to its refusal", async () => {
+  const pending = new Map();
+  const slow = (file) => new Promise((resolve, reject) => pending.set(file.name, { ok: () => resolve(PICTURE_PNG), refuse: () => reject(new PictureRefusal("pixels")) }));
+  await withArea({ seed: seedThree, pictureFromFile: slow }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, status, backend } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    const pick = async (name) => {
+      const view = pictureViewOf(caregiverRegion);
+      view.file.files = [{ name, type: "image/png", size: 10 }];
+      view.file.dispatch("change");
+      await area.handle.settled();
+    };
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await area.handle.settled();
+    };
+    await pick("first.png");
+    pending.get("first.png").ok();
+    await settle();
+    assert.notEqual(pictureViewOf(caregiverRegion).save, null);
+    // A second file: while it is read there is nothing to save, and the earlier preview is gone.
+    await pick("second.png");
+    assert.equal(pictureViewOf(caregiverRegion).save, null);
+    assert.deepEqual(pictureViewOf(caregiverRegion).images, ["./icons/hilfe.svg"]);
+    assert.ok(pictureViewOf(caregiverRegion).texts.includes("Das Bild wird gelesen …"));
+    // Refused (too many pixels): the refusal, and still nothing to save.
+    pending.get("second.png").refuse();
+    await settle();
+    assert.equal(status(), "Das Bild ist zu groß (mehr als 40 Megapixel). Bitte ein kleineres Bild wählen, zum Beispiel einen Ausschnitt.");
+    assert.equal(pictureViewOf(caregiverRegion).save, null);
+    assert.deepEqual(pictureViewOf(caregiverRegion).images, ["./icons/hilfe.svg"]);
+    assert.equal(Object.keys(backend.snapshot()).some((key) => key.includes("symbol.")), false);
+  });
+});
+
+test("pictures: a caregiver row shows only a stored picture or a bundled icon", async () => {
+  const catalogue = CONCEPTS.map((concept) => (concept.id === "pause" ? { ...concept, symbolPath: "javascript:alert(1)" } : concept));
+  await withArea({ seed: seedThree, catalogue }, async ({ holdOpen, concept }) => {
+    await holdOpen();
+    assert.equal(concept("Pause").picture, null);
+    assert.equal(concept("Hilfe").picture, "./icons/hilfe.svg");
+  });
+});

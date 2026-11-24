@@ -1,0 +1,41 @@
+{
+    "acceptance_criteria": [
+        "Typing the right name after a refusal puts the hold hint back at once; a name made wrong during a running hold shows the German refusal",
+        "Inner whitespace is compared collapsed (two spaces or a no-break space count as one space) and emoji variation selector U+FE0F is ignored on both sides; any other difference still refuses, with a hint when only spacing or such marks differ",
+        "The name label wraps long names (overflow-wrap: anywhere); the field's aria-describedby names the title and the loss text",
+        "The refusal is tested with Enter and Space as well as with a pointer"
+    ],
+    "acceptance_observations": [],
+    "approved_at": null,
+    "approved_by": null,
+    "base_commit": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+    "behavior_anchors": [],
+    "created_at": "2026-11-24T12:00:06+00:00",
+    "goal": "Make the typed-name delete confirmation clearer without weakening it: the line under the button follows what is typed, a name that looks right but differs in invisible ways is explained, long names wrap, and a screen reader hears what is being deleted.",
+    "kind": "task_contract",
+    "non_goals": [
+        "Other delete confirmations (own concepts, gesture examples)"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Claude",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/caregiver.ts",
+        "public/styles.css",
+        "test/caregiver.test.mjs",
+        "docs/caregiver.md"
+    ],
+    "status": "candidate",
+    "tags": [],
+    "task_id": "NG-8673319027843774136",
+    "updated_at": "2026-11-24T12:00:06+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

@@ -16,6 +16,7 @@
  * See docs/caregiver.md.
  */
 import type { App } from "./app.js";
+import { isPictureSource } from "./board.js";
 import {
   BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, MAX_SYMBOL_DATA_URL_LENGTH, clearSymbol, clearWording, isSymbolDataUrl, listCustomConcepts, normalizeWording,
   putCustomConcept, removeCustomConcept, resolveBoard, setBoardConcepts, setSymbol, setWording,
@@ -221,9 +222,6 @@ export interface CaregiverOptions {
   readonly pictureFromFile?: (file: Blob) => Promise<string>;
 }
 
-/** A bundled picture of the app, as the catalogue names it. */
-const BUNDLED_PICTURE = /^\.\/icons\/[a-z0-9-]+\.svg$/;
-
 /**
  * A preview image of the picture view, or null for a value that is neither a
  * picture board data stores (`isSymbolDataUrl`) nor a bundled icon. It is an
@@ -231,7 +229,7 @@ const BUNDLED_PICTURE = /^\.\/icons\/[a-z0-9-]+\.svg$/;
  * by a caregiver can become the source of any other kind of element.
  */
 function previewImage(source: string): HTMLImageElement | null {
-  if (!isSymbolDataUrl(source) && !BUNDLED_PICTURE.test(source)) return null;
+  if (!isPictureSource(source)) return null;
   const image = new Image(96, 96);
   image.className = "caregiver-picture-preview";
   image.alt = "";
@@ -241,16 +239,18 @@ function previewImage(source: string): HTMLImageElement | null {
 
 /** The longer side of a stored picture, in pixels (card NG-8673323346005092805). */
 export const PICTURE_SIZE_PX = 256;
+/** Largest picture, in pixels, that is drawn at all (card NG-8673317704447615766). */
+export const MAX_PICTURE_PIXELS = 40_000_000;
 /** Largest image file that is read at all. */
 export const MAX_PICTURE_FILE_BYTES = 10 * 1024 * 1024;
 /** The file types the picker offers; SVG is drawn onto a canvas like the others, so none of its markup is stored. */
 export const PICTURE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/svg+xml"] as const;
 
-/** Why a chosen file did not become a picture: "type" (not an image the app reads), "size" (file too large), "unreadable" (could not be decoded), "too-large" (still too large after redrawing). */
+/** Why a chosen file did not become a picture: "type" (not an image the app reads), "size" (file too large), "pixels" (more than `MAX_PICTURE_PIXELS`), "unreadable" (could not be decoded), "too-large" (still too large after redrawing). */
 export class PictureRefusal extends Error {
-  readonly reason: "type" | "size" | "unreadable" | "too-large";
+  readonly reason: "type" | "size" | "pixels" | "unreadable" | "too-large";
 
-  constructor(reason: "type" | "size" | "unreadable" | "too-large") {
+  constructor(reason: "type" | "size" | "pixels" | "unreadable" | "too-large") {
     super(`picture refused: ${reason}`);
     this.reason = reason;
   }
@@ -279,6 +279,8 @@ export async function pictureFromFile(file: Blob): Promise<string> {
     image.onerror = () => reject(new PictureRefusal("unreadable"));
     image.src = source;
   });
+  // Refused before it is drawn: a small file can hold a huge picture, and drawing decodes all of it.
+  if (image.naturalWidth * image.naturalHeight > MAX_PICTURE_PIXELS) throw new PictureRefusal("pixels");
   // An SVG without its own size reports 0; it is drawn into the full square then.
   const width = image.naturalWidth > 0 ? image.naturalWidth : PICTURE_SIZE_PX;
   const height = image.naturalHeight > 0 ? image.naturalHeight : PICTURE_SIZE_PX;
@@ -423,6 +425,7 @@ const NEWER_PICTURE = "Das Bild dieser Taste wurde mit einer neueren Version ges
 const PICTURE_REFUSED: Readonly<Record<PictureRefusal["reason"], string>> = {
   type: "Diese Datei ist kein Bild, das die App lesen kann. Bitte ein PNG-, JPEG-, WebP-, GIF- oder SVG-Bild wählen.",
   size: `Die Datei ist zu groß. Bitte ein Bild mit höchstens ${MAX_PICTURE_FILE_BYTES / (1024 * 1024)} MB wählen.`,
+  pixels: "Das Bild ist zu groß (mehr als 40 Megapixel). Bitte ein kleineres Bild wählen, zum Beispiel einen Ausschnitt.",
   unreadable: "Das Bild konnte nicht gelesen werden. Bitte ein anderes Bild wählen.",
   "too-large": "Das Bild ist auch verkleinert noch zu groß. Bitte ein einfacheres Bild wählen.",
 };
@@ -1669,6 +1672,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (mode !== open || file === undefined || open.draft.busy) return;
     clearStatus();
     open.draft.reading = true;
+    // The earlier picture goes: nothing can be saved that this file is about to replace, nor stay next to its refusal.
+    open.draft.picture = null;
     open.draft.choice += 1;
     const choice = open.draft.choice;
     run(async () => {
@@ -2209,7 +2214,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       text.append(element("span", "caregiver-concept-name", fallback));
       return text;
     }
-    if (shown.symbolPath !== null) {
+    if (isPictureSource(shown.symbolPath)) {
       text.className = "caregiver-concept-text caregiver-concept-pictured";
       const picture = element("img", "");
       picture.src = shown.symbolPath;

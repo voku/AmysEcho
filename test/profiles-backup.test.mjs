@@ -6,6 +6,8 @@ import {
 } from "../dist/profiles/backup.js";
 import { InjectedWriteError, MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileConflictError, ProfileSizeError, ProfileStore } from "../dist/profiles/store.js";
+import { putCustomConcept, resolveBoard, setBoardConcepts, setSymbol } from "../dist/board-data.js";
+import { CONCEPTS } from "../dist/concepts.js";
 
 const now = () => new Date("2026-03-04T05:06:07.089Z");
 const openStore = async () => {
@@ -508,4 +510,25 @@ test("any sequence of writes leaves a profile that can be exported and restored,
     }
     assert.ok(accepted > 5 && rejected > 5, `seed ${seed}: ${accepted} accepted, ${rejected} rejected`);
   }
+});
+
+test("a profile's own pictures travel in its backup: restored under a new id, its board shows the same pictures (synthetic pixels)", async () => {
+  const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const { store } = await openStore();
+  const mia = await store.create("Mia", []);
+  await putCustomConcept(store, mia.id, "eigen-0badc0de", { labelDe: "Ball", speechDe: "Ich möchte Ball spielen." }, CONCEPTS);
+  await setBoardConcepts(store, mia.id, ["hilfe", "eigen-0badc0de"], CONCEPTS);
+  await setSymbol(store, mia.id, "hilfe", PNG, CONCEPTS);
+  await setSymbol(store, mia.id, "eigen-0badc0de", PNG, CONCEPTS);
+  const text = JSON.stringify(await exportProfile(store, mia.id, { now }));
+  const target = await openStore();
+  await importProfile(target.store, JSON.parse(text));
+  // Into the same store again, as a copy with a new id.
+  const copy = await importProfile(store, JSON.parse(text), { onConflict: "copy" });
+  for (const [where, id] of [[target.store, mia.id], [store, copy.id]]) {
+    const board = await resolveBoard(where, id, CONCEPTS);
+    assert.deepEqual(board.entries.map((entry) => [entry.id, entry.symbolPath, entry.ownSymbol ?? false]), [["hilfe", PNG, true], ["eigen-0badc0de", PNG, true]]);
+    assert.deepEqual(board.problems, []);
+  }
+  assert.notEqual(copy.id, mia.id);
 });

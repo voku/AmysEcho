@@ -1,0 +1,47 @@
+{
+    "attention": null,
+    "candidate_revision": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T12:05:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:05:34+00:00",
+                "artifact_references": [],
+                "candidate_revision": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "schema_version": "1.0",
+                "task_id": "NG-8673317704447615766",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "outcome": "completed",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:0fde189c",
+                "summary": "choosePicture keeps an earlier draft.picture while a new file is read; pictureFromFile has no pixel budget; board.ts and caregiver conceptText put symbolPath into img.src unguarded; the board's catalogue icons are ./icons/*.svg; exportProfile/importProfile carry data entries generically; test/browser runs Playwright against serveDist.",
+                "task_id": "NG-8673317704447615766",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+    "schema_version": "1.0",
+    "task_id": "NG-8673317704447615766"
+}
