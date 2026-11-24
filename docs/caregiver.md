@@ -286,11 +286,19 @@ in that order, and under them the line "Zum Löschen 2 Sekunden gedrückt halten
 name field, and the confirmation starts right under the block.
 
 **The name has to be typed** (owner decision of 2026-11-24 on card NG-13, card
-NG-8673320459971200034). Until the field holds the stored name (NFC, spaces at the ends ignored,
-capitals as stored), "Endgültig löschen" has `aria-disabled="true"` and a hold on it does
-nothing; pressing it replaces the line under it with "Der Name stimmt noch nicht. Bitte genau
-„<name>“ eingeben. Es wurde nichts gelöscht." Once the name matches, the hold and release below
-apply unchanged. The field has the attributes of the create field (no spell checking or
+NG-8673320459971200034, polished on card NG-8673319027843774136). Until the field holds the stored
+name, "Endgültig löschen" has `aria-disabled="true"` and a hold on it (pointer, Enter or Space)
+does nothing; pressing it replaces the line under it with "Der Name stimmt noch nicht. Bitte genau
+„<name>“ eingeben. Es wurde nichts gelöscht.", with " Achte auf die Leerzeichen." or " Achte auf
+große und kleine Buchstaben." before the last sentence when only the spaces or only the capitals
+differ. Both sides are compared in NFC, without the emoji presentation mark U+FE0F, with every
+run of white space (also a no-break space) as one space and the ends trimmed; capitals and every
+other character count. The line follows the field: as soon as the name is right it says the hold
+hint again. A name changed during a running hold deletes nothing at the release, and the line
+says why. Once the name matches, the hold and release below apply unchanged. The field's
+`aria-describedby` names the title, the loss text and, for the active profile, what the child
+sees afterwards, so a screen reader that starts at the field hears them; the label wraps long
+names. The field has the attributes of the create field (no spell checking or
 correction). What was typed is kept while the confirmation stays open. A small child who got into
 the area cannot type the name; a caregiver who reads it can. It is not security. Deleting an own
 concept or gesture examples keeps the hold only. While it is open there is no

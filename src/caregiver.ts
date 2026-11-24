@@ -719,6 +719,16 @@ interface TapGuard {
 }
 
 /**
+ * A typed profile name as it is compared before a delete (card
+ * NG-8673319027843774136): NFC, the emoji presentation mark U+FE0F left out,
+ * every run of white space (also a no-break space) as one space, the ends
+ * trimmed. Capitals and every other character count.
+ */
+function deleteNameForm(text: string): string {
+  return text.normalize("NFC").replace(/\uFE0F/gu, "").replace(/\s+/gu, " ").trim();
+}
+
+/**
  * One German sentence for a refused or failed profile name. The store only
  * says "not a valid profile" (`ProfileFormatError`), so the reason is read
  * off the input, by the store's own rules: NFC, trimmed, counted in characters.
@@ -3050,7 +3060,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * Returns the button and what goes below it (its bar and its line).
    */
   const deleteHold = (
-    holds: HeldButton[], act: () => boolean, armed: { readonly ok: () => boolean; readonly refusal: string } | null = null,
+    holds: HeldButton[], act: () => boolean, armed: { readonly ok: () => boolean; readonly refusal: () => string } | null = null,
   ): { control: HTMLButtonElement; parts: HTMLElement[]; rearm: () => void } => {
     // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
     const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
@@ -3066,14 +3076,26 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     holdHint.setAttribute("aria-live", "polite");
     confirm.setAttribute("aria-describedby", holdHint.id);
     /** Until `armed` holds (the profile's name is typed), the button says so and a hold does nothing (owner decision on card NG-13). */
+    let refused = false;
     const rearm = (): void => {
       if (armed === null) return;
-      confirm.setAttribute("aria-disabled", armed.ok() ? "false" : "true");
+      const ok = armed.ok();
+      confirm.setAttribute("aria-disabled", ok ? "false" : "true");
+      // The line follows what is typed: once the name is right, the refusal gives way to the hint at once.
+      if (ok && refused) {
+        refused = false;
+        holdHint.textContent = DELETE_HOLD_HINT;
+      }
+    };
+    const refuse = (): void => {
+      if (armed === null) return;
+      refused = true;
+      holdHint.textContent = armed.refusal();
     };
     const idle = (): void => {
       holdProgress.hidden = true;
       holdProgress.value = 0;
-      holdHint.textContent = DELETE_HOLD_HINT;
+      if (!refused) holdHint.textContent = DELETE_HOLD_HINT;
     };
     rearm();
     /** Only the button that is on screen acts: not one that was swapped out while a finger rested on it. */
@@ -3084,7 +3106,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       allowed: () => {
         if (!current() || !aimed(now())) return false;
         if (armed !== null && !armed.ok()) {
-          holdHint.textContent = armed.refusal;
+          refuse();
           return false;
         }
         return true;
@@ -3103,7 +3125,13 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       },
       act: () => {
         idle();
-        if (current() && act()) holdHint.textContent = DELETING;
+        if (!current()) return;
+        // The name was changed during the hold: nothing is deleted, and the line says why.
+        if (armed !== null && !armed.ok()) {
+          refuse();
+          return;
+        }
+        if (act()) holdHint.textContent = DELETING;
       },
     });
     holds.push(held);
@@ -3117,15 +3145,38 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    */
   const confirmView = (profile: ProfileV1, label: string, isActive: boolean, register: Map<string, Focusable>, holds: HeldButton[]): HTMLElement => {
     const view = element("section", "caregiver-section caregiver-confirm");
-    view.append(element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
-    if (isActive) view.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
+    const title = element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`);
+    title.id = "caregiver-delete-title";
+    const loss = element("p", "caregiver-confirm-text", DELETE_LOSS);
+    loss.id = "caregiver-delete-loss";
+    view.append(title, loss);
+    const described = [title.id, loss.id];
+    if (isActive) {
+      const after = element("p", "caregiver-confirm-text", DELETE_ACTIVE);
+      after.id = "caregiver-delete-active";
+      described.push(after.id);
+      view.append(after);
+    }
     // Typing the name (owner decision on card NG-13): a child who got in cannot delete with a tap and a hold.
     const open = mode !== null && mode.kind === "delete" && mode.id === profile.id ? mode : null;
     const fieldLabel = element("label", "caregiver-delete-name-label", `Zum Bestätigen den Namen ${quoted(profile.displayName)} eingeben`);
     fieldLabel.htmlFor = "caregiver-delete-name";
     const field = nameField("caregiver-delete-name", open?.draft.typed ?? "");
     field.dataset["expected"] = profile.displayName;
-    const named = (): boolean => field.value.normalize("NFC").trim() === profile.displayName;
+    // Focus starts here: a screen reader hears what is deleted and what is lost with the field (card NG-8673319027843774136).
+    field.setAttribute("aria-describedby", described.join(" "));
+    const typed = (): string => deleteNameForm(field.value);
+    const expected = deleteNameForm(profile.displayName);
+    const named = (): boolean => typed() === expected;
+    /** The refusal, with a hint when only the spaces or only capitals differ. */
+    const refusal = (): string => {
+      const base = `Der Name stimmt noch nicht. Bitte genau ${quoted(profile.displayName)} eingeben.`;
+      const value = typed();
+      let hint = "";
+      if (value !== "" && value.replace(/\s/gu, "") === expected.replace(/\s/gu, "")) hint = " Achte auf die Leerzeichen.";
+      else if (value !== "" && value.toLocaleLowerCase("de") === expected.toLocaleLowerCase("de")) hint = " Achte auf große und kleine Buchstaben.";
+      return `${base}${hint} Es wurde nichts gelöscht.`;
+    };
     view.append(fieldLabel, field);
     register.set("delete-name", field);
     register.set("anchor:delete-name", view);
@@ -3133,10 +3184,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     cancel.addEventListener("click", leaveMode);
     register.set("confirm-cancel", cancel);
     register.set("anchor:confirm-cancel", view);
-    const { control: confirm, parts, rearm } = deleteHold(holds, () => named() && deleteProfile(profile, label), {
-      ok: named,
-      refusal: `Der Name stimmt noch nicht. Bitte genau ${quoted(profile.displayName)} eingeben. Es wurde nichts gelöscht.`,
-    });
+    const { control: confirm, parts, rearm } = deleteHold(holds, () => named() && deleteProfile(profile, label), { ok: named, refusal });
     field.addEventListener("input", () => {
       if (open !== null) open.draft.typed = field.value;
       rearm();

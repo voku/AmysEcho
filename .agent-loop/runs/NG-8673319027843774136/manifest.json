@@ -1,0 +1,166 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-8673319027843774136 before calling agent-loop finish NG-8673319027843774136",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T12:13:23+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673319027843774136/contract.json",
+                "sha256": "sha256:ada4dd64d287b1aeb5ea5e38060a9335546e342b73ab6f9e3d56cce197915fcd"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673319027843774136",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "ba536110a4808ca8f2b1aab2635ed90963e92859519d401a2e4c387baa82a584",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673319027843774136.md",
+                "sha256": "sha256:ba536110a4808ca8f2b1aab2635ed90963e92859519d401a2e4c387baa82a584"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Typing the right name after a refusal puts the hold hint back at once; a name made wrong during a running hold shows the German refusal",
+                "Inner whitespace is compared collapsed (two spaces or a no-break space count as one space) and emoji variation selector U+FE0F is ignored on both sides; any other difference still refuses, with a hint when only spacing or such marks differ",
+                "The name label wraps long names (overflow-wrap: anywhere); the field's aria-describedby names the title and the loss text",
+                "The refusal is tested with Enter and Space as well as with a pointer"
+            ],
+            "goal": "Make the typed-name delete confirmation clearer without weakening it: the line under the button follows what is typed, a name that looks right but differs in invisible ways is explained, long names wrap, and a screen reader hears what is being deleted.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673319027843774136/contract.json",
+                "sha256": "sha256:ada4dd64d287b1aeb5ea5e38060a9335546e342b73ab6f9e3d56cce197915fcd"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673319027843774136/contract.json",
+                "sha256": "sha256:ada4dd64d287b1aeb5ea5e38060a9335546e342b73ab6f9e3d56cce197915fcd"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:6b94fb756472ed445a818aa71a9ddcdf1528854c6ae1dd508c1de019b0f6e81f",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:966efb76b2169955f76566f9acf495e8698a49272ff4f301ae8e84be067cd555"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "00e04705efc8d334ccc33f1bfb283eac22c21c5bb8e6625e7a4c511c41d402df",
+            "compilation_id": "compilation.NG-8673319027843774136.2026-11-24-121323.1c053a1c",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "6f07bbebcf0b0d3d15ecc6896d8e3a24f1a96aa75356c06504cd3ca4d6906932",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673319027843774136/meta.json",
+                "sha256": "sha256:0eb84959bb1486ed2e5cc6041c845beeaba1d1bfd49bc4d0d788cedf15458eb5"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-8673319027843774136/reviews/NG-8673319027843774136.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "5718d85e7371edeeec1ccb7674b4f743d6cbeb99",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-8673319027843774136-r2-673ce14f",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673319027843774136-r2-673ce14f/session.json",
+                "sha256": "sha256:4aa5ab708151f0e66fc824ca30fbdd918f9f93fb976dc912dde1f39d1d850a17"
+            },
+            "state": "active",
+            "task_id": "NG-8673319027843774136"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-8673319027843774136 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-8673319027843774136",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:32f0d110d26013ec000ff4388d7f326548bfe863b2ed0a14370150a930ce5855",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-8673319027843774136"
+}
