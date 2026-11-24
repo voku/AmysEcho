@@ -1,0 +1,16 @@
+{
+    "attempt": 2,
+    "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-24T06:19:42+00:00",
+    "reference": "execution-evidence:sha256:b0e2a7edf28b9c3ac0e94e53632e13a38cfb864a2d33992142efd9fe23195b96",
+    "run_id": "run:NG-46:3b9f0b9c459ee361",
+    "schema_version": "1.0",
+    "source_digest": "sha256:bbc8335b4e61f31fe8057c3711c1b0ca4010f537badba6b8c368c6ad2383ced3",
+    "source_reference": "workspace-file:src/recognise/recognise.ts",
+    "stage_id": "build",
+    "task_id": "NG-46"
+}
