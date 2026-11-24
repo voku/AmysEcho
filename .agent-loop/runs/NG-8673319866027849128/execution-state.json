@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:0da544854875ed56d06f305361ff2599ee0b6b6f:0f220bd803ba6afb51e5f381dd96f3ea00c27c3c",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
     "history": [
         {
@@ -73,6 +73,130 @@
                 "summary": "pictureView builds both previews with previewImage(): new Image(96, 96), src only for isSymbolDataUrl or a bundled ./icons/*.svg path, else none ('kein Bild'). Fake DOM gains an Image constructor; new test shows a catalogue symbolPath 'javascript:alert(1)' never becomes a preview src. npm run verify passed: 644 node tests; browser 4 pass, 2 skipped. Hand-run Chromium flow unchanged, no console errors.",
                 "task_id": "NG-8673319866027849128",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T02:11:02+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T02:11:02+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:d262cfc4b3185a019abe22d193b015bd10711c991f942cc9085bb3af988e0f62",
+                    "execution-evidence:sha256:688b21e03feade96c19019ed7a1c43d01fa6853772a114c7a8477f2af57e0b21"
+                ],
+                "candidate_revision": "git-tree-v1:0da544854875ed56d06f305361ff2599ee0b6b6f:0f220bd803ba6afb51e5f381dd96f3ea00c27c3c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319866027849128",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:d262cfc4b3185a019abe22d193b015bd10711c991f942cc9085bb3af988e0f62",
+                    "execution-evidence:sha256:688b21e03feade96c19019ed7a1c43d01fa6853772a114c7a8477f2af57e0b21"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0da544854875ed56d06f305361ff2599ee0b6b6f:0f220bd803ba6afb51e5f381dd96f3ea00c27c3c",
+                "context_id": "reviewer-correctness-codeql",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "observations": [
+                    "src/caregiver.ts:2200 conceptText and src/board.ts:421 still set img.src from symbolPath via element()/generic helpers without previewImage's guard; out of scope here, but CodeQL may flag them in later scans.",
+                    "src/caregiver.ts:230 whether CodeQL treats isSymbolDataUrl (a wrapped regex test) as a sanitizer is unverified; confirm alert 218 closes on the next PR scan."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:d6383797",
+                "summary": "Both pictureView previews now come from previewImage(): new Image(96,96) (constructor sets width/height attributes as the old .width/.height did), class, alt='' and src only after isSymbolDataUrl or ^./icons/[a-z0-9-]+.svg$. All catalogue symbolPaths in src/concepts.ts match that pattern and stored pictures are already isSymbolDataUrl-checked on read, so the only behaviour change is 'kein Bild' for a value that is neither, which is a safe degradation and within the contract. Fake Image is saved in previous and restored/deleted by restore(). New test covers javascript: symbolPath and the chosen-file preview. Removing the sink is INFERRED: the img is now a recognisable HTMLImageElement and src is guarded; CodeQL clearing alert 218 is not verified here.",
+                "task_id": "NG-8673319866027849128",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T02:11:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T02:11:25+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:bd8dcc8feee5b4cdd2abe33e8aae0f9bdaeeb1d1628120b07448104a94c63243",
+                    "execution-evidence:sha256:60ee48d5642216f05b4daee443d6be798c765e3adc8de3c526af43e9cb225319"
+                ],
+                "candidate_revision": "git-tree-v1:0da544854875ed56d06f305361ff2599ee0b6b6f:0f220bd803ba6afb51e5f381dd96f3ea00c27c3c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319866027849128",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:bd8dcc8feee5b4cdd2abe33e8aae0f9bdaeeb1d1628120b07448104a94c63243",
+                    "execution-evidence:sha256:60ee48d5642216f05b4daee443d6be798c765e3adc8de3c526af43e9cb225319"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0da544854875ed56d06f305361ff2599ee0b6b6f:0f220bd803ba6afb51e5f381dd96f3ea00c27c3c",
+                "context_id": "reviewer-blindspot-codeql",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "observations": [
+                    "src/board.ts:421 and src/caregiver.ts:2200 set img.src from symbolPath without the previewImage guard; if a catalogue path ever leaves the ./icons/[a-z0-9-]+.svg shape (subfolder, uppercase, .png) the picture view says 'kein Bild' while board and row still show the image. Consider sharing one guard or widening BUNDLED_PICTURE with the catalogue.",
+                    "BUNDLED_PICTURE in src/caregiver.ts:221 duplicates the catalogue path convention with no test tying it to CONCEPTS; a test asserting every CONCEPTS symbolPath matches it would catch drift."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:fd53d53a",
+                "summary": "Blindspot check: the chosen-file preview guard cannot hide a picture that would be saved, because src/caregiver.ts:1663 already rejects any makePicture result that fails isSymbolDataUrl before it reaches open.draft.picture, so preview and save agree. The 'kein Bild' path only triggers for a catalogue/stored symbolPath that is neither a stored data URL nor ./icons/[a-z0-9-]+.svg; all current catalogue entries match, so no user-visible change today. Residual gap: the same symbolPath is still rendered unguarded on the board (src/board.ts:421) and in caregiver rows (src/caregiver.ts:2200), so an unexpected value would show there but 'kein Bild' in the picture view; acceptable under the non-goal, recorded as an observation. CodeQL clearance remains INFERRED until the next scan.",
+                "task_id": "NG-8673319866027849128",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T02:12:37+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T02:12:37+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:0da544854875ed56d06f305361ff2599ee0b6b6f:0f220bd803ba6afb51e5f381dd96f3ea00c27c3c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319866027849128",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:22e36bc16ae4cac9475610188b4d9d1f005cfb36185f699cef09ff4d9eb9b30f",
+                    "execution-evidence:sha256:144f1717ca48bb8b15ef2920cb47c0dff5d82002a60e736267fb0b874b6b37af"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:0da544854875ed56d06f305361ff2599ee0b6b6f:0f220bd803ba6afb51e5f381dd96f3ea00c27c3c",
+                "consistency_references": [
+                    "execution-evidence:sha256:7a9f345ba5cdf75e767c32aaff1ebdaf06f337178e5bd689cb1e609f94001e74"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "outcome": "pass",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:a7d8eb3075d7b48e392044132136351d3378d42cf84cb06d1166b2811b45b286",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673319866027849128: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673319866027849128 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673319866027849128:94af37adba5c50a3 binds active Session 2026-11-24-ng-8673319866027849128-r1-c6ae3bd8 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673319866027849128 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-8673319866027849128",
+                "validation_references": [
+                    "execution-evidence:sha256:22e36bc16ae4cac9475610188b4d9d1f005cfb36185f699cef09ff4d9eb9b30f",
+                    "execution-evidence:sha256:144f1717ca48bb8b15ef2920cb47c0dff5d82002a60e736267fb0b874b6b37af"
+                ]
             }
         }
     ],
