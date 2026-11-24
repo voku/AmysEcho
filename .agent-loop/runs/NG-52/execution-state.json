@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:36196a512ff4440605f5ec976afac7d20d28458f",
+    "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
     "history": [
         {
@@ -123,6 +123,202 @@
                 "summary": "Code and tests meet the acceptance criteria (194 tests pass; setVideo, toggle placement, focus, z-order and stored key checked). Three statements still say the gesture view shows no camera picture, the opposite of acceptance 1: docs/recognise.md:105-106, src/recognise/recognise.ts:33-35 (module comment) and src/capture/capture.ts:873-876 (CapturePreviewOptions.video doc: 'The child's gesture view uses it'). Fix: reword them to say the picture is on by default and points-only is the 'Bild aus' choice (card NG-52).",
                 "task_id": "NG-52",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T17:12:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T17:12:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:cea8c5735de9a90c0df60c70b2ddaef8001764dcb25bb30c4e5aa92cad2abab8",
+                    "execution-evidence:sha256:87f280ecc1d0ef9b9c546df3a4dcd9b5666493d49de1951ac0023c91bcf06cd8",
+                    "execution-evidence:sha256:fae11fddfefacedddfb68ae263c96245d4d4a0e6cbbb7eb5de46e6be4842cba6",
+                    "execution-evidence:sha256:10ee7d56ec83c14b686600df1eb499e1a982b59fd6d62db951b3f7a4587a12c3",
+                    "execution-evidence:sha256:78644e66c50b6fe1d13b1f18b136dc1062cc97d1578b114538e34cf52f9f5c3f",
+                    "execution-evidence:sha256:db58bf7c635b2e1de4d766d0c00a174931136837b538adb32c6ff4837a97ad5c",
+                    "execution-evidence:sha256:e27cb10b535700e8be1ac954fca267ba4a9b8e38d184788d50a216c9489eafd8"
+                ],
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "schema_version": "1.0",
+                "task_id": "NG-52",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:cea8c5735de9a90c0df60c70b2ddaef8001764dcb25bb30c4e5aa92cad2abab8",
+                    "execution-evidence:sha256:87f280ecc1d0ef9b9c546df3a4dcd9b5666493d49de1951ac0023c91bcf06cd8",
+                    "execution-evidence:sha256:fae11fddfefacedddfb68ae263c96245d4d4a0e6cbbb7eb5de46e6be4842cba6",
+                    "execution-evidence:sha256:10ee7d56ec83c14b686600df1eb499e1a982b59fd6d62db951b3f7a4587a12c3",
+                    "execution-evidence:sha256:78644e66c50b6fe1d13b1f18b136dc1062cc97d1578b114538e34cf52f9f5c3f",
+                    "execution-evidence:sha256:db58bf7c635b2e1de4d766d0c00a174931136837b538adb32c6ff4837a97ad5c",
+                    "execution-evidence:sha256:e27cb10b535700e8be1ac954fca267ba4a9b8e38d184788d50a216c9489eafd8"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "outcome": "completed",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:54086146",
+                "summary": "Review fixes: docs/recognise.md NG-44 paragraph, recognise.ts module comment and CapturePreviewOptions.video now say picture on by default, points only after 'Bild aus'; toggle aria-label fixed 'Kamerabild' with aria-pressed (test updated); dead switchFocused term removed. npm run verify 685/685 + 7/7.",
+                "task_id": "NG-52",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T17:13:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T17:13:23+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e664e6f808e75c9f9743617fbdf00eb965fcb29ce8dc626a48d21b4b04baebeb",
+                    "execution-evidence:sha256:9f33b4e830365c1abda110b0f0ca605f8aba33b213eeb43908720c1f59e7ea92",
+                    "execution-evidence:sha256:965eacbd9ac437ef3b3903094762583614ef1a2004fffebab9670bc250c6426b",
+                    "execution-evidence:sha256:10f0799d0e4f9d086825cc82a75cf2719dd45ab5e998ac1ee079f1ccb044e112",
+                    "execution-evidence:sha256:50e1b338363de21b0ae25a603d6dee20b7fa7e791fc12ea16daf706504cb7633",
+                    "execution-evidence:sha256:a7f8f19f570517050ef60670368ad55e570b55658f42b30f951501f790468bb8",
+                    "execution-evidence:sha256:005b43f9d9c0b8c801d7926b9687d217af2fd62e6403d773fec79c25e83c57e2"
+                ],
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "schema_version": "1.0",
+                "task_id": "NG-52",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e664e6f808e75c9f9743617fbdf00eb965fcb29ce8dc626a48d21b4b04baebeb",
+                    "execution-evidence:sha256:9f33b4e830365c1abda110b0f0ca605f8aba33b213eeb43908720c1f59e7ea92",
+                    "execution-evidence:sha256:965eacbd9ac437ef3b3903094762583614ef1a2004fffebab9670bc250c6426b",
+                    "execution-evidence:sha256:10f0799d0e4f9d086825cc82a75cf2719dd45ab5e998ac1ee079f1ccb044e112",
+                    "execution-evidence:sha256:50e1b338363de21b0ae25a603d6dee20b7fa7e791fc12ea16daf706504cb7633",
+                    "execution-evidence:sha256:a7f8f19f570517050ef60670368ad55e570b55658f42b30f951501f790468bb8",
+                    "execution-evidence:sha256:005b43f9d9c0b8c801d7926b9687d217af2fd62e6403d773fec79c25e83c57e2"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "context_id": "claude-subagent-ng52-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "observations": [
+                    "src/recognise/recognise.ts:107 comment on RECOGNISE_TEXT.picture still says 'its name what is shown'; the name is now fixed 'Kamerabild' and aria-pressed says what is shown.",
+                    "docs/recognise.md:202 heading 'Front or back camera, and no camera picture' (and the bullet at :222) has no 'revised by NG-52 below' marker, unlike the NG-43 section at :264; the NG-52 section at :243 does state the revision.",
+                    "Chromium fit measurements in docs/recognise.md (NG-52 section) were not reproduced in this review; accepted as documented evidence."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:6d71243c",
+                "summary": "Attempt-1 fixes verified (docs/recognise.md:105, recognise.ts module comment, CapturePreviewOptions.video); fixed aria-label Kamerabild with aria-pressed; dead focus term removed. setVideo keeps stream/canvas, tracker uses its own hidden video so no frames lost. 194 tests pass; new tests fail on old source and on mutations (focus hand-on, default video:true). Remaining 'no camera picture' text is the historical NG-49 section, superseded explicitly by the NG-52 section.",
+                "task_id": "NG-52",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T17:14:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T17:14:23+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:fc230b79fafb91a0095640602eeba4c9b516d9a66db7115b286a89ada38ba8e1",
+                    "execution-evidence:sha256:aafdc911ff343652f9c43fafc149f0297dd10f31a9de3c4e9dd095bef8f43163",
+                    "execution-evidence:sha256:3fc4a3a23ca9d56d9f8e9d7e19778a07808cf82f86bc99327401c09607ed6ec6",
+                    "execution-evidence:sha256:1f42bf7166526040a10768e4c90cc921f276cfcc89372e6d111f55df5036b770",
+                    "execution-evidence:sha256:f6c8d8ae4072c1f00f1a44b177d6e84dd7c384e26c887a61a9282446300fde5e",
+                    "execution-evidence:sha256:ca015b5feddb18e8f9bc26e3f4fd11306275a15a4762a38683f2c8f96212bed8",
+                    "execution-evidence:sha256:fbd2aa9a015c3ea70fa63e926e16414c83549cb6a0de0d6ed863e2250947c2cc"
+                ],
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "schema_version": "1.0",
+                "task_id": "NG-52",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:fc230b79fafb91a0095640602eeba4c9b516d9a66db7115b286a89ada38ba8e1",
+                    "execution-evidence:sha256:aafdc911ff343652f9c43fafc149f0297dd10f31a9de3c4e9dd095bef8f43163",
+                    "execution-evidence:sha256:3fc4a3a23ca9d56d9f8e9d7e19778a07808cf82f86bc99327401c09607ed6ec6",
+                    "execution-evidence:sha256:1f42bf7166526040a10768e4c90cc921f276cfcc89372e6d111f55df5036b770",
+                    "execution-evidence:sha256:f6c8d8ae4072c1f00f1a44b177d6e84dd7c384e26c887a61a9282446300fde5e",
+                    "execution-evidence:sha256:ca015b5feddb18e8f9bc26e3f4fd11306275a15a4762a38683f2c8f96212bed8",
+                    "execution-evidence:sha256:fbd2aa9a015c3ea70fa63e926e16414c83549cb6a0de0d6ed863e2250947c2cc"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "context_id": "claude-subagent-ng52-blindspot",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "observations": [
+                    "recognise.ts:107-110,770: visible words 'Bild aus'/'Bild an' are not contained in the fixed accessible name 'Kamerabild' (WCAG 2.5.3 Label in Name); a voice-control user saying the visible words may not reach the button. Contract fixed the name, so follow-up decision for the owner.",
+                    "public/styles.css:55: the toggle (measured 92-120 x 44 px, docs/recognise.md) sits absolute at the top right over the canvas with z-index 2; raised hands, the 'R' label (mirrored front camera puts the child's right hand on the right) or a shoulder end can be drawn under it, most at the smallest preview heights. Not measured how much of the box it covers; a follow-up could check occlusion at the five sizes or use a semi-transparent/smaller corner.",
+                    "recognise.ts:1016-1018: a single tap inside the picture area during the recording flips and persists the choice (amysecho-recognise-picture) for every later user of the device with no confirmation; harmless to the attempt but a child's mis-tap or one caregiver's 'off' silently becomes the next session's default. The toggle stays visible, so it is recoverable.",
+                    "recognise.ts:617: the half-filled-circle symbol has no evident meaning for a non-reading child; acceptable while the toggle is framed as a caregiver control (docs/recognise.md NG-52 'The toggle'), but no owner evidence that children ignore it.",
+                    "test/recognise.test.mjs:1524-1614: no test asserts that switching the camera (NG-49 switchCamera) after 'Bild aus' asks the new preview with {video: false}; the code path (recognise.ts:981) does, but it is untested."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:11ece15c",
+                "summary": "Blind-spot review of the NG-52 picture toggle: no blocking seam. Picture-off removes the video element and clears srcObject (capture.ts:903-910, 941-947); camera switch keeps the choice via createPreview({video: picture}) (recognise.ts:981); place() keeps the toggle in place countdown->recording so NG-47 status is not re-read, and NG-48 focus hand-off covers the toggle (recognise.ts:948-950). Non-blocking risks recorded as observations.",
+                "task_id": "NG-52",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T17:17:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T17:17:26+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "schema_version": "1.0",
+                "task_id": "NG-52",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:777fe0acad3ce477e2597e4987228c7502310b11cb5aef4cf6df7bb8370269ab",
+                    "execution-evidence:sha256:b7df9d6ecf7bc00c530219e827090b3910b5639b42d9aa09433460af8142c266"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:7cd7290ab3dcb917bca8c402901dc3389c5c168b:7195d0ebf1e997da08f6ccda1ee9bdf7ca1fa5e0",
+                "consistency_references": [
+                    "execution-evidence:sha256:6e04abb4143bb54fecd6110c2bb700267bc28bf61d52f0041fb409579cf94c23"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7d30bddf7acd6b8bbbbd3c59ee84e64a887ac039b7badb9eabc15b40e7145859",
+                "outcome": "pass",
+                "run_id": "run:NG-52:70d18625c098c6d8",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:3571bb96d3d654a02a7289ddffc89f4751ae88f426628a5d69eace0583d483af",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-52: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-52 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-52:70d18625c098c6d8 binds active Session 2026-11-24-ng-52-r1-edfbfd44 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-52 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-52",
+                "validation_references": [
+                    "execution-evidence:sha256:777fe0acad3ce477e2597e4987228c7502310b11cb5aef4cf6df7bb8370269ab",
+                    "execution-evidence:sha256:b7df9d6ecf7bc00c530219e827090b3910b5639b42d9aa09433460af8142c266"
+                ]
             }
         }
     ],
