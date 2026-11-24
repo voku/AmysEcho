@@ -69,6 +69,10 @@ away with it (seen at 360x140); no phone or tablet is that low.
 Pictures and labels scale with their tile through CSS container units (`cqh`, `cqw`, `cqmin`) with
 viewport-based values first for a browser without them. Script measures nothing.
 
+A tile's picture is the profile's own picture when the caregiver chose one ("Bild wählen", card
+NG-8673323346005092805; a PNG or JPEG data URL of at most 256 × 256 pixels), else the catalogue's,
+else none. A picture that is not square keeps its proportions (`object-fit: contain`).
+
 Padding respects the safe areas of a device with a notch or a home indicator
 (`viewport-fit=cover` with `env(safe-area-inset-*)`; untested on such a device).
 

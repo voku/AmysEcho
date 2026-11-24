@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T00:43:39+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 3,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
+                "sha256": "sha256:ca6a1c37bd035df57c6dfab2eff31e3af20302fab16ea841a671078353261f28"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673323346005092805",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "4a0411144a557bf6346c011afa6c5dec6bbff3be910c12b2216d4a45fe2cab05",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673323346005092805.md",
+                "sha256": "sha256:4a0411144a557bf6346c011afa6c5dec6bbff3be910c12b2216d4a45fe2cab05"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Board data stores a picture per concept as its own versioned data entry (downscaled image as a data URL with type and size limits); strict reader, newer versions left alone; wording entries keep their version",
+                "resolveBoard shows the profile's picture before the catalogue's, also for custom and retired concepts; a damaged picture entry falls back to the catalogue picture or text and is reported as a problem",
+                "The caregiver area offers \"Bild wählen\" per board row with preview, \"Speichern\", \"Abbrechen\" and \"Bild der App wiederherstellen\"; unsupported, unreadable or too large files are refused in German; a line says the picture stays on this device and that the family needs the right to use it (for example a METACOM licence)",
+                "Images are re-encoded through a canvas to at most 256x256 pixels, so SVG scripts or metadata are never stored; CSP allows data: images only for img-src",
+                "Removing a custom concept for good also removes its picture",
+                "When a second file is chosen while the first is still being read, the later choice wins; leaving or closing meanwhile stores nothing; an own concept under a catalogue id is never told it shows the app's picture again"
+            ],
+            "goal": "A caregiver gives any concept on a board its own picture by choosing an image file on the device (for example a METACOM symbol exported from the family's licence or a photo); the child's board shows it instead of the app's picture, and the picture travels with the profile backup. Nothing is uploaded and no picture enters the repository.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 3,
+            "run_revision": 3,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
+                "sha256": "sha256:ca6a1c37bd035df57c6dfab2eff31e3af20302fab16ea841a671078353261f28"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 3,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
+                "sha256": "sha256:ca6a1c37bd035df57c6dfab2eff31e3af20302fab16ea841a671078353261f28"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T00:49:36+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/999df954ce9a6d7209f39ce5fa9c10477adb305bd8717a05808ae832dacbdc77.json",
+                "sha256": "sha256:32425f057d928e4c69a95ccf1ba3857e97ee252567e725bd83e7069bf91f9c4d"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:5097d738c1e26ea883e94d9d8bae884ac4f56ef5bb861187dc642a03c785b23a",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:eac66e72c9749b8b4e54893b353df80f7d29f363267a35e6bdd5672efc7d4dd8"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "45305d56fbf4aed2bc14f9b8bc2f1de15d861c65a9d953f815a17d33da614a01",
+            "compilation_id": "compilation.NG-8673323346005092805.2026-11-24-004340.bd748e4f",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "f2a6bbd86d3a229f54fc1695746e878ecc15ec65775b173c3db3e8318a609f0a",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673323346005092805/meta.json",
+                "sha256": "sha256:b298075e22f54f0aa0c31e0681ef00b1acaf9a6e014584ea6eecf0e818bda6f8"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673323346005092805/reviews/NG-8673323346005092805.blindspots.json",
+                "sha256": "sha256:0f55a69e852627705c38a02c2aa23cc9612c74f5fad9f4d04ea9d8da52fbfc22"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "681e1130494f3ae7d0256d51b2f900ab6d6d3532",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-8673323346005092805-r3-489f00b2",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673323346005092805-r3-489f00b2/session.json",
+                "sha256": "sha256:ca2640fea3de732be07fff8c9570abefe2871bc9d102d9e4f9b9a1224247bcba"
+            },
+            "state": "done",
+            "task_id": "NG-8673323346005092805"
+        },
+        "verification": {
+            "contract_revision": 3,
+            "implementation_snapshot": "sha256:9d341f4b0788d55501025173acc345bc98e15457d3ebabd7d23318bb20da7458",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+            "source": {
+                "path": ".agent-loop/runs/NG-8673323346005092805/verification.json",
+                "sha256": "sha256:ade86006463d9eabaee3e86eef38ae4da8ee1b6eb1d905a7a622649d62f3cf92"
+            },
+            "source_session_id": "2026-11-24-ng-8673323346005092805-r3-489f00b2",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-8673323346005092805"
+}

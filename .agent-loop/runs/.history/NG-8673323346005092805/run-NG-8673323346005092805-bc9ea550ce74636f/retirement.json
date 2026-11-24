@@ -1,0 +1,11 @@
+{
+    "contract_revision": 1,
+    "kind": "governed_run_retirement",
+    "reason": "Code changed after both reviews passed (two fixes from review observations); verify refused the changed candidate. Owner chose to retire and rerun under contract revision 2.",
+    "retired_at": "2026-11-24T00:42:30+00:00",
+    "retired_by": "Lars Moelleken (delegated to Claude for this session)",
+    "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+    "schema_version": "1.0",
+    "status": "superseded",
+    "task_id": "NG-8673323346005092805"
+}

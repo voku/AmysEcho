@@ -1,0 +1,174 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T02:08:25+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673319866027849128/contract.json",
+                "sha256": "sha256:7145c8c5900b066e78039b0e84075a8189be26a9f5fe9f94eec8e08cd85782d0"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673319866027849128",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "b3332b522375ae5f5172ecfe764eee2bd09c6c59870872f708916d4b64b756e3",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673319866027849128.md",
+                "sha256": "sha256:b3332b522375ae5f5172ecfe764eee2bd09c6c59870872f708916d4b64b756e3"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Both previews in pictureView (the key's picture now and the chosen picture) are created with new Image() and get their src only after isSymbolDataUrl or from a bundled ./icons/ path",
+                "Behaviour and tests unchanged otherwise; a test shows a non-picture value never becomes a preview src"
+            ],
+            "goal": "The picture view's preview images are real image elements whose src is set only from a value isSymbolDataUrl accepts, so the chosen file can never reach any other kind of src; CodeQL alert 218 is expected to clear.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673319866027849128/contract.json",
+                "sha256": "sha256:7145c8c5900b066e78039b0e84075a8189be26a9f5fe9f94eec8e08cd85782d0"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673319866027849128/contract.json",
+                "sha256": "sha256:7145c8c5900b066e78039b0e84075a8189be26a9f5fe9f94eec8e08cd85782d0"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T02:13:28+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/bf16d5cab47f3b57c1adef1d27c10cce3400e8b6804f529706c503ed6a2204f2.json",
+                "sha256": "sha256:8b54c7b4f509831f7cf43c03948c1773d9e29d12c7ddb951c7f120d48f6b13bb"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:b156e3faa15f73a5505b2805a874322eca75d1eee36d6b3c1c25576136e3a45b",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:619f5ebbf1f9219ab3d91d726e0eb9b0c48845e1a0414d02c87942df3887fcbc"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 2,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "2825187ca6ed6569faf303bbf6fc4d21ceb1fbf83a5be865fa1eeb384a8ea848",
+            "compilation_id": "compilation.NG-8673319866027849128.2026-11-24-020826.acae9ec7",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "c776c4536d6243067b3c8c16f8f68da85c7e6a0b86c45128f6621068fc0af668",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673319866027849128/meta.json",
+                "sha256": "sha256:4ffae34003d89feb5fe684a4c9e1683f5a71cd355fdd6584eb41f6f2dcbca7ed"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673319866027849128/reviews/NG-8673319866027849128.blindspots.json",
+                "sha256": "sha256:035260138ba1d8e6477317f9dd05a04fea2364a47b4abcf4561f531a13eeb697"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "0da544854875ed56d06f305361ff2599ee0b6b6f",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-8673319866027849128-r1-c6ae3bd8",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673319866027849128-r1-c6ae3bd8/session.json",
+                "sha256": "sha256:4f28250fcaa5aee8bf422dbb0923e59fb0b3b382bbb1327c7dcf52f59008ab8d"
+            },
+            "state": "done",
+            "task_id": "NG-8673319866027849128"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:5b6cb1904eb94092b917ab755a53ba239ecabcb4747a87092774305dfb07d3a3",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+            "source": {
+                "path": ".agent-loop/runs/NG-8673319866027849128/verification.json",
+                "sha256": "sha256:ef978d9605831682f3e51b88a8b0e9982ad35aca8c78f07bbaa9050b6f7a4f07"
+            },
+            "source_session_id": "2026-11-24-ng-8673319866027849128-r1-c6ae3bd8",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-8673319866027849128"
+}

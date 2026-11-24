@@ -5,7 +5,7 @@ import { createApp } from "../dist/app.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, SPEECH_GRACE_MS, SPEECH_MAX_MS, boardColumns, createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import {
-  BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, clearWording, isBoardConceptId, listCustomConcepts, normalizeWording,
+  BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, MAX_SYMBOL_DATA_URL_LENGTH, clearSymbol, clearWording, isSymbolDataUrl, setSymbol, isBoardConceptId, listCustomConcepts, normalizeWording,
   putCustomConcept, removeCustomConcept, resolveBoard, setBoardConcepts, setWording,
 } from "../dist/board-data.js";
 import { InjectedWriteError, MemoryBackend } from "../dist/profiles/memory-backend.js";
@@ -692,6 +692,106 @@ test("an over-long stored label or sentence is refused by length, before any nor
   assert.deepEqual(listing.unreadableIds, ["ball", "hilfe", "mehr"]);
   assert.ok(normalized.length > 0, "the valid entry was normalised");
   assert.ok(Math.max(...normalized) <= 2 * MAX_SPEECH_LENGTH, `normalize saw a string of ${Math.max(...normalized)} units`);
+});
+
+test("custom concepts: the listing says why an entry cannot be read, so a newer app's entry is never offered for deletion", async () => {
+  const { store } = await openStore();
+  const profile = await store.create("Mia", []);
+  const data = store.data(profile.id);
+  await data.set("concept.ball", { version: 1, ...BALL, custom: true });
+  await data.set("concept.neu", { version: 2, labelDe: "Neu", speechDe: "Etwas Neues.", custom: true, colour: "blau" });
+  await data.set("concept.kaputt", { version: 1, labelDe: "", speechDe: "x", custom: true });
+  await data.set("concept.x_y", { version: 1, ...BALL, custom: true });
+  const listing = await listCustomConcepts(store, profile.id);
+  assert.deepEqual(listing.concepts, [{ id: "ball", ...BALL }]);
+  assert.deepEqual(listing.unreadable, [
+    { id: "kaputt", damage: "unreadable" }, { id: "neu", damage: "unsupported-version" }, { id: "x_y", damage: "unreadable" },
+  ]);
+  assert.deepEqual(listing.unreadableIds, listing.unreadable.map((entry) => entry.id));
+});
+
+// --- Own pictures (card NG-8673323346005092805); synthetic pixel data only ---
+
+const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const JPEG = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+
+test("pictures: only base64 PNG, JPEG and WebP data URLs within the limit are pictures", () => {
+  assert.equal(isSymbolDataUrl(PNG), true);
+  assert.equal(isSymbolDataUrl(JPEG), true);
+  assert.equal(isSymbolDataUrl("data:image/webp;base64,UklGRg=="), true);
+  for (const bad of [
+    "data:image/svg+xml;base64,PHN2Zz4=", "data:image/svg+xml,<svg onload=alert(1)>", "data:image/png,raw", "data:text/html;base64,PGI+",
+    "./icons/hilfe.svg", "https://example.invalid/a.png", `${PNG}\n`, "data:image/png;base64,", 42, null,
+    `data:image/png;base64,${"A".repeat(MAX_SYMBOL_DATA_URL_LENGTH)}`,
+  ]) assert.equal(isSymbolDataUrl(bad), false, String(bad).slice(0, 40));
+});
+
+test("pictures: the profile's own picture is shown before the catalogue's, also for custom and retired concepts, and only for that profile", async () => {
+  const { store, backend } = await openStore();
+  const mia = await store.create("Mia", ["hilfe", "ball", "alt", "pause"]);
+  const other = await store.create("Ben", ["hilfe"]);
+  await putCustomConcept(store, mia.id, "ball", BALL, CONCEPTS);
+  await store.data(mia.id).set("concept.alt", { version: 1, labelDe: "Schaukel", speechDe: "Ich möchte schaukeln.", copied: true });
+  for (const id of ["hilfe", "ball", "alt"]) await setSymbol(store, mia.id, id, PNG, CONCEPTS);
+  assert.deepEqual(backend.snapshot()[`profile/${mia.id}/data/symbol.hilfe`], { version: 1, dataUrl: PNG });
+  const board = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(board.entries.map((entry) => [entry.id, entry.source, entry.symbolPath === PNG, entry.ownSymbol ?? false]), [
+    ["hilfe", "catalogue", true, true], ["ball", "custom", true, true], ["alt", "retired", true, true], ["pause", "catalogue", false, false],
+  ]);
+  assert.equal(board.entries[3].symbolPath, "./icons/pause.svg");
+  assert.equal("ownSymbol" in board.entries[3], false);
+  assert.deepEqual(board.problems, []);
+  assert.equal((await resolveBoard(store, other.id, CONCEPTS)).entries[0].symbolPath, "./icons/hilfe.svg");
+  // Wording entries keep their version and key set.
+  assert.deepEqual(backend.snapshot()[`profile/${mia.id}/data/concept.ball`], { version: 1, ...BALL, custom: true });
+  // Back to the app's picture, or to text.
+  await clearSymbol(store, mia.id, "hilfe");
+  await clearSymbol(store, mia.id, "ball");
+  await clearSymbol(store, mia.id, "ball");
+  const after = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(after.entries.map((entry) => entry.symbolPath), ["./icons/hilfe.svg", null, PNG, "./icons/pause.svg"]);
+});
+
+test("pictures: writes are strict; a damaged picture falls back and is reported; a newer app's picture is left alone", async () => {
+  const { store } = await openStore();
+  const mia = await store.create("Mia", ["hilfe", "trinken", "pause"]);
+  const refused = async (call, kind) => assert.rejects(call, (error) => error instanceof BoardDataError && error.kind === kind);
+  await refused(setSymbol(store, mia.id, "hilfe", "data:image/svg+xml;base64,PHN2Zz4=", CONCEPTS), "invalid-symbol");
+  await refused(setSymbol(store, mia.id, "unbekannt", PNG, CONCEPTS), "unknown-concept");
+  await refused(setSymbol(store, mia.id, "Hilfe!", PNG, CONCEPTS), "invalid-concept-id");
+  const data = store.data(mia.id);
+  await data.set("symbol.hilfe", { version: 1, dataUrl: "data:image/svg+xml,<svg/>" });
+  await data.set("symbol.trinken", { version: 2, dataUrl: PNG, licence: "x" });
+  await data.set("symbol.pause", { version: 1, dataUrl: PNG, extra: true });
+  const board = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(board.entries.map((entry) => entry.symbolPath), ["./icons/hilfe.svg", "./icons/trinken.svg", "./icons/pause.svg"]);
+  assert.deepEqual(board.problems, [
+    { kind: "damaged-symbol", conceptId: "hilfe", damage: "unreadable" },
+    { kind: "damaged-symbol", conceptId: "trinken", damage: "unsupported-version" },
+    { kind: "damaged-symbol", conceptId: "pause", damage: "unreadable" },
+  ]);
+  await refused(setSymbol(store, mia.id, "trinken", PNG, CONCEPTS), "unsupported-entry");
+  await refused(clearSymbol(store, mia.id, "trinken"), "unsupported-entry");
+  assert.deepEqual(await data.get("symbol.trinken"), { version: 2, dataUrl: PNG, licence: "x" });
+  // An unreadable picture is replaced by a deliberate choice, and can be cleared.
+  await setSymbol(store, mia.id, "hilfe", JPEG, CONCEPTS);
+  await clearSymbol(store, mia.id, "pause");
+  const repaired = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(repaired.problems.map((problem) => problem.conceptId), ["trinken"]);
+  assert.equal(repaired.entries[0].symbolPath, JPEG);
+});
+
+test("pictures: removing a custom concept for good removes its picture too, but never a newer app's", async () => {
+  const { store, backend } = await openStore();
+  const mia = await store.create("Mia", ["ball"]);
+  await putCustomConcept(store, mia.id, "ball", BALL, CONCEPTS);
+  await putCustomConcept(store, mia.id, "kreisel", { labelDe: "Kreisel", speechDe: "Kreisel." }, CONCEPTS);
+  await setSymbol(store, mia.id, "ball", PNG, CONCEPTS);
+  await store.data(mia.id).set("symbol.kreisel", { version: 2, dataUrl: PNG });
+  await removeCustomConcept(store, mia.id, "ball", CONCEPTS);
+  await removeCustomConcept(store, mia.id, "kreisel", CONCEPTS);
+  const keys = Object.keys(backend.snapshot()).filter((key) => key.startsWith(`profile/${mia.id}/data/`));
+  assert.deepEqual(keys, [`profile/${mia.id}/data/symbol.kreisel`]);
 });
 
 // --- Wording is copied when a concept is chosen ---

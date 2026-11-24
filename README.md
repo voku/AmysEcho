@@ -52,9 +52,13 @@ Early rebuild. What exists today:
   candidates; a candidate is asked about the same way. Tested in Node and in headless Chromium with DGS videos of adult signers;
   not tried with a real camera, on a device or with a child.
 
-Still missing in the caregiver area: rewording a concept, custom concepts, export and import, and
-help with damaged entries; those exist as library code only or not at all. Also not built:
-symbols for custom concepts. The caregiver area
+The caregiver area also rewords a concept (card NG-33) and creates own concepts, a word and a
+sentence that only this profile has, which can be moved, taken off, given a gesture and deleted
+(card NG-34). Every concept on a board can get its own picture, chosen from a file on the device,
+for example a METACOM symbol from the family's own licence; it is redrawn at 256 pixels, stays in
+the profile on the device and is shown on the child's board (card NG-8673323346005092805). Still
+missing there: export and import, and help with damaged entries; those exist as library code only
+or not at all. The caregiver area
 is tested in Node against a fake DOM and was looked at in headless Chromium with a hand-run
 script; there is no browser test in CI, and the browser storage adapter has no automated test.
 Nothing here has been verified on a physical device, with a caregiver or with a child.
@@ -129,5 +133,8 @@ public DGS demo videos. It is not maintained. See
 
 ## License
 
-[MIT](LICENSE) for the source code. Symbols and other assets carry their own licence records.
+[MIT](LICENSE) for the source code. The bundled symbols are the project's own drawings, also MIT;
+each has a licence record in `public/icons/licences.json`. No third-party symbol set such as
+METACOM or ARASAAC is bundled: a family brings the symbols its child knows by importing pictures
+on the device from its own licence. See [docs/assets.md](docs/assets.md).
 If you use this to help another child, let me know. That's why it's public.

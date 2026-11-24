@@ -1,0 +1,37 @@
+{
+    "acceptance_criteria": [
+        "Both previews in pictureView (the key's picture now and the chosen picture) are created with new Image() and get their src only after isSymbolDataUrl or from a bundled ./icons/ path",
+        "Behaviour and tests unchanged otherwise; a test shows a non-picture value never becomes a preview src"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-24T02:08:25+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "0da544854875ed56d06f305361ff2599ee0b6b6f",
+    "behavior_anchors": [],
+    "created_at": "2026-11-24T02:08:24+00:00",
+    "goal": "The picture view's preview images are real image elements whose src is set only from a value isSymbolDataUrl accepts, so the chosen file can never reach any other kind of src; CodeQL alert 218 is expected to clear.",
+    "kind": "task_contract",
+    "non_goals": [
+        "Any other caregiver behaviour"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Claude",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/caregiver.ts",
+        "test/caregiver.test.mjs"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-8673319866027849128",
+    "updated_at": "2026-11-24T02:08:25+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}
