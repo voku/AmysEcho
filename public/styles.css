@@ -127,7 +127,11 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
 .caregiver-concept:focus { outline: none; border-color: #cf681e; }
 .caregiver-concept-text { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .caregiver-concept-pictured { position: relative; min-height: 48px; padding-left: calc(48px + .7rem); }
-.caregiver-concept-text img { position: absolute; top: 0; left: 0; width: 48px; height: 48px; }
+.caregiver-concept-text img { position: absolute; top: 0; left: 0; width: 48px; height: 48px; object-fit: contain; }
+.caregiver-picture-now, .caregiver-picture-new { display: flex; align-items: center; gap: .8rem; }
+.caregiver-picture-preview { width: 96px; height: 96px; object-fit: contain; border: 1px solid #c8d3d8; border-radius: 8px; background: #ffffff; }
+.caregiver-picture-label { display: block; margin-top: 1rem; font-weight: 600; }
+.caregiver-picture-file { display: block; margin: .4rem 0; max-width: 100%; font: inherit; min-height: 44px; }
 .caregiver-concept-name { font-weight: 700; overflow-wrap: anywhere; }
 .caregiver-concept-sentence { color: #3d5666; overflow-wrap: anywhere; }
 .caregiver-concept-note { margin: .4rem 0 0; color: #6b4a1c; }

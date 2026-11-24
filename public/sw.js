@@ -7,6 +7,11 @@
  * download can never fail the board's install. "activate" below removes only
  * old board caches; that prefix does not match the tracker's.
  */
+/* Revision of the precached files. A browser installs a new worker only when
+ * this file changes, and the install re-fetches every asset below past the
+ * HTTP cache into the same cache. Raise it whenever a precached file changes
+ * without a change to this file. */
+const ASSET_REVISION = "own-pictures-1"; // card NG-8673323346005092805: picture import, img-src data:
 const CACHE_PREFIX = "amysecho-ng-";
 const CACHE_NAME = CACHE_PREFIX + "capture-v2";
 const ASSETS = [

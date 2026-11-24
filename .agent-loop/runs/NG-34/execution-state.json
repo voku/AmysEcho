@@ -1,0 +1,245 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T20:10:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:10:39+00:00",
+                "artifact_references": [],
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "schema_version": "1.0",
+                "task_id": "NG-34",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "outcome": "completed",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:6399c01d",
+                "summary": "caregiver.ts: editableIds limits move/remove to catalogue; 'Weitere Begriffe' lists catalogue only; putCustomConcept/removeCustomConcept/listCustomConcepts exist in board-data.ts; listCustomConcepts.unreadableIds has no damage kind; examples.deleteExamples exists to drop taught gestures of a deleted concept; mixed-board tests in test/caregiver.test.mjs assert custom concepts are locked and will change.",
+                "task_id": "NG-34",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:15:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:15:34+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:31348540e15a437c43a536a0bf90f959d57d5eb105f96e6617df4aacc6254c7e",
+                    "execution-evidence:sha256:d2ab3b10e01228decf15f1e84a5c2950e1341df589bb57d262da2f2a15535f6e",
+                    "execution-evidence:sha256:e232b3269abe7aec81ef1d0597e9a00714e2f46432156e49eb6795b1933b9b49",
+                    "execution-evidence:sha256:0b7b1327925e6ea3262c065e1fd773877980284356a6b610040dcbafcbfbc744",
+                    "execution-evidence:sha256:1be2bc21a00499997e85e1fa14dfc31a0acc5fe03e8f0d3d0670b8dd606f67e7",
+                    "execution-evidence:sha256:f00b1e34f985ff70ff1b7fa432c3ba2970199f02f2c62e6dc2ea03fee7608224",
+                    "execution-evidence:sha256:b2306053d8f72318de955f991c4a5090ead9dd4540413f630a9aca200e0c4bf0"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "schema_version": "1.0",
+                "task_id": "NG-34",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:31348540e15a437c43a536a0bf90f959d57d5eb105f96e6617df4aacc6254c7e",
+                    "execution-evidence:sha256:d2ab3b10e01228decf15f1e84a5c2950e1341df589bb57d262da2f2a15535f6e",
+                    "execution-evidence:sha256:e232b3269abe7aec81ef1d0597e9a00714e2f46432156e49eb6795b1933b9b49",
+                    "execution-evidence:sha256:0b7b1327925e6ea3262c065e1fd773877980284356a6b610040dcbafcbfbc744",
+                    "execution-evidence:sha256:1be2bc21a00499997e85e1fa14dfc31a0acc5fe03e8f0d3d0670b8dd606f67e7",
+                    "execution-evidence:sha256:f00b1e34f985ff70ff1b7fa432c3ba2970199f02f2c62e6dc2ea03fee7608224",
+                    "execution-evidence:sha256:b2306053d8f72318de955f991c4a5090ead9dd4540413f630a9aca200e0c4bf0"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "outcome": "completed",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:e152755d",
+                "summary": "Own concepts: 'Eigenen Begriff anlegen' (takeover form, generated eigen-<8hex> id, putCustomConcept then setBoardConcepts, cap checked before writing); own concepts editable (move, remove, undo) except under a catalogue id; list 'Eigene Begriffe, nicht auf der Tafel' with Hinzufügen and Endgültig löschen (hold confirmation, deletes examples then concept); listCustomConcepts reports damage kind. Docs caregiver.md, storage.md, README. npm run verify passed: 628 node tests, browser 4 pass 2 skipped.",
+                "task_id": "NG-34",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:17:41+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:17:41+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:19c11e5d074bed18f99bf988f5771447399fa4020a8dcfc6abfe50dc385165dd",
+                    "execution-evidence:sha256:97468a5b8cf048073da32ce1833fd9e72228357a084b86d88b574336c4f8cdd8",
+                    "execution-evidence:sha256:b9fdbd393ccca113971edd430f3be3f6824fc8662ce717d89cc99f9c98d7659c",
+                    "execution-evidence:sha256:c8f61feb846e948b9a82b423ffffba3a537a3dc1e7e27aecd7553fe576f06722",
+                    "execution-evidence:sha256:a4f2e12205e193e156fca34b255b01a39c230867ccfd5b4c3c2981244d805ea4",
+                    "execution-evidence:sha256:e121a45e1daeb782ce6f69ec648e140371f0d18ad7d31764855b790b315b60d6",
+                    "execution-evidence:sha256:ddbc79e30bc6670d1de96bccbb498b123e802e977e1b0df4b4de0a7f65b8301b",
+                    "execution-evidence:sha256:43893377aa3beae7e594fcf266659f9596ca0c62b7c7e060f236f20781a979a2"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "schema_version": "1.0",
+                "task_id": "NG-34",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:19c11e5d074bed18f99bf988f5771447399fa4020a8dcfc6abfe50dc385165dd",
+                    "execution-evidence:sha256:97468a5b8cf048073da32ce1833fd9e72228357a084b86d88b574336c4f8cdd8",
+                    "execution-evidence:sha256:b9fdbd393ccca113971edd430f3be3f6824fc8662ce717d89cc99f9c98d7659c",
+                    "execution-evidence:sha256:c8f61feb846e948b9a82b423ffffba3a537a3dc1e7e27aecd7553fe576f06722",
+                    "execution-evidence:sha256:a4f2e12205e193e156fca34b255b01a39c230867ccfd5b4c3c2981244d805ea4",
+                    "execution-evidence:sha256:e121a45e1daeb782ce6f69ec648e140371f0d18ad7d31764855b790b315b60d6",
+                    "execution-evidence:sha256:ddbc79e30bc6670d1de96bccbb498b123e802e977e1b0df4b4de0a7f65b8301b",
+                    "execution-evidence:sha256:43893377aa3beae7e594fcf266659f9596ca0c62b7c7e060f236f20781a979a2"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "context_id": "reviewer-correctness-ng34",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "observations": [
+                    "src/caregiver.ts:2571 An off-board own concept under a catalogue id (shadowing) is listed both under 'Weitere Begriffe' and the own list; both rows register add:<id> (duplicate focus key) and 'Endgültig löschen' there deletes gesture examples keyed by a catalogue id. Unreachable for generated eigen- ids unless the catalogue adopts one; consider filtering catalogue ids from the own list.",
+                    "src/caregiver.ts:1504 When the concept was already deleted elsewhere, the refusal says 'kann in dieser Version nicht gelöscht werden', which misstates the cause.",
+                    "src/caregiver.ts:1462 A ProfileSizeError on create reuses REWORD_FULL ('Der Text wurde nicht gespeichert'), wording made for rewording; the second-write catch (1478) also reports a vanished profile as 'angelegt, aber nicht auf die Tafel gesetzt'."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:bf96b87a",
+                "summary": "Reviewed full NG-34 diff (8aba53f) against Contract. saveNewConcept (src/caregiver.ts:1437-1486): dropped if mode changed before the queued write begins, cap checked on stored conceptIds before putCustomConcept, random eigen-<8hex> id checked against data names, board ids and catalogue, leave() guarded by acting===session && mode===mine, second-write failure reports and focuses add:<id> registered by the own list. deleteOwnConcept (1495-1520): mode check in queue, deletes only readable custom entries (listCustomConcepts.concepts) so unsupported-version entries are never deleted; deleteExamples skips unsupported-version examples; undo offers dropped. leaveMode/Escape focus keys create-concept and delete-concept:<id> exist; editableIds excludes custom-shadows-catalogue; setWording keeps the custom flag so rewording own concepts is safe. No blocking defect found.",
+                "task_id": "NG-34",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:17:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:17:56+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6280bd387cddcbffb9aa10cb71f65920974033a7cea66e84d416336163e17345",
+                    "execution-evidence:sha256:3355f2c79cfece34d96a7c519ab1321e66d425e1c06c1384982a2e89d5ce59f9",
+                    "execution-evidence:sha256:bf55596764e2a8b8a5810329f45e89705e7ca4413f5a8c23cd224cdf1e2ffd75",
+                    "execution-evidence:sha256:8d0ff1280e63798781f02677ee675a59b53693a9bd23b26c3bc2ee4dca193f30",
+                    "execution-evidence:sha256:4427baa58275fad3bfb22c17584941bbbe2dbb3aebcbe532b3678e8f03ec5b75",
+                    "execution-evidence:sha256:95e90c292e2f81624c233533171ed4ad9b382ff3a1dfa126ff9f37a31fea922d",
+                    "execution-evidence:sha256:57c8e9d016ff9bf55573f82017ddc8a5e7e0dac2ef9b5158e030c7215fac73d7",
+                    "execution-evidence:sha256:7e580e0f5197256178a2e9b651b1d2c74c842aaa42e852600656d298644ebde2"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "schema_version": "1.0",
+                "task_id": "NG-34",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6280bd387cddcbffb9aa10cb71f65920974033a7cea66e84d416336163e17345",
+                    "execution-evidence:sha256:3355f2c79cfece34d96a7c519ab1321e66d425e1c06c1384982a2e89d5ce59f9",
+                    "execution-evidence:sha256:bf55596764e2a8b8a5810329f45e89705e7ca4413f5a8c23cd224cdf1e2ffd75",
+                    "execution-evidence:sha256:8d0ff1280e63798781f02677ee675a59b53693a9bd23b26c3bc2ee4dca193f30",
+                    "execution-evidence:sha256:4427baa58275fad3bfb22c17584941bbbe2dbb3aebcbe532b3678e8f03ec5b75",
+                    "execution-evidence:sha256:95e90c292e2f81624c233533171ed4ad9b382ff3a1dfa126ff9f37a31fea922d",
+                    "execution-evidence:sha256:57c8e9d016ff9bf55573f82017ddc8a5e7e0dac2ef9b5158e030c7215fac73d7",
+                    "execution-evidence:sha256:7e580e0f5197256178a2e9b651b1d2c74c842aaa42e852600656d298644ebde2"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "context_id": "reviewer-blindspot-ng34",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "observations": [
+                    "src/caregiver.ts:2571 Own concepts whose entry is unreadable or written by a newer app and that are off the board are invisible in the caregiver area and cannot be cleaned up here; documented as card NG-35 in docs/caregiver.md.",
+                    "src/caregiver.ts:1507 Delete is two-phase (examples first, then removeCustomConcept): if the second write fails, the gestures are already gone while the concept stays listed. Documented ('a second try finishes the job') but the status line does not say the gestures were lost.",
+                    "src/caregiver.ts:2551 Own concepts off the board have no count limit apart from profile storage; a caregiver can accumulate many off-board entries, each read on every redraw by listCustomConcepts."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:55e0d0d3",
+                "summary": "Blind-spot review of NG-34 (8aba53f). Child safety: 'Endgültig löschen' is reachable only inside the gated caregiver area, only for own concepts off the board (src/caregiver.ts ownRow), and needs the existing hold-and-release confirmation with the aimed()/bodyHolds shield (deleteHold); tested in test/caregiver.test.mjs:6845. Data loss: delete removes only readable custom entries and their examples, never unsupported-version entries or examples (listCustomConcepts filter, deleteExamples filter); the loss line says it cannot be undone. Privacy: ids are random eigen-<8hex>, never from the label; spellcheck/autocorrect off on the fields. Contract items each have a test (create+speak 6740, refusals 6778, second-write failure 6803, take off/undo 6824, delete 6845, newer/unreadable never offered 6888, cap counts unshowable ids 6904; damage kinds in test/board.test.mjs). No blocking gap.",
+                "task_id": "NG-34",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:19:11+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:19:11+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "schema_version": "1.0",
+                "task_id": "NG-34",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:b8784ba092a2001d99d79450dbbf499c377a1839d61b9b70c6a079c2a8c26976",
+                    "execution-evidence:sha256:0cc9339030ef0c2c205818570937098b135ff5c1a91c9c618f92274e96cccdc0"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:da57c639725190d5a6079d34c24c58ac9ecf3805",
+                "consistency_references": [
+                    "execution-evidence:sha256:087789d90aa9a04c2cfa79e7548aa02d8e623ed2029c7cf68ba50f5881a93fb8"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:469f98a9f6f3520ae90a9d4381f8600615b57744ab9a2585a80c7d0dfd226c3a",
+                "outcome": "pass",
+                "run_id": "run:NG-34:5ba4b6153fcd27fd",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:a96231caf0b032e2e09f48ae69b6704159bc1a0590d97317f023dac38b5d2e33",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-34: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-34 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-34:5ba4b6153fcd27fd binds active Session 2026-11-23-ng-34-r1-daf78f65 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-34 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-34",
+                "validation_references": [
+                    "execution-evidence:sha256:b8784ba092a2001d99d79450dbbf499c377a1839d61b9b70c6a079c2a8c26976",
+                    "execution-evidence:sha256:0cc9339030ef0c2c205818570937098b135ff5c1a91c9c618f92274e96cccdc0"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-34:5ba4b6153fcd27fd",
+    "schema_version": "1.0",
+    "task_id": "NG-34"
+}

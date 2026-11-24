@@ -1,6 +1,7 @@
 # Caregiver area
 
-Status: second slice (cards NG-29 and NG-31), rewording (NG-33) and teaching gestures (NG-19). Code in
+Status: second slice (cards NG-29 and NG-31), rewording (NG-33), teaching gestures (NG-19), own
+concepts (NG-34) and own pictures (card NG-8673323346005092805). Code in
 `src/caregiver.ts`, styles in `public/styles.css`, tests in `test/caregiver.test.mjs`.
 
 ## Verification status
@@ -718,10 +719,11 @@ Nothing is refused.
 **Locked rows.** Ids on the board that this screen does not move or take off are shown at their
 real place in "Auf der Tafel":
 
-- a custom concept (shown with its label and sentence), also one under a catalogue id, and a
-  retired concept (stored label and sentence, and "Dieser Begriff ist nicht mehr in der
-  Auswahl."): "Dieser Begriff kann hier nicht verschoben oder entfernt werden.", and the one
-  button "Text ändern";
+- a custom concept under a catalogue id (shown with its label and sentence), and a retired
+  concept (stored label and sentence, and "Dieser Begriff ist nicht mehr in der Auswahl."):
+  "Dieser Begriff kann hier nicht verschoben oder entfernt werden.", and the buttons "Text
+  ändern" and "Gebärde beibringen". An own concept under an id the catalogue does not use is not
+  locked (see "Own concepts");
 - an id `resolveBoard` leaves off the board (no entry, an unreadable entry, or an id board data
   cannot address, shown as "Begriff „<id>“"): no button, and "Dieser Begriff kann in dieser
   Version nicht bearbeitet werden."; for an entry written by a newer app version instead "Diese
@@ -729,6 +731,86 @@ real place in "Auf der Tafel":
 
 Such an id is not dropped and not moved by this screen: add and move leave it at its index, and a
 removal or an undo of another concept shifts it only as far as that one id takes or gives room.
+
+**Own concepts** (card NG-34). A concept that only this profile has: a word and a sentence a
+caregiver typed. On the board it is a full row like a catalogue concept: "nach oben", "nach
+unten", "Text ändern", "Gebärde beibringen" and "Entfernen", with undo. It is shown without a
+picture (pictures are card NG-8673323346005092805). An own concept under an id the catalogue also
+uses stays locked: taken off, the catalogue would offer the id again, and adding it would bring
+back the own concept.
+
+- **"Eigenen Begriff anlegen"** is under "Auf der Tafel". It opens fields that take over the body,
+  as a rewording does: the heading "Eigener Begriff für die Tafel von „<name>“", "Wort auf der
+  Taste", "Gesprochener Satz", the line "Der Begriff kommt ans Ende der Tafel. Danach kann ihm eine
+  Gebärde beigebracht werden.", "Speichern" and "Abbrechen". The fields start empty; the focus is
+  on the word. Input is cleaned and checked exactly as in a rewording, with the same German
+  refusals; a refusal keeps what was typed and focuses the field concerned. "Abbrechen" and
+  Escape write nothing and return to the button.
+- **Saving** generates the id: `eigen-` and eight random hexadecimal digits, never derived from the
+  label, and not one the profile or the catalogue already uses. A board that already holds
+  `MAX_CONCEPT_IDS` (500) ids, counting ids that cannot be shown, is refused before anything is
+  written. Then two queued writes: `putCustomConcept`, then `setBoardConcepts` with the id at the
+  end. Afterwards the status line says "Gespeichert: „<label>“ ist jetzt auf der Tafel." and the
+  focus is on the new row.
+- **When the second write fails**, the concept exists but is not on the board. The status line
+  says so as an error: "„<label>“ wurde angelegt, aber nicht auf die Tafel gesetzt. Der Begriff
+  steht unten unter „Eigene Begriffe, nicht auf der Tafel“ und kann von dort hinzugefügt
+  werden.", and the focus is on its "Hinzufügen".
+- **"Eigene Begriffe, nicht auf der Tafel"**, below "Weitere Begriffe" and only when there is one:
+  every readable own concept of the profile that is not on the board, sorted by id, with the line
+  "Eigene Begriffe gibt es nur in diesem Profil. Von der Tafel genommen, bleiben sie hier, bis sie
+  endgültig gelöscht werden." Each row has "Hinzufügen" (to the end of the board) and "Endgültig
+  löschen". An entry this version cannot read, and one a newer app wrote, is never listed here
+  and so never offered for deletion (`listCustomConcepts` reports both with their damage kind;
+  repairing them is card NG-35).
+- **"Endgültig löschen"** opens a confirmation that takes over the body: "„<label>“ aus dem Profil
+  „<name>“ endgültig löschen?", "Das Wort, der Satz und die beigebrachten Gebärden dieses Begriffs
+  werden gelöscht. Das kann nicht rückgängig gemacht werden.", "Abbrechen" (focused) and
+  "Endgültig löschen", which has to be held for `DELETE_HOLD_MS` and is carried out on the release,
+  as for a profile (rules 12 and 20). The delete first removes the concept's gesture examples
+  (`deleteExamples`, all but those a newer app wrote), then the concept (`removeCustomConcept`).
+  If a write fails the concept is still listed and a second try finishes the job. The status line
+  says "„<label>“ wurde endgültig gelöscht."; the focus goes to the heading of the list.
+  Deleting is offered only for a concept that is off the board, so that a tap on the board list
+  never starts it.
+
+**Own pictures** (card NG-8673323346005092805). Every row of "Auf der Tafel" that the board shows
+(catalogue, own and retired concepts) has "Bild wählen" after "Text ändern". It opens a view that
+takes over the body:
+
+- the heading "Bild für „<label>“ – Tafel von „<name>“"; "Jetzt auf der Taste:" with the picture
+  the key has now, or "Jetzt auf der Taste: kein Bild, nur das Wort.";
+- "Das Bild wird nur in diesem Browser auf diesem Gerät gespeichert, in diesem Profil. Die App
+  sendet es nicht." and "Bitte nur Bilder verwenden, die ihr verwenden dürft, zum Beispiel
+  METACOM-Symbole aus eurer eigenen Lizenz oder eigene Zeichnungen und Fotos. Fotos, auf denen ein
+  Kind zu erkennen ist, besser nicht verwenden." ([assets.md](assets.md));
+- "Bilddatei auswählen", a file field (PNG, JPEG, WebP, GIF, SVG; focused on opening) with the line
+  "PNG, JPEG, WebP, GIF oder SVG. Das Bild wird auf höchstens 256 × 256 Pixel verkleinert.";
+- after a file was chosen: "Neues Bild:" with the redrawn picture, "Speichern" and "Abbrechen";
+- with an own picture stored: "Bild der App wiederherstellen" for a catalogue concept, "Bild
+  entfernen" for an own or retired one. One tap: the picture can be chosen again.
+
+Choosing a file stores nothing. `pictureFromFile` refuses a type that is not offered and a file
+over 10 MB, reads the file as a data URL, loads it into an image and draws it onto a canvas of at
+most 256 pixels a side; it keeps the canvas as PNG, or as JPEG on white when the PNG is longer
+than 256 KiB. So what is stored is never the file: no SVG markup or script, no camera, place or
+date. Refusals are German error lines and the view stays: "Diese Datei ist kein Bild, das die App
+lesen kann. …", "Die Datei ist zu groß. …", "Das Bild konnte nicht gelesen werden. …", "Das Bild
+ist auch verkleinert noch zu groß. …". "Speichern" is one queued write through `setSymbol`; the
+status line says "Gespeichert: neues Bild für „<label>“." and the focus returns to the row's
+"Bild wählen". A full profile ("Der Platz für dieses Profil ist voll. Das Bild wurde nicht
+gespeichert. …") and a failed write keep the view with the chosen picture. A picture a newer app
+wrote is not replaced: its row has no "Bild wählen" and says "Das Bild dieser Taste wurde mit einer
+neueren Version gespeichert. Bitte die App aktualisieren." Deleting an own concept for good also
+deletes its picture.
+
+The page's Content Security Policy allows `data:` images (`img-src 'self' data:`) for these
+pictures and nothing else new. In headless Chromium (script run by hand, not in CI) an SVG with an
+`onload` attribute and a `<script>` came out as a plain PNG without running either, a 1200 × 900
+synthetic image came out at 256 × 192, a text file and a broken PNG were refused, and the full
+flow (create an own concept, choose a picture, save, close) showed the picture on the child's
+board at 390 px width with no console error. Not tried on a phone, with a real METACOM export,
+or with a screen reader.
 
 **Help.** At the bottom, behind "Hilfe bei Problemen" (a `<details>`): "Tafel neu laden" with one
 sentence that says what it does, and a text for a device that does not speak: "Spricht das Gerät
@@ -765,8 +847,9 @@ countdown. None of this was checked with assistive technology.
 
 ## Deliberately missing
 
-- Creating own concepts and symbols for them (NG-34). A custom concept that is already on a board
-  can be reworded only.
+- Cropping or rotating a picture, choosing from a symbol library inside the app, or taking a
+  photo with the camera from this view; the device's file picker may offer the camera itself.
+- Deleting an own concept straight from the board list: it is taken off first.
 - Hearing a wording before it is saved ("listen"); the caregiver hears it on the child's board.
 - Export, import and backup (NG-22). Deleting a profile is final.
 - Recognising a gesture on the child's board (NG-20); choosing a profile-wide anchor (each example
@@ -775,7 +858,7 @@ countdown. None of this was checked with assistive technology.
 - Undo for anything but removals of concepts during the visit; an add or a move is taken back by
   hand, and a deleted profile cannot be brought back.
 - Moving a concept by more than one place at a time, or by dragging.
-- Editing custom and retired concepts on a board: they cannot be moved or taken off here.
+- Moving or taking off retired concepts, and own concepts under a catalogue id.
 - A warning before the profile's storage is full (`store.usage`), except when a teaching view opens.
 - Any protection beyond the hold gesture.
 

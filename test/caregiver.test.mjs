@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { CAMERA_FACING_KEY, CAPTURE_BRIDGE_KEY, TEACH_COUNTDOWN_S, TEACH_MAX_RECORDING_MS, BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
+import { CAMERA_FACING_KEY, CAPTURE_BRIDGE_KEY, PictureRefusal, TEACH_COUNTDOWN_S, TEACH_MAX_RECORDING_MS, BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
 import { resolveBoard, setBoardConcepts, setWording } from "../dist/board-data.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
@@ -22,7 +22,7 @@ const NEWER_ENTRY = "Diese Taste wurde mit einer neueren Version gespeichert. Bi
 
 /** Puts a fake document and speech engine in place; `focused.current` is the element that was focused last. */
 function installFakes(rect) {
-  const previous = { document: globalThis.document, window: globalThis.window, SpeechSynthesisUtterance: globalThis.SpeechSynthesisUtterance };
+  const previous = { document: globalThis.document, window: globalThis.window, SpeechSynthesisUtterance: globalThis.SpeechSynthesisUtterance, Image: globalThis.Image };
   const previousWarn = console.warn;
   const speech = { cancelled: 0, spoken: [] };
   const focused = { current: null };
@@ -87,6 +87,13 @@ function installFakes(rect) {
     },
   };
   globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+  // `new Image(width, height)` as the picture view uses it: an "img" element of the fake document.
+  globalThis.Image = function Image(width, height) {
+    const image = fakeElement("img");
+    image.width = width;
+    image.height = height;
+    return image;
+  };
   console.warn = () => undefined;
   return {
     speech, focused, fakeElement,
@@ -210,6 +217,7 @@ async function withArea(options, callback) {
       ...(options.date === undefined ? {} : { date: options.date }),
       // The device's camera choice (card NG-43): a storage of the test's own, never the process's.
       cameraStorage: () => cameraStorage,
+      ...(options.pictureFromFile === undefined ? {} : { pictureFromFile: options.pictureFromFile }),
     });
     const [opener, progress, hint] = entry.children;
     const area = {
@@ -951,7 +959,7 @@ test("board editor: adding, moving and removing is saved at once and is on the c
     assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Fertig"]);
     assert.deepEqual(more(), ["Trinken", "Mehr"]);
     const boardRows = () => concepts().filter((row) => row.onBoard);
-    assert.deepEqual(boardRows().map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Gebärde beibringen", "Entfernen"]));
+    assert.deepEqual(boardRows().map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]));
     assert.deepEqual(boardRows().map((row) => [row.name, row.sentence, row.picture]), [
       ["Pause", "Ich brauche eine Pause.", "./icons/pause.svg"], ["Hilfe", "Ich brauche Hilfe.", "./icons/hilfe.svg"], ["Fertig", "Ich bin fertig.", "./icons/fertig.svg"],
     ]);
@@ -1043,7 +1051,8 @@ const seedMixedBoard = async (store) => {
   return mia;
 };
 const MIXED_IDS = ["hilfe", "mein.ball", "neu", "trinken", "geist", "alt", "ball", "pause"];
-const LOCKED_IDS = ["mein.ball", "neu", "geist", "alt", "ball"];
+/** The ids that stay where they are: "ball" is an own concept and can be moved and taken off (card NG-34). */
+const LOCKED_IDS = ["mein.ball", "neu", "geist", "alt"];
 
 test("board editor: a mixed board shows editable rows with buttons and each kind of locked row at its real place, with its explanation and no buttons", async () => {
   await withArea({ seed: seedMixedBoard }, async ({ holdOpen, concepts }) => {
@@ -1055,21 +1064,21 @@ test("board editor: a mixed board shows editable rows with buttons and each kind
       ["Trinken", true, false, null],
       ["Begriff „geist“", true, true, NOT_EDITABLE],
       ["Schaukel", true, true, `Dieser Begriff ist nicht mehr in der Auswahl. ${LOCKED_PLACE}`],
-      ["Ball", true, true, LOCKED_PLACE],
+      ["Ball", true, false, null],
       ["Pause", true, false, null],
       ["Mehr", false, false, null],
       ["Fertig", false, false, null],
     ]);
     // A locked row cannot be moved or taken off. One that the board shows can be reworded and taught a gesture; one that it cannot show has no button at all.
     assert.deepEqual(concepts().filter((candidate) => candidate.locked).map((row) => [row.name, row.buttons]), [
-      ["Begriff „mein.ball“", []], ["Begriff „neu“", []], ["Begriff „geist“", []], ["Schaukel", ["Text ändern", "Gebärde beibringen"]], ["Ball", ["Text ändern", "Gebärde beibringen"]],
+      ["Begriff „mein.ball“", []], ["Begriff „neu“", []], ["Begriff „geist“", []], ["Schaukel", ["Text ändern", "Bild wählen", "Gebärde beibringen"]],
     ]);
-    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Gebärde beibringen", "Entfernen"]));
+    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(4).fill(["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]));
     assert.equal(concepts().find((row) => row.name === "Schaukel").sentence, "Ich möchte schaukeln.");
     assert.equal(concepts().find((row) => row.name === "Ball").sentence, "Ich möchte mit dem Ball spielen.");
     // "nach oben" / "nach unten" end at the ends of the editable sequence, not of the list.
     const editable = concepts().filter((row) => row.onBoard && !row.locked);
-    assert.deepEqual(editable.map((row) => [row.name, row.up.disabled, row.down.disabled]), [["Hilfe", true, false], ["Trinken", false, false], ["Pause", false, true]]);
+    assert.deepEqual(editable.map((row) => [row.name, row.up.disabled, row.down.disabled]), [["Hilfe", true, false], ["Trinken", false, false], ["Ball", false, false], ["Pause", false, true]]);
   });
 });
 
@@ -1082,23 +1091,23 @@ test("board editor: add and move write the full conceptIds with every locked id 
     const lockedBefore = lockedAt(MIXED_IDS);
     await holdOpen();
 
-    // Move: the two editable concepts trade places; every other id keeps its index.
+    // Move: two editable concepts trade places (an own concept is one of them); every other id keeps its index.
     await act(() => concept("Pause").up.click());
-    assert.deepEqual(await ids(), ["hilfe", "mein.ball", "neu", "pause", "geist", "alt", "ball", "trinken"]);
+    assert.deepEqual(await ids(), ["hilfe", "mein.ball", "neu", "trinken", "geist", "alt", "pause", "ball"]);
     await act(() => concept("Hilfe").down.click());
-    assert.deepEqual(await ids(), ["pause", "mein.ball", "neu", "hilfe", "geist", "alt", "ball", "trinken"]);
+    assert.deepEqual(await ids(), ["trinken", "mein.ball", "neu", "hilfe", "geist", "alt", "pause", "ball"]);
     assert.deepEqual(lockedAt(await ids()), lockedBefore);
     // Add: at the end; nothing else moves.
     await add("Mehr");
-    assert.deepEqual(await ids(), ["pause", "mein.ball", "neu", "hilfe", "geist", "alt", "ball", "trinken", "mehr"]);
+    assert.deepEqual(await ids(), ["trinken", "mein.ball", "neu", "hilfe", "geist", "alt", "pause", "ball", "mehr"]);
     assert.deepEqual(lockedAt(await ids()), lockedBefore);
     // Remove: only that id leaves; the rest keeps its order, locked ids included.
     await remove("Hilfe");
-    assert.deepEqual(await ids(), ["pause", "mein.ball", "neu", "geist", "alt", "ball", "trinken", "mehr"]);
+    assert.deepEqual(await ids(), ["trinken", "mein.ball", "neu", "geist", "alt", "pause", "ball", "mehr"]);
     await remove("Pause");
     await remove("Trinken");
     await remove("Mehr");
-    assert.deepEqual(await ids(), LOCKED_IDS);
+    assert.deepEqual(await ids(), [...LOCKED_IDS, "ball"]);
     assert.equal(entries(), before);
 
     // The board shows what it can of them, as before.
@@ -1115,10 +1124,10 @@ test("board editor: on screen, an action changes the place of the acted row only
     assert.deepEqual(start, ["Hilfe", "Begriff „mein.ball“", "Begriff „neu“", "Trinken", "Begriff „geist“", "Schaukel", "Ball", "Pause", "Mehr", "Fertig"]);
     const without = (list, ...gone) => list.filter((name) => !gone.includes(name));
 
-    // Move: "Trinken" and "Pause" swap; every other row is where it was.
+    // Move: "Trinken" and the own concept "Ball" swap; every other row is where it was.
     await act(() => concept("Trinken").down.click());
     const afterMove = names();
-    assert.deepEqual(afterMove.map((name, index) => (name === start[index] ? null : name)).filter((name) => name !== null), ["Pause", "Trinken"]);
+    assert.deepEqual(afterMove.map((name, index) => (name === start[index] ? null : name)).filter((name) => name !== null), ["Ball", "Trinken"]);
     // Remove: the row leaves the board list and appears in "Weitere Begriffe" at its catalogue place; the others keep their order.
     await remove("Hilfe");
     assert.deepEqual(without(names(), "Hilfe"), without(afterMove, "Hilfe"));
@@ -1155,12 +1164,14 @@ test("focus: after a move it follows the moved row's same button, or the opposit
 test("focus: after 'Entfernen' it goes to the next row's 'Entfernen', else the previous one, else the heading 'Weitere Begriffe'; locked rows are passed over", async () => {
   await withArea({ seed: seedMixedBoard }, async ({ holdOpen, remove, concept, focused, caregiverRegion }) => {
     await holdOpen();
-    // Editable order: Hilfe, Trinken, Pause (locked rows between them).
+    // Editable order: Hilfe, Trinken, Ball, Pause (locked rows between them).
     await remove("Hilfe");
     assert.equal(focused.current, concept("Trinken").remove);
     await remove("Pause");
-    assert.equal(focused.current, concept("Trinken").remove);
+    assert.equal(focused.current, concept("Ball").remove);
     await remove("Trinken");
+    assert.equal(focused.current, concept("Ball").remove);
+    await remove("Ball");
     const heading = tree(caregiverRegion).find((element) => element.tagName === "h3" && element.textContent === "Weitere Begriffe");
     assert.equal(heading.tabIndex, -1);
     assert.equal(focused.current, heading);
@@ -1169,7 +1180,7 @@ test("focus: after 'Entfernen' it goes to the next row's 'Entfernen', else the p
   await withArea({ seed: seedMixedBoard }, async ({ holdOpen, remove, concept, focused }) => {
     await holdOpen();
     await remove("Trinken");
-    assert.equal(focused.current, concept("Pause").remove);
+    assert.equal(focused.current, concept("Ball").remove);
   });
 });
 
@@ -5180,7 +5191,7 @@ test("reword: an entry that a newer app wrote has no 'Text ändern' and says tha
     // The board shows the app's text for it; it can still be moved and taken off.
     const row = concept("Trinken");
     // Teaching a gesture does not write the entry, so it stays.
-    assert.deepEqual(row.buttons, ["nach oben", "nach unten", "Gebärde beibringen", "Entfernen"]);
+    assert.deepEqual(row.buttons, ["nach oben", "nach unten", "Bild wählen", "Gebärde beibringen", "Entfernen"]);
     assert.equal(row.note, NEWER_ENTRY);
     assert.deepEqual(concepts().filter((other) => other.onBoard && other.name !== "Trinken").map((other) => [other.reword !== null, other.note]), [[true, null], [true, null]]);
   });
@@ -5794,7 +5805,7 @@ test("teach: every tile on the board offers 'Gebärde beibringen'; it opens a vi
     await holdOpen();
     assert.deepEqual(area.onBoard(), ["Trinken", "Hilfe"]);
     for (const name of ["Trinken", "Hilfe"]) {
-      assert.deepEqual(concept(name).buttons, ["nach oben", "nach unten", "Text ändern", "Gebärde beibringen", "Entfernen"]);
+      assert.deepEqual(concept(name).buttons, ["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]);
       assert.equal(concept(name).teach["aria-label"], `Gebärde beibringen: ${name}`);
       assert.equal(concept(name).gesture, null);
     }
@@ -6707,5 +6718,480 @@ test("teach: a camera that fails during the countdown ends it: the problem is sh
     await area.handle.settled();
     assert.equal(teachViewOf(area.caregiverRegion).camera, CAPTURE_TEXT.problems.busy);
     assert.equal(area.button("Aufnahme beenden"), undefined);
+  });
+});
+
+// --- Own concepts (card NG-34) ---
+
+/** The fields of "Eigenen Begriff anlegen" while they are the body of the area, or null. */
+const creating = (caregiverRegion) => {
+  const view = byClass(caregiverRegion, "caregiver-takeover");
+  if (view === undefined || byClass(view, "caregiver-new-concept") === undefined) return null;
+  const find = (id) => tree(view).find((element) => element.id === id) ?? null;
+  return {
+    view, texts: textsIn(view), form: byClass(view, "caregiver-new-concept"),
+    label: find("caregiver-new-concept-label"), speech: find("caregiver-new-concept-speech"), cancel: buttonNamed(view, "Abbrechen"),
+  };
+};
+const createOwn = async ({ act, button, caregiverRegion }, label, speech) => {
+  await act(() => button("Eigenen Begriff anlegen").click());
+  const fields = creating(caregiverRegion);
+  fields.label.value = label;
+  fields.speech.value = speech;
+  await act(() => fields.form.dispatch("submit"));
+};
+const ownEntries = (backend, profile) => Object.entries(backend.snapshot())
+  .filter(([key, value]) => key.startsWith(`profile/${profile.id}/data/concept.`) && value.custom === true)
+  .map(([key, value]) => [key.slice(`profile/${profile.id}/data/concept.`.length), value]);
+const OWN_HEADING = "Eigene Begriffe, nicht auf der Tafel";
+
+test("own concepts: 'Eigenen Begriff anlegen' takes over the body with a word and a sentence; saving puts a concept with a random id at the end of the board, and the child's board shows and speaks it", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, act, button, caregiverRegion, focused, status, store, seeded, backend, handle, tiles, boardRegion, speech, concept, onBoard } = area;
+    await holdOpen();
+    await act(() => button("Eigenen Begriff anlegen").click());
+    const open = creating(caregiverRegion);
+    assert.deepEqual(open.texts, [
+      "Eigener Begriff für die Tafel von „Mia“", "Wort auf der Taste", "Gesprochener Satz",
+      "Der Begriff kommt ans Ende der Tafel. Danach kann ihm eine Gebärde beigebracht werden.", "Speichern", "Abbrechen",
+    ]);
+    assert.equal(focused.current, open.label);
+    assert.deepEqual([open.label.value, open.speech.value, open.speech.tagName, open.label.spellcheck], ["", "", "textarea", false]);
+    assert.deepEqual(byClass(caregiverRegion, "caregiver-body").children, [open.view]);
+    open.label.value = "  Ball​ ";
+    open.speech.value = "Ich möchte mit dem\nBall spielen.";
+    await act(() => open.form.dispatch("submit"));
+    assert.equal(status(), "Gespeichert: „Ball“ ist jetzt auf der Tafel.");
+    assert.equal(creating(caregiverRegion), null);
+    const own = ownEntries(backend, seeded);
+    assert.equal(own.length, 1);
+    const [id, entry] = own[0];
+    // The id is generated, never taken from the label.
+    assert.match(id, /^eigen-[0-9a-f]{8}$/);
+    assert.deepEqual(entry, { version: 1, labelDe: "Ball", speechDe: "Ich möchte mit dem Ball spielen.", custom: true });
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause", id]);
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause", "Ball"]);
+    // A full row: it can be moved, reworded, taught a gesture and taken off.
+    assert.deepEqual(concept("Ball").buttons, ["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]);
+    assert.equal(concept("Ball").picture, null);
+    assert.equal(focused.current, concept("Ball").row);
+    await handle.close();
+    assert.deepEqual(tiles(), ["Hilfe", "Trinken", "Pause", "Ball"]);
+    const board = boardRegion.children.find((child) => child.className.split(" ")[0] === "concept-board");
+    board.children.filter((child) => child.tagName === "button")[3].click();
+    assert.deepEqual(speech.spoken.slice(-1), ["Ich möchte mit dem Ball spielen."]);
+  });
+});
+
+test("own concepts: refusals are explained in German, nothing is written and the typed text stays; 'Abbrechen' writes nothing", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, act, caregiverRegion, status, backend, focused, seeded } = area;
+    await holdOpen();
+    const before = JSON.stringify(backend.snapshot());
+    await createOwn(area, "Ball", "   ");
+    assert.equal(status(), "Bitte gib einen Satz ein, den das Gerät sprechen soll.");
+    let open = creating(caregiverRegion);
+    assert.equal(open.label.value, "Ball");
+    assert.equal(focused.current, open.speech);
+    open.label.value = "x".repeat(41);
+    open.speech.value = "Satz.";
+    await act(() => open.form.dispatch("submit"));
+    assert.equal(status(), "Das Wort ist zu lang. Es darf höchstens 40 Zeichen haben.");
+    open = creating(caregiverRegion);
+    assert.equal(open.label.value, "x".repeat(41));
+    assert.equal(focused.current, open.label);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    await act(() => open.cancel.click());
+    assert.equal(creating(caregiverRegion), null);
+    assert.equal(focused.current, area.button("Eigenen Begriff anlegen"));
+    assert.deepEqual(ownEntries(backend, seeded), []);
+  });
+});
+
+test("own concepts: when the board write fails after the concept was stored, that is said and the concept can be added from the list of own concepts", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, act, status, store, seeded, backend, concept, more, focused, caregiverRegion } = area;
+    await holdOpen();
+    // The first write stores the concept, the second (the board) fails.
+    backend.failWrite(2);
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    assert.equal(status(), "„Ball“ wurde angelegt, aber nicht auf die Tafel gesetzt. Der Begriff steht unten unter „Eigene Begriffe, nicht auf der Tafel“ und kann von dort hinzugefügt werden.");
+    assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause"]);
+    assert.deepEqual(more(), ["Mehr", "Fertig", "Ball"]);
+    assert.ok(textsIn(caregiverRegion).includes(OWN_HEADING));
+    assert.deepEqual(concept("Ball").buttons, ["Hinzufügen", "Endgültig löschen"]);
+    assert.equal(focused.current, concept("Ball").add);
+    await area.add("Ball");
+    const [id] = ownEntries(backend, seeded)[0];
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause", id]);
+    assert.ok(!textsIn(caregiverRegion).includes(OWN_HEADING));
+  });
+});
+
+test("own concepts: taken off the board, an own concept stays as an own concept, can be put back, and 'Rückgängig' works for it", async () => {
+  await withArea({ seed: seedThree }, async (area) => {
+    const { holdOpen, remove, act, concept, more, onBoard, store, seeded, backend, undo, takeBack } = area;
+    await holdOpen();
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    const [id] = ownEntries(backend, seeded)[0];
+    await act(() => concept("Ball").up.click());
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Ball", "Pause"]);
+    await remove("Ball");
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause"]);
+    assert.deepEqual(more(), ["Mehr", "Fertig", "Ball"]);
+    assert.equal(undo().textContent, "Rückgängig: „Ball“");
+    await takeBack();
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", id, "pause"]);
+    await remove("Ball");
+    await area.add("Ball");
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause", "Ball"]);
+    assert.equal(undo(), null);
+  });
+});
+
+test("own concepts: 'Endgültig löschen' asks first; a hold deletes the concept and its gesture examples; 'Abbrechen' keeps everything", async () => {
+  const seed = async (store) => {
+    const mia = await createMia(store);
+    await store.setConceptIds(mia.id, ["hilfe"]);
+    const data = store.data(mia.id);
+    await data.set("concept.eigen-0badc0de", { version: 1, labelDe: "Ball", speechDe: "Ich möchte Ball spielen.", custom: true });
+    // A synthetic example record that this version cannot read: it goes with the concept all the same.
+    await data.set("gesture.eigen-0badc0de.0123456789ab", { synthetic: true });
+    await data.set("gesture.hilfe.0123456789ab", { synthetic: true });
+    return mia;
+  };
+  await withArea({ seed }, async (area) => {
+    const { holdOpen, act, concept, confirmation, confirmDelete, status, seeded, backend, focused, more, caregiverRegion } = area;
+    await holdOpen();
+    assert.deepEqual(more(), ["Trinken", "Pause", "Mehr", "Fertig", "Ball"]);
+    const deleteOf = () => buttonNamed(concept("Ball").row, "Endgültig löschen");
+    assert.equal(deleteOf()["aria-label"], "Endgültig löschen: Ball");
+    await act(() => deleteOf().click());
+    let view = confirmation();
+    assert.deepEqual(view.texts.slice(0, 2), [
+      "„Ball“ aus dem Profil „Mia“ endgültig löschen?",
+      "Das Wort, der Satz und die beigebrachten Gebärden dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.",
+    ]);
+    assert.equal(focused.current, view.cancel);
+    // A tap deletes nothing: it has to be held.
+    view.confirm.click();
+    await area.handle.settled();
+    assert.ok(backend.snapshot()[`profile/${seeded.id}/data/concept.eigen-0badc0de`] !== undefined);
+    await act(() => view.cancel.click());
+    assert.equal(confirmation(), null);
+    assert.equal(focused.current, deleteOf());
+    await act(() => focused.current.click());
+    view = confirmation();
+    await confirmDelete();
+    assert.equal(status(), "„Ball“ wurde endgültig gelöscht.");
+    const keys = Object.keys(backend.snapshot());
+    assert.ok(!keys.some((key) => key.includes("eigen-0badc0de")), keys.join(", "));
+    assert.ok(keys.includes(`profile/${seeded.id}/data/gesture.hilfe.0123456789ab`));
+    assert.deepEqual(more(), ["Trinken", "Pause", "Mehr", "Fertig"]);
+    assert.ok(!textsIn(caregiverRegion).includes(OWN_HEADING));
+  });
+});
+
+test("own concepts: an entry a newer app wrote or one that cannot be read is never offered as an own concept to add or delete", async () => {
+  const seed = async (store) => {
+    const mia = await createMia(store);
+    const data = store.data(mia.id);
+    await data.set("concept.neu", { version: 2, labelDe: "Neu", speechDe: "Etwas Neues.", custom: true, colour: "blau" });
+    await data.set("concept.kaputt", { version: 1, labelDe: "", speechDe: "x", custom: true });
+    return mia;
+  };
+  await withArea({ seed }, async ({ holdOpen, more, caregiverRegion }) => {
+    await holdOpen();
+    assert.deepEqual(more(), ["Hilfe", "Trinken", "Pause", "Mehr", "Fertig"]);
+    assert.ok(!textsIn(caregiverRegion).includes(OWN_HEADING));
+    assert.equal(buttonNamed(caregiverRegion, "Endgültig löschen"), undefined);
+  });
+});
+
+test("own concepts: a board at the limit of ids refuses a new concept before anything is written; ids that cannot be shown count", async () => {
+  const seed = async (store) => {
+    const mia = await createMia(store);
+    const ids = Array.from({ length: 499 }, (_, at) => `geist-${at}`);
+    await store.setConceptIds(mia.id, ["hilfe", ...ids]);
+    return mia;
+  };
+  await withArea({ seed }, async (area) => {
+    const { holdOpen, status, backend, seeded, caregiverRegion } = area;
+    await holdOpen();
+    const before = JSON.stringify(backend.snapshot());
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    assert.equal(status(), "Auf eine Tafel passen höchstens 500 Begriffe. Es wurde nichts geändert.");
+    assert.notEqual(creating(caregiverRegion), null);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    assert.deepEqual(ownEntries(backend, seeded), []);
+  });
+});
+
+// --- Own pictures (card NG-8673323346005092805); the picture data is synthetic ---
+
+const PICTURE_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+/** Stands in for the canvas: a file named "refuse-<reason>" is refused, any other becomes PICTURE_PNG. */
+const fakePicture = async (file) => {
+  if (file.name.startsWith("refuse-")) throw new PictureRefusal(file.name.slice("refuse-".length));
+  return PICTURE_PNG;
+};
+const pictureViewOf = (region) => {
+  const view = byClass(region, "caregiver-picture");
+  if (view === undefined) return null;
+  return {
+    view, texts: textsIn(view), file: byClass(view, "caregiver-picture-file"),
+    images: tree(view).filter((element) => element.tagName === "img").map((element) => element.src),
+    save: buttonNamed(view, "Speichern") ?? null, cancel: buttonNamed(view, "Abbrechen"),
+    reset: buttonNamed(view, "Bild der App wiederherstellen") ?? buttonNamed(view, "Bild entfernen") ?? null,
+  };
+};
+/** Chooses a file in the open picture view and waits until the view shows the result. */
+const chooseFile = async (area, name) => {
+  const view = pictureViewOf(area.caregiverRegion);
+  view.file.files = [{ name, type: "image/png", size: 10 }];
+  view.file.dispatch("change");
+  await area.handle.settled();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await area.handle.settled();
+};
+
+test("pictures: 'Bild wählen' opens a view that takes over the body, shows the key's picture now and says that the picture stays on the device and needs the right to use it", async () => {
+  await withArea({ seed: seedThree, pictureFromFile: fakePicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, focused } = area;
+    await holdOpen();
+    assert.equal(concept("Trinken").buttons.includes("Bild wählen"), true);
+    await act(() => buttonNamed(concept("Trinken").row, "Bild wählen").click());
+    const view = pictureViewOf(caregiverRegion);
+    assert.deepEqual(view.texts, [
+      "Bild für „Trinken“ – Tafel von „Mia“", "Jetzt auf der Taste:",
+      "Das Bild wird nur in diesem Browser auf diesem Gerät gespeichert, in diesem Profil. Die App sendet es nicht.",
+      "Bitte nur Bilder verwenden, die ihr verwenden dürft, zum Beispiel METACOM-Symbole aus eurer eigenen Lizenz oder eigene Zeichnungen und Fotos. Fotos, auf denen ein Kind zu erkennen ist, besser nicht verwenden.",
+      "Bilddatei auswählen", "PNG, JPEG, WebP, GIF oder SVG. Das Bild wird auf höchstens 256 × 256 Pixel verkleinert.", "Abbrechen",
+    ]);
+    assert.deepEqual(view.images, ["./icons/trinken.svg"]);
+    assert.equal(view.file.type, "file");
+    assert.equal(view.file.accept, "image/png,image/jpeg,image/webp,image/gif,image/svg+xml");
+    assert.equal(focused.current, view.file);
+    assert.equal(view.save, null);
+    assert.equal(view.reset, null);
+    assert.deepEqual(byClass(caregiverRegion, "caregiver-body").children, [view.view]);
+    await act(() => view.cancel.click());
+    assert.equal(pictureViewOf(caregiverRegion), null);
+    assert.equal(focused.current, buttonNamed(concept("Trinken").row, "Bild wählen"));
+  });
+});
+
+test("pictures: a chosen file is shown and stored only on 'Speichern'; the child's board shows it; 'Bild der App wiederherstellen' takes it back", async () => {
+  await withArea({ seed: seedThree, pictureFromFile: fakePicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, status, backend, seeded, handle, focused, boardRegion } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Bild wählen").click());
+    const before = JSON.stringify(backend.snapshot());
+    await chooseFile(area, "metacom-trinken.png");
+    let view = pictureViewOf(caregiverRegion);
+    assert.ok(view.texts.includes("Neues Bild:"));
+    assert.deepEqual(view.images, ["./icons/trinken.svg", PICTURE_PNG]);
+    assert.equal(focused.current, view.save);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    await act(() => view.save.click());
+    assert.equal(status(), "Gespeichert: neues Bild für „Trinken“.");
+    assert.deepEqual(backend.snapshot()[`profile/${seeded.id}/data/symbol.trinken`], { version: 1, dataUrl: PICTURE_PNG });
+    assert.equal(pictureViewOf(caregiverRegion), null);
+    assert.equal(concept("Trinken").picture, PICTURE_PNG);
+    assert.equal(focused.current, buttonNamed(concept("Trinken").row, "Bild wählen"));
+    // The wording entry is untouched.
+    assert.deepEqual(backend.snapshot()[`profile/${seeded.id}/data/concept.trinken`], { version: 1, labelDe: "Trinken", speechDe: "Ich möchte etwas trinken.", copied: true });
+    await act(() => buttonNamed(concept("Trinken").row, "Bild wählen").click());
+    view = pictureViewOf(caregiverRegion);
+    assert.deepEqual(view.images, [PICTURE_PNG]);
+    assert.equal(view.reset.textContent, "Bild der App wiederherstellen");
+    await act(() => view.reset.click());
+    assert.equal(status(), "„Trinken“ zeigt wieder das Bild der App.");
+    assert.equal(backend.snapshot()[`profile/${seeded.id}/data/symbol.trinken`], undefined);
+    assert.equal(concept("Trinken").picture, "./icons/trinken.svg");
+    // And on the child's board after closing.
+    await act(() => buttonNamed(concept("Pause").row, "Bild wählen").click());
+    await chooseFile(area, "pause.png");
+    await act(() => pictureViewOf(caregiverRegion).save.click());
+    await handle.close();
+    const board = boardRegion.children.find((child) => child.className.split(" ")[0] === "concept-board");
+    const sources = board.children.filter((child) => child.tagName === "button").map((tile) => tile.children.find((child) => child.tagName === "img")?.src ?? null);
+    assert.deepEqual(sources, ["./icons/hilfe.svg", "./icons/trinken.svg", PICTURE_PNG]);
+  });
+});
+
+test("pictures: an own concept gets a picture and can lose it again ('Bild entfernen'); deleting it for good removes the picture", async () => {
+  await withArea({ seed: seedThree, pictureFromFile: fakePicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, status, backend, seeded } = area;
+    await holdOpen();
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    const [id] = ownEntries(backend, seeded)[0];
+    await act(() => buttonNamed(concept("Ball").row, "Bild wählen").click());
+    assert.ok(pictureViewOf(caregiverRegion).texts.includes("Jetzt auf der Taste: kein Bild, nur das Wort."));
+    await chooseFile(area, "ball.png");
+    await act(() => pictureViewOf(caregiverRegion).save.click());
+    assert.equal(concept("Ball").picture, PICTURE_PNG);
+    await act(() => buttonNamed(concept("Ball").row, "Bild wählen").click());
+    assert.equal(pictureViewOf(caregiverRegion).reset.textContent, "Bild entfernen");
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    await area.remove("Ball");
+    assert.equal(concept("Ball").picture, null);
+    await act(() => buttonNamed(concept("Ball").row, "Endgültig löschen").click());
+    await area.confirmDelete();
+    assert.equal(status(), "„Ball“ wurde endgültig gelöscht.");
+    assert.ok(!Object.keys(backend.snapshot()).some((key) => key.includes(id)));
+  });
+});
+
+test("pictures: a file that is not a picture, too large or unreadable is refused in German and nothing is stored", async () => {
+  await withArea({ seed: seedThree, pictureFromFile: fakePicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, status, backend, focused } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    const before = JSON.stringify(backend.snapshot());
+    for (const [reason, line] of [
+      ["type", "Diese Datei ist kein Bild, das die App lesen kann. Bitte ein PNG-, JPEG-, WebP-, GIF- oder SVG-Bild wählen."],
+      ["size", "Die Datei ist zu groß. Bitte ein Bild mit höchstens 10 MB wählen."],
+      ["unreadable", "Das Bild konnte nicht gelesen werden. Bitte ein anderes Bild wählen."],
+      ["too-large", "Das Bild ist auch verkleinert noch zu groß. Bitte ein einfacheres Bild wählen."],
+    ]) {
+      await chooseFile(area, `refuse-${reason}`);
+      assert.equal(status(), line);
+      assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+      assert.equal(pictureViewOf(caregiverRegion).save, null);
+      assert.equal(focused.current, pictureViewOf(caregiverRegion).file);
+    }
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+  });
+  // A converter that hands back something that is not a picture is refused as well.
+  await withArea({ seed: seedThree, pictureFromFile: async () => "data:image/svg+xml,<svg/>" }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilfe").row, "Bild wählen").click());
+    await chooseFile(area, "x.svg");
+    assert.equal(area.status(), "Das Bild konnte nicht gelesen werden. Bitte ein anderes Bild wählen.");
+    assert.equal(pictureViewOf(area.caregiverRegion).save, null);
+  });
+});
+
+test("pictures: a picture that a newer app wrote offers no 'Bild wählen' and says that the app needs an update; a full profile refuses and keeps the view", async () => {
+  const seed = async (store) => {
+    const mia = await seedThree(store);
+    await store.data(mia.id).set("symbol.pause", { version: 2, dataUrl: PICTURE_PNG, licence: "x" });
+    return mia;
+  };
+  await withArea({ seed, pictureFromFile: fakePicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, status, backend, seeded } = area;
+    await holdOpen();
+    assert.equal(concept("Pause").buttons.includes("Bild wählen"), false);
+    assert.equal(concept("Pause").row.children.filter((child) => child.tagName === "p").map((child) => child.textContent).includes("Das Bild dieser Taste wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren."), true);
+    assert.equal(concept("Pause").picture, "./icons/pause.svg");
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    await chooseFile(area, "hilfe.png");
+    // The next write fails as a full profile would.
+    const store = await area.store();
+    const realData = store.data.bind(store);
+    store.data = (id) => {
+      const data = realData(id);
+      return { ...data, set: async () => { throw new (await import("../dist/profiles/store.js")).ProfileSizeError("full"); } };
+    };
+    try {
+      await act(() => pictureViewOf(caregiverRegion).save.click());
+    } finally {
+      store.data = realData;
+    }
+    assert.equal(status(), "Der Platz für dieses Profil ist voll. Das Bild wurde nicht gespeichert. Entferne Begriffe, Bilder oder Gebärden, dann ist wieder Platz.");
+    assert.notEqual(pictureViewOf(caregiverRegion), null);
+    assert.notEqual(pictureViewOf(caregiverRegion).save, null);
+    assert.equal(backend.snapshot()[`profile/${seeded.id}/data/symbol.hilfe`], undefined);
+  });
+});
+
+test("pictures: when a second file is chosen while the first is still being read, the later choice wins; leaving or closing meanwhile stores and shows nothing", async () => {
+  const pending = new Map();
+  const slowPicture = (file) => new Promise((resolve) => pending.set(file.name, () => resolve(file.name === "second.png" ? PICTURE_PNG : PICTURE_PNG.replace("iVBOR", "iVBOx"))));
+  const settle = async (area) => {
+    await area.handle.settled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await area.handle.settled();
+  };
+  await withArea({ seed: seedThree, pictureFromFile: slowPicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, backend } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    const pick = (name) => {
+      const view = pictureViewOf(caregiverRegion);
+      view.file.files = [{ name, type: "image/png", size: 10 }];
+      view.file.dispatch("change");
+    };
+    pick("first.png");
+    await area.handle.settled();
+    assert.ok(pictureViewOf(caregiverRegion).texts.includes("Das Bild wird gelesen …"));
+    pick("second.png");
+    await area.handle.settled();
+    pending.get("second.png")();
+    await settle(area);
+    pending.get("first.png")();
+    await settle(area);
+    assert.deepEqual(pictureViewOf(caregiverRegion).images.slice(-1), [PICTURE_PNG]);
+    // Leaving while a file is read: its picture is dropped, nothing is stored.
+    const before = JSON.stringify(backend.snapshot());
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    await act(() => buttonNamed(concept("Trinken").row, "Bild wählen").click());
+    pick("third.png");
+    await area.handle.settled();
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    pending.get("third.png")();
+    await settle(area);
+    assert.equal(pictureViewOf(caregiverRegion), null);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    // And closing the area while one is read.
+    await act(() => buttonNamed(concept("Pause").row, "Bild wählen").click());
+    pick("fourth.png");
+    await area.handle.settled();
+    await area.handle.close();
+    pending.get("fourth.png")();
+    await settle(area);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+  });
+});
+
+test("pictures: an own concept under a catalogue id has no picture of the app to go back to", async () => {
+  const seed = async (store) => {
+    const mia = await store.create("Mia", ["hilfe"]);
+    await store.setActive(mia.id);
+    await store.data(mia.id).set("concept.hilfe", { version: 1, labelDe: "Hilf mir", speechDe: "Hilf mir bitte.", custom: true });
+    await store.data(mia.id).set("symbol.hilfe", { version: 1, dataUrl: PICTURE_PNG });
+    return mia;
+  };
+  await withArea({ seed, pictureFromFile: fakePicture }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilf mir").row, "Bild wählen").click());
+    const view = pictureViewOf(area.caregiverRegion);
+    assert.equal(view.reset.textContent, "Bild entfernen");
+    await area.act(() => view.reset.click());
+    assert.equal(area.status(), "„Hilf mir“ hat jetzt kein Bild.");
+    assert.equal(area.concept("Hilf mir").picture, null);
+  });
+});
+
+test("pictures: the previews are image elements, and a value that is no stored picture or bundled icon never becomes a preview's source", async () => {
+  const catalogue = CONCEPTS.map((concept) => (concept.id === "pause" ? { ...concept, symbolPath: "javascript:alert(1)" } : concept));
+  await withArea({ seed: seedThree, catalogue, pictureFromFile: fakePicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Bild wählen").click());
+    let images = tree(pictureViewOf(caregiverRegion).view).filter((element) => element.tagName === "img");
+    assert.deepEqual(images.map((image) => [image.src, image.width, image.height, image.alt, image.className]), [["./icons/trinken.svg", 96, 96, "", "caregiver-picture-preview"]]);
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    await act(() => buttonNamed(concept("Pause").row, "Bild wählen").click());
+    const view = pictureViewOf(caregiverRegion);
+    assert.deepEqual(view.images, []);
+    assert.ok(view.texts.includes("Jetzt auf der Taste: kein Bild, nur das Wort."));
+    await chooseFile(area, "pause.png");
+    images = tree(pictureViewOf(caregiverRegion).view).filter((element) => element.tagName === "img");
+    assert.deepEqual(images.map((image) => image.src), [PICTURE_PNG]);
   });
 });

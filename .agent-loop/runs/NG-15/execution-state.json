@@ -1,0 +1,322 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+    "history": [
+        {
+            "accepted_at": "2026-11-23T20:05:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:05:10+00:00",
+                "artifact_references": [],
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "outcome": "completed",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:809dfb36",
+                "summary": "public/icons holds 7 hand-drawn SVGs (commit 5fd5bfd); bootstrap test requires every dist/icons file in the SW precache, so a licence JSON there must be excluded from that check; METACOM terms (Nutzungsbedingungen PDF) forbid passing on beyond what they allow.",
+                "task_id": "NG-15",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:05:14+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:05:14+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:13f8a7a01a30006987b70b66d69d63e0eda9613c0ce3ca7342752f142976ea93",
+                    "execution-evidence:sha256:5c126220d8fa0fadb8e5c1618f47f411d0c33831b6b477bdb08da394cbf32758",
+                    "execution-evidence:sha256:b19c4b4f15cc138069aa72cff2466ac5c3c1ed8ccb50a6f76b73c155d75608cf",
+                    "execution-evidence:sha256:8fc5214c4b305a67d25bcf2afdc253cb592f8d855461b7a326c361a19b8c0d34",
+                    "execution-evidence:sha256:b8663f1ee8960ccf0048d982e32923d0ed0d9d0885a8fe553f10d517b4fe7e95",
+                    "execution-evidence:sha256:b38fbe0b526da0e513fa245ac85fc5b063b0dc07d32e99bb298e7b5cd88a37fb"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:2373b0fd443e1bfd63e1ce509f8b51ab9107862e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:13f8a7a01a30006987b70b66d69d63e0eda9613c0ce3ca7342752f142976ea93",
+                    "execution-evidence:sha256:5c126220d8fa0fadb8e5c1618f47f411d0c33831b6b477bdb08da394cbf32758",
+                    "execution-evidence:sha256:b19c4b4f15cc138069aa72cff2466ac5c3c1ed8ccb50a6f76b73c155d75608cf",
+                    "execution-evidence:sha256:8fc5214c4b305a67d25bcf2afdc253cb592f8d855461b7a326c361a19b8c0d34",
+                    "execution-evidence:sha256:b8663f1ee8960ccf0048d982e32923d0ed0d9d0885a8fe553f10d517b4fe7e95",
+                    "execution-evidence:sha256:b38fbe0b526da0e513fa245ac85fc5b063b0dc07d32e99bb298e7b5cd88a37fb"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:2373b0fd443e1bfd63e1ce509f8b51ab9107862e",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "outcome": "completed",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:6e43446d",
+                "summary": "Added docs/assets.md (decision), public/icons/licences.json and test/assets.test.mjs; README, product contract and bootstrap precache check updated. npm run verify passed: 620 node tests, browser tests 4 pass 2 skipped.",
+                "task_id": "NG-15",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:06:11+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:06:11+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c5dcaf1484c50416be423929c27eacef658e87ac8c3064a00eeb0a64d815e5c4",
+                    "execution-evidence:sha256:f824bf1341a76c97e9622cddbb5465555b9e86203b78194ff43fa4eb715c2d19",
+                    "execution-evidence:sha256:6ca2ab6e0d589c241056122e890df66bc4045e064da7c36e3094c0a1d9d53c09",
+                    "execution-evidence:sha256:db171ede266d0bcd2cb0461dbc6f3bc1fd547109a9dca7dc27e35eb04260afb6",
+                    "execution-evidence:sha256:af294ee76ec7054924de4bbc34c2dbaa2505bac91e086cd03dbd18c6eec5b47f",
+                    "execution-evidence:sha256:fafb237d83f694b92a060f876c5536f4ac3d90df93fc912ac8857152685002d3"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:2373b0fd443e1bfd63e1ce509f8b51ab9107862e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c5dcaf1484c50416be423929c27eacef658e87ac8c3064a00eeb0a64d815e5c4",
+                    "execution-evidence:sha256:f824bf1341a76c97e9622cddbb5465555b9e86203b78194ff43fa4eb715c2d19",
+                    "execution-evidence:sha256:6ca2ab6e0d589c241056122e890df66bc4045e064da7c36e3094c0a1d9d53c09",
+                    "execution-evidence:sha256:db171ede266d0bcd2cb0461dbc6f3bc1fd547109a9dca7dc27e35eb04260afb6",
+                    "execution-evidence:sha256:af294ee76ec7054924de4bbc34c2dbaa2505bac91e086cd03dbd18c6eec5b47f",
+                    "execution-evidence:sha256:fafb237d83f694b92a060f876c5536f4ac3d90df93fc912ac8857152685002d3"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:2373b0fd443e1bfd63e1ce509f8b51ab9107862e",
+                "context_id": "reviewer-correctness-ng15",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "outcome": "changes_required",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:2e52b155",
+                "summary": "VERIFIED defect: public/icons/licences.json:43 records sprechen.svg as 'Drawn ... (commit 5fd5bfd, 2026-11-22)', but git ls-tree 5fd5bfd public/icons has no sprechen.svg; it was added in 85dcded (NG-30). The machine-checked provenance record the task exists to create is wrong for one file; fix: cite commit 85dcded for sprechen.svg. Second: docs/assets.md:33-34 says any licence that allows redistribution in a public MIT repository may be added without an owner decision, while test/assets.test.mjs:24-25 rejects every non-MIT licence; align the doc sentence with the test (only MIT without an owner decision) or relax the test. Non-blocking: docs/assets.md:50-52 states in present tense that the caregiver area warns and the board falls back, though the import (NG-8673323346005092805) is unbuilt; the test does not check licenceFile. Otherwise acceptance criteria met: assets.md states the 2026-11-23 owner decision, METACOM/ARASAAC reasons and on-device import rules; test/assets.test.mjs:12-15 deepEquals sorted readdir (minus licences.json) to the listed files, so it fails for missing, extra and duplicate entries; README links docs/assets.md and names MIT. Shipping dist/icons/licences.json is harmless: public/sw.js precache list is hand-written and excludes it, scripts/offline-smoke.mjs fetches only sw.js plus that list, and test/bootstrap.test.mjs:217 excludes it from the icons-must-be-precached check.",
+                "task_id": "NG-15",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:07:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:07:39+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0d525061d2c1ddf813fd02ebb5f57f9bad0204dc07d8babcb3c26891ced0caef",
+                    "execution-evidence:sha256:8f3bf8e5700a2b0b9511de88165801fd51484429e5cb3f88372de10ec8384584",
+                    "execution-evidence:sha256:137f60676c45782d3d14a74e5ee4d4b791321bce716b4cdc4d47e02ae41cd050"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0d525061d2c1ddf813fd02ebb5f57f9bad0204dc07d8babcb3c26891ced0caef",
+                    "execution-evidence:sha256:8f3bf8e5700a2b0b9511de88165801fd51484429e5cb3f88372de10ec8384584",
+                    "execution-evidence:sha256:137f60676c45782d3d14a74e5ee4d4b791321bce716b4cdc4d47e02ae41cd050"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "outcome": "completed",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:f6f86019",
+                "summary": "Fixed review findings: sprechen.svg provenance now 85dcded (NG-30); source wording 'Written as SVG markup'; docs/assets.md now says only MIT without an owner decision, matching the test; caregiver-import rules stated as requirements of the unbuilt card; METACOM terms version stated; test checks licenceFile exists. npm run verify passed (620 node tests; browser 4 pass, 2 skipped).",
+                "task_id": "NG-15",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:07:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:07:59+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8dad6de770109bd1fd0ba2f68585a5699b1ddca6d12342c8f8b52b8733b9f354",
+                    "execution-evidence:sha256:2662b645571e35e88c0dbb33dab364937171417e7108dd4d2d0629548697124f",
+                    "execution-evidence:sha256:0b83f5ecb6751a48a48645e011c9c4744ea7c15d8c4a7cb03f6613de4182055e",
+                    "execution-evidence:sha256:574fe569af916a2ec7104bfd23e11910b5d4f0489664c27e2dba76b2b9c183cf",
+                    "execution-evidence:sha256:a3cf91f15774acf10ff0e64173bb5109b138e2bdfe22fc0fd2162c33be45bac9",
+                    "execution-evidence:sha256:89147b537922572334c7def28def8cadddd177ab0164b12a049cf224ef15db62"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8dad6de770109bd1fd0ba2f68585a5699b1ddca6d12342c8f8b52b8733b9f354",
+                    "execution-evidence:sha256:2662b645571e35e88c0dbb33dab364937171417e7108dd4d2d0629548697124f",
+                    "execution-evidence:sha256:0b83f5ecb6751a48a48645e011c9c4744ea7c15d8c4a7cb03f6613de4182055e",
+                    "execution-evidence:sha256:574fe569af916a2ec7104bfd23e11910b5d4f0489664c27e2dba76b2b9c183cf",
+                    "execution-evidence:sha256:a3cf91f15774acf10ff0e64173bb5109b138e2bdfe22fc0fd2162c33be45bac9",
+                    "execution-evidence:sha256:89147b537922572334c7def28def8cadddd177ab0164b12a049cf224ef15db62"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "context_id": "reviewer-correctness-ng15",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "observations": [
+                    "docs/assets.md:16-18: the METACOM terms date ('version of November 2022') and the Pro licence statement come from an external PDF I did not fetch, so they are unverified by this review.",
+                    "docs/assets.md:17 is longer than the surrounding wrapped lines (style nit).",
+                    "test/assets.test.mjs does not check that a licenceFile actually contains the licence that is named (MIT)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:5740fd45",
+                "summary": "Attempt 2 fixes both blocking findings. public/icons/licences.json:43 now cites 85dcded (NG-30) for sprechen.svg, matching git history; the other six files are in 5fd5bfd (git ls-tree verified). docs/assets.md:33-35 now says only MIT pictures may be added without an owner decision, matching test/assets.test.mjs:28-29. The test now also requires licenceFile to be a string naming an existing file (access ../LICENSE resolves to the repo-root LICENSE). node --test test/assets.test.mjs: 2 pass. Acceptance criteria met: assets.md has the owner decision of 2026-11-23, reasons for not bundling METACOM and ARASAAC, and import rules (on device, family backup only, family's licence) now phrased as requirements of the unbuilt card NG-8673323346005092805. The test fails on missing, extra or duplicate entries (deepEqual of sorted readdir). README names MIT and links docs/assets.md. dist/icons/licences.json is not precached (hand-written public/sw.js list), offline-smoke fetches only that list, and test/bootstrap.test.mjs:217 excludes it.",
+                "task_id": "NG-15",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:08:19+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:08:19+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6d5e55e19314fee0e3bdc0317042abb6e201a596e2018dee4eadac64ef4d9154",
+                    "execution-evidence:sha256:908347014c75db37bb81446eaa3fb03a9766fd65f1ada0c56e3657b832c53ddb",
+                    "execution-evidence:sha256:f70b3ee0cd65cf9f5a6fb186770d07c5753424f61a0b3fc556d797221866f3fd",
+                    "execution-evidence:sha256:d862cb7393351b468d8c2001d634e77f0838df2ef0653f8f7abcc9bda6ae5231",
+                    "execution-evidence:sha256:d0feed01da86e43db05fb6fcc0382636a838db0c4669e1de4e46e489745d977e",
+                    "execution-evidence:sha256:364c6afd58a808607a743f63cd2c41ec0a21dfeee10bc7beee8cc2c6f295191e"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6d5e55e19314fee0e3bdc0317042abb6e201a596e2018dee4eadac64ef4d9154",
+                    "execution-evidence:sha256:908347014c75db37bb81446eaa3fb03a9766fd65f1ada0c56e3657b832c53ddb",
+                    "execution-evidence:sha256:f70b3ee0cd65cf9f5a6fb186770d07c5753424f61a0b3fc556d797221866f3fd",
+                    "execution-evidence:sha256:d862cb7393351b468d8c2001d634e77f0838df2ef0653f8f7abcc9bda6ae5231",
+                    "execution-evidence:sha256:d0feed01da86e43db05fb6fcc0382636a838db0c4669e1de4e46e489745d977e",
+                    "execution-evidence:sha256:364c6afd58a808607a743f63cd2c41ec0a21dfeee10bc7beee8cc2c6f295191e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "context_id": "reviewer-blindspot-ng15",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "observations": [
+                    "test/assets.test.mjs:12 only checks public/icons; a picture added elsewhere in public/ (e.g. a new public/img/) would get no licence check. Follow-up: check every image type under public/ or state in docs/assets.md that bundled pictures must live in public/icons.",
+                    "docs/assets.md:16-23: the METACOM terms (version of November 2022, Pro licence, written permission needed) were not verified against the external PDF in this review.",
+                    "docs/assets.md:24-25: 'its pictures are not the ones German kindergartens mostly use' (ARASAAC) is an unsourced claim; the licence argument alone is enough.",
+                    "docs/assets.md pictures-import rules are requirements for card NG-8673323346005092805; that card has to carry them into its own acceptance criteria (on-device only, licence notice in caregiver area, fallback, inclusion in the family's export), otherwise they stay doc-only."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:693e75a6",
+                "summary": "Blind-spot review of candidate bce2b82f found no blocking gap. Licensing: only self-written SVGs in public/icons are bundled. public/ has no other pictures or fonts (styles.css, sw.js, index.html, manifest.webmanifest, which uses icons/app.svg). The vendored MediaPipe files carry their own licence and notice checked in test/capture.test.mjs. Every icon is MIT and recorded, with provenance commits checked against git. Privacy: docs/assets.md keeps imported pictures on the device and out of the repo, fixtures, CI and logs, and treats child photos as profile data (NG-7). This matches AGENTS.md and card NG-15 line 16 ('stay on the device and are part of profile export'). Ownership: the owner decision of 2026-11-23 is recorded in the approved Contract (approved_at 2026-11-23T20:02:18) and stated in docs/assets.md and the s0a contract. No non-MIT set was chosen, so the card's 'record a non-MIT decision on the card' rule does not trigger. The doc no longer claims that unbuilt import behaviour exists.",
+                "task_id": "NG-15",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-23T20:09:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-23T20:09:26+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "schema_version": "1.0",
+                "task_id": "NG-15",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:33aa01fa82a65e18ef473d212e64abd322ad603fc28df296199c74130106589a",
+                    "execution-evidence:sha256:4ad5af4120012ad951e6f4009f0e56b2ce5f4df6a3b6104332e86dbad591f794"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:bce2b82f7a54d2d69ff4de74b01a927a569363e5",
+                "consistency_references": [
+                    "execution-evidence:sha256:97c16922a8bd8f58b2b049940efa488556399312ba5b65b8881596da416b7507"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:7591f605ce5dd3d0abd22a93e541882581a85474afe2fa2bf92db4729e783b11",
+                "outcome": "pass",
+                "run_id": "run:NG-15:db7f1c3295ce9cde",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:40f5ff72dbdf5831b897ffcea0c6b477a741777a1167cb9ca6b7997934ff67de",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-15: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-15 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-15:db7f1c3295ce9cde binds active Session 2026-11-23-ng-15-r1-73387d31 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-15 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-15",
+                "validation_references": [
+                    "execution-evidence:sha256:33aa01fa82a65e18ef473d212e64abd322ad603fc28df296199c74130106589a",
+                    "execution-evidence:sha256:4ad5af4120012ad951e6f4009f0e56b2ce5f4df6a3b6104332e86dbad591f794"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-15:db7f1c3295ce9cde",
+    "schema_version": "1.0",
+    "task_id": "NG-15"
+}
