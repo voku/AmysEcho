@@ -158,6 +158,13 @@ const statusElement = (region) => byClass(region, "caregiver-status");
 const statusOf = (region) => statusElement(region)?.textContent ?? null;
 const afterCloseOf = (region) => byClass(region, "caregiver-after-close")?.textContent ?? null;
 /** Every button and field of the region, in document order: "nothing that writes" is said against this. */
+/** Types the profile's name into an open delete confirmation (owner decision on card NG-13), as a caregiver would. */
+function typeDeleteName(region) {
+  const field = tree(region).find((element) => element.id === "caregiver-delete-name");
+  field.value = field.dataset.expected;
+  field.dispatch("input");
+}
+const DELETE_NAME = (name) => `Zum Bestätigen den Namen „${name}“ eingeben`;
 const controlsIn = (node) => tree(node).filter((element) => ["button", "input", "form", "select", "textarea"].includes(element.tagName));
 
 /** Every string found in the element tree: text, class names, attributes, data attributes. */
@@ -229,10 +236,21 @@ async function withArea(options, callback) {
         opener.dispatch("pointerup");
         await handle.settled();
       },
-      /** Does something to a control and waits until the area has carried it out. */
+      /**
+       * Does something to a control and waits until the area has carried it out. A profile's delete
+       * confirmation that has just opened gets the profile's name typed (owner decision on card NG-13),
+       * so that the tests of the hold test the hold; `typeDeleteName: false` leaves the field alone.
+       */
       async act(action) {
         action();
         await handle.settled();
+        if (options.typeDeleteName === false) return;
+        const name = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+        if (name !== undefined && name.value === "" && !name.autoTyped) {
+          name.autoTyped = true;
+          name.value = name.dataset.expected;
+          name.dispatch("input");
+        }
       },
       status: () => statusOf(caregiverRegion),
       afterClose: () => afterCloseOf(caregiverRegion),
@@ -295,6 +313,12 @@ async function withArea(options, callback) {
       },
       /** Holds "Endgültig löschen" for the full duration and lets go. */
       async confirmDelete() {
+        // A profile's delete needs its name typed (owner decision on card NG-13); the confirmation names it.
+        const name = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+        if (name !== undefined && name.value === "") {
+          name.value = name.dataset.expected;
+          name.dispatch("input");
+        }
         const confirm = area.button("Endgültig löschen");
         confirm.dispatch("pointerdown", { button: 0 });
         clock.advance(DELETE_HOLD_MS);
@@ -2163,6 +2187,7 @@ for (const [what, change] of [
   ["a profile that is not the active one was deleted", async (region, handle, clock) => {
     buttonNamed(region, "Löschen").click();
     await handle.settled();
+    typeDeleteName(region);
     buttonNamed(region, "Endgültig löschen").dispatch("pointerdown", { button: 0 });
     clock.advance(DELETE_HOLD_MS);
     buttonNamed(region, "Endgültig löschen").dispatch("pointerup");
@@ -2660,8 +2685,9 @@ test("delete: 'Löschen' deletes nothing; the confirmation takes over the body: 
     const shown = confirmation();
     // Not the active profile: no sentence about what the child sees.
     // "Abbrechen" comes first; below "Endgültig löschen" is only its own line.
-    assert.deepEqual(shown.texts, ["Profil „Ben“ löschen?", DELETE_LOSS, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
-    assert.equal(focused.current, button("Abbrechen"));
+    assert.deepEqual(shown.texts, ["Profil „Ben“ löschen?", DELETE_LOSS, DELETE_NAME("Ben"), "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
+    // The name field has the focus (owner decision on card NG-13).
+    assert.equal(focused.current.id, "caregiver-delete-name");
     assert.ok(hasClass(button("Endgültig löschen"), "caregiver-danger"));
     assert.ok(!hasClass(button("Endgültig löschen"), "caregiver-primary"));
     // It is the whole body: no card, no editor, no form, no help to hit by mistake, and nothing that a redraw could put under a finger.
@@ -2671,7 +2697,7 @@ test("delete: 'Löschen' deletes nothing; the confirmation takes over the body: 
     assert.deepEqual(concepts(), []);
     assert.equal(nameInput(), undefined);
     assert.equal(byClass(caregiverRegion, "caregiver-help").hidden, true);
-    assert.deepEqual(controlsIn(body).map((element) => element.textContent), ["Abbrechen", "Endgültig löschen"]);
+    assert.deepEqual(controlsIn(body).map((element) => element.textContent || element.id), ["caregiver-delete-name", "Abbrechen", "Endgültig löschen"]);
     // Part of the page, not a dialog element.
     assert.deepEqual(tree(caregiverRegion).filter((element) => element.tagName === "dialog"), []);
   });
@@ -2681,7 +2707,7 @@ test("delete: the confirmation for the active profile also says what the child s
   await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation }) => {
     await holdOpen();
     await act(() => profile("Mia").remove.click());
-    assert.deepEqual(confirmation().texts, ["Profil „Mia“ löschen?", DELETE_LOSS, DELETE_ACTIVE, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
+    assert.deepEqual(confirmation().texts, ["Profil „Mia“ löschen?", DELETE_LOSS, DELETE_ACTIVE, DELETE_NAME("Mia"), "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
   });
 });
 
@@ -3388,8 +3414,9 @@ test("view: a control that gets the focus under the block at the top is brought 
 test("view: a rename field and a confirmation are brought out by their card, and the focused button is not left below the region", async () => {
   const layout = fakeLayout();
   // The card starts at 400, its field or "Abbrechen" 60 px further down.
-  layout.at = (element) => (hasClass(element, "caregiver-profile") || hasClass(element, "caregiver-confirm") ? 400 : element.id === "caregiver-rename-name" || element.textContent === "Abbrechen" ? 460 : 1000);
+  layout.at = (element) => (hasClass(element, "caregiver-profile") || hasClass(element, "caregiver-confirm") ? 400 : element.id === "caregiver-rename-name" || element.id === "caregiver-delete-name" || element.textContent === "Abbrechen" ? 460 : 1000);
   await withArea({ seed: seedMiaAndBen, rect: layout.rect }, async ({ holdOpen, act, profile, caregiverRegion, button, focused }) => {
+    const nameField = () => tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
     layout.region = caregiverRegion;
     await holdOpen();
     caregiverRegion.scrollTop = 300;
@@ -3400,15 +3427,16 @@ test("view: a rename field and a confirmation are brought out by their card, and
     // The confirmation is the whole body: it is brought to just under the block, also when it starts further down.
     caregiverRegion.scrollTop = 0;
     await act(() => profile("Ben").remove.click());
-    assert.equal(focused.current, button("Abbrechen"));
+    // The focus is on the name field of the confirmation (owner decision on card NG-13).
+    assert.equal(focused.current, nameField());
     assert.equal(caregiverRegion.scrollTop, 400 - UNDER_BLOCK);
-    // A low window: "Abbrechen" (44 px high, at 268 px after that) would end below a region of 290 px. It is scrolled into it.
+    // A low window: the field (44 px high, at 268 px after that) would end below a region of 290 px. It is scrolled into it.
     await act(() => button("Abbrechen").click());
     layout.height = 290;
     caregiverRegion.scrollTop = 300;
     await act(() => profile("Ben").remove.click());
-    assert.equal(layout.rect(button("Abbrechen")).bottom, 290);
-    assert.ok(layout.rect(button("Abbrechen")).top >= UNDER_BLOCK);
+    assert.equal(layout.rect(nameField()).bottom, 290);
+    assert.ok(layout.rect(nameField()).top >= UNDER_BLOCK);
   });
 });
 
@@ -4392,11 +4420,12 @@ test("shield: a new undo button and a changed status line count as content that 
 
 test("shield: a hold on 'Endgültig löschen' does not start while the confirmation has only just appeared", async () => {
   const wall = wallClock();
-  await withArea({ seed: seedMiaAndBen, now: wall.now }, async ({ holdOpen, profile, confirmation, clock, handle, store }) => {
+  await withArea({ seed: seedMiaAndBen, now: wall.now }, async ({ holdOpen, profile, confirmation, clock, handle, store, caregiverRegion }) => {
     await holdOpen();
     wall.t += 1000;
     profile("Ben").remove.click();
     await handle.settled();
+    typeDeleteName(caregiverRegion);
     const { confirm, hint, progress } = confirmation();
     const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
     for (const start of [(control) => control.dispatch("pointerdown", { button: 0 }), (control) => control.dispatch("keydown", { key: "Enter", repeat: false })]) {
@@ -4445,6 +4474,7 @@ test("hold: a redraw that replaces 'Endgültig löschen' ends the hold on it; th
     profile("Ben").remove.click();
     for (let round = 0; round < 40; round += 1) await turn();
     assert.equal(gate.held, true);
+    typeDeleteName(caregiverRegion);
     const first = confirmation();
     first.confirm.dispatch("pointerdown", { button: 0 });
     clock.advance(500);
@@ -7193,5 +7223,157 @@ test("pictures: the previews are image elements, and a value that is no stored p
     await chooseFile(area, "pause.png");
     images = tree(pictureViewOf(caregiverRegion).view).filter((element) => element.tagName === "img");
     assert.deepEqual(images.map((image) => image.src), [PICTURE_PNG]);
+  });
+});
+
+// --- How a recording fits, and replaying an example (card NG-4); the tracker data is synthetic ---
+
+const fitOf = (region) => byClass(teachViewOf(region).view, "caregiver-teach-fit") ?? null;
+
+test("teach: after a usable recording one line says how it fits the earlier examples; keeping stays possible", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const { caregiverRegion, act } = area;
+    await teachWithCamera(area, camera, "Trinken");
+    // The first example of a tile: nothing to compare with, no line.
+    await record(area, camera, 20, rightHand);
+    assert.equal(fitOf(caregiverRegion), null);
+    await act(() => area.button("Behalten").click());
+    // The same movement again fits.
+    await record(area, camera, 20, rightHand);
+    assert.equal(fitOf(caregiverRegion).textContent, "Die Aufnahme passt zu den bisherigen Beispielen für „Trinken“.");
+    assert.ok(!hasClass(fitOf(caregiverRegion), "caregiver-warning"));
+    await act(() => area.button("Behalten").click());
+    // Both hands, where the earlier examples used one: said, as a warning, and "Behalten" is still there.
+    await record(area, camera, 20, bothHands);
+    const line = fitOf(caregiverRegion);
+    assert.equal(line.textContent, "Die bisherigen Beispiele für „Trinken“ wurden mit einer Hand (rechts) gemacht, diese Aufnahme mit beiden Händen. Sie werden getrennt erkannt; am besten die Gebärde immer gleich machen.");
+    assert.ok(hasClass(line, "caregiver-warning"));
+    assert.deepEqual(teachViewOf(caregiverRegion).buttons.slice(0, 3), ["Behalten", "Verwerfen", "Zurück"]);
+    await act(() => area.button("Verwerfen").click());
+    assert.equal(fitOf(caregiverRegion), null);
+  });
+});
+
+test("teach: a recording of another tile's gesture is said to resemble it, by that tile's label", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const { caregiverRegion, act } = area;
+    await teachWithCamera(area, camera, "Hilfe");
+    await record(area, camera, 20, rightHand);
+    await act(() => area.button("Behalten").click());
+    await act(() => area.button("Zurück").click());
+    await act(() => area.concept("Trinken").teach.click());
+    await act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    await record(area, camera, 20, rightHand);
+    assert.equal(fitOf(caregiverRegion).textContent, "Achtung: Die Aufnahme ähnelt der Gebärde für „Hilfe“. Wird sie behalten, können die beiden verwechselt werden.");
+  });
+});
+
+test("teach: 'Abspielen' draws a stored example as a moving hand on a canvas, once, and 'Anhalten' or leaving stops it", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const { caregiverRegion, act, clock } = area;
+    await teachWithCamera(area, camera, "Trinken");
+    await record(area, camera, 20, rightHand);
+    // Not while a recording waits for "Behalten".
+    assert.equal(area.button("Abspielen"), undefined);
+    await act(() => area.button("Behalten").click());
+    const play = area.button("Abspielen");
+    assert.equal(play["aria-label"], "Beispiel 1 abspielen");
+    await act(() => play.click());
+    const canvas = byClass(caregiverRegion, "caregiver-replay");
+    assert.equal(canvas.tagName, "canvas");
+    assert.equal(canvas.role, "img");
+    assert.ok(textsIn(caregiverRegion).includes("So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht."));
+    // The fake canvas has no 2D context at first: nothing breaks. With one, the next steps are drawn.
+    const calls = [];
+    canvas.width = 240;
+    canvas.height = 180;
+    canvas.getContext = () => new Proxy({}, { get: (target, name) => (name in target ? target[name] : (...args) => calls.push(name)), set: (target, name, value) => { target[name] = value; return true; } });
+    clock.advance(250);
+    assert.ok(calls.includes("stroke") && calls.includes("arc") && calls.includes("clearRect"), calls.join(","));
+    assert.equal(area.button("Anhalten")["aria-label"], "Beispiel 1 anhalten");
+    await act(() => area.button("Anhalten").click());
+    assert.equal(byClass(caregiverRegion, "caregiver-replay"), undefined);
+    const drawn = calls.length;
+    clock.advance(10_000);
+    assert.equal(calls.length, drawn);
+    // Played through: the last step stays on the canvas and the button offers to play again.
+    await act(() => area.button("Abspielen").click());
+    clock.advance(10_000);
+    assert.notEqual(byClass(caregiverRegion, "caregiver-replay"), undefined);
+    assert.equal(area.button("Anhalten"), undefined);
+    assert.equal(area.button("Abspielen")["aria-label"], "Beispiel 1 abspielen");
+    // One tap plays it again (Codex review of PR 1245: the tap used to stop it).
+    await act(() => area.button("Abspielen").click());
+    assert.notEqual(byClass(caregiverRegion, "caregiver-replay"), undefined);
+    assert.equal(area.button("Anhalten")["aria-label"], "Beispiel 1 anhalten");
+    await act(() => area.button("Anhalten").click());
+    // Leaving the view stops a running replay too.
+    await act(() => area.button("Abspielen").click());
+    await act(() => area.button("Zurück").click());
+    clock.advance(10_000);
+    assert.equal(byClass(caregiverRegion, "caregiver-replay"), undefined);
+  });
+});
+
+// --- Deleting a profile needs its name typed (owner decision on card NG-13, card NG-8673320459971200034) ---
+
+test("delete: 'Endgültig löschen' does nothing until the profile's name is typed; a wrong name is said in German; the right one (spaces aside) lets the hold delete", async () => {
+  await withArea({ seed: seedMiaAndBen, typeDeleteName: false }, async ({ holdOpen, act, profile, confirmation, caregiverRegion, focused, store, status, clock, handle }) => {
+    await holdOpen();
+    await act(() => profile("Ben").remove.click());
+    const field = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+    assert.equal(focused.current, field);
+    assert.deepEqual([field.autocomplete, field.spellcheck, field.autocapitalize, field.autocorrect], ["off", false, "off", "off"]);
+    assert.equal(tree(caregiverRegion).find((element) => element.tagName === "label" && element.htmlFor === field.id).textContent, "Zum Bestätigen den Namen „Ben“ eingeben");
+    const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+    const hold = async () => {
+      const { confirm } = confirmation();
+      confirm.dispatch("pointerdown", { button: 0 });
+      clock.advance(DELETE_HOLD_MS);
+      confirm.dispatch("pointerup");
+      await handle.settled();
+    };
+    const type = (text) => {
+      field.value = text;
+      field.dispatch("input");
+    };
+    const refusal = "Der Name stimmt noch nicht. Bitte genau „Ben“ eingeben. Es wurde nichts gelöscht.";
+    // Nothing typed: the button says it cannot act, and a full hold deletes nothing.
+    assert.equal(confirmation().confirm["aria-disabled"], "true");
+    await hold();
+    assert.deepEqual(await names(), ["Ben", "Mia"]);
+    assert.equal(confirmation().hint.textContent, refusal);
+    // Another case or another name is not the name.
+    for (const wrong of ["ben", "Be", "Mia", "Ben!"]) {
+      type(wrong);
+      assert.equal(confirmation().confirm["aria-disabled"], "true");
+      await hold();
+      assert.deepEqual(await names(), ["Ben", "Mia"]);
+    }
+    // The name, with spaces around it: the hold deletes.
+    type("  Ben ");
+    assert.equal(confirmation().confirm["aria-disabled"], "false");
+    await hold();
+    assert.deepEqual(await names(), ["Mia"]);
+    assert.equal(status(), "Das Profil „Ben“ wurde gelöscht.");
+  });
+});
+
+test("delete: Escape in the name field leaves the confirmation without deleting, back on 'Löschen'", async () => {
+  await withArea({ seed: seedMiaAndBen, typeDeleteName: false }, async ({ holdOpen, act, profile, confirmation, caregiverRegion, store, handle, focused }) => {
+    await holdOpen();
+    await act(() => profile("Ben").remove.click());
+    const field = () => tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+    field().value = "Be";
+    field().dispatch("input");
+    caregiverRegion.dispatch("keydown", { key: "Escape", target: field() });
+    await handle.settled();
+    assert.equal(confirmation(), null);
+    assert.deepEqual((await (await store()).list()).profiles.map((stored) => stored.displayName).sort(), ["Ben", "Mia"]);
+    assert.equal(focused.current, buttonNamed(caregiverRegion, "Löschen"));
   });
 });

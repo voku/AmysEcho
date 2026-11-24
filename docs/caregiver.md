@@ -280,9 +280,20 @@ and write nothing. The field has the same attributes as the create field.
 **Deleting.** Two steps, without a dialog element. "Löschen" replaces the whole body by the
 confirmation: "Profil „<name>“ löschen?", "Alle ausgewählten Begriffe und beigebrachten Gebärden
 dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.", for the active profile also "Das Kind sieht danach
-Beispiele, bis eine andere Tafel aktiv ist.", the buttons "Abbrechen" and "Endgültig löschen", in
-that order, and under them the line "Zum Löschen 2 Sekunden gedrückt halten." Focus goes to
-"Abbrechen", and the confirmation starts right under the block. While it is open there is no
+Beispiele, bis eine andere Tafel aktiv ist.", a field "Zum Bestätigen den Namen „<name>“
+eingeben" (the stored name, not the "(2)" label), the buttons "Abbrechen" and "Endgültig löschen",
+in that order, and under them the line "Zum Löschen 2 Sekunden gedrückt halten." Focus goes to the
+name field, and the confirmation starts right under the block.
+
+**The name has to be typed** (owner decision of 2026-11-24 on card NG-13, card
+NG-8673320459971200034). Until the field holds the stored name (NFC, spaces at the ends ignored,
+capitals as stored), "Endgültig löschen" has `aria-disabled="true"` and a hold on it does
+nothing; pressing it replaces the line under it with "Der Name stimmt noch nicht. Bitte genau
+„<name>“ eingeben. Es wurde nichts gelöscht." Once the name matches, the hold and release below
+apply unchanged. The field has the attributes of the create field (no spell checking or
+correction). What was typed is kept while the confirmation stays open. A small child who got into
+the area cannot type the name; a caregiver who reads it can. It is not security. Deleting an own
+concept or gesture examples keeps the hold only. While it is open there is no
 card, no editor, no create form and no help section: nothing else can be hit, and no redraw can
 put another control under a finger. "Abbrechen" (or Escape) brings the normal body back, with
 focus on that profile's "Löschen" and with what was typed into the create field.
@@ -560,8 +571,46 @@ body, like the rewording:
   kein Bild und kein Video." (The stored features hold the shape of the hand's joints as well as
   where the hands are; the first build said "Bewegung der Hände" only.);
 - "Gespeicherte Beispiele": one row per example, oldest first, "Beispiel 2: mit beiden Händen,
-  23.11.2026, 10:30 Uhr", each with "Löschen", and "Alle Beispiele löschen" from two examples on
-  (or when unusable ones are stored).
+  23.11.2026, 10:30 Uhr", each with "Abspielen" and "Löschen", and "Alle Beispiele löschen" from
+  two examples on (or when unusable ones are stored).
+
+**How a recording fits** (card NG-4). Under the result line of a usable recording, one line says
+how it relates to the examples the profile already has. `exampleFit` (`src/teach/fit.ts`) asks
+the matcher what the child's board would take the recording for, with the profile's own examples
+and the limits calibrated from them; no limit, weight or margin is changed, and nothing is
+stored. "Behalten" and "Verwerfen" stay as they are: the line is advice.
+
+- fits: "Die Aufnahme passt zu den bisherigen Beispielen für „<label>“."
+- beyond the tile's limit: "Die Aufnahme ist deutlich anders als die bisherigen Beispiele für
+  „<label>“. War es dieselbe Gebärde? Behalten geht trotzdem." (a warning)
+- the tile's examples were made with other hands: "Die bisherigen Beispiele für „<label>“ wurden
+  mit einer Hand (rechts) gemacht, diese Aufnahme mit beiden Händen. Sie werden getrennt erkannt;
+  am besten die Gebärde immer gleich machen." (a warning)
+- the shoulders were seen in the earlier examples and not now, or the other way round: a warning
+  that such recordings are not compared with each other;
+- another tile would take it, is about as close, or is closer than the tile's own examples while
+  these accept it: "Achtung: Die Aufnahme ähnelt der Gebärde für
+  „<other label>“. Wird sie behalten, können die beiden verwechselt werden." (a warning)
+- the tile's first example, and nothing else takes it: no line.
+
+The line is worked out once per recording from all of the profile's examples. When they cannot be
+read, there is no line. One- and two-hand gestures are treated alike.
+
+**Replaying an example** (card NG-4). "Abspielen" on a stored example shows it once as a moving
+stick-figure hand on a canvas (240 × 180) under its row, in the colours and with the bones of the
+camera preview, mirrored as the front camera shows it, with the shoulder line when the shoulders
+were seen. Under it: "So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den
+gespeicherten Werten gezeichnet. Ein Video gibt es nicht." (Movement and hand shape, as in the
+teaching intro.) It is drawn from the stored features
+(`src/teach/replay.ts`): per step, the joints relative to the wrist and the wrist relative to the
+shoulders. The size of the hand is not stored, so every hand is drawn at a third of a shoulder
+width. One step is shown for the recorded length divided by its 32 steps (between 40 and 250 ms);
+the last step stays and the button says "Abspielen" again. While it plays the button says
+"Anhalten". It stops on "Anhalten", on
+another "Abspielen", when the view closes, and when a recording starts; it is not offered while a
+recording counts down, runs or waits for "Behalten". Where the canvas has no 2D context nothing is
+drawn and nothing fails. Tested in Node with a recording fake canvas; not looked at in a browser,
+on a device or with a screen reader (the canvas has `role="img"` and a German label).
 
 **The camera only after the tap.** "Kamera starten" calls the capture module's `startCapture` (the
 real tracker and camera, card NG-3) through its bridge (below); before that tap nothing is
@@ -860,7 +909,7 @@ countdown. None of this was checked with assistive technology.
 - Moving a concept by more than one place at a time, or by dragging.
 - Moving or taking off retired concepts, and own concepts under a catalogue id.
 - A warning before the profile's storage is full (`store.usage`), except when a teaching view opens.
-- Any protection beyond the hold gesture.
+- Any protection beyond the hold gesture and, for deleting a profile, typing its name.
 
 ## Known gaps
 

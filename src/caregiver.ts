@@ -34,6 +34,10 @@ import {
 } from "./recognition/examples.js";
 import type { ExampleListing, UsageLevel } from "./recognition/examples.js";
 import type { FeatureFailure, FeatureSequence, HandKind } from "./recognition/features.js";
+import { exampleFit } from "./teach/fit.js";
+import type { ExampleFit } from "./teach/fit.js";
+import { REPLAY_COLOURS, REPLAY_CONNECTIONS, replayBox, replayStepMs, replaySteps } from "./teach/replay.js";
+import type { ReplayStep } from "./teach/replay.js";
 
 /** A recording of a gesture example stops by itself after this long (card NG-19). */
 export const TEACH_MAX_RECORDING_MS = 8000;
@@ -457,6 +461,7 @@ const DISCARD = "Verwerfen";
 const BACK = "Zurück";
 const DELETE_ALL_EXAMPLES = "Alle Beispiele löschen";
 const STORED_EXAMPLES = "Gespeicherte Beispiele";
+const REPLAY_NOTE = "So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht.";
 const NO_CAMERA_BRIDGE = "Die Kamera kann hier gerade nicht gestartet werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera.";
 const USAGE_LINES: Readonly<Record<Exclude<UsageLevel, "ok">, string>> = {
   near: "Der Platz für dieses Profil ist fast voll. Es passen nur noch wenige Beispiele hinein. Lösche Beispiele, die nicht mehr gebraucht werden.",
@@ -543,7 +548,7 @@ type Focusable = HTMLElement & { disabled?: boolean };
 /** The one thing that can be open in the profile list: a rename field (with what was typed) or a delete confirmation. */
 type Mode =
   | { readonly kind: "rename"; readonly id: string; readonly draft: string }
-  | { readonly kind: "delete"; readonly id: string }
+  | { readonly kind: "delete"; readonly id: string; readonly draft: { typed: string } }
   | RewordMode
   | TeachMode
   | CreateConceptMode
@@ -617,6 +622,10 @@ interface TeachState {
   confirm: TeachConfirm | null;
   /** A keep or delete is asked for and has not ended. */
   busy: boolean;
+  /** How the result fits the profile's examples (card NG-4), worked out once per result; null until then or when it cannot be read. */
+  fit: { readonly result: TeachResult; readonly fit: ExampleFit | null } | null;
+  /** The example that is being replayed and the step shown; a new object for every start, so a timer of an earlier one stops. */
+  replay: { readonly name: string; step: number; done: boolean } | null;
 }
 /**
  * Rewording one concept of the profile `id`. It takes over the body like the
@@ -890,6 +899,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let teachCameraLine: HTMLElement | null = null;
   /** The fixed-size box of the teaching view on screen that holds the camera's preview while the camera runs (card NG-42). */
   let teachPreviewSlot: HTMLElement | null = null;
+  /** Names a concept of the profile in a teaching view's fit line: its label on the board, or the catalogue's. */
+  let teachLabels: (conceptId: string) => string = () => "einen anderen Begriff dieses Profils";
+  /** The canvas of the example being replayed, while it is on screen (card NG-4). */
+  let replayCanvas: HTMLCanvasElement | null = null;
+  /** Its "Anhalten" button, which says "Abspielen" again once the replay has played through. */
+  let replayButton: { readonly control: HTMLButtonElement; readonly label: string } | null = null;
   const date = options.date ?? (() => new Date());
   const makePicture = options.pictureFromFile ?? pictureFromFile;
   const cameraStorage = options.cameraStorage ?? browserFacingStorage;
@@ -1751,7 +1766,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const open: TeachMode = {
       kind: "teach", id: profileId, conceptId,
       state: {
-        usage: null, camera: "off", cameraLine: "", cameraProblem: false, live: "", recording: false, countdown: null, result: null, note: null, confirm: null, busy: false,
+        usage: null, camera: "off", cameraLine: "", cameraProblem: false, live: "", recording: false, countdown: null, result: null, note: null, confirm: null, busy: false, fit: null, replay: null,
       },
     };
     mode = open;
@@ -2524,6 +2539,123 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * length (the result, messages, the count, the instruction, the list) is
    * below it, so nothing above the button moves between examples.
    */
+  /** The German line for how a usable recording fits the profile's examples (card NG-4); null when there is nothing to say. */
+  const fitLine = (fit: ExampleFit, sequence: FeatureSequence, label: string, labelOf: (conceptId: string) => string): { text: string; warning: boolean } | null => {
+    switch (fit.kind) {
+      case "first": return null;
+      case "fits": return { text: `Die Aufnahme passt zu den bisherigen Beispielen für ${quoted(label)}.`, warning: false };
+      case "differs": return { text: `Die Aufnahme ist deutlich anders als die bisherigen Beispiele für ${quoted(label)}. War es dieselbe Gebärde? Behalten geht trotzdem.`, warning: true };
+      case "other-hands": return {
+        text: `Die bisherigen Beispiele für ${quoted(label)} wurden ${handsText(fit.hands)} gemacht, diese Aufnahme ${handsText(sequence.hands)}. Sie werden getrennt erkannt; am besten die Gebärde immer gleich machen.`,
+        warning: true,
+      };
+      case "other-anchor": return {
+        text: sequence.anchor === "hands"
+          ? `Bei den bisherigen Beispielen für ${quoted(label)} waren die Schultern zu sehen, hier nicht. Solche Aufnahmen werden nicht miteinander verglichen.`
+          : `Bei den bisherigen Beispielen für ${quoted(label)} waren die Schultern nicht zu sehen, hier schon. Solche Aufnahmen werden nicht miteinander verglichen.`,
+        warning: true,
+      };
+      case "resembles": return {
+        text: `Achtung: Die Aufnahme ähnelt der Gebärde für ${labelOf(fit.otherId)}. Wird sie behalten, können die beiden verwechselt werden.`,
+        warning: true,
+      };
+    }
+  };
+
+  /** Draws one step of a replay on the canvas; does nothing where the canvas has no 2D context (an old browser, the tests). */
+  const drawReplayStep = (canvas: HTMLCanvasElement, steps: readonly ReplayStep[], at: number, shoulders: boolean): void => {
+    let context: CanvasRenderingContext2D | null = null;
+    try {
+      context = typeof canvas.getContext === "function" ? canvas.getContext("2d") : null;
+    } catch {
+      context = null;
+    }
+    if (context === null || context === undefined) return;
+    const shoulderPoints: [number, number][] = shoulders ? [[-0.5, 0], [0.5, 0]] : [];
+    const box = replayBox([...steps, { hands: shoulderPoints.length === 0 ? [] : [{ side: "left", points: shoulderPoints }] }], canvas.width, canvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.lineCap = "round";
+    if (shoulders) {
+      const [a, b] = shoulderPoints.map((point) => box.place(point)) as [[number, number], [number, number]];
+      context.strokeStyle = REPLAY_COLOURS.shoulders;
+      context.lineWidth = 4;
+      context.beginPath();
+      context.moveTo(a[0], a[1]);
+      context.lineTo(b[0], b[1]);
+      context.stroke();
+    }
+    for (const hand of steps[at]?.hands ?? []) {
+      const points = hand.points.map((point) => box.place(point));
+      context.strokeStyle = REPLAY_COLOURS[hand.side];
+      context.fillStyle = REPLAY_COLOURS[hand.side];
+      context.lineWidth = 3;
+      context.beginPath();
+      for (const [from, to] of REPLAY_CONNECTIONS) {
+        const a = points[from];
+        const b = points[to];
+        if (a === undefined || b === undefined) continue;
+        context.moveTo(a[0], a[1]);
+        context.lineTo(b[0], b[1]);
+      }
+      context.stroke();
+      for (const [x, y] of points) {
+        context.beginPath();
+        context.arc(x, y, 3, 0, 2 * Math.PI);
+        context.fill();
+      }
+    }
+  };
+
+  /**
+   * "Abspielen": shows a stored example once as a moving stick-figure hand,
+   * one step per `replayStepMs` of its recorded length, then keeps its last
+   * step. It stops when the view closes, another example is played, or
+   * "Anhalten" is pressed.
+   */
+  const playExample = (open: TeachMode, name: string): void => {
+    const { state } = open;
+    if (!teaching(open)) return;
+    clearStatus();
+    const replay = { name, step: 0, done: false };
+    state.replay = replay;
+    run(async () => {
+      if (mode !== open || store === null) return;
+      const example = (await listExamples(store, open.id, open.conceptId).catch(() => null))?.examples.find((item) => item.name === name);
+      if (example === undefined || state.replay !== replay) {
+        if (state.replay === replay) state.replay = null;
+        await draw([`teach-play:${name}`, "teach-heading"]);
+        return;
+      }
+      await draw([`teach-play:${name}`, "teach-heading"]);
+      const steps = replaySteps(example.sequence);
+      const stepMs = replayStepMs(example.record.durationMs, steps.length);
+      const shoulders = example.sequence.anchor === "shoulders";
+      const tick = (): void => {
+        if (!teaching(open) || state.replay !== replay) return;
+        if (replayCanvas !== null) drawReplayStep(replayCanvas, steps, replay.step, shoulders);
+        if (replay.step >= steps.length - 1) {
+          // Played through: the last step stays, and the button offers to play it again.
+          replay.done = true;
+          if (replayButton !== null) {
+            replayButton.control.textContent = "Abspielen";
+            replayButton.control.setAttribute("aria-label", replayButton.label);
+          }
+          return;
+        }
+        replay.step += 1;
+        setTimer(tick, stepMs);
+      };
+      tick();
+    });
+  };
+
+  const stopExample = (open: TeachMode): void => {
+    if (!teaching(open) || open.state.replay === null) return;
+    const name = open.state.replay.name;
+    open.state.replay = null;
+    drawTeach(open, [`teach-play:${name}`]);
+  };
+
   const teachView = (open: TeachMode, entry: BoardEntry, profileLabel: string, listing: ExampleListing | null, register: Map<string, Focusable>): HTMLElement => {
     const { state } = open;
     const view = element("section", "caregiver-section caregiver-takeover caregiver-teach");
@@ -2599,6 +2731,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         const shoulders = result.sequence.anchor === "hands" ? " Die Schultern waren nicht zu sehen. Am besten so aufnehmen, dass die Schultern im Bild sind." : "";
         view.append(element("p", "caregiver-teach-result", `${auto}Die Aufnahme kann verwendet werden: Gebärde ${handsText(result.sequence.hands)}.${shoulders} Behalten oder verwerfen?`));
         if (result.stillHand) view.append(element("p", "caregiver-notice caregiver-teach-hint", STILL_HAND));
+        const fit = state.fit !== null && state.fit.result === result ? state.fit.fit : null;
+        const line = fit === null ? null : fitLine(fit, result.sequence, entry.labelDe, teachLabels);
+        if (line !== null) view.append(element("p", line.warning ? "caregiver-notice caregiver-teach-fit caregiver-warning" : "caregiver-notice caregiver-teach-fit", line.text));
       } else {
         view.append(element("p", "caregiver-teach-result caregiver-teach-refused", `${auto}Diese Aufnahme kann nicht verwendet werden. ${UNUSABLE[result.reason]} Es wurde nichts gespeichert.`));
       }
@@ -2627,6 +2762,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     view.append(element("p", "caregiver-notice", TEACH_INTRO));
 
     const busy = state.recording || state.countdown !== null || result !== null;
+    // Nothing is replayed while a recording counts down, runs or waits for "Behalten".
+    if (busy) state.replay = null;
+    replayCanvas = null;
+    replayButton = null;
     const count = examples.length;
     if (count > 0) {
       view.append(element("h3", "", STORED_EXAMPLES));
@@ -2635,6 +2774,20 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         const row = element("li", "caregiver-example");
         const number = at + 1;
         row.append(element("span", "caregiver-example-text", `Beispiel ${number}: ${handsText(example.record.hands)}, ${shownTime(example.record.capturedAt)}`));
+        if (!busy) {
+          const playing = state.replay !== null && state.replay.name === example.name && !state.replay.done;
+          const play = button(playing ? "Anhalten" : "Abspielen");
+          play.setAttribute("aria-label", `Beispiel ${number} ${playing ? "anhalten" : "abspielen"}`);
+          if (state.replay !== null && state.replay.name === example.name) replayButton = { control: play, label: `Beispiel ${number} abspielen` };
+          // Decided at the tap: a replay that has played through since the row was drawn says "Abspielen" again.
+          play.addEventListener("click", () => {
+            const now = state.replay;
+            if (now !== null && now.name === example.name && !now.done) stopExample(open);
+            else playExample(open, example.name);
+          });
+          register.set(`teach-play:${example.name}`, play);
+          row.append(play);
+        }
         // Not while a recording counts down, runs or waits for "Behalten": nothing is deleted under it.
         if (!busy) {
           const remove = button(DELETE, "caregiver-button caregiver-danger-quiet");
@@ -2642,6 +2795,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           remove.addEventListener("click", () => confirmTeachDelete(open, { kind: "one", name: example.name, number }));
           register.set(`teach-delete:${example.name}`, remove);
           row.append(remove);
+        }
+        if (state.replay !== null && state.replay.name === example.name) {
+          const canvas = element("canvas", "caregiver-replay");
+          canvas.width = 240;
+          canvas.height = 180;
+          canvas.setAttribute("role", "img");
+          canvas.setAttribute("aria-label", `Beispiel ${number} als bewegte Hand, aus den gespeicherten Werten gezeichnet`);
+          replayCanvas = canvas;
+          row.append(canvas, element("p", "caregiver-notice caregiver-replay-note", REPLAY_NOTE));
         }
         list.append(row);
       });
@@ -2882,7 +3044,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * (rules 12 and 20). `act` asks for the delete and says whether it did.
    * Returns the button and what goes below it (its bar and its line).
    */
-  const deleteHold = (holds: HeldButton[], act: () => boolean): { control: HTMLButtonElement; parts: HTMLElement[] } => {
+  const deleteHold = (
+    holds: HeldButton[], act: () => boolean, armed: { readonly ok: () => boolean; readonly refusal: string } | null = null,
+  ): { control: HTMLButtonElement; parts: HTMLElement[]; rearm: () => void } => {
     // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
     const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
     const holdProgress = element("progress", "caregiver-delete-progress");
@@ -2896,17 +3060,30 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     holdHint.setAttribute("role", "status");
     holdHint.setAttribute("aria-live", "polite");
     confirm.setAttribute("aria-describedby", holdHint.id);
+    /** Until `armed` holds (the profile's name is typed), the button says so and a hold does nothing (owner decision on card NG-13). */
+    const rearm = (): void => {
+      if (armed === null) return;
+      confirm.setAttribute("aria-disabled", armed.ok() ? "false" : "true");
+    };
     const idle = (): void => {
       holdProgress.hidden = true;
       holdProgress.value = 0;
       holdHint.textContent = DELETE_HOLD_HINT;
     };
+    rearm();
     /** Only the button that is on screen acts: not one that was swapped out while a finger rested on it. */
     const current = (): boolean => bodyHolds.includes(held) && (confirm as { isConnected?: boolean }).isConnected !== false;
     const held: HeldButton = heldButton(confirm, {
       durationMs: DELETE_HOLD_MS,
       // A press on a button that has only just appeared is not a decision to delete.
-      allowed: () => current() && aimed(now()),
+      allowed: () => {
+        if (!current() || !aimed(now())) return false;
+        if (armed !== null && !armed.ok()) {
+          holdHint.textContent = armed.refusal;
+          return false;
+        }
+        return true;
+      },
       onProgress: (elapsedMs, remainingSeconds) => {
         holdProgress.hidden = false;
         holdProgress.value = elapsedMs;
@@ -2925,7 +3102,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       },
     });
     holds.push(held);
-    return { control: confirm, parts: [holdProgress, holdHint] };
+    return { control: confirm, parts: [holdProgress, holdHint], rearm };
   };
 
   /**
@@ -2937,11 +3114,28 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const view = element("section", "caregiver-section caregiver-confirm");
     view.append(element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
     if (isActive) view.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
+    // Typing the name (owner decision on card NG-13): a child who got in cannot delete with a tap and a hold.
+    const open = mode !== null && mode.kind === "delete" && mode.id === profile.id ? mode : null;
+    const fieldLabel = element("label", "caregiver-delete-name-label", `Zum Bestätigen den Namen ${quoted(profile.displayName)} eingeben`);
+    fieldLabel.htmlFor = "caregiver-delete-name";
+    const field = nameField("caregiver-delete-name", open?.draft.typed ?? "");
+    field.dataset["expected"] = profile.displayName;
+    const named = (): boolean => field.value.normalize("NFC").trim() === profile.displayName;
+    view.append(fieldLabel, field);
+    register.set("delete-name", field);
+    register.set("anchor:delete-name", view);
     const cancel = button(CANCEL);
     cancel.addEventListener("click", leaveMode);
     register.set("confirm-cancel", cancel);
     register.set("anchor:confirm-cancel", view);
-    const { control: confirm, parts } = deleteHold(holds, () => deleteProfile(profile, label));
+    const { control: confirm, parts, rearm } = deleteHold(holds, () => named() && deleteProfile(profile, label), {
+      ok: named,
+      refusal: `Der Name stimmt noch nicht. Bitte genau ${quoted(profile.displayName)} eingeben. Es wurde nichts gelöscht.`,
+    });
+    field.addEventListener("input", () => {
+      if (open !== null) open.draft.typed = field.value;
+      rearm();
+    });
     // "Abbrechen" first, and nothing below "Endgültig löschen" but its own bar and line.
     const actions = element("div", "caregiver-profile-actions");
     actions.append(cancel, confirm);
@@ -2994,7 +3188,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (!isActive) action(ACTIVATE, "activate", () => activate(profile, label));
     action(EDIT_BOARD, "edit", () => select(profile, label)).setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
     action(RENAME, "rename", () => openMode({ kind: "rename", id: profile.id, draft: profile.displayName }, "rename-name"));
-    action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id }, "confirm-cancel"), "caregiver-button caregiver-danger-quiet");
+    action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id, draft: { typed: "" } }, "delete-name"), "caregiver-button caregiver-danger-quiet");
     item.append(head, actions);
     return item;
   };
@@ -3093,6 +3287,17 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           return { content: [teachConfirmView(open, open.state.confirm, entry, labelOf(owner), register, holds)], afterClose: header, confirming: true };
         }
         const listing = await listExamples(current, owner.id, open.conceptId).catch(() => null);
+        // How a usable recording fits the profile's examples: worked out once per recording, from all of the profile's examples (card NG-4).
+        const result = open.state.result;
+        if (result !== null && result.usable && (open.state.fit === null || open.state.fit.result !== result)) {
+          const all = await listExamples(current, owner.id).catch(() => null);
+          const examples = all?.examples.map((example) => ({ conceptId: example.record.conceptId, sequence: example.sequence })) ?? null;
+          open.state.fit = { result, fit: examples === null ? null : exampleFit(result.sequence, open.conceptId, examples) };
+        }
+        teachLabels = (conceptId) => {
+          const known = board?.entries.find((candidate) => candidate.id === conceptId) ?? catalogue.find((concept) => concept.id === conceptId);
+          return known === undefined ? "einen anderen Begriff dieses Profils" : quoted(known.labelDe);
+        };
         return { content: [teachView(open, entry, labelOf(owner), listing, register)], afterClose: header, confirming: true, teaching: open };
       }
       mode = null;

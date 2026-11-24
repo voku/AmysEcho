@@ -1,0 +1,174 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T06:42:09+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673320275707367168/contract.json",
+                "sha256": "sha256:5d1c8a9a22bf236c77db23b8a15fc0d2788b4d1027b76998aa498eea6d8d1af4"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673320275707367168",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "993dc70b2c00c51d81ef9583a53c9e6d6539baabde0d369768c901adc971bef8",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673320275707367168.md",
+                "sha256": "sha256:993dc70b2c00c51d81ef9583a53c9e6d6539baabde0d369768c901adc971bef8"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The click handler decides from the current replay state (playing and not done), not from the state when the row was drawn",
+                "A test taps 'Abspielen' once after a finished replay and sees the replay start again (canvas present, button 'Anhalten')"
+            ],
+            "goal": "After a replay of a gesture example has played through, one tap on 'Abspielen' plays it again; while it plays, one tap on 'Anhalten' stops it.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673320275707367168/contract.json",
+                "sha256": "sha256:5d1c8a9a22bf236c77db23b8a15fc0d2788b4d1027b76998aa498eea6d8d1af4"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673320275707367168/contract.json",
+                "sha256": "sha256:5d1c8a9a22bf236c77db23b8a15fc0d2788b4d1027b76998aa498eea6d8d1af4"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T06:45:46+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "no_durable_learning",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/8a6508c665b8b226a157dcb65e8f0e248e954a2dd5a32dd4abbfada5bde33ed0.json",
+                "sha256": "sha256:8e7984ba220aaa82147ccfbc270e5fe49792cdb91b989e5bd77ed2e80ddb0522"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:78ac0fdb6050fe0010c7d85b20f63e1c0b0a0768ea38657fd61abc81eb618cfe",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:799260b36daabd38686c50196c75d39154862fa8c62e2ed3e486ac2f12161b72"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 2,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "ad8fce8b185c05959058e7621345607fa3095a68ae9c6adb48960bb91effc72e",
+            "compilation_id": "compilation.NG-8673320275707367168.2026-11-24-064210.fa06dcd7",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "045dfc7be4df5a03e128296648db9f037247003600f84a14e951cb0757908ed2",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673320275707367168/meta.json",
+                "sha256": "sha256:8e9230081f6286e3f8e0ace3224e07eb4603385c0f80492154870ff66d80617d"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673320275707367168/reviews/NG-8673320275707367168.blindspots.json",
+                "sha256": "sha256:56c38198327ef5638b731a2f9073d23ad2de3982a3dd2435fcdc7675d424b107"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "f2099f207368c12ffe2010586de70d82811fc09c",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-8673320275707367168-r1-191d424b",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673320275707367168-r1-191d424b/session.json",
+                "sha256": "sha256:b09d2ac3423afc534566f2dd4821aced1635d57e7cddfaa476b8389b91e78ffa"
+            },
+            "state": "done",
+            "task_id": "NG-8673320275707367168"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:2a71126588f448d4ccd50ace39bada9c61cb1f851a86db062a021a729e75565f",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+            "source": {
+                "path": ".agent-loop/runs/NG-8673320275707367168/verification.json",
+                "sha256": "sha256:f86f08af0f6a06e669a52ea420fedf20409f35bd1d090e39f842261644038e5a"
+            },
+            "source_session_id": "2026-11-24-ng-8673320275707367168-r1-191d424b",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-8673320275707367168"
+}

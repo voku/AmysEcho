@@ -1,0 +1,50 @@
+{
+    "acceptance_criteria": [
+        "A pure function in src/teach/fit.ts classifies a new sequence against the profile's examples with the existing matcher and calibration (no threshold changed): first example, fits, differs (beyond the concept's limit), other hands, other anchor, or resembles another concept (match or ambiguous); tested on synthetic sequences",
+        "The teaching view shows one German line for that result under the existing result line; 'Behalten' and 'Verwerfen' stay as they are",
+        "A pure function in src/teach/replay.ts turns a stored example's 32 steps back into 2D hand points per step (wrist position plus joints, fixed hand size, missing hands left out, mirrored like the front-camera preview); tested",
+        "Each stored example row has 'Abspielen'; it draws the animation on a canvas in the view once (about the recorded duration), can be stopped, and stops when the view closes or another action starts; without a canvas context nothing breaks",
+        "One-hand and two-hand examples both replay and both get the fit line; docs say what the replay is and is not (features, not a recording)"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-24T02:26:50+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+    "behavior_anchors": [],
+    "created_at": "2026-11-24T02:26:40+00:00",
+    "goal": "Teaching a gesture gets the two missing parts of NG-4: after a usable recording the caregiver is told, in German, whether it fits the concept's earlier examples, differs from them, was made with other hands, or resembles another concept's gesture (keeping stays possible); and each stored example can be replayed as a moving stick-figure hand drawn from its stored features, with no video or landmarks stored.",
+    "kind": "task_contract",
+    "non_goals": [
+        "Changing features, matcher, thresholds or the stored record format",
+        "Storing landmarks or video"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Claude",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/teach/fit.ts",
+        "src/teach/replay.ts",
+        "src/caregiver.ts",
+        "public/styles.css",
+        "public/sw.js",
+        "test/teach.test.mjs",
+        "test/caregiver.test.mjs",
+        "test/bootstrap.test.mjs",
+        "docs/caregiver.md",
+        "docs/recognition.md",
+        "README.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-4",
+    "updated_at": "2026-11-24T02:26:50+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

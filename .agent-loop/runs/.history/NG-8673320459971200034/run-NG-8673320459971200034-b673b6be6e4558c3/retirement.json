@@ -1,0 +1,11 @@
+{
+    "contract_revision": 1,
+    "kind": "governed_run_retirement",
+    "reason": "Verify failed in the exported candidate: the contract's base commit cf22568 predates NG-4, so src/teach/*.ts (NG-4, outside this scope) was missing and typecheck failed. Re-planned on the NG-4 close commit.",
+    "retired_at": "2026-11-24T06:34:33+00:00",
+    "retired_by": "Lars Moelleken (delegated to Claude for this session)",
+    "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+    "schema_version": "1.0",
+    "status": "superseded",
+    "task_id": "NG-8673320459971200034"
+}

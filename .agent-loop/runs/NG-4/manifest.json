@@ -1,0 +1,181 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T02:26:50+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-4/contract.json",
+                "sha256": "sha256:c1e5ca98c038be8456a9d49387c01ce6ba9b1d7745c0a7074573726a31fd6da3"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-4",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "1eed24587bfa700396960f5fc86433406effef41609687efe568d1a7d61bb50f",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-4.md",
+                "sha256": "sha256:1eed24587bfa700396960f5fc86433406effef41609687efe568d1a7d61bb50f"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A pure function in src/teach/fit.ts classifies a new sequence against the profile's examples with the existing matcher and calibration (no threshold changed): first example, fits, differs (beyond the concept's limit), other hands, other anchor, or resembles another concept (match or ambiguous); tested on synthetic sequences",
+                "The teaching view shows one German line for that result under the existing result line; 'Behalten' and 'Verwerfen' stay as they are",
+                "A pure function in src/teach/replay.ts turns a stored example's 32 steps back into 2D hand points per step (wrist position plus joints, fixed hand size, missing hands left out, mirrored like the front-camera preview); tested",
+                "Each stored example row has 'Abspielen'; it draws the animation on a canvas in the view once (about the recorded duration), can be stopped, and stops when the view closes or another action starts; without a canvas context nothing breaks",
+                "One-hand and two-hand examples both replay and both get the fit line; docs say what the replay is and is not (features, not a recording)"
+            ],
+            "goal": "Teaching a gesture gets the two missing parts of NG-4: after a usable recording the caregiver is told, in German, whether it fits the concept's earlier examples, differs from them, was made with other hands, or resembles another concept's gesture (keeping stays possible); and each stored example can be replayed as a moving stick-figure hand drawn from its stored features, with no video or landmarks stored.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-4/contract.json",
+                "sha256": "sha256:c1e5ca98c038be8456a9d49387c01ce6ba9b1d7745c0a7074573726a31fd6da3"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-4/contract.json",
+                "sha256": "sha256:c1e5ca98c038be8456a9d49387c01ce6ba9b1d7745c0a7074573726a31fd6da3"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T06:25:36+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-4:95b700dd728e56b7",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/db2a6532f4e644784bbdb72551286399154708713df59e507e79580bba7c66ad.json",
+                "sha256": "sha256:41108dd7b045d6b48fa2630e950f2838659bc7a22f9ec99915dd9484c7c2baf8"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:2b8a5b0c233705b12991db913148672a894ac57ce8277aeafe0157ddaaf7627c",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:957bc0cf305a45c86636408efe25c2b96ddce56d028cff5942f99edc484b6b36"
+            },
+            "stale_entries": [
+                {
+                    "path": "public/sw.js",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 3,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-4:95b700dd728e56b7",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "2931728e9700d4c0e07ac90d198e52df6577b5396c91c293c7c9854145703537",
+            "compilation_id": "compilation.NG-4.2026-11-24-022650.16904bd8",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "0305e385076687f99f37975dcb880a871dbb8f11756def0267292f4c5f86792d",
+            "source": {
+                "path": ".agent-loop/recall/NG-4/meta.json",
+                "sha256": "sha256:b66ea74cdce340b9d362f1b2cd87b555329b53c17909782788aa645d2033bbdf"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-4/reviews/NG-4.blindspots.json",
+                "sha256": "sha256:e855e0d538f1ad52ee2d8726f600bcd6b063a8c1bdd33da22238a2b93bdb8916"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-4-r1-12fc0aa0",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-4-r1-12fc0aa0/session.json",
+                "sha256": "sha256:41fc7bbcb7a5d6a0aeaf9a39d53fad80c3925556c42ca0041d1292e6d858b947"
+            },
+            "state": "done",
+            "task_id": "NG-4"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:35be63009d673e34c58fe3bf87572eb63b04cab10acac458e1965cdf9e10e3b7",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-4:95b700dd728e56b7",
+            "source": {
+                "path": ".agent-loop/runs/NG-4/verification.json",
+                "sha256": "sha256:35a695e7679e0d2acf4fa641c8dd1570133fcce9a121542686ddcf382cc4e10a"
+            },
+            "source_session_id": "2026-11-24-ng-4-r1-12fc0aa0",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-4:95b700dd728e56b7",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-4"
+}

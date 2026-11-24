@@ -477,6 +477,18 @@ shoulders and mislabelled examples are not part of the evaluation. The tables sh
 pipeline is deterministic and tolerant of the distortions modelled in `synthetic.ts`, nothing
 more.
 
+## Advice while teaching (card NG-4)
+
+The teaching view tells the caregiver how a new recording fits the profile's examples
+(`src/teach/fit.ts`, [caregiver.md](caregiver.md)). It calls `matchGesture` with
+`calibrateMaxDistance` of the profile's examples and `DEFAULT_MIN_MARGIN`, exactly as the child's
+board does, so it changes no number in this document and needs no new measurement. On the
+synthetic gestures of `test/teach.test.mjs` it reports a repetition as fitting, another tile's
+gesture as resembling that tile, and an unrelated gesture as different. A look-alike that the
+matcher accepts (one that ends elsewhere) is reported as fitting too: the advice is only as
+good as the matcher's limits. Stored examples can be replayed as a stick-figure hand drawn from
+these features (`src/teach/replay.ts`); that shows what is compared, not a recording.
+
 ## Known limits
 
 - **Look-alikes that end somewhere else are accepted** (last table row). The distance sums over the

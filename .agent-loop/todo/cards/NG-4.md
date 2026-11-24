@@ -1,10 +1,10 @@
 # NG-4: Teach: a carer records gesture examples for a concept
 
 - **Ticket:** NG-4
-- **Lane:** BACKLOG
+- **Lane:** READY
 - **Domain:** product
 - **Created:** 2026-11-22T08:00:52+00:00
-- **Updated:** 2026-11-22T11:35:16+00:00
+- **Updated:** 2026-11-24T02:26:50+00:00
 - **Summary:** A carer records three to five examples of a gesture for one concept of the active profile; the concept is usable at once, offline, without training.
 - **Next:** Split from the recognise flow (NG-20). Build after capture, segmentation and example storage exist.
 - **Validation:** npm ci --ignore-scripts && npm run verify

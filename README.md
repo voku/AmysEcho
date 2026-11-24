@@ -49,7 +49,9 @@ Early rebuild. What exists today:
   control; the camera starts only on its tap, one attempt is recorded after a countdown, and the
   app shows what it understood large with "Ja, sagen" and "Nein". **Nothing is spoken without
   that confirming tap.** An unknown gesture is said to be not understood, with up to three
-  candidates; a candidate is asked about the same way. Tested in Node and in headless Chromium with DGS videos of adult signers;
+  candidates; a candidate is asked about the same way. While teaching, the area says whether a
+  new recording fits the earlier examples or resembles another tile's gesture, and a stored
+  example can be replayed as a moving stick-figure hand (card NG-4). Tested in Node and in headless Chromium with DGS videos of adult signers;
   not tried with a real camera, on a device or with a child.
 
 The caregiver area also rewords a concept (card NG-33) and creates own concepts, a word and a

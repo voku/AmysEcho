@@ -1,0 +1,194 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T02:26:50+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673320459971200034/contract.json",
+                "sha256": "sha256:2b0cceb89d98bcfb0335071487f12c4f530b9ed6b252a8a7dc1c39198af58662"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673320459971200034",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "751ee3aeefea3900c48dfdccae26a68d98e8cc8b132758c33e21c61e597cd116",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673320459971200034.md",
+                "sha256": "sha256:751ee3aeefea3900c48dfdccae26a68d98e8cc8b132758c33e21c61e597cd116"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The profile delete confirmation has a field 'Zum Bestätigen den Namen „<name>“ eingeben'; 'Endgültig löschen' is aria-disabled and does nothing until the typed text equals the stored name (NFC, trimmed, case-sensitive)",
+                "The 2-second hold and release stay as they are once the name matches; Abbrechen and Escape leave as now; a wrong name is said in German without deleting",
+                "Spell checking and correction are off on the field; the field gets the focus when the confirmation opens"
+            ],
+            "goal": "Deleting a child profile needs the profile's name typed before 'Endgültig löschen' can be held, so a child who got into the caregiver area cannot delete a profile by tapping and holding.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673320459971200034/contract.json",
+                "sha256": "sha256:2b0cceb89d98bcfb0335071487f12c4f530b9ed6b252a8a7dc1c39198af58662"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673320459971200034/contract.json",
+                "sha256": "sha256:2b0cceb89d98bcfb0335071487f12c4f530b9ed6b252a8a7dc1c39198af58662"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T06:34:11+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/87137e49304f74bf15ef009b48c99a87ab590ac7e8da4e052c96a9502ca7c12b.json",
+                "sha256": "sha256:b1128fe089c8fc11b3267ba95b2fc64809a3941f71b8cae94647e3a3effcbe76"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:e80a581a99276aab869e330b37465a7df1d89937772ddfaaf1af17e2f12b75ff",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:93ddde9f68b5b87d07f1daecdc1a946de68b43515bf2a2ecf81b5039c6ed479d"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 2,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "f9f6a0129180cc19428c257997d574a9ff7210cd82a7fa5dd5168e7dc1b6729e",
+            "compilation_id": "compilation.NG-8673320459971200034.2026-11-24-062544.c839253b",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "e5f942d9ec1c3595d27733410a897f836c56492e7e23edb94bd4d34c5649a452",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673320459971200034/meta.json",
+                "sha256": "sha256:63483c2a16f735359ea0f85a3fadd479836b7739418d6f2f947377bdf0ab0d2e"
+            },
+            "state": "compiled"
+        },
+        "retirement": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Verify failed in the exported candidate: the contract's base commit cf22568 predates NG-4, so src/teach/*.ts (NG-4, outside this scope) was missing and typecheck failed. Re-planned on the NG-4 close commit.",
+            "retired_at": "2026-11-24T06:34:33+00:00",
+            "retired_by": "Lars Moelleken (delegated to Claude for this session)",
+            "state": "retired",
+            "status": "superseded"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673320459971200034/reviews/NG-8673320459971200034.blindspots.json",
+                "sha256": "sha256:c3db6c32094245e11085b54818c116ad64dfe0801baced628e67f7027174b4ed"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-8673320459971200034-r1-2564b9fd",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673320459971200034-r1-2564b9fd/session.json",
+                "sha256": "sha256:553cb3c508b6cdeeae0a81f9933697d9e915c145160052f0c17c9c9fd983a8aa"
+            },
+            "state": "active",
+            "task_id": "NG-8673320459971200034"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-8673320459971200034 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-8673320459971200034",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:b1d6bccaa2b15f8c95239d9eee37c229fb3b08a914efc078f07cf17e21d0ed45",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is waiting for Attention",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+    "schema_version": "1.0",
+    "state": "retired",
+    "task_id": "NG-8673320459971200034"
+}

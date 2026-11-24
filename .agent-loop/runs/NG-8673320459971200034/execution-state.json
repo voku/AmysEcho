@@ -1,0 +1,223 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+    "contract_revision": 2,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T06:34:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:34:43+00:00",
+                "artifact_references": [],
+                "candidate_revision": "d1cc898e7cd1720732a18de760d7c3572275ecfd",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "d1cc898e7cd1720732a18de760d7c3572275ecfd",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "outcome": "completed",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:b8555694",
+                "summary": "Same investigation as run 1 (profile delete confirmView/deleteHold/heldButton allowed()); run 1 retired because its base predated NG-4.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:34:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:34:43+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:20ca5031d835f9970d24d4eeeaae19d14c7f62b115a8234c4d977f20601e025d",
+                    "execution-evidence:sha256:c310e59fc94d78b2a7ce494a9d6680ab01ff31864a7805084ed1feac3d51846c",
+                    "execution-evidence:sha256:61a86cf307d917c4f974b584f769b999f7a11029702deb070e8d0a2c17c01dbf",
+                    "execution-evidence:sha256:09bca77f54376a9866a5752bb5a438cba154fbd64bbbd12d84fb7f50e16561ee"
+                ],
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:20ca5031d835f9970d24d4eeeaae19d14c7f62b115a8234c4d977f20601e025d",
+                    "execution-evidence:sha256:c310e59fc94d78b2a7ce494a9d6680ab01ff31864a7805084ed1feac3d51846c",
+                    "execution-evidence:sha256:61a86cf307d917c4f974b584f769b999f7a11029702deb070e8d0a2c17c01dbf",
+                    "execution-evidence:sha256:09bca77f54376a9866a5752bb5a438cba154fbd64bbbd12d84fb7f50e16561ee"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "outcome": "completed",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:d63c7a44",
+                "summary": "Unchanged implementation from run 1 (typed name gates the profile delete hold; see contract rev 2), now on base d1cc898 (NG-4 closed) so src/teach exists in the exported candidate. npm run verify passed in the workspace: 659 node tests; browser 4 pass 2 skipped.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:35:12+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:35:12+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c2f6722f4e5ae05318e97312a249c49f46e1a516f18cb7f42bb09093189d9a32",
+                    "execution-evidence:sha256:0575acdf1ddf686a1e9aecefbced98f20745556a513874d994e003fa6bfcce4d",
+                    "execution-evidence:sha256:d581faa31d19142d156351f0605ae3570c1f41c25a69ee9cd03b55519d6d641b",
+                    "execution-evidence:sha256:c91cec059385e6b7375975c5f956472b3cef6dff7158e4c8d71cbcb394bc0cfa"
+                ],
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c2f6722f4e5ae05318e97312a249c49f46e1a516f18cb7f42bb09093189d9a32",
+                    "execution-evidence:sha256:0575acdf1ddf686a1e9aecefbced98f20745556a513874d994e003fa6bfcce4d",
+                    "execution-evidence:sha256:d581faa31d19142d156351f0605ae3570c1f41c25a69ee9cd03b55519d6d641b",
+                    "execution-evidence:sha256:c91cec059385e6b7375975c5f956472b3cef6dff7158e4c8d71cbcb394bc0cfa"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "context_id": "reviewer-correctness-delete-r2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "observations": [
+                    "src/caregiver.ts:3058 rearm() only flips aria-disabled; after a refused press the hint keeps 'Der Name stimmt noch nicht...' even once the correct name is typed, until the next press.",
+                    "src/caregiver.ts:3126 if the name is changed to a wrong one during a running hold, the release deletes nothing but the line shows the plain hold hint instead of the German wrong-name refusal.",
+                    "test/caregiver.test.mjs:7319 the unarmed refusal is tested only with a pointer hold, not Enter/Space (same allowed() path, inferred safe); harness act()/confirmDelete auto-typing would mask a lost-draft regression in act-based tests; only the gated redraw test at :4457 covers draft survival implicitly."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:fc73ceef",
+                "summary": "Run 2 (contract rev 2, base d1cc898): git diff d1cc898 HEAD -- src public test docs is byte-identical to the run-1 change (dcaceca) and touches only the four scoped files. Findings unchanged: pointer and Enter/Space both go through allowed(), which refuses with the German line until named() (src/caregiver.ts:3074-3081); the act re-checks named() at release (3126); stale buttons blocked by current(); draft.typed survives redraws (3113-3116, 3130-3133); focus on delete-name (3186); Escape via leaveMode; label/comparison use stored displayName (NFC/trimmed by makeProfile), title keeps (2) label; own-concept/example deletes keep armed=null; harness auto-typing bounded with typeDeleteName:false opt-out used by the new tests.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:35:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:35:20+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:1319979bbadb11f926d4ad7ba21451ab8d662d352ca2d3882c3862f661a9182b",
+                    "execution-evidence:sha256:d7c111ffcf4703405ba19eb7ff1031174f33af63436160869e202c5bb5207214",
+                    "execution-evidence:sha256:5ca42b8dc50d5c45a8ca1ec6bcb1c5d66ef7a257e4121e2110a117c4dff1fc1e",
+                    "execution-evidence:sha256:ea45533c15b18df37ddf590d6da4afe08b8579bca7b3d4f1078cca97e6d6e9ce"
+                ],
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:1319979bbadb11f926d4ad7ba21451ab8d662d352ca2d3882c3862f661a9182b",
+                    "execution-evidence:sha256:d7c111ffcf4703405ba19eb7ff1031174f33af63436160869e202c5bb5207214",
+                    "execution-evidence:sha256:5ca42b8dc50d5c45a8ca1ec6bcb1c5d66ef7a257e4121e2110a117c4dff1fc1e",
+                    "execution-evidence:sha256:ea45533c15b18df37ddf590d6da4afe08b8579bca7b3d4f1078cca97e6d6e9ce"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "context_id": "reviewer-blindspot-delete-r2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "observations": [
+                    "src/caregiver.ts:3118 look-alike names are refused without a hint why: inner double spaces or a no-break space (kept by normalizeDisplayName, collapsed in the HTML label), or emoji with/without U+FE0F. Workaround is renaming first.",
+                    "public/styles.css:247 .caregiver-delete-name-label has no overflow-wrap:anywhere; a 40-character name without spaces can overflow at phone width.",
+                    "src/caregiver.ts:3186 focus opens on the name field, so a screen reader can skip the title and loss text; consider aria-describedby on the field to the loss text. Not checked with assistive technology."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:509f695c",
+                "summary": "Run 2 blind-spot review on base d1cc898; product diff identical to run 1. No blocking gap: field labelled with the stored name, aria-disabled plus role=status refusal explains the inert hold, Escape/Abbrechen still leave, a hard-to-type name can be renamed then deleted so no profile becomes undeletable; stored names are NFC/trimmed (src/profiles/profile.ts:66-77); docs/caregiver.md bounds the child-safety claim (not security).",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:36:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:36:26+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:e11de5544d1d5147bd1581e51bcd4238e575ea539077bbf8e6de355459437a7f",
+                    "execution-evidence:sha256:43d8ad970bf30d42d45ecdd0bb21847ba9f123b1af05f3aaa998841d880e4f1c"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:d1cc898e7cd1720732a18de760d7c3572275ecfd:6f2b7ce41d46adec150c3467c57ddd4f1073fd4c",
+                "consistency_references": [
+                    "execution-evidence:sha256:1b73b76473b39dc9a635e0ce440536141050a3fe3cb0634de4bf658cdc979d85"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
+                "outcome": "pass",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:4bf2cb758b8a17bad38a27ca56e4e63f0d50ee0b8f797d76bb62f01deab59ab3",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673320459971200034: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673320459971200034 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673320459971200034:841d25160d8af11e binds active Session 2026-11-24-ng-8673320459971200034-r2-cf01c9f8 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673320459971200034 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": [
+                    "execution-evidence:sha256:e11de5544d1d5147bd1581e51bcd4238e575ea539077bbf8e6de355459437a7f",
+                    "execution-evidence:sha256:43d8ad970bf30d42d45ecdd0bb21847ba9f123b1af05f3aaa998841d880e4f1c"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
+    "schema_version": "1.0",
+    "task_id": "NG-8673320459971200034"
+}
