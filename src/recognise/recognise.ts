@@ -583,7 +583,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
    */
   const feedback = element("div", "recognise-feedback");
   const seenBox = element("div", "recognise-seen");
-  const seenHands = [element("span", "recognise-seen-hand", "\\u270B"), element("span", "recognise-seen-hand", "\\u270B")];
+  const seenHands = [element("span", "recognise-seen-hand", "✋"), element("span", "recognise-seen-hand", "✋")];
   for (const hand of seenHands) hand.setAttribute("aria-hidden", "true");
   const seenText = element("span", "recognise-seen-text");
   seenBox.append(...seenHands, seenText);
