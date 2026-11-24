@@ -15,9 +15,10 @@ Code: `src/recognise/recognise.ts` (`createRecogniser`, the controller without D
 ## Status
 
 - Tested in Node against a fake document, the real capture path (`startCapture`) on a fake camera
-  and tracker, made-up tracker hands, and the real feature builder and matcher; that it always asks
-  for the front camera (card NG-43), with the capture module's own bridge on a fake camera and a
-  stand-in storage holding "hinten".
+  and tracker, made-up tracker hands, and the real feature builder and matcher; that it asks for
+  its own camera (card NG-49: front unless switched in the view), never teaching's stored choice,
+  with the capture module's own bridge on a fake camera and one stand-in storage holding "hinten"
+  for teaching.
 - Tested in headless Chromium (Playwright) with DGS sign videos of adult signers fed into the
   app's capture path through the board's own flow (below).
 - **Not tested:** a real camera, a phone or tablet, a child, a screen reader, real speech, an
@@ -101,8 +102,8 @@ attached, the board is drawn without the control and the error is reported.
 **Live picture with the detected hands** (card NG-44; owner request 2026-11-23: whoever makes
 the gesture, the child or a caregiver beside it, should see where the gesture is captured). While
 the camera runs, in the countdown and the recording, the view shows the preview of the camera test
-and teaching (card NG-42, [capture.md](capture.md), "Live preview"): the front camera's picture
-mirrored like a mirror, each tracked hand drawn as its 21 points and bones, the child's own left
+and teaching (card NG-42, [capture.md](capture.md), "Live preview"), since card NG-49 without the
+camera's picture (below): mirrored like a mirror for the front camera, each tracked hand drawn as its 21 points and bones, the child's own left
 hand orange with "L", the right one cyan with "R", and the shoulders as a yellow line. Without a
 hand in the picture nothing is drawn over it, so an empty picture says "no hand seen". The view
 asks the bridge for one preview per camera start (`createPreview`, passed to `start` as
@@ -166,6 +167,11 @@ see without reading:
   timer that fires late shows the count of the time actually left instead of falling one step
   behind per tick. Tested with a hand lost for single frames, a lasting drop, and a timer that
   fires 900 ms late.
+- **The focus stays in the view** (card NG-48): each state draws its buttons anew. When the
+  focused button or candidate goes with a redraw ("Stopp", "Nochmal", "Nein", a candidate pressed
+  by keyboard or switch), the focus moves to the new state's first button, or to the first
+  candidate, or to "Zurück zur Tafel"; it never drops to the page. Focus that was not lost is not
+  moved. The test of late timers now checks 3.9 s, where a count per callback would fall behind.
 - **Heard, not only seen** (card NG-47): the words next to the hand symbols ("Eine Hand im Bild")
   are a polite, atomic status region that stays in the page through countdown and recording (each
   draw leaves the nodes that are already in place where they are, so neither the region, the
@@ -192,7 +198,48 @@ a device, whether the symbols and colours are understood without explanation, an
 children (orange and green also differ in the number of lit hands, which carries the meaning on
 its own).
 
-**Always the front camera** (card NG-43). The view has **no camera control** and does **not** use
+**Front or back camera, and no camera picture** (card NG-49; owner request 2026-11-24: a child
+films itself, or a caregiver films the child). This revises the NG-43 decision below.
+
+- **The switch.** "⇄ Kamera: vorne / hinten" sits next to "Zurück zur Tafel" while the camera
+  starts or runs, and after a camera problem. It is hidden with an answer, when the camera is off.
+  - A tap starts the attempt again with the other camera: a new countdown, and nothing of the old
+    camera is kept or compared.
+  - A press within `RECOGNISE_GUARD_MS` after the camera was asked for does nothing: the second
+    tap of "Gebärde" must not switch.
+  - Its accessible name is "Kamera wechseln, jetzt vorne" (or "hinten").
+- **The choice.** It is remembered on the device in `localStorage` under
+  `amysecho-recognise-facing` (`RECOGNISE_FACING_KEY`), with the front camera as the default.
+  - The key is apart from teaching's `amysecho-camera-facing`, which this view still never reads:
+    a parent who teaches with "hinten" does not leave a child alone with the back camera.
+  - Like teaching's choice it is a convenience, not data: every read and write is guarded, and a
+    storage that refuses it keeps the choice until the page is left.
+- **A camera that does not open** is not replaced by the other one (`fallback: false`).
+  - A back camera that is missing or busy says "Die Kamera hinten geht gerade nicht. Oben auf
+    „Kamera“ tippen für die Kamera vorne." The switch stays, so one tap goes back to the front.
+  - The front camera keeps the capture's own lines.
+- **No camera picture.** The view asks the bridge for a preview without video
+  (`createPreview(document, { video: false })`, [capture.md](capture.md)).
+  - Only the tracked hands (L/R) and the shoulders are drawn, on the box's calm dark background.
+    The stream is never put into a visible `<video>`, so nobody and no room is on screen.
+  - The drawing is mirrored for the front camera only, as in a photo app for the back one.
+  - Teaching and the camera test keep their video.
+- **Measured in headless Chromium**, with the real stylesheet, board and view, synthetic tracker
+  frames and Chromium's fake camera: at 320x480, 360x640, 640x360, 844x390 and 820x1180, in the
+  countdown, the recording and the countdown after switching to "hinten":
+  - no page scroll and nothing outside the window;
+  - no `<video>` in the view;
+  - the switch is as high as "Zurück zur Tafel" (80 px, 112 px from 360x640) and from 126 px wide
+    at 320 px, where its words wrap.
+- **Tested:** the switch in the countdown and in the recording, with the recording dropped; the
+  press guard; no switch with an answer; the choice remembered and apart from teaching's; a
+  missing back camera; the preview asked for without video. Each test fails when its change is
+  undone.
+- **Not checked on a device:** whether the back camera of real phones opens with
+  `facingMode: { exact: "environment" }`; whether a child finds the switch or presses it by
+  mistake; whether children recognise themselves in the points without the picture.
+
+**Always the front camera** (card NG-43, revised by NG-49 above). The view had **no camera control** and did **not** use
 the "Kamera: vorne / hinten" choice of teaching and the camera test: it asks the bridge for the
 front camera itself (`facing: "user"`, `fallback: false`). Reason (second build, coordinator's
 decision delegated by the owner): the child uses the board alone, facing the screen, and only the

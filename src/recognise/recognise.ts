@@ -18,20 +18,22 @@
  * Nothing is stored or sent: the tracked frames of the attempt live in memory
  * until it has been compared, and no picture is ever kept (capture.md).
  *
- * Always the front camera (card NG-43, second build): the child uses the board
- * alone, facing the screen, and only the front camera sees the child there.
- * The "vorne / hinten" choice of teaching and the camera test is never read
+ * Its own camera (card NG-49, revising NG-43): the front camera unless it is
+ * switched in this view ("Kamera: vorne / hinten" at the top), so a child can
+ * film itself and a caregiver can film the child with the back camera. The
+ * choice is remembered on the device under its own key (`RECOGNISE_FACING_KEY`);
+ * the "vorne / hinten" choice of teaching and the camera test is never read
  * here: after a parent taught with "hinten", it would point the camera away
- * from the child, every attempt would end in "no hands", and the child could
- * not tell why. For the same reason a front camera that does not open is not
- * replaced by the back one (`fallback: false`): the capture's own problem line
- * says so instead.
+ * from a child using the board alone. A camera that does not open is not
+ * replaced by the other one (`fallback: false`): the problem line says so, and
+ * the switch stays, so the other camera can be chosen.
  *
  * A live preview (card NG-44): while the camera runs (countdown and
- * recording) the view shows the camera's picture, mirrored, with the tracked
- * hands ("L"/"R") and shoulders drawn over it, the preview of teaching and
- * the camera test (card NG-42), so whoever makes the gesture sees whether the
- * hands are in the picture. It comes from the bridge (`createPreview`); a
+ * recording) the view shows the tracked hands ("L"/"R") and shoulders, so
+ * whoever makes the gesture sees whether the hands are in the picture. Since
+ * card NG-49 without the camera's picture: only the points, on a calm
+ * background, mirrored for the front camera only; nobody and no room is on
+ * screen. It comes from the bridge (`createPreview`); a
  * bridge without one, or a preview that fails, leaves the view as before.
  * Nothing of the picture is kept or sent.
  *
@@ -50,7 +52,7 @@
  */
 import type { BoardEntry } from "../board-data.js";
 import type { MountedBoard } from "../board.js";
-import type { CaptureBridge, CapturePreview, CaptureProblem, CaptureSession, PreviewSink } from "../capture/capture.js";
+import type { CameraFacing, CaptureBridge, CapturePreview, CaptureProblem, CaptureSession, PreviewSink } from "../capture/capture.js";
 import { sequenceFromRecording } from "../recognition/examples.js";
 import type { FeatureFailure, HandKind } from "../recognition/features.js";
 import { DEFAULT_MIN_MARGIN, calibrateMaxDistance, matchGesture } from "../recognition/matcher.js";
@@ -102,6 +104,11 @@ export const RECOGNISE_TEXT = {
   candidates: "Vielleicht eins davon?",
   again: "Nochmal",
   noCamera: "Die Kamera kann gerade nicht starten. Die Tafel geht auch ohne Kamera.",
+  /** Card NG-49: the camera switch at the top, its words, and its accessible name. */
+  camera: { user: "Kamera: vorne", environment: "Kamera: hinten" },
+  cameraSwitch: (facing: CameraFacing): string => `Kamera wechseln, jetzt ${facing === "user" ? "vorne" : "hinten"}`,
+  /** The back camera does not open (missing or busy); the switch is right above. The front camera keeps the capture's lines. */
+  backCamera: "Die Kamera hinten geht gerade nicht. Oben auf „Kamera“ tippen für die Kamera vorne.",
   /**
    * The capture's problems, short and for this view: its retry is "Nochmal", not "Kamera starten"
    * (the capture's own texts name that button of the camera test and teaching).
@@ -224,6 +231,8 @@ export interface RecogniserOptions {
   readonly onTimeLeft?: (seconds: number) => void;
   /** Replaces `analyseAttempt`; for tests. */
   readonly analyse?: (frames: readonly TrackerFrame[]) => AttemptOutcome;
+  /** Card NG-49: the camera to ask for, read on each start. Default the front camera. */
+  readonly facing?: () => CameraFacing;
 }
 
 export interface Recogniser {
@@ -238,6 +247,13 @@ export interface Recogniser {
   reject(pressAt?: number): void;
   /** A candidate of an unknown answer: the confirm view for it ("Nein" returns to the candidates). Speaks nothing. */
   choose(conceptId: string, pressAt?: number): void;
+  /**
+   * Card NG-49: the camera switch. While the camera starts or runs, or after it failed, `change`
+   * (which flips the chosen camera) is called and the attempt starts again with the new camera;
+   * nothing of the old one is kept. A press within the guard after the camera was asked for does
+   * nothing. Returns whether it took effect.
+   */
+  switchCamera(change: () => void, pressAt?: number): boolean;
   /** "Zurück zur Tafel", from every state: camera off, nothing spoken. Always takes effect. */
   back(): void;
   /** Like `back`, without telling `onChange`: the board is being replaced. */
@@ -408,7 +424,14 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     return own.shownSeen;
   };
 
+  /** When the camera was last asked for: the switch's press guard counts from there, not from each countdown tick. */
+  let cameraAskedAt = Number.NEGATIVE_INFINITY;
   const startCamera = (): void => {
+    cameraAskedAt = options.now();
+    const facing = options.facing?.() ?? "user";
+    /** A back camera that does not open: say so, and point to the switch. */
+    const problemLine = (problem: CaptureProblem): string =>
+      (facing === "environment" && (problem === "no_camera" || problem === "busy") ? RECOGNISE_TEXT.backCamera : RECOGNISE_TEXT.problems[problem]);
     stopCamera();
     let bridge: CaptureBridge | null;
     try {
@@ -443,8 +466,8 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     try {
       started = bridge.start(options.host(), {
         signal: own.controller.signal,
-        // The front camera only, and no other in its place: a back camera cannot see a child facing the screen.
-        facing: "user",
+        // The chosen camera only, and no other in its place: the other one may point away from the gesture.
+        facing,
         fallback: false,
         ...(preview === null ? {} : { preview }),
         onStep: (step) => {
@@ -467,7 +490,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     }
     void Promise.resolve(started).then((answer) => {
       if (!answer.ok) {
-        if ("problem" in answer) failed(RECOGNISE_TEXT.problems[answer.problem]);
+        if ("problem" in answer) failed(problemLine(answer.problem));
         else if (camera === own) leave();
         return;
       }
@@ -515,6 +538,15 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       // Nothing is spoken from the view without "Ja, sagen": a candidate is asked about like a match.
       show({ kind: "confirm", conceptId, hands: current.hands, from: current });
     },
+    switchCamera(change, pressAt) {
+      if (disposed) return false;
+      const live = current.kind === "starting" || current.kind === "countdown" || current.kind === "recording" || current.kind === "problem";
+      if (!live || (pressAt ?? options.now()) < cameraAskedAt + RECOGNISE_GUARD_MS) return false;
+      change();
+      stopCamera();
+      startCamera();
+      return true;
+    },
     back: leave,
     dispose() {
       disposed = true;
@@ -538,6 +570,8 @@ export interface AttachOptions {
   readonly capture?: CaptureBridge | null;
   readonly setTimer?: SetTimer;
   readonly now?: () => number;
+  /** Where the camera choice is kept (card NG-49); default `localStorage`. For tests. */
+  readonly storage?: () => ChoiceStorage | null;
 }
 
 export interface AttachedRecogniser {
@@ -576,7 +610,42 @@ function conceptContent(target: HTMLElement, entry: BoardEntry, size: number): v
 }
 
 /** The symbols on the view's buttons, for a child who does not read: the text stays next to them. */
-export const RECOGNISE_SYMBOLS = { yes: "✓", no: "✗", finish: "■", again: "↻" } as const;
+export const RECOGNISE_SYMBOLS = { yes: "✓", no: "✗", finish: "■", again: "↻", camera: "⇄" } as const;
+
+/** Card NG-49: where the gesture view keeps its camera choice on this device; apart from teaching's (`CAMERA_FACING_KEY`). */
+export const RECOGNISE_FACING_KEY = "amysecho-recognise-facing";
+
+/** The part of `localStorage` the choice needs; a test passes a fake. */
+export interface ChoiceStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+function browserChoiceStorage(): ChoiceStorage | null {
+  try {
+    return (globalThis as { localStorage?: ChoiceStorage }).localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The gesture view's camera: the front one unless "hinten" is stored (or nothing readable is). */
+export function loadRecogniseFacing(storage: ChoiceStorage | null): CameraFacing {
+  try {
+    return storage?.getItem(RECOGNISE_FACING_KEY) === "environment" ? "environment" : "user";
+  } catch {
+    return "user";
+  }
+}
+
+/** A storage that refuses it is ignored: the choice then holds until the page is left. */
+export function saveRecogniseFacing(storage: ChoiceStorage | null, facing: CameraFacing): void {
+  try {
+    storage?.setItem(RECOGNISE_FACING_KEY, facing);
+  } catch {
+    // Nothing: a convenience, not data.
+  }
+}
 
 /**
  * A big button of the view: a symbol first, then the text; `picture` (the
@@ -639,7 +708,25 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   panel.setAttribute("aria-label", RECOGNISE_TEXT.title);
   const top = element("div", "recognise-top");
   const back = button("recognise-back", RECOGNISE_TEXT.back);
-  top.append(back);
+  /**
+   * Card NG-49: the camera switch, next to the way back, while the camera starts or runs or after it
+   * failed. A symbol and "Kamera: vorne / hinten"; a tap starts the attempt again with the other camera.
+   */
+  const storage = options.storage ?? browserChoiceStorage;
+  let facing: CameraFacing = loadRecogniseFacing(storage());
+  const cameraButton = button("recognise-camera", "");
+  const cameraMark = element("span", "recognise-mark", RECOGNISE_SYMBOLS.camera);
+  cameraMark.setAttribute("aria-hidden", "true");
+  const cameraWords = element("span", "recognise-camera-text");
+  cameraButton.append(cameraMark, cameraWords);
+  const showFacing = (): void => {
+    cameraButton.dataset["facing"] = facing;
+    cameraWords.textContent = RECOGNISE_TEXT.camera[facing];
+    cameraButton.setAttribute("aria-label", RECOGNISE_TEXT.cameraSwitch(facing));
+  };
+  showFacing();
+  cameraButton.hidden = true;
+  top.append(back, cameraButton);
   // The state's content and its buttons: one above the other in a window held upright, side by side in a wide one (style sheet).
   const body = element("div", "recognise-body");
   const main = element("div", "recognise-main");
@@ -699,13 +786,26 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   panel.addEventListener("pointerdown", () => { pressedAt = now(); });
   panel.addEventListener("contextmenu", (event: Event) => event.preventDefault());
 
+  /**
+   * The buttons and candidate tiles of the last draw (card NG-48). A draw builds them anew; when the
+   * focus was on one of them, it would drop to the page and a keyboard or switch user would have to
+   * find the view again.
+   */
+  let focusable: HTMLElement[] = [];
   const draw = (state: RecogniseState): void => {
+    const active = typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null);
+    // The camera switch counts too when this draw hides it (card NG-49): a hidden button holds no focus.
+    const switchFocused = active !== null && active === cameraButton;
+    let focusLost = active !== null && focusable.includes(active);
+    focusable = [];
     panel.dataset["state"] = state.kind;
     delete panel.dataset["concept"];
     delete panel.dataset["reason"];
     delete panel.dataset["hands"];
     delete panel.dataset["from"];
     if (state.kind !== "countdown" && state.kind !== "recording") delete panel.dataset["seen"];
+    cameraButton.hidden = !(state.kind === "starting" || state.kind === "countdown" || state.kind === "recording" || state.kind === "problem");
+    if (switchFocused && cameraButton.hidden) focusLost = true;
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
     if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording") previewSlot.replaceChildren();
@@ -788,6 +888,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
             conceptContent(tile, entry, 64);
             tile.addEventListener("click", () => recogniser.choose(id, pressStart()));
             list.append(tile);
+            focusable.push(tile);
           }
           content.push(list);
         }
@@ -801,10 +902,17 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     }
     place(main, content);
     actions.replaceChildren(...buttons);
+    // The buttons come first: they are where the next press goes ("Stopp", "Ja, sagen", "Nochmal").
+    focusable = [...buttons, ...focusable];
     if (!board.isCovered()) {
       board.cover(panel);
       // The control that opened the view is hidden now: the focus goes to the way back.
       if (typeof back.focus === "function") back.focus();
+    } else if (focusLost) {
+      // The focused button went with the redraw: the focus stays in the view, on the new state's
+      // first button or candidate, else on the way back. Focus elsewhere is left where it is.
+      const next = focusable[0] ?? back;
+      if (typeof next.focus === "function") next.focus();
     }
   };
   const againButton = (): HTMLElement => {
@@ -825,8 +933,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       // A preview of an earlier start is gone even when this one cannot be made (card NG-45).
       preview = null;
       previewSlot.replaceChildren();
-      // The picture is mirrored for the front camera, which this view always uses.
-      const made = typeof bridge.createPreview === "function" ? bridge.createPreview(document) : null;
+      // Card NG-49: the tracked points only, no camera picture; mirrored for the front camera only.
+      const made = typeof bridge.createPreview === "function" ? bridge.createPreview(document, { video: false }) : null;
       if (made === null) return null;
       preview = made;
       previewSlot.append(made.element);
@@ -859,6 +967,14 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     onSeen: (hands) => { if (hands !== seen) showSeen(hands); },
     onTimeLeft: showTimeLeft,
     stillShown: () => !root.hidden && !hiddenPage(),
+    facing: () => facing,
+  });
+  cameraButton.addEventListener("click", () => {
+    recogniser.switchCamera(() => {
+      facing = facing === "user" ? "environment" : "user";
+      saveRecogniseFacing(storage(), facing);
+      showFacing();
+    }, pressStart());
   });
   back.addEventListener("click", () => {
     pressedAt = null;

@@ -45,7 +45,7 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .gesture-label { pointer-events: none; }
 /* The gesture view covers the board in a frame of its own colour: never taken for the board. Back at the top; below it the state (middle) and its buttons, one above the other in a window held upright, side by side in a wide one. Everything fits without scrolling: the concept's picture shrinks, labels and buttons do not. */
 .recognise { flex: 1 1 auto; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--gap); min-height: 0; margin: 0 0 .4rem; padding: .4rem; border: 6px solid #4b2a7a; border-radius: 1.2rem; background: #f7f2fd; color: #2a1747; }
-.recognise-top { flex: none; display: flex; }
+.recognise-top { flex: none; display: flex; gap: var(--gap); }
 .recognise-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
 .recognise-main { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center; gap: .4rem; min-height: 0; overflow: hidden; text-align: center; }
 .recognise-line { flex: none; max-width: 100%; margin: 0; font: 700 clamp(1.05rem, 5vmin, 2rem)/1.25 system-ui, sans-serif; overflow-wrap: anywhere; }
@@ -70,8 +70,10 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .recognise-concept span { flex: none; overflow-wrap: anywhere; }
 .recognise-candidates { flex: none; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; grid-template-rows: var(--tile-min); gap: var(--gap); width: 100%; }
 .recognise-actions { flex: none; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: var(--gap); min-height: var(--tile-min); }
-.recognise-back, .recognise-action { box-sizing: border-box; min-width: 44px; min-height: var(--tile-min); margin: 0; padding: .3rem .6rem; border: 3px solid #215c76; border-radius: 1rem; background: white; color: #143146; font: 700 clamp(1.1rem, 4.6vmin, 2rem)/1.15 system-ui, sans-serif; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+.recognise-back, .recognise-action, .recognise-camera { box-sizing: border-box; min-width: 44px; min-height: var(--tile-min); margin: 0; padding: .3rem .6rem; border: 3px solid #215c76; border-radius: 1rem; background: white; color: #143146; font: 700 clamp(1.1rem, 4.6vmin, 2rem)/1.15 system-ui, sans-serif; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 .recognise-back { flex: 1 1 auto; font-size: clamp(1.05rem, 4.2vmin, 1.6rem); }
+/* Card NG-49: the camera switch next to the way back; never wider than it, the words wrap. */
+.recognise-camera { flex: 0 1 auto; max-width: 45%; display: flex; align-items: center; justify-content: center; gap: .3rem; font-size: clamp(1rem, 3.8vmin, 1.45rem); }
 .recognise-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .2rem .5rem; }
 .recognise-mark { flex: none; font-size: 1.6em; line-height: 1; pointer-events: none; }
 .recognise-action-picture { flex: none; width: clamp(28px, 8vmin, 48px); height: clamp(28px, 8vmin, 48px); padding: 2px; border-radius: .4rem; background: white; object-fit: contain; pointer-events: none; }
@@ -79,8 +81,8 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .recognise-yes { border-color: #1d5e3a; background: #1d6b40; color: white; }
 .recognise-no { border-color: #8c1f14; color: #8c1f14; }
 .recognise-finish { border-color: #4b2a7a; background: #4b2a7a; color: white; }
-.recognise-back:active, .recognise-action:active { filter: brightness(.9); }
-.gesture-start:focus-visible, .recognise-back:focus-visible, .recognise-action:focus-visible { outline: 5px solid #cf681e; outline-offset: -5px; }
+.recognise-back:active, .recognise-action:active, .recognise-camera:active { filter: brightness(.9); }
+.gesture-start:focus-visible, .recognise-back:focus-visible, .recognise-action:focus-visible, .recognise-camera:focus-visible { outline: 5px solid #cf681e; outline-offset: -5px; }
 .caregiver-entry { position: relative; flex: none; display: flex; flex-direction: row-reverse; align-items: center; gap: .6rem; min-height: 44px; padding: .35rem .5rem; padding: .35rem max(.5rem, env(safe-area-inset-right)) max(.35rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left)); }
 .caregiver-open { flex: none; min-height: 44px; min-width: 44px; padding: .5rem .9rem; border: 1px solid #9db4bf; border-radius: .6rem; background: transparent; color: #4a6472; font: 400 .9rem system-ui, sans-serif; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .caregiver-hold-progress { position: absolute; top: 0; left: .5rem; display: block; width: calc(100% - 1rem); height: .3rem; margin: 0; }

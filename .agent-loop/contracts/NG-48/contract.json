@@ -1,0 +1,36 @@
+{
+    "acceptance_criteria": [
+        "When the focused button or candidate tile is removed by a redraw (for example 'Nochmal', 'Nein', a candidate), the focus moves to the new state's first button or, without one, to 'Zurück zur Tafel'; focus that was elsewhere is not moved",
+        "The late-timer test fails with an implementation that counts one second per callback, and its comment states the real timing"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-24T12:45:57+00:00",
+    "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "base_commit": "3c1b89bc166d76bf93f9682c201f58119cf344e7",
+    "behavior_anchors": [],
+    "created_at": "2026-11-24T12:45:57+00:00",
+    "goal": "In the gesture view the keyboard or switch focus is never dropped when a focused button goes away with a redraw, and the late-timer test proves that the seconds come from the deadline.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/recognise/recognise.ts",
+        "test/recognise.test.mjs",
+        "docs/recognise.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-48",
+    "updated_at": "2026-11-24T12:45:57+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

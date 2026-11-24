@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
+  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_FACING_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
   analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
@@ -534,6 +534,7 @@ function fakeElement(tagName) {
     },
     dispatch(name, event = {}) { for (const handler of [...(this.listeners[name] ?? [])]) handler({ preventDefault() {}, ...event }); },
     click() { this.dispatch("click"); },
+    focus() { globalThis.document.activeElement = this; },
   };
 }
 const tree = (node) => [node, ...node.children.flatMap(tree)];
@@ -576,7 +577,13 @@ const ENTRIES = [
 ];
 const VIEW = { kind: "profile", profileId: "0".repeat(32), displayName: "Mia", problems: [], entries: ENTRIES };
 
-async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {} } = {}) {
+/** A `localStorage` stand-in for the gesture view's own camera choice (card NG-49). */
+function memoryStorage(entries = []) {
+  const items = new Map(entries);
+  return { items, getItem: (key) => items.get(key) ?? null, setItem: (key, value) => { items.set(key, String(value)); } };
+}
+
+async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage() } = {}) {
   const fakes = installDocument();
   try {
     const time = fakeTime();
@@ -584,13 +591,13 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     const root = fakeElement("section");
     let open = () => undefined;
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now });
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice });
     open = attached.open;
     const panel = () => root.children.find((child) => hasClass(child, "recognise")) ?? null;
     const buttonNamed = (text) => tree(panel() ?? root).find((element) => element.tagName === "button" && (element.textContent === text || element.attributes["aria-label"] === text));
     const tile = (label) => root.children.find((child) => hasClass(child, "concept-board")).children.find((element) => element.attributes["aria-label"] === label);
     const gestureButton = () => root.children.find((child) => hasClass(child, "gesture-start"));
-    await callback({ ...fakes, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
+    await callback({ ...fakes, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
   } finally {
     fakes.restore();
   }
@@ -866,7 +873,7 @@ const shape = (node) => ({
   label: node.attributes?.["aria-label"] ?? null, children: node.children.map(shape),
 });
 
-test("view: the gesture view has no camera control and draws every state the same whatever camera is stored", async () => {
+test("view: the gesture view ignores teaching's stored camera and draws every state the same whatever it is", async () => {
   const drawn = {};
   for (const stored of ["user", "environment"]) {
     drawn[stored] = [];
@@ -877,8 +884,9 @@ test("view: the gesture view has no camera control and draws every state the sam
       snap();
       await settle();
       snap();
-      assert.equal(tree(panel()).some((element) => /Kamera:|vorne|hinten/.test(element.textContent)), false, "no camera choice on the child's screen");
-      assert.equal(tree(panel()).some((element) => hasClass(element, "camera-choice")), false);
+      // Card NG-49 revises NG-43: the view has its own switch, which starts at "vorne" whatever teaching stored.
+      assert.equal(tree(panel()).find((element) => hasClass(element, "recognise-camera")).dataset.facing, "user");
+      assert.equal(tree(panel()).some((element) => hasClass(element, "camera-choice")), false, "not teaching's camera choice");
       time.advance(1000);
       snap();
       time.advance(2000);
@@ -1268,11 +1276,15 @@ test("seconds left come from the recording's deadline: a late timer shows the ri
   assert.deepEqual(left, [5]);
   late = 900;
   time.advance(1900);
-  // The first tick was due at 1 s and came at 1.9 s; the next one, due at 2 s, also came late.
-  // Counting callbacks would show 4 and then 3 at 2.9 s; the deadline gives 4 at 1.9 s, and 3 at 2.9 s.
+  // The first tick was set before the timers turned late: it comes at 1 s and shows 4. The next one,
+  // due at 2 s, comes at 2.9 s and shows 3; it wakes the one after for 3 s, which comes at 3.9 s
+  // and shows 2. One second per callback would show 3 at 2.9 s as well, but nothing at 3.9 s: its
+  // next callback, set 1 s after 2.9 s, comes only at 4.8 s (card NG-48).
   assert.deepEqual(left, [5, 4]);
   time.advance(1000);
   assert.deepEqual(left, [5, 4, 3], "never behind the time actually left");
+  time.advance(1000);
+  assert.deepEqual(left, [5, 4, 3, 2], "a count per callback would still show [5, 4, 3] here");
   recogniser.finish();
   assert.equal(time.pending(), 0, "no tick left after the recording");
 });
@@ -1343,5 +1355,215 @@ test("view: the hands-seen region and the picture stay in the page from the coun
     buttonNamed("Stopp").click();
     assert.ok(main.moved.some(([kind, node]) => kind === "out" && node === feedback));
     assert.equal(main.children.includes(feedback), false);
+  });
+});
+
+// --- The focus stays in the view (card NG-48) ---
+
+test("view: when the focused button goes with a redraw, the focus moves to the new state's first button or the way back", async () => {
+  await withView(async (context) => {
+    const { panel, buttonNamed, time, camera, doc } = context;
+    // An unusable recording, then "Nochmal" by keyboard: the button goes, the focus goes to "Zurück zur Tafel".
+    await viewToRecording(context);
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back), "the view opens with the focus on the way back");
+    await camera.feed(MOVES_RIGHT(0));
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").focus();
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "unusable");
+    assert.equal(doc.activeElement, buttonNamed("Nochmal"), "from 'Stopp' to the answer's first button");
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nochmal").click();
+    assert.equal(panel().dataset.state, "starting");
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back), "no button while the camera starts: the way back");
+    await settle();
+    time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+    assert.equal(panel().dataset.state, "recording");
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back), "focus that was not lost is not moved");
+    // Not taught: unknown with candidates. A candidate by keyboard, then "Nein": back to the first candidate.
+    await camera.feedAll((i) => [trackerHand(0.7 - i * 0.012, 0.3 + i * 0.012, "Right")]);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").focus();
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "unknown");
+    const candidates = () => tree(panel()).filter((element) => hasClass(element, "recognise-candidate"));
+    assert.equal(doc.activeElement, candidates()[0], "no button on unknown: the first candidate");
+    time.advance(RECOGNISE_GUARD_MS);
+    const ball = candidates().find((candidate) => candidate.dataset.concept === "ball");
+    ball.focus();
+    ball.click();
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(doc.activeElement, buttonNamed("Nein"));
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nein").click();
+    assert.equal(panel().dataset.state, "unknown");
+    assert.equal(doc.activeElement, candidates()[0]);
+    // Focus outside the view's buttons (here on the way back) stays where it is through a redraw.
+    buttonNamed(RECOGNISE_TEXT.back).focus();
+    time.advance(RECOGNISE_GUARD_MS);
+    candidates()[0].click();
+    assert.equal(doc.activeElement, buttonNamed(RECOGNISE_TEXT.back));
+  });
+});
+
+// --- Front or back camera in the gesture view, and no camera picture (card NG-49) ---
+
+test("controller: the camera asked for comes from the view's choice; a switch restarts the attempt with the other camera and keeps nothing", async () => {
+  let facing = "user";
+  const context = setup({ outcome: MATCH });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, analyse: (frames) => { context.analysed.push(frames); return MATCH; }, facing: () => facing,
+  });
+  const flip = () => { facing = facing === "user" ? "environment" : "user"; };
+  assert.equal(recogniser.switchCamera(flip), false, "nothing to switch while idle");
+  assert.equal(facing, "user");
+  recogniser.start();
+  await settle();
+  assert.deepEqual(context.camera.log.asked, ["user"]);
+  assert.equal(recogniser.state().kind, "countdown");
+  // Right after the camera was asked for: the second tap of "Gebärde" must not switch.
+  assert.equal(recogniser.switchCamera(flip), false);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  assert.equal(recogniser.switchCamera(flip), true);
+  assert.equal(facing, "environment");
+  assert.equal(context.camera.log.tracksStopped, 1, "the front camera is off");
+  await settle();
+  assert.deepEqual(context.camera.log.asked, ["user", { exact: "environment" }]);
+  assert.equal(recogniser.state().kind, "countdown", "a new countdown with the other camera");
+  // Switching while recording drops the frames: nothing is compared.
+  context.time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+  assert.equal(recogniser.state().kind, "recording");
+  await context.camera.feedAll(MOVES_RIGHT, 5);
+  assert.equal(recogniser.switchCamera(flip), true);
+  await settle();
+  assert.deepEqual(context.analysed, [], "the recording of the old camera is not compared");
+  assert.equal(recogniser.state().kind, "countdown");
+  assert.deepEqual(context.camera.log.asked.at(-1), "user");
+  // Not on an answer: there the camera is off and the switch is not shown.
+  context.time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+  await context.camera.feedAll(MOVES_RIGHT);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.finish();
+  assert.equal(recogniser.state().kind, "confirm");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  assert.equal(recogniser.switchCamera(flip), false);
+  assert.equal(facing, "user");
+});
+
+const cameraSwitch = (panel) => tree(panel).find((element) => hasClass(element, "recognise-camera"));
+
+test("view: the camera switch is next to the way back while the camera starts or runs; a tap there films with the other camera and is remembered apart from teaching's choice", async () => {
+  const choice = memoryStorage();
+  await withView(async (context) => {
+    const { panel, buttonNamed, time, camera } = context;
+    context.gestureButton().click();
+    const top = tree(panel()).find((element) => hasClass(element, "recognise-top"));
+    const switcher = cameraSwitch(panel());
+    assert.deepEqual(top.children, [buttonNamed(RECOGNISE_TEXT.back), switcher], "next to the way back");
+    assert.equal(switcher.tagName, "button");
+    assert.equal(switcher.hidden, false, "shown while the camera starts");
+    assert.equal(textOf(switcher), "⇄ Kamera: vorne");
+    assert.equal(switcher.attributes["aria-label"], "Kamera wechseln, jetzt vorne");
+    await settle();
+    assert.deepEqual(camera.log.asked, ["user"], "the front camera by default");
+    time.advance(RECOGNISE_GUARD_MS);
+    switcher.click();
+    assert.equal(textOf(switcher), "⇄ Kamera: hinten");
+    assert.equal(switcher.attributes["aria-label"], "Kamera wechseln, jetzt hinten");
+    assert.equal(choice.items.get(RECOGNISE_FACING_KEY), "environment", "remembered on the device");
+    await settle();
+    assert.deepEqual(camera.log.asked, ["user", { exact: "environment" }]);
+    assert.equal(panel().dataset.state, "countdown");
+    assert.equal(cameraSwitch(panel()), switcher, "the same button at the same place");
+    time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+    assert.equal(switcher.hidden, false, "also while recording");
+    await camera.feedAll(MOVES_RIGHT);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(switcher.hidden, true, "not with the answer: the camera is off");
+    // The next attempt starts with the chosen camera.
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nein").click();
+    time.advance(GESTURE_SHIELD_MS);
+    context.gestureButton().click();
+    await settle();
+    assert.deepEqual(camera.log.asked.at(-1), { exact: "environment" });
+  }, { choice });
+  // A new view on the same device starts with the remembered camera.
+  await withView(async (context) => {
+    context.gestureButton().click();
+    await settle();
+    assert.deepEqual(context.camera.log.asked, [{ exact: "environment" }]);
+    assert.equal(cameraSwitch(context.panel()).dataset.facing, "environment");
+  }, { choice });
+});
+
+test("view: a back camera that does not open says so and keeps the switch; a tap there goes back to the front camera", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera } = context;
+    context.gestureButton().click();
+    await settle();
+    assert.equal(panel().dataset.state, "problem");
+    assert.match(textOf(panel()), /Die Kamera hinten geht gerade nicht\./);
+    assert.deepEqual(camera.log.asked, [{ exact: "environment" }], "the front camera is not taken in its place");
+    const switcher = cameraSwitch(panel());
+    assert.equal(switcher.hidden, false, "the switch stays");
+    time.advance(RECOGNISE_GUARD_MS);
+    switcher.click();
+    await settle();
+    assert.deepEqual(camera.log.asked, [{ exact: "environment" }, "user"]);
+    assert.equal(panel().dataset.state, "countdown");
+  }, { camera: { noBackCamera: true }, choice: memoryStorage([[RECOGNISE_FACING_KEY, "environment"]]) });
+});
+
+test("view: the gesture view asks the bridge for a preview without the camera picture", async () => {
+  await withView(async (context) => {
+    const { panel, camera } = context;
+    const asked = [];
+    const previews = recordingPreviews();
+    camera.bridge.createPreview = (doc, options) => { asked.push(options); return previews.createPreview(doc); };
+    context.gestureButton().click();
+    await settle();
+    assert.deepEqual(asked, [{ video: false }]);
+    assert.equal(slotOf(panel()).children[0], previews.made[0].element);
+  });
+});
+
+test("view: one device storage for teaching and the gesture view: teaching's 'hinten' is never read here, and the switch never writes teaching's key", async () => {
+  assert.equal(RECOGNISE_FACING_KEY, "amysecho-recognise-facing");
+  assert.notEqual(RECOGNISE_FACING_KEY, CAMERA_FACING_KEY);
+  const device = choiceStorage("environment");
+  await withView(async (context) => {
+    const { panel, time, camera } = context;
+    context.gestureButton().click();
+    await settle();
+    assert.deepEqual(camera.log.asked, ["user"], "teaching's 'hinten' on the same storage is not this view's choice");
+    assert.equal(cameraSwitch(panel()).dataset.facing, "user");
+    time.advance(RECOGNISE_GUARD_MS);
+    cameraSwitch(panel()).click();
+    await settle();
+    assert.equal(device.items.get(RECOGNISE_FACING_KEY), "environment");
+    time.advance(RECOGNISE_GUARD_MS);
+    cameraSwitch(panel()).click();
+    await settle();
+    assert.equal(device.items.get(RECOGNISE_FACING_KEY), "user");
+    assert.equal(device.items.get(CAMERA_FACING_KEY), "environment", "teaching's choice is left as it was");
+    assert.deepEqual(camera.log.asked, ["user", { exact: "environment" }, "user"]);
+  }, { camera: { storage: device }, choice: device });
+});
+
+test("view: when the camera switch has the focus and hides with the answer, the focus moves to the answer's first button", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, doc, buttonNamed } = context;
+    await viewToRecording(context);
+    await camera.feedAll(MOVES_RIGHT);
+    cameraSwitch(panel()).focus();
+    // The recording ends at its deadline; the switch is hidden with the answer.
+    time.advance(RECOGNISE_MAX_RECORDING_MS);
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(cameraSwitch(panel()).hidden, true);
+    assert.equal(doc.activeElement, buttonNamed("Nein"), "not dropped to the page");
   });
 });

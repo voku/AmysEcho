@@ -1,0 +1,174 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T12:45:57+00:00",
+            "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-48/contract.json",
+                "sha256": "sha256:51acf5e8760bf66c6bf22ca5eeaeb69fd68e63e496fe63df034224c83194a88c"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-48",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "344a0c0bf1c7339e3fcd9a6f6fb2fcc173f8c33dc247342e3bfaad2c5ea3feca",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-48.md",
+                "sha256": "sha256:344a0c0bf1c7339e3fcd9a6f6fb2fcc173f8c33dc247342e3bfaad2c5ea3feca"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "When the focused button or candidate tile is removed by a redraw (for example 'Nochmal', 'Nein', a candidate), the focus moves to the new state's first button or, without one, to 'Zurück zur Tafel'; focus that was elsewhere is not moved",
+                "The late-timer test fails with an implementation that counts one second per callback, and its comment states the real timing"
+            ],
+            "goal": "In the gesture view the keyboard or switch focus is never dropped when a focused button goes away with a redraw, and the late-timer test proves that the seconds come from the deadline.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-48/contract.json",
+                "sha256": "sha256:51acf5e8760bf66c6bf22ca5eeaeb69fd68e63e496fe63df034224c83194a88c"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-48/contract.json",
+                "sha256": "sha256:51acf5e8760bf66c6bf22ca5eeaeb69fd68e63e496fe63df034224c83194a88c"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T12:59:52+00:00",
+            "decided_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-48:f62a89dbcc6714e8",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/6ea3eba08982833e5726c1d9d5df3a4419d0635ef460277032f24c30822210c8.json",
+                "sha256": "sha256:352f1270616e150e633dd96435adac935bf3261a6b99ae3037b6e2cb9faf8547"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:98dd83a42ecc698a62d27f895235e8f33892714af9a21c9b3296a7085b5b00b0",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:14b12d46b146d7e5814203c172542e2d44fe402d2f72a9158ac4f021de59df67"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/recognise/recognise.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognise.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 2,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-48:f62a89dbcc6714e8",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "45eda95cd8e220e84b6d6b6fa4f73ccffa42c80e5840d60d8cdf863244df5bad",
+            "compilation_id": "compilation.NG-48.2026-11-24-124557.835ed2a8",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "4dddf4525cb1bde1ce7a859c871a0f421adb83ad86a26d8cdddc6e341a3d531b",
+            "source": {
+                "path": ".agent-loop/recall/NG-48/meta.json",
+                "sha256": "sha256:153b03a0992037e30966afa4af5f914c149fe3f08b7fee7f2d74cc26ff63ee13"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-48/reviews/NG-48.blindspots.json",
+                "sha256": "sha256:d6bc74c7a52cdc309f040af6e7e27f1809d1de99d1520c776292f662832124c9"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "3c1b89bc166d76bf93f9682c201f58119cf344e7",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-48-r1-1ed0b7aa",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-48-r1-1ed0b7aa/session.json",
+                "sha256": "sha256:bec2ef554227a47d6993f3d10e9961554dcd9abb07903a68dac30408e279da15"
+            },
+            "state": "done",
+            "task_id": "NG-48"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:9ca383880daef97e278a8b6c52e05d8a506752a54468e3f4d47c8499cb0988b4",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-48:f62a89dbcc6714e8",
+            "source": {
+                "path": ".agent-loop/runs/NG-48/verification.json",
+                "sha256": "sha256:0a3d20542cedcd51fc2164f684a69baa007a0677a3d012c3b7b2c87df4bfa50b"
+            },
+            "source_session_id": "2026-11-24-ng-48-r1-1ed0b7aa",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-48:f62a89dbcc6714e8",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-48"
+}

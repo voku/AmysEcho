@@ -16,7 +16,8 @@
  *   checked here on the first start, never by the board's install.
  * - Front or back camera (card NG-43): chosen in the camera test and in
  *   teaching, remembered on the device (`CAMERA_FACING_KEY`). The child's
- *   gesture view always asks for the front camera, without fallback. Frames of either camera go to
+ *   gesture view names its own camera, without fallback (card NG-49: front
+ *   unless switched there, never this choice). Frames of either camera go to
  *   the tracker unflipped; nothing on the way to the matcher depends on it.
  */
 import { frameSummary, shouldersOf, toLandmarkFrame, type TrackerFrame, type TrackerHand, type TrackerPoint } from "../recognition/tracker-adapter.js";
@@ -861,6 +862,16 @@ export interface CapturePreview extends PreviewSink {
   readonly element: HTMLElement;
 }
 
+/** How a preview shows the camera (card NG-49). */
+export interface CapturePreviewOptions {
+  /**
+   * False: no camera picture at all, only the tracked points on the box's calm background (the
+   * box is marked `data-picture="points"`). The child's gesture view uses it: nobody and no room is
+   * on screen, only where the hands are. Default true (teaching and the camera test).
+   */
+  readonly video?: boolean;
+}
+
 /**
  * The browser's preview. `show` puts a muted `<video>` on the camera's stream
  * and a canvas over it into `element`, and marks the box `data-mirrored`
@@ -870,10 +881,12 @@ export interface CapturePreview extends PreviewSink {
  * keeps its size either way, so nothing around it moves when the camera
  * starts or stops.
  */
-export function createCapturePreview(doc: Document): CapturePreview {
+export function createCapturePreview(doc: Document, options: CapturePreviewOptions = {}): CapturePreview {
+  const withVideo = options.video !== false;
   const element = doc.createElement("div");
   element.className = "capture-preview";
   element.dataset["camera"] = "off";
+  element.dataset["picture"] = withVideo ? "video" : "points";
   // The picture is for seeing the framing; the live line says the same in words.
   element.setAttribute("aria-hidden", "true");
   let video: HTMLVideoElement | null = null;
@@ -898,14 +911,20 @@ export function createCapturePreview(doc: Document): CapturePreview {
       close();
       mirrored = previewMirrored(facing);
       element.dataset["mirrored"] = String(mirrored);
+      canvas = doc.createElement("canvas");
+      canvas.className = "capture-preview-points";
+      if (!withVideo) {
+        // Card NG-49: the stream is not shown; the points alone say where the hands are.
+        element.replaceChildren(canvas);
+        element.dataset["camera"] = "on";
+        return;
+      }
       video = doc.createElement("video");
       video.className = "capture-preview-video";
       video.muted = true;
       video.playsInline = true;
       video.autoplay = true;
       video.srcObject = stream as MediaStream;
-      canvas = doc.createElement("canvas");
-      canvas.className = "capture-preview-points";
       element.replaceChildren(video, canvas);
       element.dataset["camera"] = "on";
       void video.play().catch(() => undefined);
@@ -1090,13 +1109,14 @@ export interface CaptureBridge {
    * `startCapture` with the browser's camera and tracker; `host` receives the
    * hidden video element. Without `options.facing` the camera chosen on this
    * device is used (`loadCameraFacing`, card NG-43). The child's gesture view
-   * always names the front camera (and `fallback: false`), never the choice.
+   * names its own camera (and `fallback: false`), never teaching's choice: the
+   * front one unless switched in that view (card NG-49).
    */
   start(host: HTMLElement, options: CaptureOptions): Promise<CaptureStart>;
   readonly text: typeof CAPTURE_TEXT;
   readonly nextShoulders: typeof nextShoulders;
   /** A live preview for `start`'s `preview` (card NG-42); absent in an older bridge or a test's. */
-  readonly createPreview?: (doc: Document) => CapturePreview;
+  readonly createPreview?: (doc: Document, options?: CapturePreviewOptions) => CapturePreview;
 }
 
 /** What the bridge uses of the browser; a test passes fakes. */
