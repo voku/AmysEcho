@@ -102,8 +102,9 @@ attached, the board is drawn without the control and the error is reported.
 **Live picture with the detected hands** (card NG-44; owner request 2026-11-23: whoever makes
 the gesture, the child or a caregiver beside it, should see where the gesture is captured). While
 the camera runs, in the countdown and the recording, the view shows the preview of the camera test
-and teaching (card NG-42, [capture.md](capture.md), "Live preview"), since card NG-49 without the
-camera's picture (below): mirrored like a mirror for the front camera, each tracked hand drawn as its 21 points and bones, the child's own left
+and teaching (card NG-42, [capture.md](capture.md), "Live preview"): the camera's picture with the
+points over it, or the points alone after "Bild aus" (cards NG-49 and NG-52, below); mirrored like
+a mirror for the front camera, each tracked hand drawn as its 21 points and bones, the child's own left
 hand orange with "L", the right one cyan with "R", and the shoulders as a yellow line. Without a
 hand in the picture nothing is drawn over it, so an empty picture says "no hand seen". The view
 asks the bridge for one preview per camera start (`createPreview`, passed to `start` as
@@ -238,6 +239,27 @@ films itself, or a caregiver films the child). This revises the NG-43 decision b
 - **Not checked on a device:** whether the back camera of real phones opens with
   `facingMode: { exact: "environment" }`; whether a child finds the switch or presses it by
   mistake; whether children recognise themselves in the points without the picture.
+
+**Camera picture on or off** (card NG-52; owner feedback 2026-11-24: without the picture the view
+looked oddly empty). The NG-49 points-only view above became a choice, and the picture is back by
+default.
+
+- **The toggle.** "◐ Bild aus" / "◐ Bild an" sits in the top corner of the picture box while the
+  camera runs. Its words say what a tap does; its accessible name stays "Kamerabild" and
+  `aria-pressed` says whether the picture is shown. It is at least 44 px; it is a caregiver's control, the
+  child's targets keep `--tile-min`.
+- **What a tap does.** It calls the preview's `setVideo`: the camera picture is shown or hidden
+  under the same canvas. The camera, the tracker and the attempt go on: no restart, no frame lost
+  (tested: a recording with the picture switched off and on in its middle is compared whole).
+- **The choice** is remembered on the device under `amysecho-recognise-picture` ("off" for points
+  only; anything else, nothing or no storage means on), and the next camera start asks the bridge
+  for the preview with or without video.
+- **Focus.** A focused toggle that goes with the picture (an answer, a problem) hands the focus on
+  as in card NG-48.
+- **Measured in headless Chromium** (as above, Chromium's fake camera) at the five sizes, in the
+  countdown, the recording and the recording after "Bild aus": no page scroll, nothing outside the
+  window, the picture box unchanged; one `<video>` with the picture on, none with it off; the
+  toggle 92 to 120 px wide and 44 px high.
 
 **Always the front camera** (card NG-43, revised by NG-49 above). The view had **no camera control** and did **not** use
 the "Kamera: vorne / hinten" choice of teaching and the camera test: it asks the bridge for the

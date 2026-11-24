@@ -108,8 +108,10 @@ child with the back camera.
   off ("Kamera stoppen" first).
 - **Preview without video** (card NG-49). `createCapturePreview(doc, { video: false })` puts only
   the canvas into the box (`data-picture="points"`); the stream is never shown, the points are
-  drawn and mirrored as with the video. The child's gesture view uses it; the camera test and
-  teaching keep the default (`data-picture="video"`).
+  drawn and mirrored as with the video. The camera test and teaching keep the default
+  (`data-picture="video"`). Card NG-52: `setVideo(on)` shows or hides the picture while the preview
+  runs, on the same stream and under the same canvas, without touching the camera or the tracker;
+  the child's gesture view uses it for its "Bild an / aus" toggle.
 - **Used by the camera test and teaching only.** `startCapture(environment, { facing })`; the
   bridge's `start` fills in the stored choice when a caller names none. **The child's gesture view
   never uses this choice**: it names its own camera (`facing`, `fallback: false`), the front one

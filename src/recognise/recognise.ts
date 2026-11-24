@@ -30,10 +30,10 @@
  *
  * A live preview (card NG-44): while the camera runs (countdown and
  * recording) the view shows the tracked hands ("L"/"R") and shoulders, so
- * whoever makes the gesture sees whether the hands are in the picture. Since
- * card NG-49 without the camera's picture: only the points, on a calm
- * background, mirrored for the front camera only; nobody and no room is on
- * screen. It comes from the bridge (`createPreview`); a
+ * whoever makes the gesture sees whether the hands are in the picture: over
+ * the camera's picture, or alone on a calm background after "Bild aus" (cards
+ * NG-49 and NG-52, remembered on the device); mirrored for the front camera
+ * only. It comes from the bridge (`createPreview`); a
  * bridge without one, or a preview that fails, leaves the view as before.
  * Nothing of the picture is kept or sent.
  *
@@ -104,6 +104,10 @@ export const RECOGNISE_TEXT = {
   candidates: "Vielleicht eins davon?",
   again: "Nochmal",
   noCamera: "Die Kamera kann gerade nicht starten. Die Tafel geht auch ohne Kamera.",
+  /** Card NG-52: the toggle on the picture; its words say what a tap does, its name what is shown. */
+  picture: { on: "Bild aus", off: "Bild an" },
+  /** Its accessible name, the same in both states; `aria-pressed` says whether the picture is shown. */
+  pictureName: "Kamerabild",
   /** Card NG-49: the camera switch at the top, its words, and its accessible name. */
   camera: { user: "Kamera: vorne", environment: "Kamera: hinten" },
   cameraSwitch: (facing: CameraFacing): string => `Kamera wechseln, jetzt ${facing === "user" ? "vorne" : "hinten"}`,
@@ -610,7 +614,10 @@ function conceptContent(target: HTMLElement, entry: BoardEntry, size: number): v
 }
 
 /** The symbols on the view's buttons, for a child who does not read: the text stays next to them. */
-export const RECOGNISE_SYMBOLS = { yes: "✓", no: "✗", finish: "■", again: "↻", camera: "⇄" } as const;
+export const RECOGNISE_SYMBOLS = { yes: "✓", no: "✗", finish: "■", again: "↻", camera: "⇄", picture: "◐" } as const;
+
+/** Card NG-52: where the gesture view keeps "Bild an / aus" on this device; "off" for points only, anything else is on. */
+export const RECOGNISE_PICTURE_KEY = "amysecho-recognise-picture";
 
 /** Card NG-49: where the gesture view keeps its camera choice on this device; apart from teaching's (`CAMERA_FACING_KEY`). */
 export const RECOGNISE_FACING_KEY = "amysecho-recognise-facing";
@@ -635,6 +642,23 @@ export function loadRecogniseFacing(storage: ChoiceStorage | null): CameraFacing
     return storage?.getItem(RECOGNISE_FACING_KEY) === "environment" ? "environment" : "user";
   } catch {
     return "user";
+  }
+}
+
+/** Card NG-52: the camera picture is shown unless "off" is stored (nothing readable means on). */
+export function loadRecognisePicture(storage: ChoiceStorage | null): boolean {
+  try {
+    return storage?.getItem(RECOGNISE_PICTURE_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+export function saveRecognisePicture(storage: ChoiceStorage | null, on: boolean): void {
+  try {
+    storage?.setItem(RECOGNISE_PICTURE_KEY, on ? "on" : "off");
+  } catch {
+    // Nothing: a convenience, not data.
   }
 }
 
@@ -727,6 +751,23 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   showFacing();
   cameraButton.hidden = true;
   top.append(back, cameraButton);
+  /**
+   * Card NG-52: "Bild an / aus" in the corner of the picture while the preview runs. A tap shows or
+   * hides the camera picture; the tracked points stay, the camera and the attempt go on.
+   */
+  let picture = loadRecognisePicture(storage());
+  const pictureButton = button("recognise-picture", "");
+  const pictureMark = element("span", "recognise-mark", RECOGNISE_SYMBOLS.picture);
+  pictureMark.setAttribute("aria-hidden", "true");
+  const pictureWords = element("span", "recognise-picture-text");
+  pictureButton.append(pictureMark, pictureWords);
+  const showPicture = (): void => {
+    pictureButton.dataset["picture"] = picture ? "on" : "off";
+    pictureButton.setAttribute("aria-pressed", String(picture));
+    pictureWords.textContent = picture ? RECOGNISE_TEXT.picture.on : RECOGNISE_TEXT.picture.off;
+  };
+  pictureButton.setAttribute("aria-label", RECOGNISE_TEXT.pictureName);
+  showPicture();
   // The state's content and its buttons: one above the other in a window held upright, side by side in a wide one (style sheet).
   const body = element("div", "recognise-body");
   const main = element("div", "recognise-main");
@@ -835,7 +876,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
           content.push(element("p", "recognise-count", String(state.left)));
         } else {
           // The number large over the picture: the picture keeps its size from the countdown into the recording.
-          place(previewSlot, [preview.element, element("p", "recognise-count", String(state.left))]);
+          place(previewSlot, [preview.element, element("p", "recognise-count", String(state.left)), pictureButton]);
           content.push(previewSlot);
         }
         showSeen(seen);
@@ -844,7 +885,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;
         if (preview !== null) {
-          place(previewSlot, [preview.element]);
+          place(previewSlot, [preview.element, pictureButton]);
           content.push(previewSlot);
         }
         showSeen(seen);
@@ -904,6 +945,9 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     actions.replaceChildren(...buttons);
     // The buttons come first: they are where the next press goes ("Stopp", "Ja, sagen", "Nochmal").
     focusable = [...buttons, ...focusable];
+    // Card NG-52: the picture toggle goes with the picture (an answer, a problem): it counts as lost too.
+    const pictureShown = Array.from(main.children).includes(previewSlot) && Array.from(previewSlot.children).includes(pictureButton);
+    if (active === pictureButton && !pictureShown) focusLost = true;
     if (!board.isCovered()) {
       board.cover(panel);
       // The control that opened the view is hidden now: the focus goes to the way back.
@@ -933,8 +977,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       // A preview of an earlier start is gone even when this one cannot be made (card NG-45).
       preview = null;
       previewSlot.replaceChildren();
-      // Card NG-49: the tracked points only, no camera picture; mirrored for the front camera only.
-      const made = typeof bridge.createPreview === "function" ? bridge.createPreview(document, { video: false }) : null;
+      // Card NG-52: with the camera picture unless "Bild aus" was chosen (card NG-49: points only); mirrored for the front camera only.
+      const made = typeof bridge.createPreview === "function" ? bridge.createPreview(document, { video: picture }) : null;
       if (made === null) return null;
       preview = made;
       previewSlot.append(made.element);
@@ -968,6 +1012,16 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     onTimeLeft: showTimeLeft,
     stillShown: () => !root.hidden && !hiddenPage(),
     facing: () => facing,
+  });
+  pictureButton.addEventListener("click", () => {
+    picture = !picture;
+    saveRecognisePicture(storage(), picture);
+    showPicture();
+    try {
+      preview?.setVideo?.(picture);
+    } catch {
+      // Only a display: the points and the attempt go on.
+    }
   });
   cameraButton.addEventListener("click", () => {
     recogniser.switchCamera(() => {

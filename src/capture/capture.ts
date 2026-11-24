@@ -860,14 +860,20 @@ export function drawPreviewShapes(context: PreviewContext, shapes: PreviewShapes
 /** A live preview in the page: `element` is a box of fixed size (set by the page's CSS) that holds the video and the canvas while the camera runs. */
 export interface CapturePreview extends PreviewSink {
   readonly element: HTMLElement;
+  /**
+   * Card NG-52: shows or hides the camera picture while the preview runs, without touching the
+   * camera or the tracker; the points are drawn either way. Absent in an older bridge or a test's.
+   */
+  setVideo?(on: boolean): void;
 }
 
 /** How a preview shows the camera (card NG-49). */
 export interface CapturePreviewOptions {
   /**
    * False: no camera picture at all, only the tracked points on the box's calm background (the
-   * box is marked `data-picture="points"`). The child's gesture view uses it: nobody and no room is
-   * on screen, only where the hands are. Default true (teaching and the camera test).
+   * box is marked `data-picture="points"`): nobody and no room is on screen, only where the hands
+   * are. The child's gesture view asks for it after "Bild aus" (card NG-52); `setVideo` switches it
+   * while the preview runs. Default true (teaching, the camera test, the gesture view).
    */
   readonly video?: boolean;
 }
@@ -882,7 +888,8 @@ export interface CapturePreviewOptions {
  * starts or stops.
  */
 export function createCapturePreview(doc: Document, options: CapturePreviewOptions = {}): CapturePreview {
-  const withVideo = options.video !== false;
+  let withVideo = options.video !== false;
+  let stream: CameraStream | null = null;
   const element = doc.createElement("div");
   element.className = "capture-preview";
   element.dataset["camera"] = "off";
@@ -893,12 +900,28 @@ export function createCapturePreview(doc: Document, options: CapturePreviewOptio
   let canvas: HTMLCanvasElement | null = null;
   let shoulders: readonly [TrackerPoint, TrackerPoint] | null = null;
   let mirrored = true;
-  const close = (): void => {
+  const dropVideo = (): void => {
     if (video !== null) {
       video.pause();
       video.srcObject = null;
+      video.remove?.();
     }
     video = null;
+  };
+  const addVideo = (): void => {
+    if (stream === null || canvas === null || video !== null) return;
+    video = doc.createElement("video");
+    video.className = "capture-preview-video";
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.srcObject = stream as MediaStream;
+    element.replaceChildren(video, canvas);
+    void video.play().catch(() => undefined);
+  };
+  const close = (): void => {
+    dropVideo();
+    stream = null;
     canvas = null;
     shoulders = null;
     element.replaceChildren();
@@ -907,27 +930,27 @@ export function createCapturePreview(doc: Document, options: CapturePreviewOptio
   };
   return {
     element,
-    show(stream, facing) {
+    show(shown, facing) {
       close();
+      stream = shown;
       mirrored = previewMirrored(facing);
       element.dataset["mirrored"] = String(mirrored);
       canvas = doc.createElement("canvas");
       canvas.className = "capture-preview-points";
-      if (!withVideo) {
-        // Card NG-49: the stream is not shown; the points alone say where the hands are.
-        element.replaceChildren(canvas);
-        element.dataset["camera"] = "on";
-        return;
-      }
-      video = doc.createElement("video");
-      video.className = "capture-preview-video";
-      video.muted = true;
-      video.playsInline = true;
-      video.autoplay = true;
-      video.srcObject = stream as MediaStream;
-      element.replaceChildren(video, canvas);
+      // Card NG-49: without the picture the points alone say where the hands are.
+      element.replaceChildren(canvas);
       element.dataset["camera"] = "on";
-      void video.play().catch(() => undefined);
+      if (withVideo) addVideo();
+    },
+    setVideo(on) {
+      withVideo = on;
+      element.dataset["picture"] = on ? "video" : "points";
+      if (on) {
+        addVideo();
+      } else if (video !== null) {
+        dropVideo();
+        if (canvas !== null) element.replaceChildren(canvas);
+      }
     },
     draw(frame) {
       if (canvas === null) return;
