@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+    "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
     "history": [
         {
@@ -33,6 +33,56 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:0fde189c",
                 "summary": "choosePicture keeps an earlier draft.picture while a new file is read; pictureFromFile has no pixel budget; board.ts and caregiver conceptText put symbolPath into img.src unguarded; the board's catalogue icons are ./icons/*.svg; exportProfile/importProfile carry data entries generically; test/browser runs Playwright against serveDist.",
+                "task_id": "NG-8673317704447615766",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:05:36+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:05:36+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:94c9fc4652b19003214fd50fa71fdff76e957cf99c8b8f47fcfae07ff651a408",
+                    "execution-evidence:sha256:f28cdd92c7bbaf9f3b06e1c308b23be578317fc45560ca58d6c0fbf27e5c352e",
+                    "execution-evidence:sha256:da984a50bc7ba7e263829c9375c9a91f29c583c26f8241ecaa0a0226b2d1d07b",
+                    "execution-evidence:sha256:7501e1a3125101fbf3cfbf687f34888bb3ee05d7eae4b90f18c596adb07d9a6a",
+                    "execution-evidence:sha256:a04c735640db100fa1b64d0d35aae1875cf3a675f9c980cad46fd32e74961ca9",
+                    "execution-evidence:sha256:55c4f2e9d34b00a81386e60cdbf6b18c193034414a7cb9654ce3ecd0175defef",
+                    "execution-evidence:sha256:2c7e19705fbc2b32d3431f4f23fd3d69dd7d21c1e9e816772ff565daec6ef7d2",
+                    "execution-evidence:sha256:2001fd4cbedff643638c259e17222cefb26b950b204cb21d265fb65f509fcc7d"
+                ],
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "schema_version": "1.0",
+                "task_id": "NG-8673317704447615766",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:94c9fc4652b19003214fd50fa71fdff76e957cf99c8b8f47fcfae07ff651a408",
+                    "execution-evidence:sha256:f28cdd92c7bbaf9f3b06e1c308b23be578317fc45560ca58d6c0fbf27e5c352e",
+                    "execution-evidence:sha256:da984a50bc7ba7e263829c9375c9a91f29c583c26f8241ecaa0a0226b2d1d07b",
+                    "execution-evidence:sha256:7501e1a3125101fbf3cfbf687f34888bb3ee05d7eae4b90f18c596adb07d9a6a",
+                    "execution-evidence:sha256:a04c735640db100fa1b64d0d35aae1875cf3a675f9c980cad46fd32e74961ca9",
+                    "execution-evidence:sha256:55c4f2e9d34b00a81386e60cdbf6b18c193034414a7cb9654ce3ecd0175defef",
+                    "execution-evidence:sha256:2c7e19705fbc2b32d3431f4f23fd3d69dd7d21c1e9e816772ff565daec6ef7d2",
+                    "execution-evidence:sha256:2001fd4cbedff643638c259e17222cefb26b950b204cb21d265fb65f509fcc7d"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "outcome": "completed",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:31da698a",
+                "summary": "choosePicture drops the earlier picture when a new file is chosen (no Speichern while reading or after a refusal); pictureFromFile refuses > 40 MP (MAX_PICTURE_PIXELS) before drawing, German line; isPictureSource in board.ts (stored picture or ./icons/*.svg) guards board tiles, caregiver rows and previews; tests: board (sources + CONCEPTS), caregiver (stale save, refusal, row guard), profiles-backup round trip with symbol entries (same store copy and new store), new test/browser/pictures.test.mjs in Chromium with synthetic images. Docs caregiver.md, board.md. npm run verify passed: 669 node tests; browser 7 pass.",
                 "task_id": "NG-8673317704447615766",
                 "validation_references": []
             }
