@@ -35,6 +35,12 @@
  * bridge without one, or a preview that fails, leaves the view as before.
  * Nothing of the picture is kept or sent.
  *
+ * Feedback without reading (card NG-45): under the picture, two hand symbols
+ * light up for the hands the camera sees (the frame turns green with a hand,
+ * orange without), and five dots stand for the seconds of the recording; one
+ * goes out each second. Words are there too, for a caregiver, but nothing has
+ * to be read. Nothing moves: the dots change in steps, the row keeps its size.
+ *
  * The controller (`createRecogniser`) has no DOM and is tested in Node; the
  * view (`attachRecognise`) draws its states into the board region.
  */
@@ -45,6 +51,7 @@ import { sequenceFromRecording } from "../recognition/examples.js";
 import type { FeatureFailure, HandKind } from "../recognition/features.js";
 import { DEFAULT_MIN_MARGIN, calibrateMaxDistance, matchGesture } from "../recognition/matcher.js";
 import type { GestureExample, UnknownReason } from "../recognition/matcher.js";
+import { toLandmarkFrame } from "../recognition/tracker-adapter.js";
 import type { TrackerFrame } from "../recognition/tracker-adapter.js";
 
 /** Seconds counted down after the camera runs and before frames are kept, so the hand that tapped can leave the picture. As in teaching. */
@@ -58,6 +65,8 @@ export const RECOGNISE_MAX_RECORDING_MS = 5000;
  * presses for as long after the view closed. A guess.
  */
 export const RECOGNISE_GUARD_MS = 700;
+/** The dots of the recording's time: one per second of `RECOGNISE_MAX_RECORDING_MS`. */
+export const RECOGNISE_SECONDS = Math.ceil(RECOGNISE_MAX_RECORDING_MS / 1000);
 /** How many candidates an unknown answer offers at most. */
 export const MAX_CANDIDATES = 3;
 /**
@@ -99,6 +108,10 @@ export const RECOGNISE_TEXT = {
     tracker_failed: "Die Handerkennung ist ausgefallen. Bitte „Nochmal“ tippen.",
   } satisfies Record<CaptureProblem, string>,
   stopped: "Die Kamera ist ausgegangen. Bitte „Nochmal“ tippen.",
+  /** Under the picture while the camera runs (card NG-45), for a caregiver; the child sees the hand symbols. */
+  seen: ["Keine Hand im Bild", "Eine Hand im Bild", "Zwei Hände im Bild"],
+  /** The accessible name of the dots: the seconds left of the recording. */
+  timeLeft: (seconds: number): string => (seconds === 1 ? "Noch 1 Sekunde" : `Noch ${seconds} Sekunden`),
   unusable: {
     no_frames: "Die Kamera hat kein Bild geschickt.",
     bad_timestamps: "Die Aufnahme hat nicht geklappt.",
@@ -132,6 +145,19 @@ export function analyseAttempt(frames: readonly TrackerFrame[], examples: readon
 
 /** No match: why, and up to `MAX_CANDIDATES` concepts of the board to choose from. */
 export interface UnknownState { readonly kind: "unknown"; readonly reason: UnknownReason; readonly candidates: readonly string[]; readonly hands: HandKind }
+
+/** How many hands the camera sees: none, one or two (the tracker's usable hands, sided as in the preview). */
+export type HandsSeen = 0 | 1 | 2;
+
+/** The hands of one tracked frame as the preview draws them (`toLandmarkFrame`). */
+export function handsSeen(frame: TrackerFrame): HandsSeen {
+  try {
+    const sided = toLandmarkFrame(frame, frame.timestampMs);
+    return ((sided.left === null ? 0 : 1) + (sided.right === null ? 0 : 1)) as HandsSeen;
+  } catch {
+    return 0;
+  }
+}
 
 export type RecogniseState =
   /** The board is shown; the camera is off. */
@@ -176,6 +202,16 @@ export interface RecogniserOptions {
    * before the camera; the capture closes it when it ends, and so does the controller.
    */
   readonly preview?: (bridge: CaptureBridge) => PreviewSink | null;
+  /**
+   * Card NG-45: how many hands each tracked frame shows, while the countdown or the recording is
+   * on screen. Called on every frame, without a redraw; `onChange` is not called for it.
+   */
+  readonly onSeen?: (hands: HandsSeen) => void;
+  /**
+   * Card NG-45: the whole seconds of the recording still left, from `RECOGNISE_SECONDS` when it
+   * starts down to 1; called once a second, without a redraw (a redraw would reset the press guard).
+   */
+  readonly onTimeLeft?: (seconds: number) => void;
   /** Replaces `analyseAttempt`; for tests. */
   readonly analyse?: (frames: readonly TrackerFrame[]) => AttemptOutcome;
 }
@@ -202,6 +238,8 @@ interface Camera {
   readonly controller: AbortController;
   session: CaptureSession | null;
   cancelTimer: () => void;
+  /** The once-a-second tick of the recording's time (card NG-45). */
+  cancelTick: () => void;
   readonly preview: PreviewSink | null;
 }
 
@@ -228,6 +266,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     if (running === null) return [];
     camera = null;
     running.cancelTimer();
+    running.cancelTick();
     const frames = running.session?.stopRecording() ?? [];
     running.controller.abort();
     running.session?.stop();
@@ -295,6 +334,23 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     schedule(own, () => {
       if (camera === own && !gone()) finishRecording();
     }, RECOGNISE_MAX_RECORDING_MS);
+    tick(own, RECOGNISE_SECONDS);
+  };
+
+  /** Tells the view the seconds left, now and then once a second; the last second ends with the recording. */
+  const tick = (own: Camera, left: number): void => {
+    if (camera !== own || current.kind !== "recording") return;
+    try {
+      options.onTimeLeft?.(left);
+    } catch {
+      // Only a display.
+    }
+    if (left <= 1) return;
+    try {
+      own.cancelTick = options.setTimer(() => tick(own, left - 1), 1000);
+    } catch {
+      own.cancelTick = () => undefined;
+    }
   };
 
   const startCamera = (): void => {
@@ -316,7 +372,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     } catch {
       // Without a preview the view works as before.
     }
-    const own: Camera = { controller: new AbortController(), session: null, cancelTimer: () => undefined, preview };
+    const own: Camera = { controller: new AbortController(), session: null, cancelTimer: () => undefined, cancelTick: () => undefined, preview };
     camera = own;
     const ours = (): boolean => camera === own && !own.controller.signal.aborted;
     const failed = (line: string): void => {
@@ -337,8 +393,14 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
           if (!ours() || current.kind !== "starting" || (step !== "preparing" && step !== "asking")) return;
           show({ kind: "starting", line: text[step] });
         },
-        onFrame: () => {
-          if (ours()) gone();
+        onFrame: (frame) => {
+          if (!ours() || gone()) return;
+          if (options.onSeen === undefined || (current.kind !== "countdown" && current.kind !== "recording")) return;
+          try {
+            options.onSeen(handsSeen(frame));
+          } catch {
+            // Only a display.
+          }
         },
       });
     } catch {
@@ -514,6 +576,37 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   let preview: CapturePreview | null = null;
   /** The box the preview sits in, the same for countdown and recording, so the picture does not jump. */
   const previewSlot = element("div", "recognise-preview");
+  /**
+   * Card NG-45: the row under the picture, the same element for countdown and recording: two hand
+   * symbols (lit for each hand seen) with words for a caregiver, and one dot per second of the
+   * recording (all lit in the countdown, one goes out each second while recording).
+   */
+  const feedback = element("div", "recognise-feedback");
+  const seenBox = element("div", "recognise-seen");
+  const seenHands = [element("span", "recognise-seen-hand", "\\u270B"), element("span", "recognise-seen-hand", "\\u270B")];
+  for (const hand of seenHands) hand.setAttribute("aria-hidden", "true");
+  const seenText = element("span", "recognise-seen-text");
+  seenBox.append(...seenHands, seenText);
+  const timeBox = element("div", "recognise-time");
+  timeBox.setAttribute("role", "img");
+  const timeDots = Array.from({ length: RECOGNISE_SECONDS }, () => element("span", "recognise-time-dot"));
+  timeBox.append(...timeDots);
+  feedback.append(seenBox, timeBox);
+  /** The hands seen last; shown again when the view is redrawn. */
+  let seen: HandsSeen = 0;
+  const showSeen = (hands: HandsSeen): void => {
+    seen = hands;
+    panel.dataset["seen"] = String(hands);
+    feedback.dataset["seen"] = String(hands);
+    seenHands.forEach((hand, index) => { hand.dataset["lit"] = String(index < hands); });
+    seenText.textContent = RECOGNISE_TEXT.seen[hands];
+  };
+  const showTimeLeft = (seconds: number): void => {
+    const left = Math.max(0, Math.min(RECOGNISE_SECONDS, seconds));
+    timeDots.forEach((dot, index) => { dot.dataset["lit"] = String(index < left); });
+    timeBox.dataset["left"] = String(left);
+    timeBox.setAttribute("aria-label", RECOGNISE_TEXT.timeLeft(left));
+  };
 
   /** When the latest press on the view began; a click without a pointer (a key) counts from the click. */
   let pressedAt: number | null = null;
@@ -531,6 +624,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     delete panel.dataset["reason"];
     delete panel.dataset["hands"];
     delete panel.dataset["from"];
+    if (state.kind !== "countdown" && state.kind !== "recording") delete panel.dataset["seen"];
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
     if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording") previewSlot.replaceChildren();
@@ -546,6 +640,11 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     switch (state.kind) {
       case "starting":
       case "problem":
+        // A new camera start: nothing seen yet, the whole time ahead.
+        if (state.kind === "starting") {
+          showSeen(0);
+          showTimeLeft(RECOGNISE_SECONDS);
+        }
         line.textContent = state.line;
         if (state.kind === "problem") buttons.push(againButton());
         break;
@@ -558,6 +657,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
           previewSlot.replaceChildren(preview.element, element("p", "recognise-count", String(state.left)));
           content.push(previewSlot);
         }
+        showSeen(seen);
+        content.push(feedback);
         break;
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;
@@ -565,6 +666,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
           previewSlot.replaceChildren(preview.element);
           content.push(previewSlot);
         }
+        showSeen(seen);
+        content.push(feedback);
         const finish = actionButton("recognise-finish", RECOGNISE_SYMBOLS.finish, RECOGNISE_TEXT.finish);
         finish.addEventListener("click", () => recogniser.finish(pressStart()));
         buttons.push(finish);
@@ -638,15 +741,42 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       : options.capture),
     host: () => panel,
     preview: (bridge) => {
+      // A preview of an earlier start is gone even when this one cannot be made (card NG-45).
+      preview = null;
+      previewSlot.replaceChildren();
       // The picture is mirrored for the front camera, which this view always uses.
-      preview = typeof bridge.createPreview === "function" ? bridge.createPreview(document) : null;
-      previewSlot.replaceChildren(...(preview === null ? [] : [preview.element]));
-      return preview;
+      const made = typeof bridge.createPreview === "function" ? bridge.createPreview(document) : null;
+      if (made === null) return null;
+      preview = made;
+      previewSlot.append(made.element);
+      return {
+        show(stream, facing) {
+          try {
+            made.show(stream, facing);
+          } catch (error) {
+            // No picture after all: the view goes on as without a preview, not with an empty box.
+            if (preview === made) {
+              preview = null;
+              previewSlot.replaceChildren();
+            }
+            try {
+              made.close();
+            } catch {
+              // Nothing more to undo.
+            }
+            throw error;
+          }
+        },
+        draw: (frame) => made.draw(frame),
+        close: () => made.close(),
+      };
     },
     setTimer: options.setTimer ?? defaultTimer,
     now,
     speak: (conceptId) => { board.say(conceptId); },
     onChange: draw,
+    onSeen: (hands) => { if (hands !== seen) showSeen(hands); },
+    onTimeLeft: showTimeLeft,
     stillShown: () => !root.hidden && !hiddenPage(),
   });
   back.addEventListener("click", () => {
