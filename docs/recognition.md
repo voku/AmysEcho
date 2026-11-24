@@ -489,6 +489,98 @@ matcher accepts (one that ends elsewhere) is reported as fitting too: the advice
 good as the matcher's limits. Stored examples can be replayed as a stick-figure hand drawn from
 these features (`src/teach/replay.ts`); that shows what is compared, not a recording.
 
+## A continuous stream cut into gestures (card NG-53)
+
+The owner asked for continuous recognition: the camera runs while the gesture view is open, and a
+child can make several gestures one after another (card NG-54 is the view). The matcher compares
+one finished attempt, so the stream has to be cut into attempts first. Code:
+`src/recognition/segment.ts` (`segmentStream`); measured with `simulateStream` in
+`src/recognition/evaluate.ts`.
+
+- **Two ways to cut.**
+  - "away": a gesture ends when no hand is in view for longer than `SEGMENT_GAP_MS` (700 ms,
+    200 ms more than `MAX_BRIDGED_GAP_MS`). A hand lost by the tracker for as long as the builder
+    bridges never cuts a gesture.
+  - "rest": also where the hands rest in view for `REST_SPLIT_MS` (1 s) after a movement, cut in
+    the middle of that rest. A hand at rest moves slower than `REST_SPEED`, measured on the palm
+    centre against the same hand at least `SPEED_SPAN_MS` earlier; a hand that just came into view
+    is neither moving nor resting.
+  - Nothing is trimmed inside a segment, as for an attempt. A segment longer than `SEGMENT_MAX_MS`
+    (10 s) is dropped, not compared. A gesture still going on at the stream's end is returned as
+    `open`.
+- **How it was measured.** The synthetic profile of the tables above (15 gestures, examples from
+  two teaching sessions, calibrated as there). In each of the two later sessions, 3 known gestures
+  and 2 unknown movements per gesture, shuffled, are joined into streams of six with a pause
+  between them:
+  - "hands away": no hand in view for the pause;
+  - "hands rest": the hands rest at the end posture, move to the next start posture in 400 ms
+    (`TRANSITION_MS`) and rest there.
+  
+  Each segment goes to the matcher. A segment belongs to the movement it overlaps most. A known
+  gesture counts as top1 when a segment of it is accepted as the right concept and none as a
+  wrong one, as wrong concept when a segment of it is accepted as a wrong one, and as missed
+  otherwise. Segments that overlap no movement and are accepted count as "said in a pause".
+  - **Baseline:** the very same captures, each scored on its own as one attempt ("one by one").
+- **The gate.** In the stream, no more wrong concepts and no more unknown movements accepted than
+  one by one on the same captures, and nothing said in a pause. No matcher threshold was changed.
+
+Measured with `EVAL_FULL=1`-size streams (90 known gestures and 60 unknown movements per row):
+
+| Cut | Between gestures | Sloppiness | Unknown kind | Top1 | Wrong concept | Missed | Unknown accepted | Said in a pause | Split / merged / too long | One by one: top1 / wrong / unknown accepted |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| away | hands away 1000 ms | 0.5 | unrelated | 100.0 % | 0.0 % | 0.0 % | 1.7 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| away | hands away 1000 ms | 0.5 | other-fingers | 100.0 % | 0.0 % | 0.0 % | 15.0 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 15.0 % |
+| away | hands away 1000 ms | 1.5 | unrelated | 100.0 % | 0.0 % | 0.0 % | 0.0 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 0.0 % |
+| away | hands away 1000 ms | 1.5 | other-fingers | 100.0 % | 0.0 % | 0.0 % | 1.7 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| away | hands away 1500 ms | 0.5 | unrelated | 100.0 % | 0.0 % | 0.0 % | 1.7 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| away | hands away 1500 ms | 0.5 | other-fingers | 100.0 % | 0.0 % | 0.0 % | 15.0 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 15.0 % |
+| away | hands away 1500 ms | 1.5 | unrelated | 100.0 % | 0.0 % | 0.0 % | 0.0 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 0.0 % |
+| away | hands away 1500 ms | 1.5 | other-fingers | 100.0 % | 0.0 % | 0.0 % | 1.7 % | 0 | 0 / 0 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| away | hands away 600 ms | 0.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 1.7 % |
+| away | hands away 600 ms | 0.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 15.0 % |
+| away | hands away 600 ms | 1.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 0.0 % |
+| away | hands away 600 ms | 1.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | unrelated | 15.6 % | 0.0 % | 84.4 % | 0.0 % | 0 | 0 / 32 / 22 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | other-fingers | 15.6 % | 0.0 % | 84.4 % | 1.7 % | 0 | 1 / 41 / 23 | 100.0 % / 0.0 % / 8.3 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | unrelated | 11.1 % | 0.0 % | 88.9 % | 0.0 % | 0 | 1 / 36 / 22 | 98.9 % / 0.0 % / 0.0 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | other-fingers | 13.3 % | 0.0 % | 86.7 % | 0.0 % | 0 | 2 / 42 / 21 | 98.9 % / 0.0 % / 0.0 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 0.5 | unrelated | 100.0 % | 0.0 % | 0.0 % | 3.3 % | 0 | 123 / 124 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 0.5 | other-fingers | 100.0 % | 0.0 % | 0.0 % | 11.7 % | 0 | 123 / 124 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 1.5 | unrelated | 98.9 % | 0.0 % | 1.1 % | 0.0 % | 0 | 122 / 124 / 0 | 98.9 % / 0.0 % / 0.0 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 1.5 | other-fingers | 97.8 % | 0.0 % | 2.2 % | 3.3 % | 0 | 121 / 124 / 0 | 98.9 % / 0.0 % / 0.0 % |
+| away | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 100.0 % / 0.0 % / 1.7 % |
+| away | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 100.0 % / 0.0 % / 8.3 % |
+| away | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 98.9 % / 0.0 % / 0.0 % |
+| away | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 98.9 % / 0.0 % / 0.0 % |
+
+- **"away" passes the gate.** With the hands out of view for 1 s or 1.5 s between gestures,
+  every number equals the one-by-one numbers on the same captures. No movement is split or
+  merged, and nothing is said in a pause. The 15 % of "other-fingers" look-alikes accepted at low
+  sloppiness are the matcher's, one by one as well: a known limit of the matcher (see above),
+  not of the cut.
+- **A pause shorter than the gap is safe but useless.** At 600 ms the movements run together,
+  the long segments are dropped or match nothing, and nothing is said. No wrong concept, nothing
+  accepted.
+- **"rest" fails the gate.**
+  - With 1 s rests the cut is too rare: the movements run together and 84 to 89 % of gestures are
+    missed.
+  - With 1.5 s rests the move between two postures becomes a segment of its own, and unknown
+    movements are accepted more often than one by one (3.3 % against 1.7 %, 11.7 % against 1.7 %).
+  - It is not used.
+- **Cut at "away" while the hands rest in view,** the whole stream is one movement: dropped,
+  nothing said.
+
+**What follows for the view (card NG-54).** Continuous recognition cuts at "away". The child, or
+the caregiver, lowers the hands out of the picture for about a second between two gestures. The
+view has to make that clear without reading, for example by showing when a gesture has been taken.
+A child who keeps the hands up between gestures gets nothing said rather than something wrong.
+
+**Not measured.** All of the above is synthetic. Real tracker streams have hands that leave
+slowly, half out of the picture, or a lap in view, and children who do not lower their hands. The
+private evaluation tool (card NG-5) has to repeat this on real recordings before the gate counts
+for a child. Real recordings never go into the repository. Static signs (shape only, no travel)
+were not part of the synthetic profile.
+
 ## Known limits
 
 - **Look-alikes that end somewhere else are accepted** (last table row). The distance sums over the

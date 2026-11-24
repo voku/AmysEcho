@@ -1,0 +1,114 @@
+{
+    "base_commit": "2f46fc5150fb29a94f68475413ceb5871f4733f5",
+    "contract_revision": 1,
+    "contract_source": {
+        "path": ".agent-loop/contracts/NG-53/contract.json",
+        "sha256": "sha256:c1e2ce53486c94178c350d84e28159db67a0120a76016c9b172b29803b6c47e3"
+    },
+    "digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+    "kind": "governed_execution_plan",
+    "prepared_at": "2026-11-24T18:39:10+00:00",
+    "profile": "standard",
+    "roles": [
+        {
+            "id": "investigator",
+            "may_mutate": false,
+            "required_capabilities": [
+                "inspect",
+                "report"
+            ]
+        },
+        {
+            "id": "builder",
+            "may_mutate": true,
+            "required_capabilities": [
+                "inspect",
+                "mutate",
+                "validate"
+            ]
+        },
+        {
+            "id": "correctness-review",
+            "may_mutate": false,
+            "required_capabilities": [
+                "inspect",
+                "review"
+            ]
+        },
+        {
+            "id": "blindspot-review",
+            "may_mutate": false,
+            "required_capabilities": [
+                "inspect",
+                "review"
+            ]
+        }
+    ],
+    "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+    "schema_version": "1.0",
+    "stages": [
+        {
+            "id": "investigate",
+            "kind": "agent",
+            "may_mutate": false,
+            "requires": [],
+            "role": "investigator",
+            "transitions": {
+                "completed": "build"
+            }
+        },
+        {
+            "id": "build",
+            "kind": "agent",
+            "may_mutate": true,
+            "requires": [
+                "investigate"
+            ],
+            "role": "builder",
+            "transitions": {
+                "completed": "correctness-review"
+            }
+        },
+        {
+            "context_policy": "fresh_required",
+            "id": "correctness-review",
+            "kind": "agent",
+            "may_mutate": false,
+            "requires": [
+                "build"
+            ],
+            "role": "correctness-review",
+            "transitions": {
+                "changes_required": "build",
+                "pass": "blindspot-review"
+            }
+        },
+        {
+            "context_policy": "fresh_required",
+            "id": "blindspot-review",
+            "kind": "agent",
+            "may_mutate": false,
+            "requires": [
+                "correctness-review"
+            ],
+            "role": "blindspot-review",
+            "transitions": {
+                "changes_required": "build",
+                "pass": "verify"
+            }
+        },
+        {
+            "id": "verify",
+            "kind": "deterministic",
+            "may_mutate": false,
+            "requires": [
+                "blindspot-review"
+            ],
+            "role": null,
+            "transitions": {
+                "pass": null
+            }
+        }
+    ],
+    "task_id": "NG-53"
+}

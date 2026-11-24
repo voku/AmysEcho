@@ -1,0 +1,165 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-53 before calling agent-loop finish NG-53",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T18:39:09+00:00",
+            "approved_by": "Lars Moelleken (approved in session, 2026-11-24: 'follow the white rabbit')",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-53/contract.json",
+                "sha256": "sha256:c1e2ce53486c94178c350d84e28159db67a0120a76016c9b172b29803b6c47e3"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-53",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "9800ea944e20ef4aadb2eda2d8def9f1cfc5d274edbb349c48fd5940c673bdab",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-53.md",
+                "sha256": "sha256:9800ea944e20ef4aadb2eda2d8def9f1cfc5d274edbb349c48fd5940c673bdab"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "segmentStream cuts a continuous LandmarkFrame stream at pauses where no hand is in view for longer than the matcher bridges (MAX_BRIDGED_GAP_MS), and in a second mode also at a long rest of the hands in view; it never cuts inside a bridged dropout; unit tests cover both modes, dropouts, a stream ending inside a gesture, and an empty stream",
+                "simulateStream scores streams of known gestures and unknown movements with pauses on the synthetic profile: top1, wrong concept, missed, unknown accepted, and segments that match no gesture but are accepted; reported per separator next to the per-attempt report of the same profile",
+                "docs/recognition.md reports the measured numbers and whether the gate holds for each separator (wrong concept and unknown accepted no higher than per attempt); no matcher threshold is changed; the evaluation test holds limits set under the measured values"
+            ],
+            "goal": "A continuous landmark stream is cut into gesture segments, and how often the existing matcher then gets each gesture right, wrong or misses it is measured on synthetic multi-gesture streams against the per-attempt numbers.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-53/contract.json",
+                "sha256": "sha256:c1e2ce53486c94178c350d84e28159db67a0120a76016c9b172b29803b6c47e3"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-53/contract.json",
+                "sha256": "sha256:c1e2ce53486c94178c350d84e28159db67a0120a76016c9b172b29803b6c47e3"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:715950a90f17704b15b107e95210353ac16cd69929a0b3f4e62aee19bbd16925",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:29a8d51b52e5e52508c24812ca1dc62d5a72b9f9914f2af530f1e9d0ef825922"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "918e1b740176dce8f261a0b9b5e343f9d65cfd755dc2a117a46a2ba75d9e50b6",
+            "compilation_id": "compilation.NG-53.2026-11-24-183911.23378e6e",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "94f0f6470d3710a2b6360f2d0f86bf90432cb2d1d48c29bdbfae558b6d48dc2d",
+            "source": {
+                "path": ".agent-loop/recall/NG-53/meta.json",
+                "sha256": "sha256:a7d6db02ae89a4a570e52b3f7592e5368a02315c1ce7c107f4a0d4ac3790552c"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-53/reviews/NG-53.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "2f46fc5150fb29a94f68475413ceb5871f4733f5",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-53-r1-5e92a9f9",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-53-r1-5e92a9f9/session.json",
+                "sha256": "sha256:c145c093d2b28a377e6c5d6986d2f5583e9df9fded2dc4aeb421ef9ae7ee9874"
+            },
+            "state": "active",
+            "task_id": "NG-53"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-53 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-53",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "implementation",
+            "implementation_snapshot": null,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Implementation snapshot scoped path does not exist yet: src/recognition/segment.ts (a deleted path needs a Contract base_commit that tracks it)",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-53"
+}

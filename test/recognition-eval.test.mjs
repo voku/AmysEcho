@@ -11,7 +11,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Worker } from "node:worker_threads";
 import { buildFeatureSequence } from "../dist/recognition/features.js";
-import { evaluateBySession, simulateHandCases, simulateProfile, simulateProfileUnder } from "../dist/recognition/evaluate.js";
+import { evaluateBySession, simulateHandCases, simulateProfile, simulateProfileUnder, simulateStream } from "../dist/recognition/evaluate.js";
+import { SEGMENT_GAP_MS } from "../dist/recognition/segment.js";
 import { createGesture, createSession, renderGesture } from "../dist/recognition/synthetic.js";
 
 /**
@@ -199,3 +200,55 @@ test("a capture from which no sequence can be built counts as an 'unknown' answe
   assert.deepEqual([report.knownAttempts, report.top1, report.top3, report.falseReject, report.wrongAccept], [2, 0.5, 0.5, 0.5, 0]);
   assert.deepEqual([report.unknownAttempts, report.unknownRecall], [1, 1]);
 });
+
+// --- A continuous stream cut into gestures (card NG-53) ---
+
+/** `EVAL_FULL=1`: the size of the table in docs/recognition.md (3 gestures and 2 unknown movements per gesture and later session). */
+const STREAM_SIZE = FULL ? { attemptsPerGesture: 3, unknownsPerGesture: 2 } : { attemptsPerGesture: 1, unknownsPerGesture: 1 };
+const streamLine = (name, report) => `${name}: top1 ${percent(report.top1)}, wrong concept ${percent(report.wrongAccept)}, `
+  + `missed ${percent(report.missed)}, unknown accepted ${percent(report.falseAccept)}, accepted in a pause ${report.spuriousAccepts}, `
+  + `split ${report.split}, merged ${report.merged}, too long ${report.tooLong}, ${report.segments} segments for `
+  + `${report.knownGestures} gestures and ${report.unknownMovements} unknown movements; the same movements one by one: `
+  + `top1 ${percent(report.perAttempt.top1)}, wrong concept ${percent(report.perAttempt.wrongAccept)}, unknown accepted ${percent(report.perAttempt.falseAccept)}`;
+const stream = (options) => simulateStream({ hands: "default", gestures: GESTURES, sloppiness: 1.5, ...STREAM_SIZE, ...options });
+
+test("continuous stream, hands out of view between gestures, cut at those pauses: never worse than the same movements one by one", (t) => {
+  for (const unknownKind of ["unrelated", "other-fingers"]) {
+    for (const pauseMs of [1000, 1500]) {
+      const report = stream({ unknownKind, mode: "away", pause: "away", pauseMs });
+      const name = `away ${pauseMs} ms, ${unknownKind}`;
+      t.diagnostic(streamLine(name, report));
+      // The gate of card NG-53: no more wrong concepts and no more unknown movements accepted than per attempt, nothing said in a pause.
+      assert.ok(report.wrongAccept <= report.perAttempt.wrongAccept + 1e-12, streamLine(name, report));
+      assert.ok(report.falseAccept <= report.perAttempt.falseAccept + 1e-12, streamLine(name, report));
+      assert.equal(report.spuriousAccepts, 0, streamLine(name, report));
+      assert.ok(report.top1 >= 0.95, streamLine(name, report));
+      assert.equal(report.split + report.merged + report.tooLong, 0, streamLine(name, report));
+    }
+  }
+});
+
+test("continuous stream, pauses shorter than the gap: the movements run together and nothing is said, rather than something wrong", (t) => {
+  const report = stream({ unknownKind: "unrelated", mode: "away", pause: "away", pauseMs: SEGMENT_GAP_MS - 100 });
+  t.diagnostic(streamLine("away, pauses shorter than the gap", report));
+  assert.equal(report.wrongAccept, 0, streamLine("short pauses", report));
+  assert.equal(report.falseAccept, 0, streamLine("short pauses", report));
+  assert.equal(report.spuriousAccepts, 0, streamLine("short pauses", report));
+  assert.ok(report.missed >= 0.9, streamLine("short pauses", report));
+});
+
+test("continuous stream, hands resting in view between gestures, cut at the rests: known limit, measured and reported", (t) => {
+  // Fails the gate of card NG-53 (docs/recognition.md): with 1 s rests the movements run together and most are missed;
+  // with 1.5 s rests the move between two postures becomes a segment of its own and unknown movements are accepted
+  // more often than one by one. Not used by the view; reported so a change shows up.
+  for (const pauseMs of [2000, 3000]) {
+    const report = stream({ unknownKind: "other-fingers", mode: "rest", pause: "rest", pauseMs });
+    t.diagnostic(streamLine(`rest ${pauseMs} ms, other-fingers`, report));
+    assert.ok(report.wrongAccept <= 0.02, streamLine("rest", report));
+  }
+  // Cut only where the hands leave, such a stream is one long movement: dropped, nothing said.
+  const away = stream({ unknownKind: "other-fingers", mode: "away", pause: "rest", pauseMs: 2000 });
+  t.diagnostic(streamLine("cut at 'away', hands resting between gestures", away));
+  assert.equal(away.top1 + away.wrongAccept + away.falseAccept + away.spuriousAccepts, 0, streamLine("away on rests", away));
+});
+
