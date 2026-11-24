@@ -1,0 +1,175 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T02:24:42+00:00",
+            "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-46/contract.json",
+                "sha256": "sha256:3ab547d8fbbb5e3efe02e6fa26d0dcdd967ae3ae7ce16b1ad91c6aa248c00da7"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-46",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "fd13369811764d49c8424862043564271702a2cb75bc5a37acbcb2b954f691a1",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-46.md",
+                "sha256": "sha256:fd13369811764d49c8424862043564271702a2cb75bc5a37acbcb2b954f691a1"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A drop of the hand count (e.g. 1 to 0) is shown only after it held for 300 ms; a rise is shown at once; a hand lost for single frames never turns the frame orange",
+                "The seconds dots are derived from the recording deadline; a late timer callback shows the correct count, and no timer is left after the camera stops",
+                "No change to the press guard, the recording time limit or anything the camera stores or sends"
+            ],
+            "goal": "The gesture view's hands-seen signal does not flicker, and its seconds dots always match the time actually left.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-46/contract.json",
+                "sha256": "sha256:3ab547d8fbbb5e3efe02e6fa26d0dcdd967ae3ae7ce16b1ad91c6aa248c00da7"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-46/contract.json",
+                "sha256": "sha256:3ab547d8fbbb5e3efe02e6fa26d0dcdd967ae3ae7ce16b1ad91c6aa248c00da7"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T06:28:22+00:00",
+            "decided_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-46:3b9f0b9c459ee361",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/0bbcdbb0ab721342f28e5a8cc79dadab7bfcef6ceb4025477f04076e1befc8d5.json",
+                "sha256": "sha256:0b615577476dabbf10774e36e7904baf8e8e6a5fbdf87973847ec40efbcfc27d"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:42fdfc812331847a66e2c6fe8cdd8b91a3608fc6bc0c726848bad87dec4638fa",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:f64663fe2a52ad01a5ad54dbd4c7ebb2c55d9bb64ec477f03849629ecd1cbb39"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/recognise/recognise.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognise.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 2,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-46:3b9f0b9c459ee361",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "9ca5b4ae2c77f12ca950bc6f195be3a68912e0ad15e7dd868d05f86be0076060",
+            "compilation_id": "compilation.NG-46.2026-11-24-022443.c2bdc2c9",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "512fdb3c951dbc49f979d7e6ecfcb3dc6a6a1f548db3a79cfcd4509fdcb55bd6",
+            "source": {
+                "path": ".agent-loop/recall/NG-46/meta.json",
+                "sha256": "sha256:cef0ee6e370588e265f47b6e375bd5fd1d0efea5032b7211834995255cea15eb"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-46/reviews/NG-46.blindspots.json",
+                "sha256": "sha256:4f71b6f1c2c3918525d0df97e984e7f07437ab52bd72322c88491311150194f4"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-46-r1-577004a1",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-46-r1-577004a1/session.json",
+                "sha256": "sha256:8cd199138afd5c63312f8c4da0c1df1ed2192405821394a6848545653e7c5484"
+            },
+            "state": "done",
+            "task_id": "NG-46"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:08670acf70bf7691ef7adb9ac0cd8228806665b653656cc87797083b7415b08b",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-46:3b9f0b9c459ee361",
+            "source": {
+                "path": ".agent-loop/runs/NG-46/verification.json",
+                "sha256": "sha256:2c99c1bd915d1d231123516d49706a439fe2034327a75bc6e2153c2c6f817769"
+            },
+            "source_session_id": "2026-11-24-ng-46-r1-577004a1",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-46:3b9f0b9c459ee361",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-46"
+}

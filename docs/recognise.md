@@ -156,6 +156,16 @@ see without reading:
   camera). The dots change in steps, with no transition or animation, for children who are
   bothered by motion; their accessible name is "Noch 5 Sekunden" … "Noch 1 Sekunde". The ticks
   do not redraw the view, so they never reset the press guard of "Stopp".
+- **Steady, not restless** (card NG-46): the tracker can lose a hand for single frames. A lower
+  count is shown only after it held for `SEEN_HOLD_MS` (300 ms); a higher one at once. So a hand
+  that flickers out of the tracker for a frame or two never switches the frame between green and
+  orange. The hold ends on the highest count of the frames during it, never on a single frame:
+  from two hands to one, an empty frame just as the hold ends does not flash "no hand" (it starts
+  its own hold; a first review found this case). The seconds are derived from the recording's deadline (`now()` at its start plus
+  `RECOGNISE_MAX_RECORDING_MS`), and the next tick wakes at the next whole second before it: a
+  timer that fires late shows the count of the time actually left instead of falling one step
+  behind per tick. Tested with a hand lost for single frames, a lasting drop, and a timer that
+  fires 900 ms late.
 
 Measured in headless Chromium (as above, synthetic tracker frames, two hands): no page scroll and
 nothing outside the window; picture and row keep their boxes from the countdown into the
