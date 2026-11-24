@@ -115,7 +115,10 @@ unknown, unusable), on a camera problem and on every way out the camera stops, t
 the preview (the controller closes it too, also when the start was cancelled before the camera
 opened) and the box is emptied: no picture is shown with an answer. A bridge without
 `createPreview` (an older one, or the browser test's) or a preview that fails leaves the view as
-before: the count in its own line and no picture. Nothing of the picture is kept, copied or sent.
+before: the count in its own line and no picture. Since card NG-45 this also holds when the
+preview's `show` throws (the view wraps the sink, drops and closes the preview) and when a later
+start's `createPreview` throws after an earlier start had a picture (the old preview is
+forgotten first); both are tested. Nothing of the picture is kept, copied or sent.
 Tested in `test/recognise.test.mjs` ("preview: …") with a recording preview on the real capture
 path. Measured in headless Chromium (the real stylesheet, board and view, the real
 `createCapturePreview` on Chromium's fake camera, synthetic tracker frames), no page scroll and
@@ -134,6 +137,42 @@ the recording:
 with dark bars where the box's shape differs from the camera's.) Not tried: a real camera, a
 phone, a child; whether the picture distracts a child from the gesture, or helps it, is a question
 for the trial.
+
+**Feedback without reading** (card NG-45; owner: "something useful with nice UI / UX for children
+with special needs"). Under the picture, in the countdown and the recording, one row
+(`.recognise-feedback`, the same element in both, so nothing moves) shows two things a child can
+see without reading:
+
+- **Hands seen:** two hand symbols (✋), lit for each hand the camera sees and grey otherwise, with
+  the words "Keine Hand im Bild", "Eine Hand im Bild" or "Zwei Hände im Bild" for a caregiver
+  (`RECOGNISE_TEXT.seen`). The row and a frame drawn over the picture are orange (#b35400)
+  without a hand and green (#1d6b40) with one or two. Hands are counted as the preview draws them
+  (`handsSeen`: the usable hands of `toLandmarkFrame`), on every tracked frame, without a redraw
+  (`RecogniserOptions.onSeen`); a new attempt starts at "Keine Hand". Without a preview (an older
+  bridge) the row is there all the same.
+- **Time left:** five dots (`RECOGNISE_SECONDS`, one per second of `RECOGNISE_MAX_RECORDING_MS`).
+  In the countdown all are lit (this is the time you will have); in the recording one goes out
+  each second (`onTimeLeft`, a once-a-second tick of the controller that is cancelled with the
+  camera). The dots change in steps, with no transition or animation, for children who are
+  bothered by motion; their accessible name is "Noch 5 Sekunden" … "Noch 1 Sekunde". The ticks
+  do not redraw the view, so they never reset the press guard of "Stopp".
+
+Measured in headless Chromium (as above, synthetic tracker frames, two hands): no page scroll and
+nothing outside the window; picture and row keep their boxes from the countdown into the
+recording; at 320 and 360 px wide the dots wrap under the hands:
+
+| Window | Picture | Feedback row | Stopp |
+| --- | --- | --- | --- |
+| 320x480 | 20, 132, 279x183 | 20, 321, 279x54 | 20, 381, 279x80 |
+| 360x640 | 20, 169, 319x272 | 20, 448, 319x54 | 20, 509, 319x112 |
+| 640x360 | 20, 133, 353x165 | 20, 304, 353x37 | 380, 104, 240x237 |
+| 844x390 | 20, 135, 476x193 | 20, 334, 476x37 | 502, 104, 321x267 |
+| 820x1180 | 20, 187, 779x803 | 20, 996, 779x45 | 20, 1049, 779x112 |
+
+The picture is smaller than with card NG-44 alone (the row takes 37 to 54 px). Not tried: a child,
+a device, whether the symbols and colours are understood without explanation, and colour-blind
+children (orange and green also differ in the number of lit hands, which carries the meaning on
+its own).
 
 **Always the front camera** (card NG-43). The view has **no camera control** and does **not** use
 the "Kamera: vorne / hinten" choice of teaching and the camera test: it asks the bridge for the
@@ -282,6 +321,4 @@ parallel. The test takes about 70 s, mostly tracking; `npm run verify` took 2 mi
 - **A cooldown** against speaking the same gesture twice in a row within a short time.
 - **A profile setting for who confirms** (the child or a caregiver). Today the child confirms.
 - Measuring the gesture view with larger text, and on a device.
-- A live line in the view (how many hands are seen) while recording; the live picture (card NG-44)
-  shows the hands, but says nothing in words.
 - Trying the flow, the countdown, the 5 s limit and both guard times with a child.
