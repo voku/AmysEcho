@@ -1,0 +1,37 @@
+{
+    "acceptance_criteria": [
+        "A drop of the hand count (e.g. 1 to 0) is shown only after it held for 300 ms; a rise is shown at once; a hand lost for single frames never turns the frame orange",
+        "The seconds dots are derived from the recording deadline; a late timer callback shows the correct count, and no timer is left after the camera stops",
+        "No change to the press guard, the recording time limit or anything the camera stores or sends"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-24T02:24:42+00:00",
+    "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "base_commit": "86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8",
+    "behavior_anchors": [],
+    "created_at": "2026-11-24T02:24:42+00:00",
+    "goal": "The gesture view's hands-seen signal does not flicker, and its seconds dots always match the time actually left.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/recognise/recognise.ts",
+        "test/recognise.test.mjs",
+        "docs/recognise.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-46",
+    "updated_at": "2026-11-24T02:24:42+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

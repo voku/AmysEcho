@@ -1,0 +1,298 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T02:30:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T02:30:44+00:00",
+                "artifact_references": [],
+                "candidate_revision": "86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "schema_version": "1.0",
+                "task_id": "NG-46",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "outcome": "completed",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:93a273a0",
+                "summary": "Hands-seen updates and the seconds tick live in createRecogniser (onFrame -> onSeen, tick after startRecording). Change sites: a hold for lower counts in the controller, the tick derived from a recording deadline; tests and docs.",
+                "task_id": "NG-46",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T02:30:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T02:30:44+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:5fba59629855235cea480681c7054c219bccbf97f5d69fea7074edf3853c7c4e",
+                    "execution-evidence:sha256:aa1861c1cd4cb5089defb2bae7fa545e981799ae1d2b4622b7f2ffdc638ebf8f",
+                    "execution-evidence:sha256:c4b7706cb2fec35f1c50e79b5cb9557607ae84c0da2c932fd5363cafd7753d78"
+                ],
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:df4426ec09f6c3345e062dc21fb2d3dadca9fd12",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "schema_version": "1.0",
+                "task_id": "NG-46",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:5fba59629855235cea480681c7054c219bccbf97f5d69fea7074edf3853c7c4e",
+                    "execution-evidence:sha256:aa1861c1cd4cb5089defb2bae7fa545e981799ae1d2b4622b7f2ffdc638ebf8f",
+                    "execution-evidence:sha256:c4b7706cb2fec35f1c50e79b5cb9557607ae84c0da2c932fd5363cafd7753d78"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:df4426ec09f6c3345e062dc21fb2d3dadca9fd12",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "outcome": "completed",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:e689977f",
+                "summary": "SEEN_HOLD_MS=300 hold for lower hand counts (higher at once, reset per start); seconds from the recording deadline with the next tick at the next whole second; 2 new tests (single-frame drops, lasting drop, 900 ms late timer); npm run verify 650/650 + 6/6.",
+                "task_id": "NG-46",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:16:09+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:16:09+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:39df619d0b65a4f32e4ed16d9992bd4cde16fa9cadb92427901de69f05605350",
+                    "execution-evidence:sha256:6b40a411ab6ab437618c6e879f644680dfeb9a369e439edd430df431e8bb281b",
+                    "execution-evidence:sha256:eacf85ffca61aa0baf4abf9112238797c904c64d7a8ad6d7d2e2ec92a9a5f49e"
+                ],
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:df4426ec09f6c3345e062dc21fb2d3dadca9fd12",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "schema_version": "1.0",
+                "task_id": "NG-46",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:39df619d0b65a4f32e4ed16d9992bd4cde16fa9cadb92427901de69f05605350",
+                    "execution-evidence:sha256:6b40a411ab6ab437618c6e879f644680dfeb9a369e439edd430df431e8bb281b",
+                    "execution-evidence:sha256:eacf85ffca61aa0baf4abf9112238797c904c64d7a8ad6d7d2e2ec92a9a5f49e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:df4426ec09f6c3345e062dc21fb2d3dadca9fd12",
+                "context_id": "claude-subagent-ng46-correctness-review",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "outcome": "changes_required",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:d2a7bafa",
+                "summary": "Hold logic violates AC1 (a hand lost for single frames never turns the frame orange). src/recognise/recognise.ts:390-391 adopts whatever count arrives on the first frame after SEEN_HOLD_MS, not a count that held. Repro (scratch test with the repo's fakeCamera/fakeTime): two hands, then one hand for ~330 ms, then one empty frame, then one hand gives onSeen [2,...,2,0,1], so the frame goes orange for one frame. Fix: while lowerSince is set, track the highest count seen since then (e.g. own.lowerMax = max(lowerMax, hands)), and when the hold ends show that value and not the current frame; restart the hold if the frame is still below it. Add a test for 2 -> held 1 -> single 0 frame at hold expiry. Tick math checked and correct: deadline-derived count, next wake at the next second boundary, late-timer case right, left<=1 stops rescheduling, stopCamera cancels tick, press guard and the recording time limit unchanged. 37/37 tests pass after build. Non-blocking: recognise.ts:373, a timer that fires a few ms early shows the same count again and reschedules 1 ms later; harmless.",
+                "task_id": "NG-46",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:19:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:19:42+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:b0e2a7edf28b9c3ac0e94e53632e13a38cfb864a2d33992142efd9fe23195b96",
+                    "execution-evidence:sha256:896fe5d5df7a32b357f0c49bb11e5f842aeb85500ebf2666f6920018144aba8a",
+                    "execution-evidence:sha256:e1600a8c46a32d15c348acc57744955b1c5afc30502d9e19f87acfd85b4b9bd1"
+                ],
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "schema_version": "1.0",
+                "task_id": "NG-46",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:b0e2a7edf28b9c3ac0e94e53632e13a38cfb864a2d33992142efd9fe23195b96",
+                    "execution-evidence:sha256:896fe5d5df7a32b357f0c49bb11e5f842aeb85500ebf2666f6920018144aba8a",
+                    "execution-evidence:sha256:e1600a8c46a32d15c348acc57744955b1c5afc30502d9e19f87acfd85b4b9bd1"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "outcome": "completed",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:9f7af7b5",
+                "summary": "Attempt 2: the hold now ends on the highest count seen during it (lowerMax), so 2 hands -> 1 with a single empty frame at the end of the hold shows 2,1,1 and never 0; that frame starts its own hold. New test for this case; reviewer's repro passes. npm run verify green.",
+                "task_id": "NG-46",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:21:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:21:08+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:98201dabf3aa317e2f180106c06d825f64427478242f984d5777b32cc9d729df",
+                    "execution-evidence:sha256:2d88ecd105538e1be2271e0464b5b06cf94a779d6ce33d05f67623a8a056a24b",
+                    "execution-evidence:sha256:5e1669fc36a84980815f73695a8b110ee5ab5a672704e63e6ef60446f4eecf74"
+                ],
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "schema_version": "1.0",
+                "task_id": "NG-46",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:98201dabf3aa317e2f180106c06d825f64427478242f984d5777b32cc9d729df",
+                    "execution-evidence:sha256:2d88ecd105538e1be2271e0464b5b06cf94a779d6ce33d05f67623a8a056a24b",
+                    "execution-evidence:sha256:5e1669fc36a84980815f73695a8b110ee5ab5a672704e63e6ef60446f4eecf74"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "context_id": "claude-subagent-ng46-correctness-review-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "observations": [
+                    "src/recognise/recognise.ts:403-406 a drop from 2 straight to a lasting 0 that passes through a single 1-frame (2,1,0,0,...) shows 1 for one hold and 0 only after about 2x SEEN_HOLD_MS (~600-660 ms at 33 ms frames); still 'only after 300 ms' and no flicker, but slower than the nominal hold",
+                    "src/recognise/recognise.ts:403-406 the intermediate 1 in that case is held for 300 ms although only one frame had it; colour stays green, so no visible flicker, but the count label is momentarily not the true state",
+                    "docs/recognise.md:163-164 one over-long unwrapped line, and the process remark 'a first review found this case' sits in product docs"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:32553114",
+                "summary": "steadySeen (recognise.ts:390-409) commits a lower count only after frames stayed below the shown count for SEEN_HOLD_MS and ends on lowerMax; a 200k-sequence random simulation (16/33/50 ms frames, counts 0-2) found no committed drop without a full hold below the shown count and no orange (0) unless every frame in the last 300 ms was 0. 2->1 with single 0 frames, 1->0, rises during a hold and repeated holds behave as specified; state is per Camera (recognise.ts:430-433). Tick math (recognise.ts:365-381) derives left from recordingEndsAt, next wake at the next whole-second boundary; late timers give the true count; stopCamera cancels the tick (recognise.ts:288), test confirms no pending timer after finish. Press guard, recording limit and stored/sent data untouched. npm run build and node --test test/recognise.test.mjs: 37/37 pass.",
+                "task_id": "NG-46",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:22:19+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:22:19+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:5ac1cc79d44620cd884b78af01c02ca8e7b65c9f3ba65c4c08d8cd90ae53485f",
+                    "execution-evidence:sha256:355db355189127706e3799a548b5aa46706ef3a16f4814ab35e39edffec2489f",
+                    "execution-evidence:sha256:fe8072f2e9b3e8a0bf6dada6e18bb46454d9d6ba968b6ff50c69deee5fd23dc8"
+                ],
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "schema_version": "1.0",
+                "task_id": "NG-46",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:5ac1cc79d44620cd884b78af01c02ca8e7b65c9f3ba65c4c08d8cd90ae53485f",
+                    "execution-evidence:sha256:355db355189127706e3799a548b5aa46706ef3a16f4814ab35e39edffec2489f",
+                    "execution-evidence:sha256:fe8072f2e9b3e8a0bf6dada6e18bb46454d9d6ba968b6ff50c69deee5fd23dc8"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "context_id": "claude-subagent-ng46-blindspot-review",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "observations": [
+                    "src/recognise/recognise.ts:390 the hold advances only when tracker frames arrive; if frames stall, the last shown count stays (same as before NG-46), and at low frame rates the drop shows at the first frame after 300 ms.",
+                    "src/recognise/recognise.ts:403 a slow 2->1->0 drop shows 0 only after about two holds (~600 ms); a direct 2->0 drop takes one hold. Acceptable for a child; worth checking in the device session with a caregiver.",
+                    "src/recognise/recognise.ts:646 the seen words are not a live region, so screen readers get no hands-seen announcements; unchanged by NG-46, the hold would keep any future live region calm.",
+                    "docs/recognise.md:164 one line exceeds the docs wrap width."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:4dec967b",
+                "summary": "Blind-spot review of steadySeen hold and deadline-derived seconds: rise shown at once, drop after SEEN_HOLD_MS ending on the highest count during the hold; per-camera state reset on every start; tick derived from recordingEndsAt with delay floored at 1 ms (no spin on early fire), cancelled in stopCamera; display-only (analysis uses raw frames); no storage, network, press-guard or way-back change.",
+                "task_id": "NG-46",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:25:27+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:25:27+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "schema_version": "1.0",
+                "task_id": "NG-46",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:02ee68f8b39d4f9ef12ce0321e50cb397b7d21a2a7a877e4b18f98d7da837439",
+                    "execution-evidence:sha256:37e736c2816456aa44b805e1cb0496db5fbfae264039034e868bcf43938e42bd"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:86ab94bfe536eb25ae57c2330ad7d5d6756ab6d8:0ecf1a80a82dfd0aec155b5b5714b5541bf74e00",
+                "consistency_references": [
+                    "execution-evidence:sha256:d040cb0434d5a7613ed429b4a6abe030d93fcab5589d6c67023234e00ea0b613"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4cc6e5c2517982ac9d52eae7f6b1917a81c84e6acab9b84cfb456833dc4540b3",
+                "outcome": "pass",
+                "run_id": "run:NG-46:3b9f0b9c459ee361",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:adb664d11ba7b21d093022f66d7e855377863293ab87e0779b24b07bff590e41",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-46: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-46 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-46:3b9f0b9c459ee361 binds active Session 2026-11-24-ng-46-r1-577004a1 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-46 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-46",
+                "validation_references": [
+                    "execution-evidence:sha256:02ee68f8b39d4f9ef12ce0321e50cb397b7d21a2a7a877e4b18f98d7da837439",
+                    "execution-evidence:sha256:37e736c2816456aa44b805e1cb0496db5fbfae264039034e868bcf43938e42bd"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-46:3b9f0b9c459ee361",
+    "schema_version": "1.0",
+    "task_id": "NG-46"
+}
