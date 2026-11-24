@@ -40,6 +40,10 @@
  * orange without), and five dots stand for the seconds of the recording; one
  * goes out each second. Words are there too, for a caregiver, but nothing has
  * to be read. Nothing moves: the dots change in steps, the row keeps its size.
+ * Card NG-46: a lower hand count is shown only after it held for
+ * `SEEN_HOLD_MS` (a hand lost for single frames does not make the frame
+ * flicker), and the dots are derived from the recording's deadline, so a late
+ * timer cannot leave them behind.
  *
  * The controller (`createRecogniser`) has no DOM and is tested in Node; the
  * view (`attachRecognise`) draws its states into the board region.
@@ -67,6 +71,12 @@ export const RECOGNISE_MAX_RECORDING_MS = 5000;
 export const RECOGNISE_GUARD_MS = 700;
 /** The dots of the recording's time: one per second of `RECOGNISE_MAX_RECORDING_MS`. */
 export const RECOGNISE_SECONDS = Math.ceil(RECOGNISE_MAX_RECORDING_MS / 1000);
+/**
+ * A lower hand count is shown only after it held this long; a higher one at once (card NG-46).
+ * The tracker can drop a hand for single frames; without the hold the frame would switch between
+ * green and orange at frame rate, which is restless for a child who is bothered by motion.
+ */
+export const SEEN_HOLD_MS = 300;
 /** How many candidates an unknown answer offers at most. */
 export const MAX_CANDIDATES = 3;
 /**
@@ -240,6 +250,15 @@ interface Camera {
   cancelTimer: () => void;
   /** The once-a-second tick of the recording's time (card NG-45). */
   cancelTick: () => void;
+  /** When the recording ends (`now()` clock), for the seconds left (card NG-46). */
+  recordingEndsAt: number;
+  /**
+   * The hand count shown; since when frames have stayed below it; and the highest count among
+   * those frames, which is what the hold ends on (card NG-46).
+   */
+  shownSeen: HandsSeen;
+  lowerSince: number | null;
+  lowerMax: HandsSeen;
   readonly preview: PreviewSink | null;
 }
 
@@ -331,15 +350,22 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     }
     own.session?.startRecording();
     show({ kind: "recording" });
+    own.recordingEndsAt = options.now() + RECOGNISE_MAX_RECORDING_MS;
     schedule(own, () => {
       if (camera === own && !gone()) finishRecording();
     }, RECOGNISE_MAX_RECORDING_MS);
-    tick(own, RECOGNISE_SECONDS);
+    tick(own);
   };
 
-  /** Tells the view the seconds left, now and then once a second; the last second ends with the recording. */
-  const tick = (own: Camera, left: number): void => {
+  /**
+   * Tells the view the whole seconds left until the recording's deadline, now and then at each
+   * second boundary. Derived from the deadline (card NG-46): a timer that fires late shows the
+   * right count instead of falling one step behind per tick. The last second ends with the recording.
+   */
+  const tick = (own: Camera): void => {
     if (camera !== own || current.kind !== "recording") return;
+    const remaining = own.recordingEndsAt - options.now();
+    const left = Math.max(0, Math.min(RECOGNISE_SECONDS, Math.ceil(remaining / 1000)));
     try {
       options.onTimeLeft?.(left);
     } catch {
@@ -347,10 +373,39 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     }
     if (left <= 1) return;
     try {
-      own.cancelTick = options.setTimer(() => tick(own, left - 1), 1000);
+      // Wake at the next whole second before the deadline.
+      own.cancelTick = options.setTimer(() => tick(own), Math.max(1, remaining - (left - 1) * 1000));
     } catch {
       own.cancelTick = () => undefined;
     }
+  };
+
+  /**
+   * The hand count to show for a frame (card NG-46): a higher count at once, a lower one only after
+   * the frames have stayed below the shown count for `SEEN_HOLD_MS`. The hold ends on the highest
+   * count those frames had, never on a single frame: from two hands to one, a frame in which the
+   * remaining hand drops out at that moment does not flash "no hand". A lower frame still starts
+   * its own hold.
+   */
+  const steadySeen = (own: Camera, hands: HandsSeen): HandsSeen => {
+    const at = options.now();
+    if (hands >= own.shownSeen) {
+      own.shownSeen = hands;
+      own.lowerSince = null;
+      return own.shownSeen;
+    }
+    if (own.lowerSince === null) {
+      own.lowerSince = at;
+      own.lowerMax = hands;
+      return own.shownSeen;
+    }
+    own.lowerMax = Math.max(own.lowerMax, hands) as HandsSeen;
+    if (at - own.lowerSince >= SEEN_HOLD_MS) {
+      own.shownSeen = own.lowerMax;
+      own.lowerSince = hands < own.shownSeen ? at : null;
+      own.lowerMax = hands;
+    }
+    return own.shownSeen;
   };
 
   const startCamera = (): void => {
@@ -372,7 +427,10 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     } catch {
       // Without a preview the view works as before.
     }
-    const own: Camera = { controller: new AbortController(), session: null, cancelTimer: () => undefined, cancelTick: () => undefined, preview };
+    const own: Camera = {
+      controller: new AbortController(), session: null, cancelTimer: () => undefined, cancelTick: () => undefined, preview,
+      recordingEndsAt: Number.POSITIVE_INFINITY, shownSeen: 0, lowerSince: null, lowerMax: 0,
+    };
     camera = own;
     const ours = (): boolean => camera === own && !own.controller.signal.aborted;
     const failed = (line: string): void => {
@@ -397,7 +455,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
           if (!ours() || gone()) return;
           if (options.onSeen === undefined || (current.kind !== "countdown" && current.kind !== "recording")) return;
           try {
-            options.onSeen(handsSeen(frame));
+            options.onSeen(steadySeen(own, handsSeen(frame)));
           } catch {
             // Only a display.
           }
