@@ -1,11 +1,173 @@
 {
     "attention": null,
-    "candidate_revision": "b8599b554857b531523a93bd54ed5f6da83a262f",
+    "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-24T11:29:53+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:29:53+00:00",
+                "artifact_references": [],
+                "candidate_revision": "b8599b554857b531523a93bd54ed5f6da83a262f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "b8599b554857b531523a93bd54ed5f6da83a262f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "outcome": "completed",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:e36ae8e2",
+                "summary": "Hands-seen words in attachRecognise (seenText, showSeen); draw() used main.replaceChildren(...content), which detaches and re-inserts the persistent feedback row and preview box on every countdown tick (blind-spot finding of attempt 1). Change sites: a place() helper keeping in-place nodes; fake DOMs in test/recognise.test.mjs and test/app.test.mjs need insertBefore/removeChild.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:29:54+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:29:54+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2b7bae2010e9b9c1f53d3a81de35784814aae439796bc4821f45288945587df2",
+                    "execution-evidence:sha256:44dcaf22798f16d9cdfc6d91e290f0256afa749b27dca5cf4dfbe6ddd085eda0",
+                    "execution-evidence:sha256:ec105d8500879f377027bf3d00541faf6fb05eaa9d469c9ab8d9c017570d5fec",
+                    "execution-evidence:sha256:d0fc0b4243c5f393cd477dd203f9d9281aff03e43ebe1a7d712c6fb66c90c8d8"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2b7bae2010e9b9c1f53d3a81de35784814aae439796bc4821f45288945587df2",
+                    "execution-evidence:sha256:44dcaf22798f16d9cdfc6d91e290f0256afa749b27dca5cf4dfbe6ddd085eda0",
+                    "execution-evidence:sha256:ec105d8500879f377027bf3d00541faf6fb05eaa9d469c9ab8d9c017570d5fec",
+                    "execution-evidence:sha256:d0fc0b4243c5f393cd477dd203f9d9281aff03e43ebe1a7d712c6fb66c90c8d8"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "outcome": "completed",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:d3c1c345",
+                "summary": "seenText polite atomic status region, written only on a count change; place() keeps the feedback row and preview box attached from countdown into recording (line re-created per draw so the countdown is still spoken); tests: write count, move count (fails with replaceChildren); fake DOMs gain insertBefore/removeChild; npm run verify 652/652 + 6/6.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:33:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:33:39+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:718dc213d31ac703935f023c0c31afc90523547b9d742b13e50d863118c119b9",
+                    "execution-evidence:sha256:9074bcaade923234af4bfacb6c4576c44705842c6e6109f366f163b13e7a219b",
+                    "execution-evidence:sha256:6262a79955d7e2d3809170e76653401ad7ba24df95eaccae78ec4dc249c72181",
+                    "execution-evidence:sha256:0b19329a69aa3b94f4e9cbd1bc434f3acf185b9d76691d0810e013db30199c61"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:718dc213d31ac703935f023c0c31afc90523547b9d742b13e50d863118c119b9",
+                    "execution-evidence:sha256:9074bcaade923234af4bfacb6c4576c44705842c6e6109f366f163b13e7a219b",
+                    "execution-evidence:sha256:6262a79955d7e2d3809170e76653401ad7ba24df95eaccae78ec4dc249c72181",
+                    "execution-evidence:sha256:0b19329a69aa3b94f4e9cbd1bc434f3acf185b9d76691d0810e013db30199c61"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
+                "context_id": "claude-subagent-ng47-correctness-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "observations": [
+                    "docs/recognise.md:171 says the picture is not taken out and in again; the preview slot box stays, but src/recognise/recognise.ts:742 still replaceChildren(preview.element, count) on each countdown tick, so the video element itself is re-inserted into the slot each second (pre-existing, not a live region, outside the contract).",
+                    "test/app.test.mjs:27 and test/recognise.test.mjs:528 fake insertBefore does not throw when 'before' is not a child (indexOf -1 splices near the end); place() never passes such a node, so no effect today."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:36a14190",
+                "summary": "place() keeps the hands-seen region and picture box in main across countdown and recording, removes them in other states, keeps node order; seen text written only on change; seconds row not live. Both new tests fail against mutants (replaceChildren restored; unguarded textContent write). npm run verify passes.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:35:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:35:08+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:26777c624734b05b33ff574b9362fddf5a2b5dc9acbdeed310b9ef4a0bb05ce2",
+                    "execution-evidence:sha256:276a9c0b26ef55517feda62988eb79b7ad79d9aab402383f1d6f4d4adea1ec2a",
+                    "execution-evidence:sha256:cda58a0b144a92eff11ad73bcefef1f5e38c1d1cb492f0f5486538a52c9fd569",
+                    "execution-evidence:sha256:5327176aeca49c5b9bcaeea30142a5463b72f38d1e4be410ebd10598bb987e79"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:26777c624734b05b33ff574b9362fddf5a2b5dc9acbdeed310b9ef4a0bb05ce2",
+                    "execution-evidence:sha256:276a9c0b26ef55517feda62988eb79b7ad79d9aab402383f1d6f4d4adea1ec2a",
+                    "execution-evidence:sha256:cda58a0b144a92eff11ad73bcefef1f5e38c1d1cb492f0f5486538a52c9fd569",
+                    "execution-evidence:sha256:5327176aeca49c5b9bcaeea30142a5463b72f38d1e4be410ebd10598bb987e79"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:5ffd1c2968802d2ca3b1eed7163e0877b579fcc1",
+                "context_id": "claude-subagent-ng47-blindspot-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:cbffdce08c4b9d863dec0cb25c3fc74c1bb4504be18a78d0fd18221ebfff1010",
+                "outcome": "changes_required",
+                "run_id": "run:NG-47:38a85d9034fec0f0",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:86ba1cad",
+                "summary": "place() introduces no focus or media regression: previewSlot and feedback hold no focusable nodes and are no longer moved; every focusable node in main and actions is created new on each draw, as it was before. One docs claim is false: docs/recognise.md:171-172 says that neither the region nor the picture is taken out and in again, but recognise.ts:738 and :745 put preview.element back in its box with replaceChildren on every countdown and recording draw. The doc uses 'picture' for the video and 'the picture's box' for the slot (docs/recognise.md:125,178), and the test at test/recognise.test.mjs only asserts that the picture box is not moved. Fix: say 'the picture's box' (or note that the video is still put back inside its box), matching the recorded known limit.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],

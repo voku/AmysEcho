@@ -168,8 +168,9 @@ see without reading:
   fires 900 ms late.
 - **Heard, not only seen** (card NG-47): the words next to the hand symbols ("Eine Hand im Bild")
   are a polite, atomic status region that stays in the page through countdown and recording (each
-  draw leaves the nodes that are already in place where they are, so neither the region nor the
-  picture is taken out and in again; a first review found it was moved on each tick). They
+  draw leaves the nodes that are already in place where they are, so neither the region, the
+  picture's box nor the picture in it is taken out and in again; a first review found the row
+  moved on each tick, a second one the picture inside its box). They
   follow the steady signal and are only rewritten when the shown count changes, so a screen reader
   says when a hand comes into or leaves the picture, not on every frame. The seconds are not a live
   region: the line above already speaks the countdown, and a voice every second would cover it.

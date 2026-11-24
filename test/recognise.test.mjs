@@ -1327,12 +1327,15 @@ test("view: the hands-seen region and the picture stay in the page from the coun
     const feedback = feedbackOf(panel());
     const slot = slotOf(panel());
     main.moved = [];
+    slot.moved = [];
     for (let second = 1; second < RECOGNISE_COUNTDOWN_S; second += 1) time.advance(1000);
     time.advance(1000);
     assert.equal(panel().dataset.state, "recording");
     await camera.feed(MOVES_RIGHT(0));
     assert.deepEqual(main.moved.filter(([, node]) => node === feedback || node === slot), [], "no removal or insertion of the region or the picture box");
     assert.ok(main.moved.some(([kind, node]) => kind === "in" && hasClass(node, "recognise-line")), "the line is new on each draw: that is how the countdown is spoken");
+    assert.deepEqual(slot.moved.filter(([, node]) => node === previews.made[0].element), [], "the picture stays in its box");
+    assert.deepEqual(slot.children, [previews.made[0].element], "only the picture in the recording, the count is gone");
     assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-preview", "recognise-feedback"]);
     // With the answer the row goes: out of the page, nothing more to announce.
     await camera.feedAll(MOVES_RIGHT);

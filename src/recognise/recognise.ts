@@ -735,7 +735,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
           content.push(element("p", "recognise-count", String(state.left)));
         } else {
           // The number large over the picture: the picture keeps its size from the countdown into the recording.
-          previewSlot.replaceChildren(preview.element, element("p", "recognise-count", String(state.left)));
+          place(previewSlot, [preview.element, element("p", "recognise-count", String(state.left))]);
           content.push(previewSlot);
         }
         showSeen(seen);
@@ -744,7 +744,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;
         if (preview !== null) {
-          previewSlot.replaceChildren(preview.element);
+          place(previewSlot, [preview.element]);
           content.push(previewSlot);
         }
         showSeen(seen);
