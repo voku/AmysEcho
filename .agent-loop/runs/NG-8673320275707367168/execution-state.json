@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "verify",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
     "history": [
         {
@@ -149,6 +149,46 @@
                 "summary": "Blind spots checked: a tap between Abspielen and the first redraw (label still Abspielen, replay already started) now stops it, which matches the user's second-tap intent; a tap on another example's row starts that one (identity check stops the old timer); aria-label stays consistent with the action because replayButton resets the label when done. No new UI text, privacy or performance impact.",
                 "task_id": "NG-8673320275707367168",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:44:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:44:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320275707367168",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:6ec9e681ff37dca5537f8a9a3cae7391bb976ef84a9a261c39019b46e7675a82",
+                    "execution-evidence:sha256:338f5738970b06d644d7f373dcdc713c4f02107fa25d9cd0511eba858cdbc037"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "consistency_references": [
+                    "execution-evidence:sha256:82fa912507aba6044a09b2c409c7c870991d9e633f416c5ee8f5d4b650962591"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "outcome": "pass",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:ed26bcdf93a8343df1598e049727a21dd5c3fefe5d04c8426ca1d458319dc255",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673320275707367168: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673320275707367168 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673320275707367168:bd7ee3bf870c9681 binds active Session 2026-11-24-ng-8673320275707367168-r1-191d424b to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673320275707367168 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-8673320275707367168",
+                "validation_references": [
+                    "execution-evidence:sha256:6ec9e681ff37dca5537f8a9a3cae7391bb976ef84a9a261c39019b46e7675a82",
+                    "execution-evidence:sha256:338f5738970b06d644d7f373dcdc713c4f02107fa25d9cd0511eba858cdbc037"
+                ]
             }
         }
     ],
