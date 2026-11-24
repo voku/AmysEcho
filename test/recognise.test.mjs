@@ -519,7 +519,19 @@ function fakeElement(tagName) {
     addEventListener(name, handler) { (this.listeners[name] ??= []).push(handler); },
     removeEventListener(name, handler) { this.listeners[name] = (this.listeners[name] ?? []).filter((other) => other !== handler); },
     append(...nodes) { this.children.push(...nodes); },
-    replaceChildren(...nodes) { this.children = nodes; },
+    replaceChildren(...nodes) {
+      // As in the DOM: every child is taken out, then the nodes are put in, also those that were already there.
+      if (this.moved !== undefined) this.moved.push(...this.children.map((child) => ["out", child]), ...nodes.map((node) => ["in", node]));
+      this.children = nodes;
+    },
+    removeChild(node) { this.children = this.children.filter((child) => child !== node); this.moved?.push(["out", node]); return node; },
+    insertBefore(node, before) {
+      this.children = this.children.filter((child) => child !== node);
+      const at = before === null ? this.children.length : this.children.indexOf(before);
+      this.children.splice(at, 0, node);
+      this.moved?.push(["in", node]);
+      return node;
+    },
     dispatch(name, event = {}) { for (const handler of [...(this.listeners[name] ?? [])]) handler({ preventDefault() {}, ...event }); },
     click() { this.dispatch("click"); },
   };
@@ -1263,4 +1275,73 @@ test("seconds left come from the recording's deadline: a late timer shows the ri
   assert.deepEqual(left, [5, 4, 3], "never behind the time actually left");
   recogniser.finish();
   assert.equal(time.pending(), 0, "no tick left after the recording");
+});
+
+// --- Heard, not only seen (card NG-47) ---
+
+test("view: the hands-seen words are a polite status region, rewritten only when the shown count changes", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera } = context;
+    context.gestureButton().click();
+    await settle();
+    const feedback = feedbackOf(panel());
+    const words = tree(feedback).find((element) => hasClass(element, "recognise-seen-text"));
+    assert.equal(words.attributes.role, "status");
+    assert.equal(words.attributes["aria-live"], "polite");
+    assert.equal(words.attributes["aria-atomic"], "true");
+    const time5 = tree(feedback).find((element) => hasClass(element, "recognise-time"));
+    assert.equal(time5.attributes["aria-live"], undefined, "the seconds are not announced");
+    assert.equal(time5.attributes.role, "img");
+    // Count every write to the words: equal text must not be written again (it can be read out again).
+    const writes = [];
+    let text = words.textContent;
+    Object.defineProperty(words, "textContent", { get: () => text, set: (value) => { writes.push(value); text = value; } });
+    await camera.feed(MOVES_RIGHT(0));
+    await camera.feed(MOVES_RIGHT(1));
+    time.advance(1000);
+    await camera.feed(MOVES_RIGHT(2));
+    time.advance((RECOGNISE_COUNTDOWN_S - 1) * 1000);
+    assert.equal(panel().dataset.state, "recording");
+    await camera.feed(MOVES_RIGHT(3));
+    await camera.feed([]);
+    await camera.feed(MOVES_RIGHT(4));
+    assert.deepEqual(writes, ["Eine Hand im Bild"], "one announcement for a hand that stays, none for a frame without it");
+    await camera.feed(BOTH_APART(0));
+    time.advance(SEEN_HOLD_MS);
+    await camera.feed([]);
+    time.advance(SEEN_HOLD_MS);
+    await camera.feed([]);
+    assert.deepEqual(writes, ["Eine Hand im Bild", "Zwei H\u00e4nde im Bild", "Keine Hand im Bild"]);
+    assert.equal(tree(feedbackOf(panel())).find((element) => hasClass(element, "recognise-seen-text")), words, "the same region throughout");
+  });
+});
+
+test("view: the hands-seen region and the picture stay in the page from the countdown into the recording, never taken out and in again", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, buttonNamed } = context;
+    const previews = recordingPreviews();
+    camera.bridge.createPreview = previews.createPreview;
+    context.gestureButton().click();
+    await settle();
+    const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
+    const feedback = feedbackOf(panel());
+    const slot = slotOf(panel());
+    main.moved = [];
+    slot.moved = [];
+    for (let second = 1; second < RECOGNISE_COUNTDOWN_S; second += 1) time.advance(1000);
+    time.advance(1000);
+    assert.equal(panel().dataset.state, "recording");
+    await camera.feed(MOVES_RIGHT(0));
+    assert.deepEqual(main.moved.filter(([, node]) => node === feedback || node === slot), [], "no removal or insertion of the region or the picture box");
+    assert.ok(main.moved.some(([kind, node]) => kind === "in" && hasClass(node, "recognise-line")), "the line is new on each draw: that is how the countdown is spoken");
+    assert.deepEqual(slot.moved.filter(([, node]) => node === previews.made[0].element), [], "the picture stays in its box");
+    assert.deepEqual(slot.children, [previews.made[0].element], "only the picture in the recording, the count is gone");
+    assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-preview", "recognise-feedback"]);
+    // With the answer the row goes: out of the page, nothing more to announce.
+    await camera.feedAll(MOVES_RIGHT);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").click();
+    assert.ok(main.moved.some(([kind, node]) => kind === "out" && node === feedback));
+    assert.equal(main.children.includes(feedback), false);
+  });
 });

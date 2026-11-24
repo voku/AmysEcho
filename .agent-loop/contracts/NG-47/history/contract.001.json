@@ -1,0 +1,36 @@
+{
+    "acceptance_criteria": [
+        "The hands-seen words are a polite, atomic status region that stays in the DOM through countdown and recording; its text changes only when the shown (steady) count changes",
+        "The seconds row is not a live region; nothing shown changes"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-24T06:51:05+00:00",
+    "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "base_commit": "b8599b554857b531523a93bd54ed5f6da83a262f",
+    "behavior_anchors": [],
+    "created_at": "2026-11-24T06:51:05+00:00",
+    "goal": "A screen reader announces when the gesture view's steady hands-seen count changes, without announcing the seconds every second.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/recognise/recognise.ts",
+        "test/recognise.test.mjs",
+        "docs/recognise.md"
+    ],
+    "status": "superseded",
+    "tags": [],
+    "task_id": "NG-47",
+    "updated_at": "2026-11-24T11:26:34+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

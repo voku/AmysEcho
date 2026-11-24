@@ -1,0 +1,11 @@
+{
+    "acknowledged_at": "2026-11-24T11:48:51+00:00",
+    "acknowledged_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "contract_revision": 2,
+    "implementation_snapshot": "sha256:81afb79e068611d9bd6ae7ac5fc38405fe069e43530c2ddd34c1398b04dd1a4b",
+    "kind": "review_acknowledgement",
+    "report_sha256": "sha256:842101f2e0bed5c1b8cac36a9f9e2ec1526d40f33adfa42d72d42b0f18f76f6c",
+    "run_id": "run:NG-47:38a85d9034fec0f0",
+    "schema_version": "1.0",
+    "task_id": "NG-47"
+}

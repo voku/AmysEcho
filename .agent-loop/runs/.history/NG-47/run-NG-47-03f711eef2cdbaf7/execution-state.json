@@ -1,0 +1,171 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:9f4f4dba081186c84a6c8a8188898ca7b2bf3f0d",
+    "contract_revision": 1,
+    "current_attempt": 2,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T06:51:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:51:22+00:00",
+                "artifact_references": [],
+                "candidate_revision": "b8599b554857b531523a93bd54ed5f6da83a262f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "b8599b554857b531523a93bd54ed5f6da83a262f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "outcome": "completed",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:bf630a41",
+                "summary": "Hands-seen words are rendered in attachRecognise (seenText in the feedback row, showSeen called on every onSeen frame and on redraws, setting textContent each time). Change site: make seenText a polite atomic status region and write its text only when the shown count changes (rewriting equal text can re-announce). Time dots stay role=img without live.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T07:01:53+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T07:01:53+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2afa1e0c64cb43e93ced8bc04b4cbcd9940f877069f391711b5d5715d3a56264",
+                    "execution-evidence:sha256:784fe72702da4cd0171b9ce51b6d0f0dc1b695edd151a51c2ddd5cf105ce9130",
+                    "execution-evidence:sha256:e3adb18882a864f27d3209c65e9d7e6e0e3c0205c208361b4c132aa88db5836e"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:9f4f4dba081186c84a6c8a8188898ca7b2bf3f0d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2afa1e0c64cb43e93ced8bc04b4cbcd9940f877069f391711b5d5715d3a56264",
+                    "execution-evidence:sha256:784fe72702da4cd0171b9ce51b6d0f0dc1b695edd151a51c2ddd5cf105ce9130",
+                    "execution-evidence:sha256:e3adb18882a864f27d3209c65e9d7e6e0e3c0205c208361b4c132aa88db5836e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:9f4f4dba081186c84a6c8a8188898ca7b2bf3f0d",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "outcome": "completed",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:a68d2d15",
+                "summary": "seenText is role=status, aria-live=polite, aria-atomic=true; written only when the shown count changes; time row stays role=img, not live. One new view test counting writes; docs paragraph. npm run verify 651/651 + 6/6.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T07:03:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T07:03:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:b310e314a143e06d4b5d12ba326f7575c719056568102a3c606ba50adfa6b4cd",
+                    "execution-evidence:sha256:d093d95853e1001f8b68840336b961d42b52957eac39b637434bd449444dc226",
+                    "execution-evidence:sha256:a3d225617e11b502dfeb15704148a437e166dfb63b4428d7b0d9854506766e8c"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:9f4f4dba081186c84a6c8a8188898ca7b2bf3f0d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:b310e314a143e06d4b5d12ba326f7575c719056568102a3c606ba50adfa6b4cd",
+                    "execution-evidence:sha256:d093d95853e1001f8b68840336b961d42b52957eac39b637434bd449444dc226",
+                    "execution-evidence:sha256:a3d225617e11b502dfeb15704148a437e166dfb63b4428d7b0d9854506766e8c"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:9f4f4dba081186c84a6c8a8188898ca7b2bf3f0d",
+                "context_id": "claude-subagent-ng47-correctness",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "observations": [
+                    "src/recognise/recognise.ts:779 main.replaceChildren(...content) takes the same feedback node out and puts it back on every countdown tick and on the countdown-to-recording draw (this was already so before NG-47). The element stays the same and its text is not changed during the move, so nothing is announced again, but a real browser may rebuild the region's accessibility node each tick. The fake DOM's replaceChildren (test/recognise.test.mjs:522) does not model this.",
+                    "src/recognise/recognise.ts:700 the line is a second polite role=status region, rebuilt on every draw. It is a sibling of the hands-seen words, not nested with them, so polite announcements queue rather than clash. Whether the countdown line and a hand change read in a clear order was not checked with a real screen reader."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:42a61a93",
+                "summary": "seenText is a role=status, aria-live=polite, aria-atomic=true region built once and reused through countdown and recording; showSeen writes its text only when it differs, and every start goes through the starting state, whose showSeen(0) sets the text (including the first draw from empty) while the row is detached. The time row stays role=img with no aria-live. A mutation that removes the guard fails the new test, so the test proves it. 38/38 recognise tests pass.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T11:24:12+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T11:24:12+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ccda4101fdca045ab2575c11c9b683e5eaa8dc3da5e18b0b47d936a1282566c9",
+                    "execution-evidence:sha256:eff53662234d261fb4e22d735a5e70040902b20411b05af3cba4612e8b91c7ae",
+                    "execution-evidence:sha256:ccd9339db484cf5268b16270f83cf6e2b086926931d9d886b4f93c0475a03374"
+                ],
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:9f4f4dba081186c84a6c8a8188898ca7b2bf3f0d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "schema_version": "1.0",
+                "task_id": "NG-47",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ccda4101fdca045ab2575c11c9b683e5eaa8dc3da5e18b0b47d936a1282566c9",
+                    "execution-evidence:sha256:eff53662234d261fb4e22d735a5e70040902b20411b05af3cba4612e8b91c7ae",
+                    "execution-evidence:sha256:ccd9339db484cf5268b16270f83cf6e2b086926931d9d886b4f93c0475a03374"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:b8599b554857b531523a93bd54ed5f6da83a262f:9f4f4dba081186c84a6c8a8188898ca7b2bf3f0d",
+                "context_id": "claude-subagent-ng47-blindspot-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:12e60a60c53353d98be9bb8553a4c1c77e3e07c2d155a5c11cd238df0477b01c",
+                "outcome": "changes_required",
+                "run_id": "run:NG-47:03f711eef2cdbaf7",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:2820750c",
+                "summary": "The text guard holds, but the hands-seen status region is removed and re-inserted by main.replaceChildren(...content) on every draw (3 countdown ticks plus recording), so it does not stay in the DOM as the acceptance criterion and docs claim; a reader that announces a live region's content when it is inserted (the countdown line relies on this) would say 'Keine Hand im Bild' up to four times at the start. Keep feedback mounted across countdown/recording draws, and test that it is not detached. Also: the 'same region throughout' test (test/recognise.test.mjs:1303) checks identity, not attachment; rises show at once and falls after 300 ms (recognise.ts:390), so edge flicker can give about 3 polite announcements a second.",
+                "task_id": "NG-47",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-47:03f711eef2cdbaf7",
+    "schema_version": "1.0",
+    "task_id": "NG-47"
+}
