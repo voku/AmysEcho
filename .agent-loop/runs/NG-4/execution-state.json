@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:33a88ea88b6e2ec98fdcdf230ffb47ee7e857590",
     "contract_revision": 1,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
     "history": [
         {
@@ -269,6 +269,46 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:1:3d9ba788",
                 "summary": "Misleading caregiver/privacy text: src/caregiver.ts:464 REPLAY_NOTE says 'So vergleicht die App die Gebärde: nur die Bewegung der Hände ...', but the stored and compared features include the hand's joint shape (src/recognition/features.ts writeHand: 40 shape values per hand) and the replay itself draws that shape. The project already corrected exactly this wording for the teaching intro (docs/caregiver.md:559-561: 'Gespeichert werden nur Zahlen zu Bewegung und Handform ... the first build said \"Bewegung der Hände\" only'), so the new note reintroduces a fixed understatement on the same screen. Fix: e.g. 'So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht.' and update the quoted text in docs/caregiver.md (Replaying an example) and the assertion in test/caregiver.test.mjs. Other blindspots checked, non-blocking: the fit line 'passt' can reassure for a look-alike the matcher accepts (documented in docs/recognition.md); the canvas has role=img with a static German label and is untested with a screen reader (documented); each new usable recording runs calibrateMaxDistance over all profile examples (quadratic DTW), not measured on large profiles.",
+                "task_id": "NG-4",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:23:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:23:16+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:315f897c2fb48648fc05616ccdddf3dac6d8eefa653be6b01989d0a0e77745e7",
+                    "execution-evidence:sha256:20bbb9ade10221806e1bbbc82487ecebb078a10b27afcd0c46dfed421bec0b43",
+                    "execution-evidence:sha256:7e5cc96c16a6d347804127036431c133859d1c00ba9dd8a47c8db62f08737c59"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:33a88ea88b6e2ec98fdcdf230ffb47ee7e857590",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "schema_version": "1.0",
+                "task_id": "NG-4",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:315f897c2fb48648fc05616ccdddf3dac6d8eefa653be6b01989d0a0e77745e7",
+                    "execution-evidence:sha256:20bbb9ade10221806e1bbbc82487ecebb078a10b27afcd0c46dfed421bec0b43",
+                    "execution-evidence:sha256:7e5cc96c16a6d347804127036431c133859d1c00ba9dd8a47c8db62f08737c59"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:33a88ea88b6e2ec98fdcdf230ffb47ee7e857590",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "outcome": "completed",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:cd7439f1",
+                "summary": "Blindspot fix: the replay note now says 'nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht.' (the features hold the joint shape too, as the teaching intro already says); test and docs/caregiver.md updated. npm run verify passed: 657 node tests; browser 4 pass 2 skipped.",
                 "task_id": "NG-4",
                 "validation_references": []
             }
