@@ -1,30 +1,22 @@
 {
-    "attention": {
-        "created_at": "2026-11-24T06:33:24+00:00",
-        "id": "attention:6272a050e675ed4b",
-        "kind": "runner_failed",
-        "message": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673320459971200034: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673320459971200034 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673320459971200034:b673b6be6e4558c3 binds active Session 2026-11-24-ng-8673320459971200034-r1-2564b9fd to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673320459971200034 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[FAIL] npm run verify (exit 2)\n> amys-echo@0.0.0 verify\n> npm run typecheck && npm run build && npm test && npm run smoke:offline && npm run test:browser\n\n\n> amys-echo@0.0.0 typecheck\n> tsc --noEmit --project tsconfig.json\n\nsrc/caregiver.ts(37,28): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(38,33): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(39,90): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(40,33): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(2543,120): error TS2366: Function lacks ending return statement and return type does not include 'undefined'.\nsrc/caregiver.ts(2588,39): error TS7006: Parameter 'point' implicitly has an 'any' type.",
-        "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-        "stage_id": "verify",
-        "task_id": "NG-8673320459971200034"
-    },
-    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-    "contract_revision": 1,
+    "attention": null,
+    "candidate_revision": "d1cc898e7cd1720732a18de760d7c3572275ecfd",
+    "contract_revision": 2,
     "current_attempt": 1,
-    "current_stage_id": "verify",
-    "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
     "history": [
         {
-            "accepted_at": "2026-11-24T06:30:03+00:00",
+            "accepted_at": "2026-11-24T06:34:43+00:00",
             "handoff": {
-                "accepted_at": "2026-11-24T06:30:03+00:00",
+                "accepted_at": "2026-11-24T06:34:43+00:00",
                 "artifact_references": [],
-                "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "candidate_revision": "d1cc898e7cd1720732a18de760d7c3572275ecfd",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
                 "from_stage": "investigate",
                 "kind": "execution_handoff",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
                 "schema_version": "1.0",
                 "task_id": "NG-8673320459971200034",
                 "to_stage": "build",
@@ -33,183 +25,23 @@
             "result": {
                 "artifact_references": [],
                 "attempt": 1,
-                "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "candidate_revision": "d1cc898e7cd1720732a18de760d7c3572275ecfd",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:328ba69b9ac754a1c3032f67339be022e26723b1e13229b8e010c969fa373ba0",
                 "outcome": "completed",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
                 "stage_id": "investigate",
-                "submission_id": "submission:investigate:1:36fafa53",
-                "summary": "Profile delete confirmation (confirmView) uses deleteHold; heldButton's allowed() gates the hold; mode 'delete' had no draft; tests open it via profile(name).remove.click() and act(), 32 hold tests press 'Endgültig löschen' directly.",
+                "submission_id": "submission:investigate:1:b8555694",
+                "summary": "Same investigation as run 1 (profile delete confirmView/deleteHold/heldButton allowed()); run 1 retired because its base predated NG-4.",
                 "task_id": "NG-8673320459971200034",
                 "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-24T06:30:03+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-24T06:30:03+00:00",
-                "artifact_references": [
-                    "execution-evidence:sha256:86a62a94721401c0139fc56cc6fd428d54fa72052d4d8d7900cb154be1eec2d5",
-                    "execution-evidence:sha256:fe2a6dae3e747bf4c106889938892ee6e6b9ad188794f68f7a168037059b34d2",
-                    "execution-evidence:sha256:34bf5135b0a3a1723520c56f3fe0c85c53bdb4da226fe05e1bfc961702e07f80",
-                    "execution-evidence:sha256:82b833a15134d6994ca92f86be6d4e718d5c47722c2347d27ff1e79e83a6e56e"
-                ],
-                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
-                "from_stage": "build",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-                "schema_version": "1.0",
-                "task_id": "NG-8673320459971200034",
-                "to_stage": "correctness-review",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [
-                    "execution-evidence:sha256:86a62a94721401c0139fc56cc6fd428d54fa72052d4d8d7900cb154be1eec2d5",
-                    "execution-evidence:sha256:fe2a6dae3e747bf4c106889938892ee6e6b9ad188794f68f7a168037059b34d2",
-                    "execution-evidence:sha256:34bf5135b0a3a1723520c56f3fe0c85c53bdb4da226fe05e1bfc961702e07f80",
-                    "execution-evidence:sha256:82b833a15134d6994ca92f86be6d4e718d5c47722c2347d27ff1e79e83a6e56e"
-                ],
-                "attempt": 1,
-                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-                "context_id": "ccr-main-session-builder",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
-                "outcome": "completed",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-                "stage_id": "build",
-                "submission_id": "submission:build:1:3b20feff",
-                "summary": "confirmView adds a name field (label 'Zum Bestätigen den Namen „<name>“ eingeben', focused, spellcheck/correct off, draft kept in the delete mode); deleteHold takes an optional armed check: aria-disabled until NFC-trimmed text equals the stored name, a hold before that shows a German refusal and deletes nothing; act also re-checks. Own concepts and examples keep the plain hold. Test harness act() types the name for existing hold tests (typeDeleteName:false for new ones); 2 new tests; 6 updated for texts/focus. Docs caregiver.md; CSS label spacing. npm run verify passed: 659 node tests; browser 4 pass 2 skipped. Hand-run Chromium: button aria-disabled true for 'Testki', false for 'Testkind', no console errors.",
-                "task_id": "NG-8673320459971200034",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-24T06:32:18+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-24T06:32:18+00:00",
-                "artifact_references": [
-                    "execution-evidence:sha256:7baf08432d852820beba777c513fef9430a20cef933a90419c9aa73857191510",
-                    "execution-evidence:sha256:e3a17e8c5345705dd3bf8d3b610233879122400b5cad231af6eb4d33591d3da0",
-                    "execution-evidence:sha256:e1a1a96b21e573b59c579a1f16bbd6b0b98d14172a084f8dc443b7956e34e3df",
-                    "execution-evidence:sha256:88045587b01e0ad2aef5fe27bc2dbdd0d5562935919c8e1809ee7c37c4c16892"
-                ],
-                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
-                "from_stage": "correctness-review",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-                "schema_version": "1.0",
-                "task_id": "NG-8673320459971200034",
-                "to_stage": "blindspot-review",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [
-                    "execution-evidence:sha256:7baf08432d852820beba777c513fef9430a20cef933a90419c9aa73857191510",
-                    "execution-evidence:sha256:e3a17e8c5345705dd3bf8d3b610233879122400b5cad231af6eb4d33591d3da0",
-                    "execution-evidence:sha256:e1a1a96b21e573b59c579a1f16bbd6b0b98d14172a084f8dc443b7956e34e3df",
-                    "execution-evidence:sha256:88045587b01e0ad2aef5fe27bc2dbdd0d5562935919c8e1809ee7c37c4c16892"
-                ],
-                "attempt": 1,
-                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-                "context_id": "reviewer-correctness-delete",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
-                "observations": [
-                    "src/caregiver.ts:3058 rearm() only flips aria-disabled; after a refused press the hint keeps 'Der Name stimmt noch nicht...' even once the correct name is typed, until the next press. Consider resetting the hint to DELETE_HOLD_HINT when ok() becomes true.",
-                    "src/caregiver.ts:3126 if the name is changed to a wrong one during a running hold, the release deletes nothing but act() returns false after idle(), so the line shows the plain hold hint instead of the German wrong-name refusal.",
-                    "test/caregiver.test.mjs:7319 the unarmed refusal is tested only with a pointer hold; no test holds Enter/Space on 'Endgültig löschen' with an empty or wrong name (same allowed() path, inferred safe). Harness act()/confirmDelete auto-typing would mask a lost-draft regression in act-based tests; only the gated redraw test at :4457 covers draft survival implicitly."
-                ],
-                "outcome": "pass",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-                "stage_id": "correctness-review",
-                "submission_id": "submission:correctness-review:1:f806dfb1",
-                "summary": "Correctness review of dcaceca: no path deletes without the typed name. Pointer and Enter/Space both go through heldButton.start -> allowed(), which refuses with the German line while named() is false (src/caregiver.ts:3074-3081); the act re-checks named() at release (3126), so editing the field during a running hold cannot delete; stale buttons stay blocked by current(). Draft text lives on the mode object (draft.typed) and is rebuilt into the new field on every redraw (3113-3116, 3130-3133); the gated-redraw hold test only deletes via the second button if the text survived. Focus goes to delete-name on open (3186); Escape leaves via leaveMode back to delete:<id> (test added). Field label and comparison use profile.displayName (stored, NFC/trimmed by makeProfile), the title keeps the (2) label. Own-concept/example deletes keep armed=null. Harness auto-typing is limited to an empty, not-yet-autotyped field and opt-out exists; the new tests use typeDeleteName:false.",
-                "task_id": "NG-8673320459971200034",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-24T06:32:49+00:00",
-            "handoff": {
-                "accepted_at": "2026-11-24T06:32:49+00:00",
-                "artifact_references": [
-                    "execution-evidence:sha256:b86880fc45403d66b830c686f847b3eb1a4f91898eb27092d74f5cc00df590cc",
-                    "execution-evidence:sha256:d0c8c3da2132f58831969089daa58a2123b365abc483cb7d1e94d1bc090f0380",
-                    "execution-evidence:sha256:992b3a76603c54418d54fa2a3b5b8e04640aef10b94e252325c0216f57b7b3b4",
-                    "execution-evidence:sha256:31238f691de6016a0839095c9663c3eb1ae7781a7d275a3d9c26db0fb4a8cdcd"
-                ],
-                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
-                "from_stage": "blindspot-review",
-                "kind": "execution_handoff",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-                "schema_version": "1.0",
-                "task_id": "NG-8673320459971200034",
-                "to_stage": "verify",
-                "validation_references": []
-            },
-            "result": {
-                "artifact_references": [
-                    "execution-evidence:sha256:b86880fc45403d66b830c686f847b3eb1a4f91898eb27092d74f5cc00df590cc",
-                    "execution-evidence:sha256:d0c8c3da2132f58831969089daa58a2123b365abc483cb7d1e94d1bc090f0380",
-                    "execution-evidence:sha256:992b3a76603c54418d54fa2a3b5b8e04640aef10b94e252325c0216f57b7b3b4",
-                    "execution-evidence:sha256:31238f691de6016a0839095c9663c3eb1ae7781a7d275a3d9c26db0fb4a8cdcd"
-                ],
-                "attempt": 1,
-                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-                "context_id": "reviewer-blindspot-delete",
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
-                "observations": [
-                    "src/caregiver.ts:3118 names that look the same but are not typed the same are refused with no hint why: inner double spaces or a no-break space (kept by normalizeDisplayName, collapsed when HTML shows the label), or emoji with/without variation selector U+FE0F. Workaround is renaming first; consider comparing with inner whitespace collapsed or saying so in the refusal.",
-                    "public/styles.css:247 .caregiver-delete-name-label has no overflow-wrap:anywhere (the confirm title and profile name have it); a 40-character name without spaces can overflow the label at phone width.",
-                    "src/caregiver.ts:3186 focus now opens on the name field, so a screen reader starts at the field label and can skip the title and the loss text ('Alle ausgewählten Begriffe ... gehen verloren'); consider aria-describedby on the field pointing at the loss text. Not checked with assistive technology."
-                ],
-                "outcome": "pass",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-                "stage_id": "blindspot-review",
-                "submission_id": "submission:blindspot-review:1:90c0bd53",
-                "summary": "Blind-spot review of dcaceca (accessibility, hard-to-type names, child safety). No blocking gap: the field is labelled with the stored name, aria-disabled plus a role=status refusal line tells assistive tech why the hold does nothing, Escape/Abbrechen still leave, and a profile whose name proves hard to type can still be renamed to a plain name and then deleted, so no profile becomes undeletable. Stored names are NFC and trimmed by normalizeDisplayName (src/profiles/profile.ts:66-77), so the NFC/trim comparison at src/caregiver.ts:3118 cannot fail on normalization alone. The child-safety claim is bounded honestly in docs/caregiver.md (a reader who can type the shown name can delete; not security). Non-blocking limits recorded as observations.",
-                "task_id": "NG-8673320459971200034",
-                "validation_references": []
-            }
-        },
-        {
-            "accepted_at": "2026-11-24T06:33:24+00:00",
-            "handoff": null,
-            "result": {
-                "artifact_references": [],
-                "attempt": 1,
-                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
-                "consistency_references": [
-                    "execution-evidence:sha256:9d7ce344e30f2785aeb88460337defd6b9bfd3f39bdee3cf4054c6fdbe705957"
-                ],
-                "contract_revision": 1,
-                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
-                "outcome": "failed",
-                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
-                "stage_id": "verify",
-                "submission_id": "deterministic:sha256:28249c6397c373f420e60a0b15674b15e652c7787d77db54ac3385fa57948460",
-                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673320459971200034: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673320459971200034 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673320459971200034:b673b6be6e4558c3 binds active Session 2026-11-24-ng-8673320459971200034-r1-2564b9fd to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673320459971200034 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[FAIL] npm run verify (exit 2)\n> amys-echo@0.0.0 verify\n> npm run typecheck && npm run build && npm test && npm run smoke:offline && npm run test:browser\n\n\n> amys-echo@0.0.0 typecheck\n> tsc --noEmit --project tsconfig.json\n\nsrc/caregiver.ts(37,28): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(38,33): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(39,90): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(40,33): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(2543,120): error TS2366: Function lacks ending return statement and return type does not include 'undefined'.\nsrc/caregiver.ts(2588,39): error TS7006: Parameter 'point' implicitly has an 'any' type.",
-                "task_id": "NG-8673320459971200034",
-                "validation_references": [
-                    "execution-evidence:sha256:fc7d89f1d0da4c7189b9ab4174b779031f6c5ccdb0e7361215612d4b8848af56",
-                    "execution-evidence:sha256:c0861347295c9ef85e35ce5fa045c8bffb436446c5e265eddd32529a4b4ed9f7"
-                ]
             }
         }
     ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
-    "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+    "run_id": "run:NG-8673320459971200034:841d25160d8af11e",
     "schema_version": "1.0",
     "task_id": "NG-8673320459971200034"
 }
