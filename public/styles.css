@@ -244,3 +244,4 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
 .caregiver-replay { display: block; width: 240px; max-width: 100%; height: auto; aspect-ratio: 4 / 3; margin-top: .5rem; background: #1d2b33; border-radius: 8px; }
 .caregiver-replay-note { flex-basis: 100%; }
 .caregiver-teach-fit { margin-top: .3rem; }
+.caregiver-delete-name-label { display: block; margin: .9rem 0 .4rem; font-weight: 600; }

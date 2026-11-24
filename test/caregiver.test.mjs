@@ -158,6 +158,13 @@ const statusElement = (region) => byClass(region, "caregiver-status");
 const statusOf = (region) => statusElement(region)?.textContent ?? null;
 const afterCloseOf = (region) => byClass(region, "caregiver-after-close")?.textContent ?? null;
 /** Every button and field of the region, in document order: "nothing that writes" is said against this. */
+/** Types the profile's name into an open delete confirmation (owner decision on card NG-13), as a caregiver would. */
+function typeDeleteName(region) {
+  const field = tree(region).find((element) => element.id === "caregiver-delete-name");
+  field.value = field.dataset.expected;
+  field.dispatch("input");
+}
+const DELETE_NAME = (name) => `Zum Bestätigen den Namen „${name}“ eingeben`;
 const controlsIn = (node) => tree(node).filter((element) => ["button", "input", "form", "select", "textarea"].includes(element.tagName));
 
 /** Every string found in the element tree: text, class names, attributes, data attributes. */
@@ -229,10 +236,21 @@ async function withArea(options, callback) {
         opener.dispatch("pointerup");
         await handle.settled();
       },
-      /** Does something to a control and waits until the area has carried it out. */
+      /**
+       * Does something to a control and waits until the area has carried it out. A profile's delete
+       * confirmation that has just opened gets the profile's name typed (owner decision on card NG-13),
+       * so that the tests of the hold test the hold; `typeDeleteName: false` leaves the field alone.
+       */
       async act(action) {
         action();
         await handle.settled();
+        if (options.typeDeleteName === false) return;
+        const name = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+        if (name !== undefined && name.value === "" && !name.autoTyped) {
+          name.autoTyped = true;
+          name.value = name.dataset.expected;
+          name.dispatch("input");
+        }
       },
       status: () => statusOf(caregiverRegion),
       afterClose: () => afterCloseOf(caregiverRegion),
@@ -295,6 +313,12 @@ async function withArea(options, callback) {
       },
       /** Holds "Endgültig löschen" for the full duration and lets go. */
       async confirmDelete() {
+        // A profile's delete needs its name typed (owner decision on card NG-13); the confirmation names it.
+        const name = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+        if (name !== undefined && name.value === "") {
+          name.value = name.dataset.expected;
+          name.dispatch("input");
+        }
         const confirm = area.button("Endgültig löschen");
         confirm.dispatch("pointerdown", { button: 0 });
         clock.advance(DELETE_HOLD_MS);
@@ -2163,6 +2187,7 @@ for (const [what, change] of [
   ["a profile that is not the active one was deleted", async (region, handle, clock) => {
     buttonNamed(region, "Löschen").click();
     await handle.settled();
+    typeDeleteName(region);
     buttonNamed(region, "Endgültig löschen").dispatch("pointerdown", { button: 0 });
     clock.advance(DELETE_HOLD_MS);
     buttonNamed(region, "Endgültig löschen").dispatch("pointerup");
@@ -2660,8 +2685,9 @@ test("delete: 'Löschen' deletes nothing; the confirmation takes over the body: 
     const shown = confirmation();
     // Not the active profile: no sentence about what the child sees.
     // "Abbrechen" comes first; below "Endgültig löschen" is only its own line.
-    assert.deepEqual(shown.texts, ["Profil „Ben“ löschen?", DELETE_LOSS, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
-    assert.equal(focused.current, button("Abbrechen"));
+    assert.deepEqual(shown.texts, ["Profil „Ben“ löschen?", DELETE_LOSS, DELETE_NAME("Ben"), "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
+    // The name field has the focus (owner decision on card NG-13).
+    assert.equal(focused.current.id, "caregiver-delete-name");
     assert.ok(hasClass(button("Endgültig löschen"), "caregiver-danger"));
     assert.ok(!hasClass(button("Endgültig löschen"), "caregiver-primary"));
     // It is the whole body: no card, no editor, no form, no help to hit by mistake, and nothing that a redraw could put under a finger.
@@ -2671,7 +2697,7 @@ test("delete: 'Löschen' deletes nothing; the confirmation takes over the body: 
     assert.deepEqual(concepts(), []);
     assert.equal(nameInput(), undefined);
     assert.equal(byClass(caregiverRegion, "caregiver-help").hidden, true);
-    assert.deepEqual(controlsIn(body).map((element) => element.textContent), ["Abbrechen", "Endgültig löschen"]);
+    assert.deepEqual(controlsIn(body).map((element) => element.textContent || element.id), ["caregiver-delete-name", "Abbrechen", "Endgültig löschen"]);
     // Part of the page, not a dialog element.
     assert.deepEqual(tree(caregiverRegion).filter((element) => element.tagName === "dialog"), []);
   });
@@ -2681,7 +2707,7 @@ test("delete: the confirmation for the active profile also says what the child s
   await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation }) => {
     await holdOpen();
     await act(() => profile("Mia").remove.click());
-    assert.deepEqual(confirmation().texts, ["Profil „Mia“ löschen?", DELETE_LOSS, DELETE_ACTIVE, "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
+    assert.deepEqual(confirmation().texts, ["Profil „Mia“ löschen?", DELETE_LOSS, DELETE_ACTIVE, DELETE_NAME("Mia"), "Abbrechen", "Endgültig löschen", DELETE_HOLD_HINT]);
   });
 });
 
@@ -3388,8 +3414,9 @@ test("view: a control that gets the focus under the block at the top is brought 
 test("view: a rename field and a confirmation are brought out by their card, and the focused button is not left below the region", async () => {
   const layout = fakeLayout();
   // The card starts at 400, its field or "Abbrechen" 60 px further down.
-  layout.at = (element) => (hasClass(element, "caregiver-profile") || hasClass(element, "caregiver-confirm") ? 400 : element.id === "caregiver-rename-name" || element.textContent === "Abbrechen" ? 460 : 1000);
+  layout.at = (element) => (hasClass(element, "caregiver-profile") || hasClass(element, "caregiver-confirm") ? 400 : element.id === "caregiver-rename-name" || element.id === "caregiver-delete-name" || element.textContent === "Abbrechen" ? 460 : 1000);
   await withArea({ seed: seedMiaAndBen, rect: layout.rect }, async ({ holdOpen, act, profile, caregiverRegion, button, focused }) => {
+    const nameField = () => tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
     layout.region = caregiverRegion;
     await holdOpen();
     caregiverRegion.scrollTop = 300;
@@ -3400,15 +3427,16 @@ test("view: a rename field and a confirmation are brought out by their card, and
     // The confirmation is the whole body: it is brought to just under the block, also when it starts further down.
     caregiverRegion.scrollTop = 0;
     await act(() => profile("Ben").remove.click());
-    assert.equal(focused.current, button("Abbrechen"));
+    // The focus is on the name field of the confirmation (owner decision on card NG-13).
+    assert.equal(focused.current, nameField());
     assert.equal(caregiverRegion.scrollTop, 400 - UNDER_BLOCK);
-    // A low window: "Abbrechen" (44 px high, at 268 px after that) would end below a region of 290 px. It is scrolled into it.
+    // A low window: the field (44 px high, at 268 px after that) would end below a region of 290 px. It is scrolled into it.
     await act(() => button("Abbrechen").click());
     layout.height = 290;
     caregiverRegion.scrollTop = 300;
     await act(() => profile("Ben").remove.click());
-    assert.equal(layout.rect(button("Abbrechen")).bottom, 290);
-    assert.ok(layout.rect(button("Abbrechen")).top >= UNDER_BLOCK);
+    assert.equal(layout.rect(nameField()).bottom, 290);
+    assert.ok(layout.rect(nameField()).top >= UNDER_BLOCK);
   });
 });
 
@@ -4392,11 +4420,12 @@ test("shield: a new undo button and a changed status line count as content that 
 
 test("shield: a hold on 'Endgültig löschen' does not start while the confirmation has only just appeared", async () => {
   const wall = wallClock();
-  await withArea({ seed: seedMiaAndBen, now: wall.now }, async ({ holdOpen, profile, confirmation, clock, handle, store }) => {
+  await withArea({ seed: seedMiaAndBen, now: wall.now }, async ({ holdOpen, profile, confirmation, clock, handle, store, caregiverRegion }) => {
     await holdOpen();
     wall.t += 1000;
     profile("Ben").remove.click();
     await handle.settled();
+    typeDeleteName(caregiverRegion);
     const { confirm, hint, progress } = confirmation();
     const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
     for (const start of [(control) => control.dispatch("pointerdown", { button: 0 }), (control) => control.dispatch("keydown", { key: "Enter", repeat: false })]) {
@@ -4445,6 +4474,7 @@ test("hold: a redraw that replaces 'Endgültig löschen' ends the hold on it; th
     profile("Ben").remove.click();
     for (let round = 0; round < 40; round += 1) await turn();
     assert.equal(gate.held, true);
+    typeDeleteName(caregiverRegion);
     const first = confirmation();
     first.confirm.dispatch("pointerdown", { button: 0 });
     clock.advance(500);
@@ -7281,5 +7311,64 @@ test("teach: 'Abspielen' draws a stored example as a moving hand on a canvas, on
     await act(() => area.button("Zurück").click());
     clock.advance(10_000);
     assert.equal(byClass(caregiverRegion, "caregiver-replay"), undefined);
+  });
+});
+
+// --- Deleting a profile needs its name typed (owner decision on card NG-13, card NG-8673320459971200034) ---
+
+test("delete: 'Endgültig löschen' does nothing until the profile's name is typed; a wrong name is said in German; the right one (spaces aside) lets the hold delete", async () => {
+  await withArea({ seed: seedMiaAndBen, typeDeleteName: false }, async ({ holdOpen, act, profile, confirmation, caregiverRegion, focused, store, status, clock, handle }) => {
+    await holdOpen();
+    await act(() => profile("Ben").remove.click());
+    const field = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+    assert.equal(focused.current, field);
+    assert.deepEqual([field.autocomplete, field.spellcheck, field.autocapitalize, field.autocorrect], ["off", false, "off", "off"]);
+    assert.equal(tree(caregiverRegion).find((element) => element.tagName === "label" && element.htmlFor === field.id).textContent, "Zum Bestätigen den Namen „Ben“ eingeben");
+    const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+    const hold = async () => {
+      const { confirm } = confirmation();
+      confirm.dispatch("pointerdown", { button: 0 });
+      clock.advance(DELETE_HOLD_MS);
+      confirm.dispatch("pointerup");
+      await handle.settled();
+    };
+    const type = (text) => {
+      field.value = text;
+      field.dispatch("input");
+    };
+    const refusal = "Der Name stimmt noch nicht. Bitte genau „Ben“ eingeben. Es wurde nichts gelöscht.";
+    // Nothing typed: the button says it cannot act, and a full hold deletes nothing.
+    assert.equal(confirmation().confirm["aria-disabled"], "true");
+    await hold();
+    assert.deepEqual(await names(), ["Ben", "Mia"]);
+    assert.equal(confirmation().hint.textContent, refusal);
+    // Another case or another name is not the name.
+    for (const wrong of ["ben", "Be", "Mia", "Ben!"]) {
+      type(wrong);
+      assert.equal(confirmation().confirm["aria-disabled"], "true");
+      await hold();
+      assert.deepEqual(await names(), ["Ben", "Mia"]);
+    }
+    // The name, with spaces around it: the hold deletes.
+    type("  Ben ");
+    assert.equal(confirmation().confirm["aria-disabled"], "false");
+    await hold();
+    assert.deepEqual(await names(), ["Mia"]);
+    assert.equal(status(), "Das Profil „Ben“ wurde gelöscht.");
+  });
+});
+
+test("delete: Escape in the name field leaves the confirmation without deleting, back on 'Löschen'", async () => {
+  await withArea({ seed: seedMiaAndBen, typeDeleteName: false }, async ({ holdOpen, act, profile, confirmation, caregiverRegion, store, handle, focused }) => {
+    await holdOpen();
+    await act(() => profile("Ben").remove.click());
+    const field = () => tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+    field().value = "Be";
+    field().dispatch("input");
+    caregiverRegion.dispatch("keydown", { key: "Escape", target: field() });
+    await handle.settled();
+    assert.equal(confirmation(), null);
+    assert.deepEqual((await (await store()).list()).profiles.map((stored) => stored.displayName).sort(), ["Ben", "Mia"]);
+    assert.equal(focused.current, buttonNamed(caregiverRegion, "Löschen"));
   });
 });

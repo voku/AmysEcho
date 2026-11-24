@@ -280,9 +280,20 @@ and write nothing. The field has the same attributes as the create field.
 **Deleting.** Two steps, without a dialog element. "Löschen" replaces the whole body by the
 confirmation: "Profil „<name>“ löschen?", "Alle ausgewählten Begriffe und beigebrachten Gebärden
 dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.", for the active profile also "Das Kind sieht danach
-Beispiele, bis eine andere Tafel aktiv ist.", the buttons "Abbrechen" and "Endgültig löschen", in
-that order, and under them the line "Zum Löschen 2 Sekunden gedrückt halten." Focus goes to
-"Abbrechen", and the confirmation starts right under the block. While it is open there is no
+Beispiele, bis eine andere Tafel aktiv ist.", a field "Zum Bestätigen den Namen „<name>“
+eingeben" (the stored name, not the "(2)" label), the buttons "Abbrechen" and "Endgültig löschen",
+in that order, and under them the line "Zum Löschen 2 Sekunden gedrückt halten." Focus goes to the
+name field, and the confirmation starts right under the block.
+
+**The name has to be typed** (owner decision of 2026-11-24 on card NG-13, card
+NG-8673320459971200034). Until the field holds the stored name (NFC, spaces at the ends ignored,
+capitals as stored), "Endgültig löschen" has `aria-disabled="true"` and a hold on it does
+nothing; pressing it replaces the line under it with "Der Name stimmt noch nicht. Bitte genau
+„<name>“ eingeben. Es wurde nichts gelöscht." Once the name matches, the hold and release below
+apply unchanged. The field has the attributes of the create field (no spell checking or
+correction). What was typed is kept while the confirmation stays open. A small child who got into
+the area cannot type the name; a caregiver who reads it can. It is not security. Deleting an own
+concept or gesture examples keeps the hold only. While it is open there is no
 card, no editor, no create form and no help section: nothing else can be hit, and no redraw can
 put another control under a finger. "Abbrechen" (or Escape) brings the normal body back, with
 focus on that profile's "Löschen" and with what was typed into the create field.
@@ -898,7 +909,7 @@ countdown. None of this was checked with assistive technology.
 - Moving a concept by more than one place at a time, or by dragging.
 - Moving or taking off retired concepts, and own concepts under a catalogue id.
 - A warning before the profile's storage is full (`store.usage`), except when a teaching view opens.
-- Any protection beyond the hold gesture.
+- Any protection beyond the hold gesture and, for deleting a profile, typing its name.
 
 ## Known gaps
 

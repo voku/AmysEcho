@@ -548,7 +548,7 @@ type Focusable = HTMLElement & { disabled?: boolean };
 /** The one thing that can be open in the profile list: a rename field (with what was typed) or a delete confirmation. */
 type Mode =
   | { readonly kind: "rename"; readonly id: string; readonly draft: string }
-  | { readonly kind: "delete"; readonly id: string }
+  | { readonly kind: "delete"; readonly id: string; readonly draft: { typed: string } }
   | RewordMode
   | TeachMode
   | CreateConceptMode
@@ -3039,7 +3039,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * (rules 12 and 20). `act` asks for the delete and says whether it did.
    * Returns the button and what goes below it (its bar and its line).
    */
-  const deleteHold = (holds: HeldButton[], act: () => boolean): { control: HTMLButtonElement; parts: HTMLElement[] } => {
+  const deleteHold = (
+    holds: HeldButton[], act: () => boolean, armed: { readonly ok: () => boolean; readonly refusal: string } | null = null,
+  ): { control: HTMLButtonElement; parts: HTMLElement[]; rearm: () => void } => {
     // No click handler: like the opening control, it has to be held. A tap, however often, deletes nothing.
     const confirm = button(DELETE_FOR_GOOD, "caregiver-button caregiver-danger caregiver-hold");
     const holdProgress = element("progress", "caregiver-delete-progress");
@@ -3053,17 +3055,30 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     holdHint.setAttribute("role", "status");
     holdHint.setAttribute("aria-live", "polite");
     confirm.setAttribute("aria-describedby", holdHint.id);
+    /** Until `armed` holds (the profile's name is typed), the button says so and a hold does nothing (owner decision on card NG-13). */
+    const rearm = (): void => {
+      if (armed === null) return;
+      confirm.setAttribute("aria-disabled", armed.ok() ? "false" : "true");
+    };
     const idle = (): void => {
       holdProgress.hidden = true;
       holdProgress.value = 0;
       holdHint.textContent = DELETE_HOLD_HINT;
     };
+    rearm();
     /** Only the button that is on screen acts: not one that was swapped out while a finger rested on it. */
     const current = (): boolean => bodyHolds.includes(held) && (confirm as { isConnected?: boolean }).isConnected !== false;
     const held: HeldButton = heldButton(confirm, {
       durationMs: DELETE_HOLD_MS,
       // A press on a button that has only just appeared is not a decision to delete.
-      allowed: () => current() && aimed(now()),
+      allowed: () => {
+        if (!current() || !aimed(now())) return false;
+        if (armed !== null && !armed.ok()) {
+          holdHint.textContent = armed.refusal;
+          return false;
+        }
+        return true;
+      },
       onProgress: (elapsedMs, remainingSeconds) => {
         holdProgress.hidden = false;
         holdProgress.value = elapsedMs;
@@ -3082,7 +3097,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       },
     });
     holds.push(held);
-    return { control: confirm, parts: [holdProgress, holdHint] };
+    return { control: confirm, parts: [holdProgress, holdHint], rearm };
   };
 
   /**
@@ -3094,11 +3109,28 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const view = element("section", "caregiver-section caregiver-confirm");
     view.append(element("h2", "caregiver-confirm-title", `Profil ${quoted(label)} löschen?`), element("p", "caregiver-confirm-text", DELETE_LOSS));
     if (isActive) view.append(element("p", "caregiver-confirm-text", DELETE_ACTIVE));
+    // Typing the name (owner decision on card NG-13): a child who got in cannot delete with a tap and a hold.
+    const open = mode !== null && mode.kind === "delete" && mode.id === profile.id ? mode : null;
+    const fieldLabel = element("label", "caregiver-delete-name-label", `Zum Bestätigen den Namen ${quoted(profile.displayName)} eingeben`);
+    fieldLabel.htmlFor = "caregiver-delete-name";
+    const field = nameField("caregiver-delete-name", open?.draft.typed ?? "");
+    field.dataset["expected"] = profile.displayName;
+    const named = (): boolean => field.value.normalize("NFC").trim() === profile.displayName;
+    view.append(fieldLabel, field);
+    register.set("delete-name", field);
+    register.set("anchor:delete-name", view);
     const cancel = button(CANCEL);
     cancel.addEventListener("click", leaveMode);
     register.set("confirm-cancel", cancel);
     register.set("anchor:confirm-cancel", view);
-    const { control: confirm, parts } = deleteHold(holds, () => deleteProfile(profile, label));
+    const { control: confirm, parts, rearm } = deleteHold(holds, () => named() && deleteProfile(profile, label), {
+      ok: named,
+      refusal: `Der Name stimmt noch nicht. Bitte genau ${quoted(profile.displayName)} eingeben. Es wurde nichts gelöscht.`,
+    });
+    field.addEventListener("input", () => {
+      if (open !== null) open.draft.typed = field.value;
+      rearm();
+    });
     // "Abbrechen" first, and nothing below "Endgültig löschen" but its own bar and line.
     const actions = element("div", "caregiver-profile-actions");
     actions.append(cancel, confirm);
@@ -3151,7 +3183,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (!isActive) action(ACTIVATE, "activate", () => activate(profile, label));
     action(EDIT_BOARD, "edit", () => select(profile, label)).setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
     action(RENAME, "rename", () => openMode({ kind: "rename", id: profile.id, draft: profile.displayName }, "rename-name"));
-    action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id }, "confirm-cancel"), "caregiver-button caregiver-danger-quiet");
+    action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id, draft: { typed: "" } }, "delete-name"), "caregiver-button caregiver-danger-quiet");
     item.append(head, actions);
     return item;
   };

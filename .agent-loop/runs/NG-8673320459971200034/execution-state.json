@@ -1,0 +1,47 @@
+{
+    "attention": null,
+    "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T06:30:03+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:30:03+00:00",
+                "artifact_references": [],
+                "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "outcome": "completed",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:36fafa53",
+                "summary": "Profile delete confirmation (confirmView) uses deleteHold; heldButton's allowed() gates the hold; mode 'delete' had no draft; tests open it via profile(name).remove.click() and act(), 32 hold tests press 'Endgültig löschen' directly.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+    "schema_version": "1.0",
+    "task_id": "NG-8673320459971200034"
+}
