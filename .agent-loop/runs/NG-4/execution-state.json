@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:bc80ccdd56498fd536fa7bd4cf086a8ab9bd82e1",
+    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
     "contract_revision": 1,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
     "history": [
         {
@@ -127,6 +127,50 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:899485a2",
                 "summary": "src/teach/fit.ts:37-46: when the matcher answers unknown/too_far because the CLOSEST concept is another one (ranked[0].conceptId !== conceptId, beyond that concept's limit) and the concept's own comparable examples are within the concept's own limit, exampleFit falls through to {kind:'differs'}. That contradicts the 'differs' contract (fit.ts:20-21 and AC1: 'beyond the concept's limit') and the comment at fit.ts:37 ('or closest to another one'), and the caregiver is told 'deutlich anders als die bisherigen Beispiele ... War es dieselbe Gebärde?' (caregiver.ts fitLine) instead of the look-alike warning. Reproduced with synthetic blends (dist build, matcher unchanged): ranked [oth 0.774, own 0.776], own limit 1.155, oth limit 0.750 -> exampleFit = differs; second case [oth 0.817, own 0.876], own limit 0.882 -> differs. Fix (local, no threshold change): after the ambiguous check, if result.reason==='too_far' and ranked[0] exists with conceptId!==conceptId, return {kind:'resembles', otherId: ranked[0].conceptId} (or only when the own distance is within limitKey(conceptId, sequence)'s calibrated limit); add a synthetic test in test/teach.test.mjs for that case. Otherwise verified: replaySteps inverts writeHand layout (offset side*43, shape 40 values /SHAPE_WEIGHT, wrist at 40/41, presence at 42; mirroring negates wrist x and joint dx consistently; presence after resample is exactly 1 inside the hand's span, fractional boundary steps are dropped); no file under src/recognition changed; fit is keyed on result identity so Verwerfen/Behalten/new recording cannot show a stale line; replay timer stops via teaching(open) + state.replay identity, replayCanvas reset each teachView build, busy clears replay.",
+                "task_id": "NG-4",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:21:24+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:21:24+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:f5d18855327f9ae6c089470783cbf919bd270f1016cc7a4458d6dbd436a1eb31",
+                    "execution-evidence:sha256:2b32f1e61112e10fe36e504d88986bf67846e60352cda1fdf8d2111c9787a65b",
+                    "execution-evidence:sha256:b8b2d1f4da2a8db7554a8e38c7ea74b102992e03257b934ad5bbc186d1bd496c",
+                    "execution-evidence:sha256:074e410b389e2a93d88595dbb43a9179a0558af0b7cc5cbd67f7ab4cc08b3354",
+                    "execution-evidence:sha256:43f7300bfd42387b903c54f252f678ea36f084ec62031412c5c29110933d7a9a"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "schema_version": "1.0",
+                "task_id": "NG-4",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:f5d18855327f9ae6c089470783cbf919bd270f1016cc7a4458d6dbd436a1eb31",
+                    "execution-evidence:sha256:2b32f1e61112e10fe36e504d88986bf67846e60352cda1fdf8d2111c9787a65b",
+                    "execution-evidence:sha256:b8b2d1f4da2a8db7554a8e38c7ea74b102992e03257b934ad5bbc186d1bd496c",
+                    "execution-evidence:sha256:074e410b389e2a93d88595dbb43a9179a0558af0b7cc5cbd67f7ab4cc08b3354",
+                    "execution-evidence:sha256:43f7300bfd42387b903c54f252f678ea36f084ec62031412c5c29110933d7a9a"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "outcome": "completed",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:06f606ad",
+                "summary": "Review fix: exampleFit returns 'resembles' when the matcher says too_far, the closest concept is another one and this concept's own distance is within its calibrated limit (limitKey); a first example or one beyond its own limit stays 'first'/'differs'. New hand-made test with constant sequences covers all three. Replay: after the last step the button says 'Abspielen' again (state.replay.done), last step stays. Docs updated. npm run verify passed: 657 node tests; browser 4 pass 2 skipped.",
                 "task_id": "NG-4",
                 "validation_references": []
             }
