@@ -1,9 +1,17 @@
 {
-    "attention": null,
+    "attention": {
+        "created_at": "2026-11-24T06:33:24+00:00",
+        "id": "attention:6272a050e675ed4b",
+        "kind": "runner_failed",
+        "message": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673320459971200034: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673320459971200034 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673320459971200034:b673b6be6e4558c3 binds active Session 2026-11-24-ng-8673320459971200034-r1-2564b9fd to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673320459971200034 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[FAIL] npm run verify (exit 2)\n> amys-echo@0.0.0 verify\n> npm run typecheck && npm run build && npm test && npm run smoke:offline && npm run test:browser\n\n\n> amys-echo@0.0.0 typecheck\n> tsc --noEmit --project tsconfig.json\n\nsrc/caregiver.ts(37,28): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(38,33): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(39,90): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(40,33): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(2543,120): error TS2366: Function lacks ending return statement and return type does not include 'undefined'.\nsrc/caregiver.ts(2588,39): error TS7006: Parameter 'point' implicitly has an 'any' type.",
+        "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+        "stage_id": "verify",
+        "task_id": "NG-8673320459971200034"
+    },
     "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "blindspot-review",
+    "current_stage_id": "verify",
     "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
     "history": [
         {
@@ -124,6 +132,77 @@
                 "summary": "Correctness review of dcaceca: no path deletes without the typed name. Pointer and Enter/Space both go through heldButton.start -> allowed(), which refuses with the German line while named() is false (src/caregiver.ts:3074-3081); the act re-checks named() at release (3126), so editing the field during a running hold cannot delete; stale buttons stay blocked by current(). Draft text lives on the mode object (draft.typed) and is rebuilt into the new field on every redraw (3113-3116, 3130-3133); the gated-redraw hold test only deletes via the second button if the text survived. Focus goes to delete-name on open (3186); Escape leaves via leaveMode back to delete:<id> (test added). Field label and comparison use profile.displayName (stored, NFC/trimmed by makeProfile), the title keeps the (2) label. Own-concept/example deletes keep armed=null. Harness auto-typing is limited to an empty, not-yet-autotyped field and opt-out exists; the new tests use typeDeleteName:false.",
                 "task_id": "NG-8673320459971200034",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:32:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:32:49+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:b86880fc45403d66b830c686f847b3eb1a4f91898eb27092d74f5cc00df590cc",
+                    "execution-evidence:sha256:d0c8c3da2132f58831969089daa58a2123b365abc483cb7d1e94d1bc090f0380",
+                    "execution-evidence:sha256:992b3a76603c54418d54fa2a3b5b8e04640aef10b94e252325c0216f57b7b3b4",
+                    "execution-evidence:sha256:31238f691de6016a0839095c9663c3eb1ae7781a7d275a3d9c26db0fb4a8cdcd"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:b86880fc45403d66b830c686f847b3eb1a4f91898eb27092d74f5cc00df590cc",
+                    "execution-evidence:sha256:d0c8c3da2132f58831969089daa58a2123b365abc483cb7d1e94d1bc090f0380",
+                    "execution-evidence:sha256:992b3a76603c54418d54fa2a3b5b8e04640aef10b94e252325c0216f57b7b3b4",
+                    "execution-evidence:sha256:31238f691de6016a0839095c9663c3eb1ae7781a7d275a3d9c26db0fb4a8cdcd"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
+                "context_id": "reviewer-blindspot-delete",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "observations": [
+                    "src/caregiver.ts:3118 names that look the same but are not typed the same are refused with no hint why: inner double spaces or a no-break space (kept by normalizeDisplayName, collapsed when HTML shows the label), or emoji with/without variation selector U+FE0F. Workaround is renaming first; consider comparing with inner whitespace collapsed or saying so in the refusal.",
+                    "public/styles.css:247 .caregiver-delete-name-label has no overflow-wrap:anywhere (the confirm title and profile name have it); a 40-character name without spaces can overflow the label at phone width.",
+                    "src/caregiver.ts:3186 focus now opens on the name field, so a screen reader starts at the field label and can skip the title and the loss text ('Alle ausgewählten Begriffe ... gehen verloren'); consider aria-describedby on the field pointing at the loss text. Not checked with assistive technology."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:90c0bd53",
+                "summary": "Blind-spot review of dcaceca (accessibility, hard-to-type names, child safety). No blocking gap: the field is labelled with the stored name, aria-disabled plus a role=status refusal line tells assistive tech why the hold does nothing, Escape/Abbrechen still leave, and a profile whose name proves hard to type can still be renamed to a plain name and then deleted, so no profile becomes undeletable. Stored names are NFC and trimmed by normalizeDisplayName (src/profiles/profile.ts:66-77), so the NFC/trim comparison at src/caregiver.ts:3118 cannot fail on normalization alone. The child-safety claim is bounded honestly in docs/caregiver.md (a reader who can type the shown name can delete; not security). Non-blocking limits recorded as observations.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:33:24+00:00",
+            "handoff": null,
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
+                "consistency_references": [
+                    "execution-evidence:sha256:9d7ce344e30f2785aeb88460337defd6b9bfd3f39bdee3cf4054c6fdbe705957"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "outcome": "failed",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:28249c6397c373f420e60a0b15674b15e652c7787d77db54ac3385fa57948460",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673320459971200034: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673320459971200034 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673320459971200034:b673b6be6e4558c3 binds active Session 2026-11-24-ng-8673320459971200034-r1-2564b9fd to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673320459971200034 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[FAIL] npm run verify (exit 2)\n> amys-echo@0.0.0 verify\n> npm run typecheck && npm run build && npm test && npm run smoke:offline && npm run test:browser\n\n\n> amys-echo@0.0.0 typecheck\n> tsc --noEmit --project tsconfig.json\n\nsrc/caregiver.ts(37,28): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(38,33): error TS2307: Cannot find module './teach/fit.js' or its corresponding type declarations.\nsrc/caregiver.ts(39,90): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(40,33): error TS2307: Cannot find module './teach/replay.js' or its corresponding type declarations.\nsrc/caregiver.ts(2543,120): error TS2366: Function lacks ending return statement and return type does not include 'undefined'.\nsrc/caregiver.ts(2588,39): error TS7006: Parameter 'point' implicitly has an 'any' type.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": [
+                    "execution-evidence:sha256:fc7d89f1d0da4c7189b9ab4174b779031f6c5ccdb0e7361215612d4b8848af56",
+                    "execution-evidence:sha256:c0861347295c9ef85e35ce5fa045c8bffb436446c5e265eddd32529a4b4ed9f7"
+                ]
             }
         }
     ],
