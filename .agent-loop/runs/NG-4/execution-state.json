@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:bc80ccdd56498fd536fa7bd4cf086a8ab9bd82e1",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
     "history": [
         {
@@ -33,6 +33,60 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:16ead92c",
                 "summary": "Teaching exists (NG-19): record, keep/discard, list, delete. Missing per NG-4: 'too different' feedback and replay. Stored examples hold only the 32x86 features: per hand 20 joints relative to the wrist /hand size *SHAPE_WEIGHT, wrist position relative to the anchor /scale, presence flag; enough for a stick figure at fixed hand size (1/3 shoulder width). matchGesture + calibrateMaxDistance give the board's own answer for a fit check. capture.js has import side effects, so replay keeps its own bone/colour lists, tied by a test.",
+                "task_id": "NG-4",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:16:54+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:16:54+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0cca657e1e2c7628cc25fa4efd3ea5209126d055475656e58af94c6190261663",
+                    "execution-evidence:sha256:c3767a92739c9ede7edc413ee22e637f232a8b6d2cb33d2ee11149460f867f11",
+                    "execution-evidence:sha256:702c7054863f2598edfd352fd8a47ad5b1623c706e2b5f0e6fc154f382b702d4",
+                    "execution-evidence:sha256:67b44392593ea6101beab3b9336e568c3aa953ca22cfad5b506d53dafe4aafe5",
+                    "execution-evidence:sha256:33ac80b5f0de3bab0f3104db689192c331eab921865a86aa9e3c0eb446e0e21a",
+                    "execution-evidence:sha256:b26a3d6571aa0b649f1cac878e1401d43e77409727f5a4debe4614658705d642",
+                    "execution-evidence:sha256:1fc98df1fdcd311e41e33cd8799bfe4526c5404bcc74471d6770ab90d3f0c6fa",
+                    "execution-evidence:sha256:6f615f619691f5de5ff677a75f94840738558a0fa2c4ead5092626b878b42ad8",
+                    "execution-evidence:sha256:69b1838f03915ec1b993272af1819a60910a693ff0b039dc997983c4ed4f443d",
+                    "execution-evidence:sha256:995195a79fa2e3488f7f5ffc759606dc8d6399fb56a1b361ea5c34c4d4ea6eee"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:bc80ccdd56498fd536fa7bd4cf086a8ab9bd82e1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "schema_version": "1.0",
+                "task_id": "NG-4",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0cca657e1e2c7628cc25fa4efd3ea5209126d055475656e58af94c6190261663",
+                    "execution-evidence:sha256:c3767a92739c9ede7edc413ee22e637f232a8b6d2cb33d2ee11149460f867f11",
+                    "execution-evidence:sha256:702c7054863f2598edfd352fd8a47ad5b1623c706e2b5f0e6fc154f382b702d4",
+                    "execution-evidence:sha256:67b44392593ea6101beab3b9336e568c3aa953ca22cfad5b506d53dafe4aafe5",
+                    "execution-evidence:sha256:33ac80b5f0de3bab0f3104db689192c331eab921865a86aa9e3c0eb446e0e21a",
+                    "execution-evidence:sha256:b26a3d6571aa0b649f1cac878e1401d43e77409727f5a4debe4614658705d642",
+                    "execution-evidence:sha256:1fc98df1fdcd311e41e33cd8799bfe4526c5404bcc74471d6770ab90d3f0c6fa",
+                    "execution-evidence:sha256:6f615f619691f5de5ff677a75f94840738558a0fa2c4ead5092626b878b42ad8",
+                    "execution-evidence:sha256:69b1838f03915ec1b993272af1819a60910a693ff0b039dc997983c4ed4f443d",
+                    "execution-evidence:sha256:995195a79fa2e3488f7f5ffc759606dc8d6399fb56a1b361ea5c34c4d4ea6eee"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:bc80ccdd56498fd536fa7bd4cf086a8ab9bd82e1",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "outcome": "completed",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:9e0fd7c1",
+                "summary": "src/teach/fit.ts exampleFit (first/fits/differs/other-hands/other-anchor/resembles via matchGesture with calibrated limits, no threshold changed); src/teach/replay.ts replaySteps/replayBox/replayStepMs; caregiver teach view: fit line under the result, 'Abspielen'/'Anhalten' per example with a 240x180 canvas, stops on leave/record; sw.js precaches teach modules (ASSET_REVISION teach-replay-1); CSS; docs caregiver.md, recognition.md, README. npm run verify passed: 656 node tests; browser 4 pass 2 skipped. Hand-run headless Chromium: seeded synthetic examples, replay of a two-hand example drawn with shoulder line, no console errors.",
                 "task_id": "NG-4",
                 "validation_references": []
             }

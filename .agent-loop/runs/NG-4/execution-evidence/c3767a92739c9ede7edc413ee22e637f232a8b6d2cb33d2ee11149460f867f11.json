@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:bc80ccdd56498fd536fa7bd4cf086a8ab9bd82e1",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-24T06:16:54+00:00",
+    "reference": "execution-evidence:sha256:c3767a92739c9ede7edc413ee22e637f232a8b6d2cb33d2ee11149460f867f11",
+    "run_id": "run:NG-4:95b700dd728e56b7",
+    "schema_version": "1.0",
+    "source_digest": "sha256:bc79fd8370338efbae31f82c948baa7db613eec297518f1af2ef170f6e99c861",
+    "source_reference": "workspace-file:src/teach/replay.ts",
+    "stage_id": "build",
+    "task_id": "NG-4"
+}
