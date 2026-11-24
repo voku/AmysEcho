@@ -239,6 +239,27 @@ films itself, or a caregiver films the child). This revises the NG-43 decision b
   `facingMode: { exact: "environment" }`; whether a child finds the switch or presses it by
   mistake; whether children recognise themselves in the points without the picture.
 
+**Camera picture on or off** (card NG-52; owner feedback 2026-11-24: without the picture the view
+looked oddly empty). The NG-49 points-only view above became a choice, and the picture is back by
+default.
+
+- **The toggle.** "◐ Bild aus" / "◐ Bild an" sits in the top corner of the picture box while the
+  camera runs. Its words say what a tap does, `aria-pressed` and the name ("Kamerabild ausblenden"
+  / "Kamerabild zeigen") say what is shown. It is at least 44 px; it is a caregiver's control, the
+  child's targets keep `--tile-min`.
+- **What a tap does.** It calls the preview's `setVideo`: the camera picture is shown or hidden
+  under the same canvas. The camera, the tracker and the attempt go on: no restart, no frame lost
+  (tested: a recording with the picture switched off and on in its middle is compared whole).
+- **The choice** is remembered on the device under `amysecho-recognise-picture` ("off" for points
+  only; anything else, nothing or no storage means on), and the next camera start asks the bridge
+  for the preview with or without video.
+- **Focus.** A focused toggle that goes with the picture (an answer, a problem) hands the focus on
+  as in card NG-48.
+- **Measured in headless Chromium** (as above, Chromium's fake camera) at the five sizes, in the
+  countdown, the recording and the recording after "Bild aus": no page scroll, nothing outside the
+  window, the picture box unchanged; one `<video>` with the picture on, none with it off; the
+  toggle 92 to 120 px wide and 44 px high.
+
 **Always the front camera** (card NG-43, revised by NG-49 above). The view had **no camera control** and did **not** use
 the "Kamera: vorne / hinten" choice of teaching and the camera test: it asks the bridge for the
 front camera itself (`facing: "user"`, `fallback: false`). Reason (second build, coordinator's

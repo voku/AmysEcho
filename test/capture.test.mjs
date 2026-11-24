@@ -1567,3 +1567,32 @@ test("browser preview without video (card NG-49): only the points on the box, ne
   withVideo.show(stream, "user");
   assert.equal(made.videos.length, 1);
 });
+
+test("browser preview: setVideo switches the camera picture off and on while it runs, on the same stream; the points stay (card NG-52)", () => {
+  const { doc, made } = previewDocument();
+  const preview = createCapturePreview(doc);
+  const stream = { getTracks: () => [] };
+  preview.show(stream, "user");
+  const [first] = made.videos;
+  const [canvas] = made.canvases;
+  assert.deepEqual(preview.element.children, [first, canvas]);
+  preview.setVideo(false);
+  assert.deepEqual(preview.element.children, [canvas], "points only");
+  assert.equal(preview.element.dataset.picture, "points");
+  assert.equal(first.srcObject, null, "the hidden picture lets go of the stream");
+  assert.equal(first.paused, true);
+  preview.draw(frame(0, [hand(0.3, 0.6, "Right")], pose()));
+  assert.ok(canvas.calls.some(([name]) => name === "stroke"), "the hand is still drawn");
+  preview.setVideo(true);
+  const second = made.videos[1];
+  assert.deepEqual(preview.element.children, [second, canvas], "the picture under the same canvas");
+  assert.equal(second.srcObject, stream, "the same stream: the camera was not restarted");
+  assert.equal(preview.element.dataset.picture, "video");
+  // Before show and after close there is nothing to switch, but the choice holds for the next show.
+  preview.close();
+  preview.setVideo(false);
+  assert.deepEqual(preview.element.children, []);
+  preview.show(stream, "user");
+  assert.equal(made.videos.length, 2, "no video after 'Bild aus' was chosen");
+  assert.deepEqual(preview.element.children, [made.canvases[1]]);
+});

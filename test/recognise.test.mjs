@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_FACING_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
+  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
   analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
@@ -927,6 +927,8 @@ function recordingPreviews({ failShow = false } = {}) {
       },
       draw(frame) { this.drawn.push(frame); },
       close() { this.closed += 1; },
+      videoSet: [],
+      setVideo(on) { this.videoSet.push(on); },
     };
     preview.element.className = "capture-preview";
     made.push(preview);
@@ -949,20 +951,21 @@ test("preview: the gesture view shows the live preview of the front camera durin
     const [preview] = previews.made;
     assert.deepEqual(preview.shown, ["user"], "the front camera: the picture is mirrored");
     const slot = slotOf(panel());
-    assert.deepEqual(slot.children.map((element) => element.className), ["capture-preview", "recognise-count"], "the count large over the picture");
+    assert.deepEqual(slot.children.map((element) => element.className), ["capture-preview", "recognise-count", "recognise-picture"], "the count large over the picture, the picture toggle in its corner (card NG-52)");
     assert.equal(slot.children[0], preview.element);
     assert.equal(slot.children[1].textContent, "3");
     const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
     assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-preview", "recognise-feedback"], "the line above the picture, the feedback row (card NG-45) below it");
     time.advance(1000);
     assert.equal(slotOf(panel()), slot);
-    assert.deepEqual(slot.children.map((element) => element.textContent), ["", "2"]);
+    assert.deepEqual(slot.children.map((element) => element.textContent), ["", "2", ""]);
     await camera.feed(MOVES_RIGHT(0));
     assert.equal(preview.drawn.length, 1, "frames of the countdown are drawn, not kept");
     time.advance((RECOGNISE_COUNTDOWN_S - 1) * 1000);
     assert.equal(panel().dataset.state, "recording");
     assert.equal(slotOf(panel()), slot, "the same box in the recording: the picture does not jump");
-    assert.deepEqual(slot.children, [preview.element]);
+    assert.deepEqual(slot.children.map((element) => element.className), ["capture-preview", "recognise-picture"]);
+    assert.equal(slot.children[0], preview.element);
     await camera.feedAll(MOVES_RIGHT);
     assert.equal(preview.drawn.length, 21);
     assert.equal(preview.drawn.at(-1).hands[0].label, "Right", "the tracker's own frame, as in teaching");
@@ -1347,7 +1350,7 @@ test("view: the hands-seen region and the picture stay in the page from the coun
     assert.deepEqual(main.moved.filter(([, node]) => node === feedback || node === slot), [], "no removal or insertion of the region or the picture box");
     assert.ok(main.moved.some(([kind, node]) => kind === "in" && hasClass(node, "recognise-line")), "the line is new on each draw: that is how the countdown is spoken");
     assert.deepEqual(slot.moved.filter(([, node]) => node === previews.made[0].element), [], "the picture stays in its box");
-    assert.deepEqual(slot.children, [previews.made[0].element], "only the picture in the recording, the count is gone");
+    assert.deepEqual(slot.children.map((element) => element.className), ["capture-preview", "recognise-picture"], "only the picture and its toggle in the recording, the count is gone");
     assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-preview", "recognise-feedback"]);
     // With the answer the row goes: out of the page, nothing more to announce.
     await camera.feedAll(MOVES_RIGHT);
@@ -1518,7 +1521,7 @@ test("view: a back camera that does not open says so and keeps the switch; a tap
   }, { camera: { noBackCamera: true }, choice: memoryStorage([[RECOGNISE_FACING_KEY, "environment"]]) });
 });
 
-test("view: the gesture view asks the bridge for a preview without the camera picture", async () => {
+test("view: the gesture view asks the bridge for a preview with the camera picture, or without it after 'Bild aus' was stored (cards NG-49, NG-52)", async () => {
   await withView(async (context) => {
     const { panel, camera } = context;
     const asked = [];
@@ -1526,9 +1529,17 @@ test("view: the gesture view asks the bridge for a preview without the camera pi
     camera.bridge.createPreview = (doc, options) => { asked.push(options); return previews.createPreview(doc); };
     context.gestureButton().click();
     await settle();
-    assert.deepEqual(asked, [{ video: false }]);
+    assert.deepEqual(asked, [{ video: true }], "the picture is on by default (card NG-52)");
     assert.equal(slotOf(panel()).children[0], previews.made[0].element);
   });
+  await withView(async (context) => {
+    const asked = [];
+    const previews = recordingPreviews();
+    context.camera.bridge.createPreview = (doc, options) => { asked.push(options); return previews.createPreview(doc); };
+    context.gestureButton().click();
+    await settle();
+    assert.deepEqual(asked, [{ video: false }], "points only after 'Bild aus' was chosen on this device");
+  }, { choice: memoryStorage([[RECOGNISE_PICTURE_KEY, "off"]]) });
 });
 
 test("view: one device storage for teaching and the gesture view: teaching's 'hinten' is never read here, and the switch never writes teaching's key", async () => {
@@ -1564,6 +1575,65 @@ test("view: when the camera switch has the focus and hides with the answer, the 
     time.advance(RECOGNISE_MAX_RECORDING_MS);
     assert.equal(panel().dataset.state, "confirm");
     assert.equal(cameraSwitch(panel()).hidden, true);
+    assert.equal(doc.activeElement, buttonNamed("Nein"), "not dropped to the page");
+  });
+});
+
+// --- Camera picture on or off (card NG-52) ---
+
+const pictureToggle = (panel) => tree(panel).find((element) => hasClass(element, "recognise-picture"));
+
+test("view: 'Bild aus' and 'Bild an' in the picture's corner switch the camera picture while the camera runs, without restarting it; remembered on the device", async () => {
+  const choice = memoryStorage();
+  await withView(async (context) => {
+    const { panel, time, camera, buttonNamed } = context;
+    const previews = recordingPreviews();
+    camera.bridge.createPreview = previews.createPreview;
+    context.gestureButton().click();
+    await settle();
+    const toggle = pictureToggle(panel());
+    assert.equal(toggle.tagName, "button");
+    assert.equal(slotOf(panel()).children.at(-1), toggle, "in the picture's box");
+    assert.equal(textOf(toggle), "◐ Bild aus", "the words say what a tap does");
+    assert.equal(toggle.attributes["aria-label"], "Kamerabild ausblenden");
+    assert.equal(toggle.attributes["aria-pressed"], "true");
+    toggle.click();
+    assert.deepEqual(previews.made[0].videoSet, [false]);
+    assert.equal(textOf(toggle), "◐ Bild an");
+    assert.equal(toggle.attributes["aria-label"], "Kamerabild zeigen");
+    assert.equal(choice.items.get(RECOGNISE_PICTURE_KEY), "off");
+    assert.equal(panel().dataset.state, "countdown", "the countdown goes on");
+    // Into the recording, then back on: the camera never restarts, no frame is lost.
+    time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+    await camera.feedAll(MOVES_RIGHT, 10);
+    assert.equal(pictureToggle(panel()), toggle, "the same toggle in the recording");
+    toggle.click();
+    await camera.feedAll((i) => MOVES_RIGHT(i + 10), 10);
+    assert.deepEqual(previews.made[0].videoSet, [false, true]);
+    assert.equal(choice.items.get(RECOGNISE_PICTURE_KEY), "on");
+    assert.equal(camera.log.cameraRequests, 1, "one camera start for the whole attempt");
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "confirm");
+    assert.equal(panel().dataset.concept, "trinken", "all frames compared");
+    assert.equal(pictureToggle(panel()), undefined, "no toggle with the answer: no picture");
+  }, { choice });
+});
+
+test("view: no picture toggle without a preview; a focused toggle that goes with the picture hands the focus on", async () => {
+  await withView(async (context) => {
+    const { panel } = context;
+    await viewToRecording(context);
+    assert.equal(pictureToggle(panel()), undefined, "an older bridge without a preview: nothing to switch");
+  });
+  await withView(async (context) => {
+    const { panel, time, camera, doc, buttonNamed } = context;
+    camera.bridge.createPreview = recordingPreviews().createPreview;
+    await viewToRecording(context);
+    await camera.feedAll(MOVES_RIGHT);
+    pictureToggle(panel()).focus();
+    time.advance(RECOGNISE_MAX_RECORDING_MS);
+    assert.equal(panel().dataset.state, "confirm");
     assert.equal(doc.activeElement, buttonNamed("Nein"), "not dropped to the page");
   });
 });
