@@ -160,7 +160,12 @@ export function segmentStream(frames: readonly LandmarkFrame[], mode: SegmentMod
         const middle = frames[restFrom]!.tMs + (frame.tMs - frames[restFrom]!.tMs) / 2;
         let cut = restFrom;
         while (frames[cut]!.tMs < middle) cut += 1;
-        keep(start, cut - 1);
+        // Never inside a loss of the hand: the next part starts at a frame with a hand (frame `index` has one),
+        // and the earlier part ends at the last frame with a hand before it.
+        while (!hasHand(frames[cut]!)) cut += 1;
+        let end = cut - 1;
+        while (!hasHand(frames[end]!)) end -= 1;
+        keep(start, end);
         start = cut;
         moved = false;
         restFrom = -1;

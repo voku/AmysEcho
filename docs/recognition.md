@@ -505,6 +505,8 @@ one finished attempt, so the stream has to be cut into attempts first. Code:
     the middle of that rest. A hand at rest moves slower than `REST_SPEED`, measured on the palm
     centre against the same hand at least `SPEED_SPAN_MS` earlier; a hand that just came into view
     is neither moving nor resting.
+  - A cut at a rest never falls inside a loss of the hand: both parts start and end with a frame
+    that has a hand (found by the first review of the card).
   - Nothing is trimmed inside a segment, as for an attempt. A segment longer than `SEGMENT_MAX_MS`
     (10 s) is dropped, not compared. A gesture still going on at the stream's end is returned as
     `open`.
@@ -553,11 +555,18 @@ Measured with `EVAL_FULL=1`-size streams (90 known gestures and 60 unknown movem
 | away | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 98.9 % / 0.0 % / 0.0 % |
 | away | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 98.9 % / 0.0 % / 0.0 % |
 
-- **"away" passes the gate.** With the hands out of view for 1 s or 1.5 s between gestures,
-  every number equals the one-by-one numbers on the same captures. No movement is split or
-  merged, and nothing is said in a pause. The 15 % of "other-fingers" look-alikes accepted at low
-  sloppiness are the matcher's, one by one as well: a known limit of the matcher (see above),
-  not of the cut.
+- **"away" passes the gate, by construction of the synthetic stream.**
+  - With the hands out of view for 1 s or 1.5 s between gestures, every number equals the
+    one-by-one numbers on the same captures. No movement is split or merged, and nothing is said
+    in a pause.
+  - The equality is by construction. In the synthetic stream the hands come into view and leave
+    it from one frame to the next, and each capture is trimmed to its frames with a hand. So the
+    cut finds exactly the frames that are scored one by one. What this shows: the cut puts its
+    boundaries where the movements are, and never splits or joins them when the hands leave for
+    longer than the gap. It does not show how the cut does when hands leave slowly or half out of
+    the picture ("Not measured" below).
+  - The 15 % of "other-fingers" look-alikes accepted at low sloppiness are the matcher's, one by
+    one as well: a known limit of the matcher (see above), not of the cut.
 - **A pause shorter than the gap is safe but useless.** At 600 ms the movements run together,
   the long segments are dropped or match nothing, and nothing is said. No wrong concept, nothing
   accepted.
@@ -566,6 +575,8 @@ Measured with `EVAL_FULL=1`-size streams (90 known gestures and 60 unknown movem
     missed.
   - With 1.5 s rests the move between two postures becomes a segment of its own, and unknown
     movements are accepted more often than one by one (3.3 % against 1.7 %, 11.7 % against 1.7 %).
+    That segment is counted as "merged": the spans of the movements include their rests, so it
+    always overlaps one and is scored against it. "Said in a pause" cannot happen in these rows.
   - It is not used.
 - **Cut at "away" while the hands rest in view,** the whole stream is one movement: dropped,
   nothing said.

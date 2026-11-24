@@ -661,3 +661,42 @@ test("segments: a segment longer than SEGMENT_MAX_MS is dropped and counted, nev
   assert.deepEqual(cut.segments, []);
   assert.equal(cut.tooLong, 1);
 });
+
+test("segments: a cut at a rest never falls inside a loss of the hand; both parts start and end with a hand", () => {
+  // Moves for a second, rests, is lost for 400 ms in the middle of the rest (bridged), rests, moves back.
+  const place = (tMs) => (tMs <= 1000 ? [tMs / 10, 0] : tMs > 1440 && tMs < 1840 ? null : tMs <= 2800 ? [100, 0] : tMs <= 3800 ? [100 - (tMs - 2800) / 10, 0] : null);
+  const parts = segmentStream(streamFrames(0, 6000, place), "rest").segments;
+  assert.equal(parts.length, 2);
+  for (const part of parts) {
+    assert.notEqual(part[0].right, null, "starts with a hand");
+    assert.notEqual(part[part.length - 1].right, null, "ends with a hand");
+  }
+  assert.ok(parts[0][parts[0].length - 1].tMs <= 1440 && parts[1][0].tMs >= 1840, "the loss lies between the parts");
+});
+
+test("segments: with two hands, one moving keeps the frame moving", () => {
+  // The right hand moves alone for a second, then rests for two while the left hand moves: one gesture, never cut
+  // at the right hand's rest. (The right hand is measured after the left one: its rest must not hide the movement.)
+  const frames = [];
+  for (let tMs = 0; tMs <= 6000; tMs += 40) {
+    const right = tMs <= 1000 ? streamHand(tMs / 10, 0) : tMs <= 3000 ? streamHand(100, 0) : null;
+    const left = tMs > 1000 && tMs <= 3000 ? streamHand(-100 - ((tMs - 1000) / 10) % 100, 0) : null;
+    frames.push({ tMs, left, right, shoulders: STREAM_SHOULDERS });
+  }
+  assert.deepEqual(segmentStream(frames, "rest").segments.map(spanOf), [[0, 3000]]);
+});
+
+test("segments: exactly SEGMENT_GAP_MS without a hand does not cut; longer does", () => {
+  // Frames every 50 ms, so the gap between the last hand frame and the next one is exactly `gapMs`.
+  const at = (gapMs) => {
+    const frames = [];
+    for (let tMs = 0; tMs <= 5000; tMs += 50) {
+      const right = tMs <= 1000 ? streamHand(tMs / 10, 0) : tMs < 1000 + gapMs ? null : tMs <= 2000 + gapMs ? streamHand((tMs - gapMs) / 10, 0) : null;
+      frames.push({ tMs, left: null, right, shoulders: STREAM_SHOULDERS });
+    }
+    return frames;
+  };
+  assert.equal(SEGMENT_GAP_MS % 50, 0);
+  assert.equal(segmentStream(at(SEGMENT_GAP_MS), "away").segments.length, 1);
+  assert.equal(segmentStream(at(SEGMENT_GAP_MS + 50), "away").segments.length, 2);
+});
