@@ -71,7 +71,9 @@ viewport-based values first for a browser without them. Script measures nothing.
 
 A tile's picture is the profile's own picture when the caregiver chose one ("Bild wählen", card
 NG-8673323346005092805; a PNG or JPEG data URL of at most 256 × 256 pixels), else the catalogue's,
-else none. A picture that is not square keeps its proportions (`object-fit: contain`).
+else none. A picture that is not square keeps its proportions (`object-fit: contain`). Only a
+source `isPictureSource` accepts (a stored picture or a bundled `./icons/*.svg`) becomes an image;
+any other is shown as a text tile (card NG-8673317704447615766).
 
 Padding respects the safe areas of a device with a notch or a home indicator
 (`viewport-fit=cover` with `env(safe-area-inset-*)`; untested on such a device).

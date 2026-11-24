@@ -7377,3 +7377,130 @@ test("delete: Escape in the name field leaves the confirmation without deleting,
     assert.equal(focused.current, buttonNamed(caregiverRegion, "Löschen"));
   });
 });
+
+// --- Picture view polish (card NG-8673317704447615766); the picture data is synthetic ---
+
+test("pictures: choosing another file drops the earlier picture at once: no 'Speichern' while it is read, and none next to its refusal", async () => {
+  const pending = new Map();
+  const slow = (file) => new Promise((resolve, reject) => pending.set(file.name, { ok: () => resolve(PICTURE_PNG), refuse: () => reject(new PictureRefusal("pixels")) }));
+  await withArea({ seed: seedThree, pictureFromFile: slow }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, status, backend } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Bild wählen").click());
+    const pick = async (name) => {
+      const view = pictureViewOf(caregiverRegion);
+      view.file.files = [{ name, type: "image/png", size: 10 }];
+      view.file.dispatch("change");
+      await area.handle.settled();
+    };
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await area.handle.settled();
+    };
+    await pick("first.png");
+    pending.get("first.png").ok();
+    await settle();
+    assert.notEqual(pictureViewOf(caregiverRegion).save, null);
+    // A second file: while it is read there is nothing to save, and the earlier preview is gone.
+    await pick("second.png");
+    assert.equal(pictureViewOf(caregiverRegion).save, null);
+    assert.deepEqual(pictureViewOf(caregiverRegion).images, ["./icons/hilfe.svg"]);
+    assert.ok(pictureViewOf(caregiverRegion).texts.includes("Das Bild wird gelesen …"));
+    // Refused (too many pixels): the refusal, and still nothing to save.
+    pending.get("second.png").refuse();
+    await settle();
+    assert.equal(status(), "Das Bild ist zu groß (mehr als 40 Megapixel). Bitte ein kleineres Bild wählen, zum Beispiel einen Ausschnitt.");
+    assert.equal(pictureViewOf(caregiverRegion).save, null);
+    assert.deepEqual(pictureViewOf(caregiverRegion).images, ["./icons/hilfe.svg"]);
+    assert.equal(Object.keys(backend.snapshot()).some((key) => key.includes("symbol.")), false);
+  });
+});
+
+test("pictures: a caregiver row shows only a stored picture or a bundled icon", async () => {
+  const catalogue = CONCEPTS.map((concept) => (concept.id === "pause" ? { ...concept, symbolPath: "javascript:alert(1)" } : concept));
+  await withArea({ seed: seedThree, catalogue }, async ({ holdOpen, concept }) => {
+    await holdOpen();
+    assert.equal(concept("Pause").picture, null);
+    assert.equal(concept("Hilfe").picture, "./icons/hilfe.svg");
+  });
+});
+
+// --- Typed-name delete polish (card NG-8673319027843774136) ---
+
+/** Mia and a profile whose name has an inner space and an emoji with its presentation mark. */
+const seedNames = async (store) => {
+  const mia = await createMia(store);
+  const anna = await store.create("Anna Lena ❤️", []);
+  return { mia, anna };
+};
+
+test("delete name: the line follows what is typed, a name changed during a hold is refused with the reason, and Enter and Space are refused too", async () => {
+  await withArea({ seed: seedMiaAndBen, typeDeleteName: false }, async ({ holdOpen, act, profile, confirmation, caregiverRegion, store, clock, handle }) => {
+    await holdOpen();
+    await act(() => profile("Ben").remove.click());
+    const field = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+    const type = (text) => { field.value = text; field.dispatch("input"); };
+    const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+    const refusal = "Der Name stimmt noch nicht. Bitte genau „Ben“ eingeben. Es wurde nichts gelöscht.";
+    // Enter and Space on the button are refused like a pointer.
+    for (const key of ["Enter", " "]) {
+      const { confirm } = confirmation();
+      confirm.dispatch("keydown", { key, repeat: false });
+      clock.advance(DELETE_HOLD_MS);
+      confirm.dispatch("keyup", { key });
+      await handle.settled();
+      assert.deepEqual(await names(), ["Ben", "Mia"], `key ${JSON.stringify(key)}`);
+      assert.equal(confirmation().hint.textContent, refusal);
+    }
+    // Typing the name puts the hint back at once.
+    type("Ben");
+    assert.equal(confirmation().hint.textContent, DELETE_HOLD_HINT);
+    // Changed during a running hold: the release deletes nothing and says why.
+    const { confirm } = confirmation();
+    confirm.dispatch("pointerdown", { button: 0 });
+    clock.advance(DELETE_HOLD_MS);
+    type("Be");
+    confirm.dispatch("pointerup");
+    await handle.settled();
+    assert.deepEqual(await names(), ["Ben", "Mia"]);
+    assert.equal(confirmation().hint.textContent, refusal);
+  });
+});
+
+test("delete name: inner spaces, a no-break space and the emoji mark U+FE0F do not matter; capitals and other characters do, with a hint", async () => {
+  await withArea({ seed: seedNames, typeDeleteName: false }, async ({ holdOpen, act, profile, confirmation, caregiverRegion }) => {
+    await holdOpen();
+    await act(() => profile("Anna Lena ❤️").remove.click());
+    const field = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+    const type = (text) => { field.value = text; field.dispatch("input"); };
+    const armed = () => confirmation().confirm["aria-disabled"] === "false";
+    for (const same of ["Anna Lena ❤️", "Anna  Lena ❤", "Anna Lena❤️".replace("Lena", "Lena "), " Anna Lena  ❤ "]) {
+      type(same);
+      assert.equal(armed(), true, JSON.stringify(same));
+    }
+    const refusalWith = (hint) => `Der Name stimmt noch nicht. Bitte genau „Anna Lena ❤️“ eingeben.${hint} Es wurde nichts gelöscht.`;
+    const pressed = () => {
+      const { confirm } = confirmation();
+      confirm.dispatch("pointerdown", { button: 0 });
+      confirm.dispatch("pointerup");
+      return confirmation().hint.textContent;
+    };
+    for (const [wrong, hint] of [["AnnaLena ❤", " Achte auf die Leerzeichen."], ["anna lena ❤", " Achte auf große und kleine Buchstaben."], ["Anna Lena", ""], ["Anna Lena ♥", ""]]) {
+      type(wrong);
+      assert.equal(armed(), false, JSON.stringify(wrong));
+      assert.equal(pressed(), refusalWith(hint), JSON.stringify(wrong));
+    }
+  });
+});
+
+test("delete name: the field describes itself with the title and what is lost; a long name wraps", async () => {
+  await withArea({ seed: seedMiaAndBen, typeDeleteName: false }, async ({ holdOpen, act, profile, caregiverRegion }) => {
+    await holdOpen();
+    await act(() => profile("Mia").remove.click());
+    const field = tree(caregiverRegion).find((element) => element.id === "caregiver-delete-name");
+    const described = field["aria-describedby"].split(" ").map((id) => tree(caregiverRegion).find((element) => element.id === id).textContent);
+    assert.deepEqual(described, ["Profil „Mia“ löschen?", DELETE_LOSS, DELETE_ACTIVE]);
+  });
+  const css = await readFile(new URL("../dist/styles.css", import.meta.url), "utf8");
+  assert.match(css, /^\.caregiver-delete-name-label \{[^}]*overflow-wrap: anywhere;/m);
+});

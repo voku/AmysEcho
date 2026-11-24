@@ -1,0 +1,246 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T12:05:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:05:34+00:00",
+                "artifact_references": [],
+                "candidate_revision": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "schema_version": "1.0",
+                "task_id": "NG-8673317704447615766",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "baffaae0b990d7e255a2c7b822ad9ef29d77172c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "outcome": "completed",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:0fde189c",
+                "summary": "choosePicture keeps an earlier draft.picture while a new file is read; pictureFromFile has no pixel budget; board.ts and caregiver conceptText put symbolPath into img.src unguarded; the board's catalogue icons are ./icons/*.svg; exportProfile/importProfile carry data entries generically; test/browser runs Playwright against serveDist.",
+                "task_id": "NG-8673317704447615766",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:05:36+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:05:36+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:94c9fc4652b19003214fd50fa71fdff76e957cf99c8b8f47fcfae07ff651a408",
+                    "execution-evidence:sha256:f28cdd92c7bbaf9f3b06e1c308b23be578317fc45560ca58d6c0fbf27e5c352e",
+                    "execution-evidence:sha256:da984a50bc7ba7e263829c9375c9a91f29c583c26f8241ecaa0a0226b2d1d07b",
+                    "execution-evidence:sha256:7501e1a3125101fbf3cfbf687f34888bb3ee05d7eae4b90f18c596adb07d9a6a",
+                    "execution-evidence:sha256:a04c735640db100fa1b64d0d35aae1875cf3a675f9c980cad46fd32e74961ca9",
+                    "execution-evidence:sha256:55c4f2e9d34b00a81386e60cdbf6b18c193034414a7cb9654ce3ecd0175defef",
+                    "execution-evidence:sha256:2c7e19705fbc2b32d3431f4f23fd3d69dd7d21c1e9e816772ff565daec6ef7d2",
+                    "execution-evidence:sha256:2001fd4cbedff643638c259e17222cefb26b950b204cb21d265fb65f509fcc7d"
+                ],
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "schema_version": "1.0",
+                "task_id": "NG-8673317704447615766",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:94c9fc4652b19003214fd50fa71fdff76e957cf99c8b8f47fcfae07ff651a408",
+                    "execution-evidence:sha256:f28cdd92c7bbaf9f3b06e1c308b23be578317fc45560ca58d6c0fbf27e5c352e",
+                    "execution-evidence:sha256:da984a50bc7ba7e263829c9375c9a91f29c583c26f8241ecaa0a0226b2d1d07b",
+                    "execution-evidence:sha256:7501e1a3125101fbf3cfbf687f34888bb3ee05d7eae4b90f18c596adb07d9a6a",
+                    "execution-evidence:sha256:a04c735640db100fa1b64d0d35aae1875cf3a675f9c980cad46fd32e74961ca9",
+                    "execution-evidence:sha256:55c4f2e9d34b00a81386e60cdbf6b18c193034414a7cb9654ce3ecd0175defef",
+                    "execution-evidence:sha256:2c7e19705fbc2b32d3431f4f23fd3d69dd7d21c1e9e816772ff565daec6ef7d2",
+                    "execution-evidence:sha256:2001fd4cbedff643638c259e17222cefb26b950b204cb21d265fb65f509fcc7d"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "outcome": "completed",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:31da698a",
+                "summary": "choosePicture drops the earlier picture when a new file is chosen (no Speichern while reading or after a refusal); pictureFromFile refuses > 40 MP (MAX_PICTURE_PIXELS) before drawing, German line; isPictureSource in board.ts (stored picture or ./icons/*.svg) guards board tiles, caregiver rows and previews; tests: board (sources + CONCEPTS), caregiver (stale save, refusal, row guard), profiles-backup round trip with symbol entries (same store copy and new store), new test/browser/pictures.test.mjs in Chromium with synthetic images. Docs caregiver.md, board.md. npm run verify passed: 669 node tests; browser 7 pass.",
+                "task_id": "NG-8673317704447615766",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:06:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:06:56+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:183c3c7e0973c30feb44ff768da29e37c16d9e84835524bf6190601f94de3165",
+                    "execution-evidence:sha256:74497d5d5e24177e01ff09ebeea8d0198ffafbebc37f36a9d3daf4fca190cf35",
+                    "execution-evidence:sha256:4c22c7e5cace8d08646fb2e2caa1f77f8c3f001bfc7c025d7299ff5492fb0568",
+                    "execution-evidence:sha256:782f648f294f828bfdc7ca329ecbf1a9cf09b7c40a277074b0fc5aa074f17f2e",
+                    "execution-evidence:sha256:38b417e0fd0d1bfef3ed44cc285b265e6477ba184f426c4fa876a9cf930ec871",
+                    "execution-evidence:sha256:72aa38d6521b7ed8fe921249a9f4d669bb1caa8a2c60fd79b0ee3a3a7b14dc88",
+                    "execution-evidence:sha256:4f91b47d8b3bc10b236af255bd28c406fb282ee32fb720ff6635d6598c6fe07e",
+                    "execution-evidence:sha256:b482f2b832eb3a646eda29f7814abafd4d8cd9df23e56d18e1876886a3f81431"
+                ],
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "schema_version": "1.0",
+                "task_id": "NG-8673317704447615766",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:183c3c7e0973c30feb44ff768da29e37c16d9e84835524bf6190601f94de3165",
+                    "execution-evidence:sha256:74497d5d5e24177e01ff09ebeea8d0198ffafbebc37f36a9d3daf4fca190cf35",
+                    "execution-evidence:sha256:4c22c7e5cace8d08646fb2e2caa1f77f8c3f001bfc7c025d7299ff5492fb0568",
+                    "execution-evidence:sha256:782f648f294f828bfdc7ca329ecbf1a9cf09b7c40a277074b0fc5aa074f17f2e",
+                    "execution-evidence:sha256:38b417e0fd0d1bfef3ed44cc285b265e6477ba184f426c4fa876a9cf930ec871",
+                    "execution-evidence:sha256:72aa38d6521b7ed8fe921249a9f4d669bb1caa8a2c60fd79b0ee3a3a7b14dc88",
+                    "execution-evidence:sha256:4f91b47d8b3bc10b236af255bd28c406fb282ee32fb720ff6635d6598c6fe07e",
+                    "execution-evidence:sha256:b482f2b832eb3a646eda29f7814abafd4d8cd9df23e56d18e1876886a3f81431"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "context_id": "reviewer-correctness-picpolish",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "observations": [
+                    "src/recognise/recognise.ts:566-568,595,762 the gesture view still puts entry.symbolPath into img.src without isPictureSource, so the goal 'every place that shows a picture' and docs/caregiver.md ('Every place that shows a picture ...') overclaim; recognise.ts is outside this Contract's scope. Not exploitable today because resolveBoard only yields a validated stored dataUrl or a catalogue path; follow-up card to use isPictureSource there (and fix the doc wording).",
+                    "src/caregiver.ts:283 an SVG that reports naturalWidth or naturalHeight 0 (e.g. only width set) gives product 0 and passes the pixel budget; harmless because a vector is rendered at the <=256 px canvas size, but the budget is not a guarantee for SVG.",
+                    "test/browser/pictures.test.mjs:57 the 'pixels' refusal is tested only with an SVG; no raster (e.g. a small solid-colour 7000x6000 PNG) checks the case the guard exists for, decoding before drawImage."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:66b9212c",
+                "summary": "Correctness review of 96ff23c7 against base baffaae0 (baffaae0 only archives cards on top of 2d8b831; product diff is the same). choosePicture clears draft.picture before reading (src/caregiver.ts:1676), settlePicture refuses while reading (1704) and the view only offers Speichern when draft.picture !== null (2280); the choice counter drops stale answers; the caregiver test covers no-save while reading and after a 'pixels' refusal. pictureFromFile refuses naturalWidth*naturalHeight > 40 MP after onload and before drawImage (282-283) with the German line (PICTURE_REFUSED.pixels). isPictureSource (src/board.ts:16-18) is now used by board tiles (427), caregiver rows (2217) and previews (232); a test ties every CONCEPTS symbolPath to it, and all public/icons files match ^[a-z0-9-]+\\.svg$, so no catalogue path is hidden. Backup round trip test exports symbol entries and re-imports into a new store and as a copy with a new id. Browser test covers SVG with script, 1200x900 -> 256x192, text, broken PNG, 42 MP SVG.",
+                "task_id": "NG-8673317704447615766",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:07:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:07:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2511cdd1aa32c11621d3aaad7d4db2ed7b3f840683e795d0bfdeb92d87329f6a",
+                    "execution-evidence:sha256:579cb98c4e3c80193b2ca0cca72be223aa63c12d65bf1e7e5295a35899bc4f11",
+                    "execution-evidence:sha256:7266c7d96f7903fae1b623ad16e3d35a95ea6fc491705e16129dae0eb166de23",
+                    "execution-evidence:sha256:1e514a45744cda5357224d654ee4d14adf9b2d1db3f5c451c2248118f3b3892e",
+                    "execution-evidence:sha256:1d904946c13f9f7dd78b12da46ec19955f1ab1f878e722ab5cf29a724c279d75",
+                    "execution-evidence:sha256:bbefaa645ae8c8e197da1d3582549c93a9b982cd9e5c18f300c42de9a5642eb4",
+                    "execution-evidence:sha256:875c7c7e869ba2d8b88bebbf78b78e95b7d7ac014393d7641283b3eb660f366a",
+                    "execution-evidence:sha256:781619b961a5ebe51b3e1a0185bfe579d943d36888decae868bc6b77e0a7aa87"
+                ],
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "schema_version": "1.0",
+                "task_id": "NG-8673317704447615766",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2511cdd1aa32c11621d3aaad7d4db2ed7b3f840683e795d0bfdeb92d87329f6a",
+                    "execution-evidence:sha256:579cb98c4e3c80193b2ca0cca72be223aa63c12d65bf1e7e5295a35899bc4f11",
+                    "execution-evidence:sha256:7266c7d96f7903fae1b623ad16e3d35a95ea6fc491705e16129dae0eb166de23",
+                    "execution-evidence:sha256:1e514a45744cda5357224d654ee4d14adf9b2d1db3f5c451c2248118f3b3892e",
+                    "execution-evidence:sha256:1d904946c13f9f7dd78b12da46ec19955f1ab1f878e722ab5cf29a724c279d75",
+                    "execution-evidence:sha256:bbefaa645ae8c8e197da1d3582549c93a9b982cd9e5c18f300c42de9a5642eb4",
+                    "execution-evidence:sha256:875c7c7e869ba2d8b88bebbf78b78e95b7d7ac014393d7641283b3eb660f366a",
+                    "execution-evidence:sha256:781619b961a5ebe51b3e1a0185bfe579d943d36888decae868bc6b77e0a7aa87"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "context_id": "reviewer-blindspot-picpolish",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "observations": [
+                    "src/board.ts:9 BUNDLED_PICTURE allows only lowercase flat ./icons/*.svg; a future catalogue icon in a subfolder, with uppercase or as PNG would silently render as a text tile. The CONCEPTS test in test/board.test.mjs catches it for the catalogue, but not for icons added elsewhere (e.g. recognise-view symbols).",
+                    "src/recognise/recognise.ts:566 follow-up: route the gesture view's img.src through isPictureSource so the 'every place' claim holds; currently guaranteed only by the data layer."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:2f66df88",
+                "summary": "Blind-spot review of the picture import polish. Checked: SVG size-0 bypass of the pixel budget (harmless: vectors render at canvas size), catalogue paths vs isPictureSource (every CONCEPTS symbolPath and every public/icons file matches ^./icons/[a-z0-9-]+\\.svg$; a test enforces it), the gesture view (not guarded, out of scope, defended by resolveBoard/readSymbolEntry validation), stale answers of an earlier file (choice counter), privacy (only the redrawn canvas is stored; synthetic fixtures only). No blocking gap; limits recorded as observations.",
+                "task_id": "NG-8673317704447615766",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:10:16+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:10:16+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "schema_version": "1.0",
+                "task_id": "NG-8673317704447615766",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:d8711b772817bb5d473a5b89af274dc2f606fb72649129c2f0ee4c4124533854",
+                    "execution-evidence:sha256:00a4bd29eb591de035d6946e43d46f659c4227490c1e041751429d04a30897af"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:baffaae0b990d7e255a2c7b822ad9ef29d77172c:12a0dbda3691b59a8669ba72c960fadc7f6c56d4",
+                "consistency_references": [
+                    "execution-evidence:sha256:c3496ff880b6164aac494c54d8af4c1fbfed6afe86587c69caf64710016c82fd"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9d16b6df3450dcf77f8b82de40c7e3ba07910ad99ecee254e08a0039c779f41e",
+                "outcome": "pass",
+                "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:c77b94bfa9d43d6b4ada0a4d24ab2710cec0d6e71803432841b637f478c79bb4",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673317704447615766: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673317704447615766 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673317704447615766:ee7107d4fcc31eb8 binds active Session 2026-11-24-ng-8673317704447615766-r1-67ed6447 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673317704447615766 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-8673317704447615766",
+                "validation_references": [
+                    "execution-evidence:sha256:d8711b772817bb5d473a5b89af274dc2f606fb72649129c2f0ee4c4124533854",
+                    "execution-evidence:sha256:00a4bd29eb591de035d6946e43d46f659c4227490c1e041751429d04a30897af"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-8673317704447615766:ee7107d4fcc31eb8",
+    "schema_version": "1.0",
+    "task_id": "NG-8673317704447615766"
+}

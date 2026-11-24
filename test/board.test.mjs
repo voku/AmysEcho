@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, SPEECH_GRACE_MS, SPEECH_MAX_MS, boardColumns, createBoardHost, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
+import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, SPEECH_GRACE_MS, SPEECH_MAX_MS, boardColumns, createBoardHost, isPictureSource, mountBoard, mountFailure, mountLoading } from "../dist/board.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import {
   BoardDataError, MAX_LABEL_LENGTH, MAX_SPEECH_LENGTH, MAX_SYMBOL_DATA_URL_LENGTH, clearSymbol, clearWording, isSymbolDataUrl, setSymbol, isBoardConceptId, listCustomConcepts, normalizeWording,
@@ -2629,4 +2629,24 @@ test("gesture: the stylesheet gives the control and the gesture view big targets
   assert.match(rule(".recognise"), /border: 6px solid #4b2a7a/);
   assert.match(rule(".recognise"), /background: #f7f2fd/);
   assert.match(css, /\[hidden\] \{ display: none !important; \}/, "the hidden board stays hidden under the view");
+});
+
+// --- Which picture sources are shown (card NG-8673317704447615766) ---
+
+test("pictures: a tile shows only a stored picture or a bundled icon; any other source is a text tile; every catalogue icon passes", () => {
+  for (const concept of CONCEPTS) assert.equal(isPictureSource(concept.symbolPath), true, concept.symbolPath);
+  assert.equal(isPictureSource(PNG), true);
+  for (const bad of ["javascript:alert(1)", "https://example.invalid/a.png", "./icons/../x.svg", "data:image/svg+xml,<svg/>", "", null]) assert.equal(isPictureSource(bad), false, String(bad));
+  const view = {
+    ...MIA_VIEW,
+    entries: [
+      { id: "a", labelDe: "A", speechDe: "A.", symbolPath: "javascript:alert(1)", source: "custom" },
+      { id: "b", labelDe: "B", speechDe: "B.", symbolPath: PNG, source: "custom" },
+      { id: "c", labelDe: "C", speechDe: "C.", symbolPath: "./icons/hilfe.svg", source: "catalogue" },
+    ],
+  };
+  withMountedBoard(view, ({ buttons }) => {
+    assert.deepEqual(buttons.map((button) => button.children.find((child) => child.tagName === "img")?.src ?? null), [null, PNG, "./icons/hilfe.svg"]);
+    assert.ok(buttons[0].className.split(" ").includes("concept-text"));
+  });
 });

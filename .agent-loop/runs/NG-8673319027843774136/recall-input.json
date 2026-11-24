@@ -1,0 +1,10 @@
+{
+    "contract": {
+        "path": "contract.json",
+        "revision": 2,
+        "sha256": "sha256:ada4dd64d287b1aeb5ea5e38060a9335546e342b73ab6f9e3d56cce197915fcd"
+    },
+    "kind": "governed_recall_input",
+    "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+    "schema_version": "1.0"
+}
