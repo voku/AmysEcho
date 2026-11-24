@@ -603,6 +603,22 @@ function actionButton(className: string, symbol: string, text: string, picture: 
   return node;
 }
 
+/**
+ * Puts `nodes` into `parent` in this order, leaving every node that is already at its place where it
+ * is (card NG-47): the hands-seen status region and the picture box stay in the page from the
+ * countdown into the recording; taking them out and in again on each draw could make a screen reader
+ * read them again.
+ */
+function place(parent: HTMLElement, nodes: readonly HTMLElement[]): void {
+  for (const child of Array.from(parent.children)) {
+    if (!nodes.includes(child as HTMLElement)) parent.removeChild(child);
+  }
+  nodes.forEach((node, index) => {
+    const at = parent.children[index] ?? null;
+    if (at !== node) parent.insertBefore(node, at);
+  });
+}
+
 const defaultTimer: SetTimer = (callback, milliseconds) => {
   const timer = setTimeout(callback, milliseconds);
   return () => clearTimeout(timer);
@@ -643,7 +659,14 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   const seenBox = element("div", "recognise-seen");
   const seenHands = [element("span", "recognise-seen-hand", "✋"), element("span", "recognise-seen-hand", "✋")];
   for (const hand of seenHands) hand.setAttribute("aria-hidden", "true");
+  // Card NG-47: the words are a polite status region, so a screen reader says when a hand is seen
+  // or gone. They follow the steady signal (NG-46) and are only rewritten when the count changes:
+  // rewriting the same text can be announced again. The seconds are not announced; the line above
+  // already speaks the countdown.
   const seenText = element("span", "recognise-seen-text");
+  seenText.setAttribute("role", "status");
+  seenText.setAttribute("aria-live", "polite");
+  seenText.setAttribute("aria-atomic", "true");
   seenBox.append(...seenHands, seenText);
   const timeBox = element("div", "recognise-time");
   timeBox.setAttribute("role", "img");
@@ -657,7 +680,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     panel.dataset["seen"] = String(hands);
     feedback.dataset["seen"] = String(hands);
     seenHands.forEach((hand, index) => { hand.dataset["lit"] = String(index < hands); });
-    seenText.textContent = RECOGNISE_TEXT.seen[hands];
+    if (seenText.textContent !== RECOGNISE_TEXT.seen[hands]) seenText.textContent = RECOGNISE_TEXT.seen[hands];
   };
   const showTimeLeft = (seconds: number): void => {
     const left = Math.max(0, Math.min(RECOGNISE_SECONDS, seconds));
@@ -712,7 +735,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
           content.push(element("p", "recognise-count", String(state.left)));
         } else {
           // The number large over the picture: the picture keeps its size from the countdown into the recording.
-          previewSlot.replaceChildren(preview.element, element("p", "recognise-count", String(state.left)));
+          place(previewSlot, [preview.element, element("p", "recognise-count", String(state.left))]);
           content.push(previewSlot);
         }
         showSeen(seen);
@@ -721,7 +744,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;
         if (preview !== null) {
-          previewSlot.replaceChildren(preview.element);
+          place(previewSlot, [preview.element]);
           content.push(previewSlot);
         }
         showSeen(seen);
@@ -776,7 +799,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         buttons.push(againButton());
         break;
     }
-    main.replaceChildren(...content);
+    place(main, content);
     actions.replaceChildren(...buttons);
     if (!board.isCovered()) {
       board.cover(panel);

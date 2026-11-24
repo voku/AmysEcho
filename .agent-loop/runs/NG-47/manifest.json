@@ -1,0 +1,178 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T11:26:44+00:00",
+            "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-47/contract.json",
+                "sha256": "sha256:8fad9585c0f0ff992cb09901adb5073fd92f0720c32c13fecb38b480cf48d5fa"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-47",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "7bd05ed19a558a72f747bab4c2f1f7facf07f8a44742c42fe937d3e554153d26",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-47.md",
+                "sha256": "sha256:7bd05ed19a558a72f747bab4c2f1f7facf07f8a44742c42fe937d3e554153d26"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The hands-seen words are a polite, atomic status region that stays in the DOM through countdown and recording; its text changes only when the shown (steady) count changes",
+                "The seconds row is not a live region; nothing shown changes"
+            ],
+            "goal": "A screen reader announces when the gesture view's steady hands-seen count changes, without announcing the seconds every second.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-47/contract.json",
+                "sha256": "sha256:8fad9585c0f0ff992cb09901adb5073fd92f0720c32c13fecb38b480cf48d5fa"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-47/contract.json",
+                "sha256": "sha256:8fad9585c0f0ff992cb09901adb5073fd92f0720c32c13fecb38b480cf48d5fa"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T11:48:57+00:00",
+            "decided_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-47:38a85d9034fec0f0",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/044d3a8a3d297efb803e5f65840a126397e5cbf8e13f07e4f9cd5add1644bc90.json",
+                "sha256": "sha256:4c48e32268b5b650cdb22e013095ebbfa0046fc01625ea794bbe1f319407420b"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:d862549a0206ed71ae4523d4cfa83fa2d44bdc90686a4e635f947ca22e61675d",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:bd15ce31bc6e3690bc6c8cd829ae3962dd91569df466417448a4622bcd886707"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/recognise/recognise.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/app.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognise.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 3,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-47:38a85d9034fec0f0",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "d3c0b3df12a799d4d0251bc1c2f23d0dbc478a17c5b18b85464fc60886e2cea9",
+            "compilation_id": "compilation.NG-47.2026-11-24-112645.b4369872",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "8ae9a49f834bbc96e19ced2c6d72696cbd8fd558d843032b1459d1eba803df22",
+            "source": {
+                "path": ".agent-loop/recall/NG-47/meta.json",
+                "sha256": "sha256:6994820c5ba0ccfc84aa83e5f94cd23b79011938f04359c8faa9bfa92468dbd4"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-47/reviews/NG-47.blindspots.json",
+                "sha256": "sha256:842101f2e0bed5c1b8cac36a9f9e2ec1526d40f33adfa42d72d42b0f18f76f6c"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "b8599b554857b531523a93bd54ed5f6da83a262f",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-47-r2-7a03b512",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-47-r2-7a03b512/session.json",
+                "sha256": "sha256:0c7ef24fc8d3dab98f925fe2377fccdc818a546738e56a3c3d06d79ff30deaf0"
+            },
+            "state": "done",
+            "task_id": "NG-47"
+        },
+        "verification": {
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:81afb79e068611d9bd6ae7ac5fc38405fe069e43530c2ddd34c1398b04dd1a4b",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-47:38a85d9034fec0f0",
+            "source": {
+                "path": ".agent-loop/runs/NG-47/verification.json",
+                "sha256": "sha256:526fe5ec2888fdf2b43b7dc35cbe2430fa13c62e86ce209954d672f09f4f4d24"
+            },
+            "source_session_id": "2026-11-24-ng-47-r2-7a03b512",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-47:38a85d9034fec0f0",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-47"
+}
