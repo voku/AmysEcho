@@ -3,7 +3,7 @@
     "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
     "history": [
         {
@@ -75,6 +75,53 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:3b20feff",
                 "summary": "confirmView adds a name field (label 'Zum Bestätigen den Namen „<name>“ eingeben', focused, spellcheck/correct off, draft kept in the delete mode); deleteHold takes an optional armed check: aria-disabled until NFC-trimmed text equals the stored name, a hold before that shows a German refusal and deletes nothing; act also re-checks. Own concepts and examples keep the plain hold. Test harness act() types the name for existing hold tests (typeDeleteName:false for new ones); 2 new tests; 6 updated for texts/focus. Docs caregiver.md; CSS label spacing. npm run verify passed: 659 node tests; browser 4 pass 2 skipped. Hand-run Chromium: button aria-disabled true for 'Testki', false for 'Testkind', no console errors.",
+                "task_id": "NG-8673320459971200034",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:32:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:32:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7baf08432d852820beba777c513fef9430a20cef933a90419c9aa73857191510",
+                    "execution-evidence:sha256:e3a17e8c5345705dd3bf8d3b610233879122400b5cad231af6eb4d33591d3da0",
+                    "execution-evidence:sha256:e1a1a96b21e573b59c579a1f16bbd6b0b98d14172a084f8dc443b7956e34e3df",
+                    "execution-evidence:sha256:88045587b01e0ad2aef5fe27bc2dbdd0d5562935919c8e1809ee7c37c4c16892"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320459971200034",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7baf08432d852820beba777c513fef9430a20cef933a90419c9aa73857191510",
+                    "execution-evidence:sha256:e3a17e8c5345705dd3bf8d3b610233879122400b5cad231af6eb4d33591d3da0",
+                    "execution-evidence:sha256:e1a1a96b21e573b59c579a1f16bbd6b0b98d14172a084f8dc443b7956e34e3df",
+                    "execution-evidence:sha256:88045587b01e0ad2aef5fe27bc2dbdd0d5562935919c8e1809ee7c37c4c16892"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:c2b490f25f5f0241935534158fd958405637c058",
+                "context_id": "reviewer-correctness-delete",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:62450b213e1776a908477194d67393b625bc427a836fb5323a1ae0014f8d3398",
+                "observations": [
+                    "src/caregiver.ts:3058 rearm() only flips aria-disabled; after a refused press the hint keeps 'Der Name stimmt noch nicht...' even once the correct name is typed, until the next press. Consider resetting the hint to DELETE_HOLD_HINT when ok() becomes true.",
+                    "src/caregiver.ts:3126 if the name is changed to a wrong one during a running hold, the release deletes nothing but act() returns false after idle(), so the line shows the plain hold hint instead of the German wrong-name refusal.",
+                    "test/caregiver.test.mjs:7319 the unarmed refusal is tested only with a pointer hold; no test holds Enter/Space on 'Endgültig löschen' with an empty or wrong name (same allowed() path, inferred safe). Harness act()/confirmDelete auto-typing would mask a lost-draft regression in act-based tests; only the gated redraw test at :4457 covers draft survival implicitly."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673320459971200034:b673b6be6e4558c3",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:f806dfb1",
+                "summary": "Correctness review of dcaceca: no path deletes without the typed name. Pointer and Enter/Space both go through heldButton.start -> allowed(), which refuses with the German line while named() is false (src/caregiver.ts:3074-3081); the act re-checks named() at release (3126), so editing the field during a running hold cannot delete; stale buttons stay blocked by current(). Draft text lives on the mode object (draft.typed) and is rebuilt into the new field on every redraw (3113-3116, 3130-3133); the gated-redraw hold test only deletes via the second button if the text survived. Focus goes to delete-name on open (3186); Escape leaves via leaveMode back to delete:<id> (test added). Field label and comparison use profile.displayName (stored, NFC/trimmed by makeProfile), the title keeps the (2) label. Own-concept/example deletes keep armed=null. Harness auto-typing is limited to an empty, not-yet-autotyped field and opt-out exists; the new tests use typeDeleteName:false.",
                 "task_id": "NG-8673320459971200034",
                 "validation_references": []
             }
