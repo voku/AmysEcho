@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT,
+  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
   analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
@@ -1154,7 +1154,10 @@ test("view: under the picture, hand symbols light up for the hands seen and one 
     assert.equal(litCount(feedback, "recognise-time-dot"), 3);
     assert.equal(time5.attributes["aria-label"], "Noch 3 Sekunden");
     await camera.feed([]);
-    assert.equal(panel().dataset.seen, "0", "orange again when the hands leave the picture");
+    assert.equal(panel().dataset.seen, "2", "a hand gone for one frame does not change the signal (card NG-46)");
+    time.advance(SEEN_HOLD_MS);
+    await camera.feed([]);
+    assert.equal(panel().dataset.seen, "0", "orange again when the hands stay out of the picture");
     time.advance(RECOGNISE_GUARD_MS);
     buttonNamed("Stopp").click();
     assert.equal(panel().dataset.state, "unusable", "three frames are too few: an answer all the same");
@@ -1178,4 +1181,86 @@ test("the stylesheet: the feedback row is orange without a hand and green with o
   assert.match(rule('.recognise[data-seen="1"] .recognise-preview::after, .recognise[data-seen="2"] .recognise-preview::after'), /border-color: #1d6b40/);
   assert.match(rule('.recognise-time-dot[data-lit="true"]'), /background: #4b2a7a/);
   assert.doesNotMatch(css.split("\n").filter((line) => line.includes("recognise-time") || line.includes("recognise-seen") || line.includes("recognise-feedback")).join("\n"), /transition|animation|transform/);
+});
+
+// --- A steady signal (card NG-46) ---
+
+test("steady signal: a lower hand count shows only after it held for SEEN_HOLD_MS, a higher one at once", async () => {
+  const seen = [];
+  const camera = fakeCamera();
+  const time = fakeTime();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: time.setTimer, now: time.now,
+    speak: () => undefined, onChange: () => undefined, analyse: () => MATCH, onSeen: (hands) => seen.push(hands),
+  });
+  recogniser.start();
+  await settle();
+  assert.equal(SEEN_HOLD_MS, 300);
+  await camera.feed(MOVES_RIGHT(0));
+  assert.deepEqual(seen, [1], "a hand shows at once");
+  // The tracker loses the hand for single frames: the signal stays.
+  for (let i = 0; i < 3; i += 1) {
+    await camera.feed([]);
+    time.advance(SEEN_HOLD_MS / 3 - 1);
+  }
+  await camera.feed(MOVES_RIGHT(1));
+  assert.deepEqual(seen, [1, 1, 1, 1, 1], "no flicker while the hand comes back within the hold");
+  // Two hands: at once. One drops for good: shown after the hold.
+  await camera.feed(BOTH_APART(0));
+  await camera.feed(MOVES_RIGHT(2));
+  time.advance(SEEN_HOLD_MS - 1);
+  await camera.feed(MOVES_RIGHT(3));
+  assert.equal(seen.at(-1), 2, "still two just before the hold is over");
+  time.advance(1);
+  await camera.feed(MOVES_RIGHT(4));
+  assert.equal(seen.at(-1), 1, "one after the hold");
+  // From two hands to one: a single empty frame just as the hold ends never shows "no hand".
+  await camera.feed(BOTH_APART(1));
+  assert.equal(seen.at(-1), 2);
+  const from = seen.length;
+  await camera.feed(MOVES_RIGHT(5));
+  time.advance(SEEN_HOLD_MS);
+  await camera.feed([]);
+  await camera.feed(MOVES_RIGHT(6));
+  assert.deepEqual(seen.slice(from), [2, 1, 1], "two, then one, and no zero in between");
+  // That empty frame started its own hold: it shows only if the hand stays away.
+  time.advance(SEEN_HOLD_MS);
+  await camera.feed([]);
+  assert.equal(seen.at(-1), 1, "one empty frame after a hand frame starts a new hold");
+  time.advance(SEEN_HOLD_MS);
+  await camera.feed([]);
+  assert.equal(seen.at(-1), 0, "no hand once the hand stayed away for the hold");
+  // A new start begins at none, whatever was shown before.
+  recogniser.back();
+  recogniser.start();
+  await settle();
+  await camera.feed([]);
+  assert.equal(seen.at(-1), 0);
+});
+
+test("seconds left come from the recording's deadline: a late timer shows the right count", async () => {
+  const left = [];
+  const camera = fakeCamera();
+  const time = fakeTime();
+  let late = 0;
+  // A timer that fires `late` ms after it was due, as a busy browser can.
+  const lateTimer = (callback, milliseconds) => time.setTimer(callback, milliseconds + late);
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: lateTimer, now: time.now,
+    speak: () => undefined, onChange: () => undefined, analyse: () => MATCH, onTimeLeft: (seconds) => left.push(seconds),
+  });
+  recogniser.start();
+  await settle();
+  time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+  assert.equal(recogniser.state().kind, "recording");
+  assert.deepEqual(left, [5]);
+  late = 900;
+  time.advance(1900);
+  // The first tick was due at 1 s and came at 1.9 s; the next one, due at 2 s, also came late.
+  // Counting callbacks would show 4 and then 3 at 2.9 s; the deadline gives 4 at 1.9 s, and 3 at 2.9 s.
+  assert.deepEqual(left, [5, 4]);
+  time.advance(1000);
+  assert.deepEqual(left, [5, 4, 3], "never behind the time actually left");
+  recogniser.finish();
+  assert.equal(time.pending(), 0, "no tick left after the recording");
 });
