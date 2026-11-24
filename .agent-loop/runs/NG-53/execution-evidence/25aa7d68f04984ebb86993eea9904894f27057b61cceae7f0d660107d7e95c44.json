@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+    "contract_revision": 1,
+    "evidence_kind": "validation",
+    "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-24T19:06:01+00:00",
+    "reference": "execution-evidence:sha256:25aa7d68f04984ebb86993eea9904894f27057b61cceae7f0d660107d7e95c44",
+    "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+    "schema_version": "1.0",
+    "source_digest": "sha256:b1a90c34c74c33dbac21fbf373f4dc6b7b0b9dc28fad958438d4f56ffa971259",
+    "source_reference": "npm run verify",
+    "stage_id": "verify",
+    "task_id": "NG-53"
+}
