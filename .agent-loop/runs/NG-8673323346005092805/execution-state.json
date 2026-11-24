@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:681e1130494f3ae7d0256d51b2f900ab6d6d3532:eec82f15fd4dd47bacad7e88ccd1e46923e04e89",
     "contract_revision": 3,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:61c38a4814bf4a8e7482e25d947e984686d08aeaab2c906db49e10f58e5438a8",
     "history": [
         {
@@ -95,6 +95,178 @@
                 "summary": "Own pictures per concept (see contract rev 3), including the two fixes: draft.choice counter so the latest chosen file wins and earlier answers are dropped; removePicture says 'hat jetzt kein Bild' unless the concept was a catalogue concept when the view opened. New tests for overlapping choices, leaving/closing during decoding, and own concept under catalogue id. npm run verify passed: 639 node tests; browser 4 pass, 2 skipped.",
                 "task_id": "NG-8673323346005092805",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T00:46:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:46:56+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:668f5db5828cfc6c634b86a85f0b3e6661725a9263e73ef6866792b9c5910835",
+                    "execution-evidence:sha256:9077ff0645145191b1b796287ee6dc973790fd06a4f2630bd91d886cf6bac412",
+                    "execution-evidence:sha256:d86ba5389c8ab7c56a8bcfc5ff830137cd653ca8c8f82888988e8ea884b8117e",
+                    "execution-evidence:sha256:8b36250d507fac032ad245a883d57a0a4621e20e1552c589a45e518d6b750f5b",
+                    "execution-evidence:sha256:13bd8dd1bc7d192613ba5ed2814a254bfdb54e84272ba9e6ded943808ad60d61",
+                    "execution-evidence:sha256:cc92775ca43142ebc51fd799329b2bb4a287f88f5d3235daa570b84be928995d",
+                    "execution-evidence:sha256:b08de634ca0615544659801da15b58874d15280cd7fac131834b287aef17c577",
+                    "execution-evidence:sha256:224c7a9444f8ccd3fcaa77cffbfc38986b4fdcc84d06f972e55aa866d3fc9204",
+                    "execution-evidence:sha256:0b605ddf7f71d68acf1c7ac4e522c681ab8ef2bf8e8f61df02d96126a5baaeb2",
+                    "execution-evidence:sha256:0e4c7c4fcb32cab70925f994a05d2f82489c524eefaa27d4f359d57325e7a865",
+                    "execution-evidence:sha256:e63e684d7e0276aff8130ad6fc90a97e6ec8715609003fe112464a70231db141",
+                    "execution-evidence:sha256:f02680699a3b8738ec3b2a35ccc8281e575464119b83e117cdefe84acea7e7be",
+                    "execution-evidence:sha256:f33affb2412f8b921465ff37c6fd6ae81171e494fb9648376d4434819ba92fb7"
+                ],
+                "candidate_revision": "git-tree-v1:681e1130494f3ae7d0256d51b2f900ab6d6d3532:eec82f15fd4dd47bacad7e88ccd1e46923e04e89",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:61c38a4814bf4a8e7482e25d947e984686d08aeaab2c906db49e10f58e5438a8",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+                "schema_version": "1.0",
+                "task_id": "NG-8673323346005092805",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:668f5db5828cfc6c634b86a85f0b3e6661725a9263e73ef6866792b9c5910835",
+                    "execution-evidence:sha256:9077ff0645145191b1b796287ee6dc973790fd06a4f2630bd91d886cf6bac412",
+                    "execution-evidence:sha256:d86ba5389c8ab7c56a8bcfc5ff830137cd653ca8c8f82888988e8ea884b8117e",
+                    "execution-evidence:sha256:8b36250d507fac032ad245a883d57a0a4621e20e1552c589a45e518d6b750f5b",
+                    "execution-evidence:sha256:13bd8dd1bc7d192613ba5ed2814a254bfdb54e84272ba9e6ded943808ad60d61",
+                    "execution-evidence:sha256:cc92775ca43142ebc51fd799329b2bb4a287f88f5d3235daa570b84be928995d",
+                    "execution-evidence:sha256:b08de634ca0615544659801da15b58874d15280cd7fac131834b287aef17c577",
+                    "execution-evidence:sha256:224c7a9444f8ccd3fcaa77cffbfc38986b4fdcc84d06f972e55aa866d3fc9204",
+                    "execution-evidence:sha256:0b605ddf7f71d68acf1c7ac4e522c681ab8ef2bf8e8f61df02d96126a5baaeb2",
+                    "execution-evidence:sha256:0e4c7c4fcb32cab70925f994a05d2f82489c524eefaa27d4f359d57325e7a865",
+                    "execution-evidence:sha256:e63e684d7e0276aff8130ad6fc90a97e6ec8715609003fe112464a70231db141",
+                    "execution-evidence:sha256:f02680699a3b8738ec3b2a35ccc8281e575464119b83e117cdefe84acea7e7be",
+                    "execution-evidence:sha256:f33affb2412f8b921465ff37c6fd6ae81171e494fb9648376d4434819ba92fb7"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:681e1130494f3ae7d0256d51b2f900ab6d6d3532:eec82f15fd4dd47bacad7e88ccd1e46923e04e89",
+                "context_id": "reviewer-correctness-pictures-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:61c38a4814bf4a8e7482e25d947e984686d08aeaab2c906db49e10f58e5438a8",
+                "observations": [
+                    "src/caregiver.ts:1667 settlePicture silently ignores 'Speichern' while a later file is still being read; the Speichern button of the earlier picture stays visible with no feedback.",
+                    "src/caregiver.ts:1654 when a later file is refused after an earlier one finished, the earlier 'Neues Bild' preview and Speichern stay next to the refusal line; acceptable but could confuse.",
+                    "src/board-data.ts:591 removeCustomConcept leaves a symbol entry written by a newer app version behind after deleting the concept entry (documented as intended).",
+                    ".claude/settings.json: commit 658d08f removed the 'Bash(git push *)' deny rule within base..HEAD; outside the contract scope, stated as owner request, not reviewed as product code."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:5244ea13",
+                "summary": "No blocking defect. choosePicture (src/caregiver.ts:1635-1660) increments draft.choice per file and drops any answer whose choice is stale before touching reading/picture; mode!==open||!isOpen drops answers after leaving/closing; choosePicture never writes, settlePicture refuses while reading/busy. removePicture (src/caregiver.ts:1701-1705) and pictureView reset label use source==='catalogue', so a custom concept under a catalogue id gets 'hat jetzt kein Bild' / 'Bild entfernen' (test/caregiver.test.mjs last test). Strict symbol reader and isSymbolDataUrl (src/board-data.ts:262-280) accept only exact {version,dataUrl}, newer versions reported unsupported and never overwritten by setSymbol/clearSymbol; resolveBoard pictures catalogue/custom/retired and reports damaged-symbol. pictureFromFile re-encodes via canvas to <=256px, PNG then JPEG fallback, validated by isSymbolDataUrl. CSP img-src 'self' data: only; sw.js ASSET_REVISION bumped; removeCustomConcept deletes readable/unreadable picture. npm test re-run: 639/639 pass.",
+                "task_id": "NG-8673323346005092805",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T00:47:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:47:23+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7b5a5541eeccae45c1b71273901ec2c431cfa805ce56947105b191352c605132",
+                    "execution-evidence:sha256:042397cb391dba2185899e73e615d022f087c5723b425d5f4e1f74d9d319c1bb",
+                    "execution-evidence:sha256:d3245b300e320023d26e24a849dff0b42f167e75f587fb8c9c3cd4120f361fba",
+                    "execution-evidence:sha256:b69f8466b72d0f6794785b9207691c1aa0cfb45c335d7410eac587c87cc39420",
+                    "execution-evidence:sha256:0933f30f7af5e0110b32cf7309030bdbbf1a0a1442ebb60989a7ecda0f231acf",
+                    "execution-evidence:sha256:5bbbc98fa35a556c3210aede327582ae44dad176c69d9ed06bada6f9c5be7836",
+                    "execution-evidence:sha256:4b094138d7948d9f8ebfa0898896195ed8339192ac6fb2775c7737162e4f31e6",
+                    "execution-evidence:sha256:30de62df99abba5cd06733c1b9b038cef9c07d74c013ea04f157e1c0e5360ff5",
+                    "execution-evidence:sha256:07442037e43e2824e8de22e00c720e607ec8653e8a38779e183430ef7883cdf9",
+                    "execution-evidence:sha256:c5ec027dc0a7db02d1292b561bbdb030208a80f968624de8f781e6cbf620d38a",
+                    "execution-evidence:sha256:63d04c4b11a8b4ac3ab53bd25ff94b60c6c2968713b203eeb5ae9e9821d69a2d",
+                    "execution-evidence:sha256:45d01f5683f5327d2c0a5767fe33de9f46e8c98c964f98a1a8423a81b1aa1098",
+                    "execution-evidence:sha256:943e68e9391b67f17b38e53472712a0eadcb18d88097cbb76b8a9c2a9dff7365"
+                ],
+                "candidate_revision": "git-tree-v1:681e1130494f3ae7d0256d51b2f900ab6d6d3532:eec82f15fd4dd47bacad7e88ccd1e46923e04e89",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:61c38a4814bf4a8e7482e25d947e984686d08aeaab2c906db49e10f58e5438a8",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+                "schema_version": "1.0",
+                "task_id": "NG-8673323346005092805",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7b5a5541eeccae45c1b71273901ec2c431cfa805ce56947105b191352c605132",
+                    "execution-evidence:sha256:042397cb391dba2185899e73e615d022f087c5723b425d5f4e1f74d9d319c1bb",
+                    "execution-evidence:sha256:d3245b300e320023d26e24a849dff0b42f167e75f587fb8c9c3cd4120f361fba",
+                    "execution-evidence:sha256:b69f8466b72d0f6794785b9207691c1aa0cfb45c335d7410eac587c87cc39420",
+                    "execution-evidence:sha256:0933f30f7af5e0110b32cf7309030bdbbf1a0a1442ebb60989a7ecda0f231acf",
+                    "execution-evidence:sha256:5bbbc98fa35a556c3210aede327582ae44dad176c69d9ed06bada6f9c5be7836",
+                    "execution-evidence:sha256:4b094138d7948d9f8ebfa0898896195ed8339192ac6fb2775c7737162e4f31e6",
+                    "execution-evidence:sha256:30de62df99abba5cd06733c1b9b038cef9c07d74c013ea04f157e1c0e5360ff5",
+                    "execution-evidence:sha256:07442037e43e2824e8de22e00c720e607ec8653e8a38779e183430ef7883cdf9",
+                    "execution-evidence:sha256:c5ec027dc0a7db02d1292b561bbdb030208a80f968624de8f781e6cbf620d38a",
+                    "execution-evidence:sha256:63d04c4b11a8b4ac3ab53bd25ff94b60c6c2968713b203eeb5ae9e9821d69a2d",
+                    "execution-evidence:sha256:45d01f5683f5327d2c0a5767fe33de9f46e8c98c964f98a1a8423a81b1aa1098",
+                    "execution-evidence:sha256:943e68e9391b67f17b38e53472712a0eadcb18d88097cbb76b8a9c2a9dff7365"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:681e1130494f3ae7d0256d51b2f900ab6d6d3532:eec82f15fd4dd47bacad7e88ccd1e46923e04e89",
+                "context_id": "reviewer-blindspot-pictures-r3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:61c38a4814bf4a8e7482e25d947e984686d08aeaab2c906db49e10f58e5438a8",
+                "observations": [
+                    "No automated test exports and re-imports a profile with a symbol.<id> entry; 'travels with the profile backup' is inferred from generic data handling (src/profiles/store.ts:193), and export has no UI yet (README.md:60).",
+                    "pictureFromFile (src/caregiver.ts:245) has no automated test; FileReader/Image/canvas, the JPEG fallback and SVG script stripping are verified only by a hand-run headless Chromium script (docs/caregiver.md).",
+                    "clearWording/taking a catalogue concept off the board keeps its symbol.<id> entry (docs/storage.md, intended); orphan pictures count toward the profile size limit with no UI to remove them while the concept is off the board.",
+                    ".claude/settings.json: commit 658d08f in base..HEAD removed the 'Bash(git push *)' deny rule, outside the contract scope (stated owner request)."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:8b0da9f4",
+                "summary": "Blind-spot review, no blocking gap. VERIFIED: race fix (src/caregiver.ts:1635-1660) covered by test/caregiver.test.mjs second-to-last test (second resolves before first; leave and close during decode store nothing); source-based reset label/message covered by last test; strict reader rejects svg data URL, extra keys, newer versions (test/board.test.mjs:763-794); npm test 639/639 re-run. INFERRED, not tested: picture survives export/import, since symbol.<id> is ordinary profile data counted by checkProfileSize (src/profiles/store.ts:193-204); canvas re-encoding, CSP and SVG script stripping checked only by a hand-run headless Chromium script per docs/caregiver.md, not in CI.",
+                "task_id": "NG-8673323346005092805",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T00:48:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:48:35+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:681e1130494f3ae7d0256d51b2f900ab6d6d3532:eec82f15fd4dd47bacad7e88ccd1e46923e04e89",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:61c38a4814bf4a8e7482e25d947e984686d08aeaab2c906db49e10f58e5438a8",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+                "schema_version": "1.0",
+                "task_id": "NG-8673323346005092805",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:ac31305c1089d8579e9853ea50900ffb0ac126ae54817af379dabce68c6e04f5",
+                    "execution-evidence:sha256:05f3de5da31ac8dc2bc14e192d17fd80f74566913de2149cfc15add608369147"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:681e1130494f3ae7d0256d51b2f900ab6d6d3532:eec82f15fd4dd47bacad7e88ccd1e46923e04e89",
+                "consistency_references": [
+                    "execution-evidence:sha256:9fb35a748cb3fd1c74c6e18a10f406f05eaf95582e975f0a970b14ef064bcead"
+                ],
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:61c38a4814bf4a8e7482e25d947e984686d08aeaab2c906db49e10f58e5438a8",
+                "outcome": "pass",
+                "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:2357eccdfcd0368ef47daf03653ba0d389b9ee5b1e74684e74180107319e3a3d",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673323346005092805: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673323346005092805 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673323346005092805:115a35c9b0240625 binds active Session 2026-11-24-ng-8673323346005092805-r3-489f00b2 to approved Contract revision 3\n[OK] sessions: 3 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673323346005092805 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-8673323346005092805",
+                "validation_references": [
+                    "execution-evidence:sha256:ac31305c1089d8579e9853ea50900ffb0ac126ae54817af379dabce68c6e04f5",
+                    "execution-evidence:sha256:05f3de5da31ac8dc2bc14e192d17fd80f74566913de2149cfc15add608369147"
+                ]
             }
         }
     ],

@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-8673323346005092805 before calling agent-loop finish NG-8673323346005092805",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-24T00:43:39+00:00",
@@ -77,11 +77,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-24T00:49:36+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/999df954ce9a6d7209f39ce5fa9c10477adb305bd8717a05808ae832dacbdc77.json",
+                "sha256": "sha256:32425f057d928e4c69a95ccf1ba3857e97ee252567e725bd83e7069bf91f9c4d"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -115,8 +121,11 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-8673323346005092805/reviews/NG-8673323346005092805.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-8673323346005092805/reviews/NG-8673323346005092805.blindspots.json",
+                "sha256": "sha256:0f55a69e852627705c38a02c2aa23cc9612c74f5fad9f4d04ea9d8da52fbfc22"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
@@ -132,37 +141,27 @@
             "session_id": "2026-11-24-ng-8673323346005092805-r3-489f00b2",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-24-ng-8673323346005092805-r3-489f00b2/session.json",
-                "sha256": "sha256:fbc3f9f0e6d769d981c5bb117d53e2b94c3dc6075ba70860d71ed50ece6259d6"
+                "sha256": "sha256:ca2640fea3de732be07fff8c9570abefe2871bc9d102d9e4f9b9a1224247bcba"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-8673323346005092805"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-8673323346005092805 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-8673323346005092805",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "execution_review",
+            "contract_revision": 3,
             "implementation_snapshot": "sha256:9d341f4b0788d55501025173acc345bc98e15457d3ebabd7d23318bb20da7458",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "independent review pipeline is incomplete at stage investigate",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
+            "source": {
+                "path": ".agent-loop/runs/NG-8673323346005092805/verification.json",
+                "sha256": "sha256:ade86006463d9eabaee3e86eef38ae4da8ee1b6eb1d905a7a622649d62f3cf92"
+            },
+            "source_session_id": "2026-11-24-ng-8673323346005092805-r3-489f00b2",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-8673323346005092805"
 }
