@@ -4,14 +4,15 @@
         "resolveBoard shows the profile's picture before the catalogue's, also for custom and retired concepts; a damaged picture entry falls back to the catalogue picture or text and is reported as a problem",
         "The caregiver area offers \"Bild wählen\" per board row with preview, \"Speichern\", \"Abbrechen\" and \"Bild der App wiederherstellen\"; unsupported, unreadable or too large files are refused in German; a line says the picture stays on this device and that the family needs the right to use it (for example a METACOM licence)",
         "Images are re-encoded through a canvas to at most 256x256 pixels, so SVG scripts or metadata are never stored; CSP allows data: images only for img-src",
-        "Removing a custom concept for good also removes its picture"
+        "Removing a custom concept for good also removes its picture",
+        "When a second file is chosen while the first is still being read, the later choice wins; leaving or closing meanwhile stores nothing; an own concept under a catalogue id is never told it shows the app's picture again"
     ],
     "acceptance_observations": [],
-    "approved_at": "2026-11-23T20:02:18+00:00",
+    "approved_at": "2026-11-24T00:43:39+00:00",
     "approved_by": "Lars Moelleken (delegated to Claude for this session)",
-    "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
+    "base_commit": "681e1130494f3ae7d0256d51b2f900ab6d6d3532",
     "behavior_anchors": [],
-    "created_at": "2026-11-23T20:01:13+00:00",
+    "created_at": "2026-11-24T00:43:39+00:00",
     "goal": "A caregiver gives any concept on a board its own picture by choosing an image file on the device (for example a METACOM symbol exported from the family's licence or a photo); the child's board shows it instead of the app's picture, and the picture travels with the profile backup. Nothing is uploaded and no picture enters the repository.",
     "kind": "task_contract",
     "non_goals": [
@@ -24,7 +25,7 @@
     "rejected_at": null,
     "rejected_by": null,
     "rejection_reason": null,
-    "revision": 1,
+    "revision": 3,
     "schema_version": "1.0",
     "scope": [
         "src/board-data.ts",
@@ -46,7 +47,7 @@
     "status": "approved",
     "tags": [],
     "task_id": "NG-8673323346005092805",
-    "updated_at": "2026-11-23T20:02:18+00:00",
+    "updated_at": "2026-11-24T00:43:39+00:00",
     "validation": [
         "npm ci --ignore-scripts",
         "npm run verify"

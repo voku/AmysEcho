@@ -1,14 +1,14 @@
 {
-    "contract_revision": 1,
+    "contract_revision": 3,
     "contract_source": {
         "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
-        "sha256": "sha256:5107e09f6875d039595eca325acb337488d11fc2e5051ece293287a9ebe45233"
+        "sha256": "sha256:ca6a1c37bd035df57c6dfab2eff31e3af20302fab16ea841a671078353261f28"
     },
     "kind": "governed_run",
     "learning_root": ".agent-loop/learning",
-    "prepared_at": "2026-11-23T20:20:21+00:00",
-    "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+    "prepared_at": "2026-11-24T00:43:40+00:00",
+    "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
     "schema_version": "1.0",
-    "session_id": "2026-11-23-ng-8673323346005092805-r1-9a18e45b",
+    "session_id": "2026-11-24-ng-8673323346005092805-r3-489f00b2",
     "task_id": "NG-8673323346005092805"
 }

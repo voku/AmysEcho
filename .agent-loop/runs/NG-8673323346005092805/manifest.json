@@ -1,19 +1,19 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "none",
+    "next_action": "perform the approved host-native implementation for NG-8673323346005092805 before calling agent-loop finish NG-8673323346005092805",
     "next_action_invocation": null,
-    "next_action_kind": "none",
+    "next_action_kind": "host_work",
     "references": {
         "approval": {
-            "approved_at": "2026-11-23T20:02:18+00:00",
+            "approved_at": "2026-11-24T00:43:39+00:00",
             "approved_by": "Lars Moelleken (delegated to Claude for this session)",
-            "contract_revision": 1,
+            "contract_revision": 3,
             "observation_mode": "checked",
             "owner": "agent-loop",
             "source": {
                 "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
-                "sha256": "sha256:5107e09f6875d039595eca325acb337488d11fc2e5051ece293287a9ebe45233"
+                "sha256": "sha256:ca6a1c37bd035df57c6dfab2eff31e3af20302fab16ea841a671078353261f28"
             },
             "state": "current"
         },
@@ -43,7 +43,8 @@
                 "resolveBoard shows the profile's picture before the catalogue's, also for custom and retired concepts; a damaged picture entry falls back to the catalogue picture or text and is reported as a problem",
                 "The caregiver area offers \"Bild wählen\" per board row with preview, \"Speichern\", \"Abbrechen\" and \"Bild der App wiederherstellen\"; unsupported, unreadable or too large files are refused in German; a line says the picture stays on this device and that the family needs the right to use it (for example a METACOM licence)",
                 "Images are re-encoded through a canvas to at most 256x256 pixels, so SVG scripts or metadata are never stored; CSP allows data: images only for img-src",
-                "Removing a custom concept for good also removes its picture"
+                "Removing a custom concept for good also removes its picture",
+                "When a second file is chosen while the first is still being read, the later choice wins; leaving or closing meanwhile stores nothing; an own concept under a catalogue id is never told it shows the app's picture again"
             ],
             "goal": "A caregiver gives any concept on a board its own picture by choosing an image file on the device (for example a METACOM symbol exported from the family's licence or a photo); the child's board shows it instead of the app's picture, and the picture travels with the profile backup. Nothing is uploaded and no picture enters the repository.",
             "observation_mode": "checked",
@@ -51,11 +52,11 @@
             "rejected_at": null,
             "rejected_by": null,
             "rejection_reason": null,
-            "revision": 1,
-            "run_revision": 1,
+            "revision": 3,
+            "run_revision": 3,
             "source": {
                 "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
-                "sha256": "sha256:5107e09f6875d039595eca325acb337488d11fc2e5051ece293287a9ebe45233"
+                "sha256": "sha256:ca6a1c37bd035df57c6dfab2eff31e3af20302fab16ea841a671078353261f28"
             },
             "state": "approved"
         },
@@ -65,10 +66,10 @@
             "state": "none"
         },
         "execution_contract": {
-            "contract_revision": 1,
+            "contract_revision": 3,
             "contract_source": {
                 "path": ".agent-loop/contracts/NG-8673323346005092805/contract.json",
-                "sha256": "sha256:5107e09f6875d039595eca325acb337488d11fc2e5051ece293287a9ebe45233"
+                "sha256": "sha256:ca6a1c37bd035df57c6dfab2eff31e3af20302fab16ea841a671078353261f28"
             },
             "observation_mode": "checked",
             "owner": "agent-loop",
@@ -78,86 +79,38 @@
         "learning": {
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [
-                "src/caregiver.ts:1632 choosePicture has no per-choice token: if a second file is chosen while the first is still decoding, whichever decode finishes last wins, and the first one to finish clears draft.reading. An older choice can then replace a newer one in the preview (what is saved still matches the preview). Fix: keep a counter on draft and drop results that are not the latest.",
-                "src/caregiver.ts:1694 removePicture's message checks catalogue.find without the entry source. For a custom concept that shadows a catalogue id it says 'zeigt wieder das Bild der App', but the board shows text. pictureView (caregiver.ts:2258) already checks entry.source === 'catalogue'; use the same check here.",
-                "src/caregiver.ts:2258 an own picture that is unreadable (damaged-symbol, damage unreadable) gets no 'Bild entfernen' button and no note in the picture view, because ownSymbol is unset. It can only be replaced, and the damaged-symbol problem stays until then.",
-                "test/caregiver.test.mjs:6952-7100 no test covers closing the area or leaving the view while a file is still decoding, or a second change event during decoding; the guards at caregiver.ts:1648 are only checked by reading the code.",
-                "Commit 2dbcf42 also adds picture-view.png at the repository root. It is outside the Contract scope and the governed candidate tree does not contain it, but it is in the branch history. The goal says no picture enters the repository, so remove it from the branch before integration.",
-                "src/caregiver.ts:403 PICTURE_LOCAL says 'Die App sendet es nicht', but a profile export (docs/storage.md, own pictures) carries the pictures as plain base64. When an export/import UI is built, it should warn that the backup file contains the chosen pictures (photos included), and that sharing it may be limited by the family's METACOM licence.",
-                "src/caregiver.ts:224 MAX_PICTURE_FILE_BYTES limits the file size but not the pixel count. A 10 MB, highly compressible PNG of very large dimensions is decoded in full before the canvas downscales it, which can exhaust memory on a low-end tablet (nothing persistent is lost). Consider refusing naturalWidth*naturalHeight above a pixel budget after load.",
-                "docs/storage.md (own pictures section): the pictures are only in the browser's origin storage, and src/ has no navigator.storage.persist() call. Eviction or clearing site data loses them together with the profile. This risk already existed, but own pictures (for example a family's METACOM exports) make it more costly. Follow-up: ask for persistent storage, or point to export.",
-                "docs/storage.md: a concept taken off the board keeps its symbol.<id> picture by design. These hidden pictures still count toward the size limit and are in exports, and no UI lists or deletes them, except removeCustomConcept for own concepts.",
-                "src/board-data.ts:335 resolveBoard now does a third sequential read per concept (123 reads for 40 concepts), and every refresh puts data URLs of up to 256 KiB into the DOM. The 1.5 s start-up bound remains unmeasured with pictures.",
-                "Commit 2dbcf42 adds picture-view.png (a synthetic UI screenshot) at the repository root. It is outside the scope and not in the governed candidate tree, but the Contract goal says no picture enters the repository, so drop it from the branch before pushing or merging."
-            ],
-            "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+            "review_observations": [],
+            "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
             "state": "missing"
         },
         "map": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/php-symbols.json",
-            "snapshot": "sha256:1f8808c21d0b858812b162f79c00eccd5732ef6a3264f9771bff93e30be8c666",
+            "snapshot": "sha256:5097d738c1e26ea883e94d9d8bae884ac4f56ef5bb861187dc642a03c785b23a",
             "source": {
                 "path": ".agent-loop/map/php-symbols.json",
-                "sha256": "sha256:6bf436fd6f9df2debf916385530cbea2610f86ce313411e3caf989ede8532b6f"
+                "sha256": "sha256:eac66e72c9749b8b4e54893b353df80f7d29f363267a35e6bdd5672efc7d4dd8"
             },
-            "stale_entries": [
-                {
-                    "path": "public/sw.js",
-                    "reason": "hash"
-                },
-                {
-                    "path": "src/board-data.ts",
-                    "reason": "hash"
-                },
-                {
-                    "path": "src/caregiver.ts",
-                    "reason": "hash"
-                },
-                {
-                    "path": "test/board.test.mjs",
-                    "reason": "hash"
-                },
-                {
-                    "path": "test/bootstrap.test.mjs",
-                    "reason": "hash"
-                },
-                {
-                    "path": "test/caregiver.test.mjs",
-                    "reason": "hash"
-                }
-            ],
-            "stale_entries_count": 6,
-            "state": "stale"
+            "state": "ready"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+            "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
             "state": "run_bound"
         },
         "recall": {
-            "bundle_sha256": "b5d49bca9938d5df56410693eaf1cb6f43b79b32d3f5d4070d121fe58a2ae698",
-            "compilation_id": "compilation.NG-8673323346005092805.2026-11-23-202021.996ba140",
+            "bundle_sha256": "45305d56fbf4aed2bc14f9b8bc2f1de15d861c65a9d953f815a17d33da614a01",
+            "compilation_id": "compilation.NG-8673323346005092805.2026-11-24-004340.bd748e4f",
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "snapshot_sha256": "3fd5c9e65975bb8b598da745c822924631b73ca078adbbaa1e9eb43fa5561322",
+            "snapshot_sha256": "f2a6bbd86d3a229f54fc1695746e878ecc15ec65775b173c3db3e8318a609f0a",
             "source": {
                 "path": ".agent-loop/recall/NG-8673323346005092805/meta.json",
-                "sha256": "sha256:686e475d9b2c613a3ee399ecc233ca449aa9aa6c86f26388af26834eb08a7be6"
+                "sha256": "sha256:b298075e22f54f0aa0c31e0681ef00b1acaf9a6e014584ea6eecf0e818bda6f8"
             },
             "state": "compiled"
-        },
-        "retirement": {
-            "observation_mode": "checked",
-            "owner": "agent-loop",
-            "reason": "Code changed after both reviews passed (two fixes from review observations); verify refused the changed candidate. Owner chose to retire and rerun under contract revision 2.",
-            "retired_at": "2026-11-24T00:42:30+00:00",
-            "retired_by": "Lars Moelleken (delegated to Claude for this session)",
-            "state": "retired",
-            "status": "superseded"
         },
         "review": {
             "observation_mode": "checked",
@@ -169,17 +122,17 @@
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/search.sqlite",
-            "state": "unavailable"
+            "state": "missing"
         },
         "session": {
-            "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
+            "base_commit": "681e1130494f3ae7d0256d51b2f900ab6d6d3532",
             "ephemeral": false,
             "observation_mode": "checked",
             "owner": "agent-session",
-            "session_id": "2026-11-23-ng-8673323346005092805-r1-9a18e45b",
+            "session_id": "2026-11-24-ng-8673323346005092805-r3-489f00b2",
             "source": {
-                "path": ".agent-loop/sessions/2026-11-23-ng-8673323346005092805-r1-9a18e45b/session.json",
-                "sha256": "sha256:aff711a103da886b4e00b7a163c2d9496da58de8b80b9256c7c7f5bd740d4a51"
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673323346005092805-r3-489f00b2/session.json",
+                "sha256": "sha256:fbc3f9f0e6d769d981c5bb117d53e2b94c3dc6075ba70860d71ed50ece6259d6"
             },
             "state": "active",
             "task_id": "NG-8673323346005092805"
@@ -197,10 +150,10 @@
                 "template": false
             },
             "gate": "execution_review",
-            "implementation_snapshot": "sha256:6c97640bb1335926554a80e50dfc8b164637ed42283b3c55d8fde12d2871293d",
+            "implementation_snapshot": "sha256:9d341f4b0788d55501025173acc345bc98e15457d3ebabd7d23318bb20da7458",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "independent review pipeline is waiting for Attention",
+            "reason": "independent review pipeline is incomplete at stage investigate",
             "recall_outcome_draft": null,
             "repair_action": null,
             "repair_invocation": null,
@@ -208,8 +161,8 @@
             "validation_failed": false
         }
     },
-    "run_id": "run:NG-8673323346005092805:bc9ea550ce74636f",
+    "run_id": "run:NG-8673323346005092805:115a35c9b0240625",
     "schema_version": "1.0",
-    "state": "retired",
+    "state": "incomplete",
     "task_id": "NG-8673323346005092805"
 }
