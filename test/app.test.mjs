@@ -23,6 +23,12 @@ function fakeElement(tagName) {
     removeEventListener(name, handler) { this.listeners[name] = (this.listeners[name] ?? []).filter((other) => other !== handler); },
     append(...nodes) { this.children.push(...nodes); },
     replaceChildren(...nodes) { this.children = nodes; },
+    removeChild(node) { this.children = this.children.filter((child) => child !== node); return node; },
+    insertBefore(node, before) {
+      this.children = this.children.filter((child) => child !== node);
+      this.children.splice(before === null ? this.children.length : this.children.indexOf(before), 0, node);
+      return node;
+    },
     click() { for (const handler of [...(this.listeners.click ?? [])]) handler({ preventDefault() {} }); },
   };
 }

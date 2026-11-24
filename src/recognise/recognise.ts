@@ -603,6 +603,22 @@ function actionButton(className: string, symbol: string, text: string, picture: 
   return node;
 }
 
+/**
+ * Puts `nodes` into `parent` in this order, leaving every node that is already at its place where it
+ * is (card NG-47): the hands-seen status region and the picture box stay in the page from the
+ * countdown into the recording; taking them out and in again on each draw could make a screen reader
+ * read them again.
+ */
+function place(parent: HTMLElement, nodes: readonly HTMLElement[]): void {
+  for (const child of Array.from(parent.children)) {
+    if (!nodes.includes(child as HTMLElement)) parent.removeChild(child);
+  }
+  nodes.forEach((node, index) => {
+    const at = parent.children[index] ?? null;
+    if (at !== node) parent.insertBefore(node, at);
+  });
+}
+
 const defaultTimer: SetTimer = (callback, milliseconds) => {
   const timer = setTimeout(callback, milliseconds);
   return () => clearTimeout(timer);
@@ -783,7 +799,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         buttons.push(againButton());
         break;
     }
-    main.replaceChildren(...content);
+    place(main, content);
     actions.replaceChildren(...buttons);
     if (!board.isCovered()) {
       board.cover(panel);
