@@ -52,6 +52,18 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .recognise-count { flex: none; margin: 0; font: 800 clamp(3rem, 20vmin, 8rem)/1 system-ui, sans-serif; }
 .recognise-preview { position: relative; flex: 1 1 0; box-sizing: border-box; width: 100%; min-height: 0; border-radius: .6rem; overflow: hidden; }
 .recognise-preview > .recognise-count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: white; -webkit-text-stroke: 3px #2a1747; paint-order: stroke fill; opacity: .9; pointer-events: none; }
+/* Feedback without reading under the picture (card NG-45): two hand symbols lit for the hands the camera sees, one dot per second of the recording. Orange without a hand, green with one; the row keeps its size, the dots change in steps. */
+.recognise-feedback { flex: none; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .2rem .8rem; width: 100%; padding: .25rem .7rem; border: 3px solid #b35400; border-radius: .8rem; background: #fff3e6; }
+.recognise-feedback[data-seen="1"], .recognise-feedback[data-seen="2"] { border-color: #1d6b40; background: #e8f5ed; }
+.recognise[data-seen] .recognise-preview::after { content: ""; position: absolute; inset: 0; z-index: 1; border: 6px solid #b35400; border-radius: .6rem; pointer-events: none; }
+.recognise[data-seen="1"] .recognise-preview::after, .recognise[data-seen="2"] .recognise-preview::after { border-color: #1d6b40; }
+.recognise-seen { display: flex; align-items: center; gap: .3rem; font: 700 clamp(.95rem, 3.8vmin, 1.3rem)/1.2 system-ui, sans-serif; }
+.recognise-seen-hand { flex: none; font-size: 1.5em; line-height: 1; opacity: .3; filter: grayscale(1); }
+.recognise-seen-hand[data-lit="true"] { opacity: 1; filter: none; }
+.recognise-seen-text { margin-left: .2rem; }
+.recognise-time { display: flex; align-items: center; gap: .35rem; }
+.recognise-time-dot { box-sizing: border-box; width: clamp(.85rem, 3.6vmin, 1.25rem); height: clamp(.85rem, 3.6vmin, 1.25rem); border: 3px solid #4b2a7a; border-radius: 50%; background: transparent; }
+.recognise-time-dot[data-lit="true"] { background: #4b2a7a; }
 .recognise-hint { flex: none; margin: 0; font-size: clamp(.9rem, 3.5vmin, 1.1rem); }
 .recognise-concept { flex: 0 1 auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; min-width: min(10rem, 100%); max-width: 100%; min-height: var(--tile-min); padding: .4rem 1rem; border: 4px solid #143146; border-radius: 1rem; background: white; color: #143146; font: 800 clamp(1.3rem, 6vmin, 2.6rem)/1.15 system-ui, sans-serif; overflow: hidden; }
 .recognise-concept img { flex: 0 1 auto; width: auto; height: clamp(48px, 30vmin, 220px); min-height: 32px; max-width: 100%; object-fit: contain; pointer-events: none; }

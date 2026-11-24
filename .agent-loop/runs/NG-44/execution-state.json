@@ -1,0 +1,224 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T00:52:05+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:52:05+00:00",
+                "artifact_references": [],
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "schema_version": "1.0",
+                "task_id": "NG-44",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "e1f145b9146d60f93984402eeeff3abdc8734318",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "outcome": "completed",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:29b2a520",
+                "summary": "The gesture view had no preview; teaching and the camera test had one (NG-42) via bridge.createPreview. Change sites: recognise.ts controller (pass preview to bridge.start) and view (slot in countdown/recording), styles.css, tests, docs.",
+                "task_id": "NG-44",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T00:52:15+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:52:15+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c80506f1939be41e49f99b161e66519519cca3fbed211118a8ee70efbeef8d33",
+                    "execution-evidence:sha256:6312f6379ab720bf7c95c7ef508cbac44c09d343d0e8338be600b45c94b0de76",
+                    "execution-evidence:sha256:85d0ade828ac79d77b8e95a78b5a505d8e7fd7783ca29c4b1f194719ce832d15",
+                    "execution-evidence:sha256:7e2321e9a6557d0f8d4c6ea4fff5cafd996fcb3421f7df56107c0c2f66f2aff6"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "schema_version": "1.0",
+                "task_id": "NG-44",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c80506f1939be41e49f99b161e66519519cca3fbed211118a8ee70efbeef8d33",
+                    "execution-evidence:sha256:6312f6379ab720bf7c95c7ef508cbac44c09d343d0e8338be600b45c94b0de76",
+                    "execution-evidence:sha256:85d0ade828ac79d77b8e95a78b5a505d8e7fd7783ca29c4b1f194719ce832d15",
+                    "execution-evidence:sha256:7e2321e9a6557d0f8d4c6ea4fff5cafd996fcb3421f7df56107c0c2f66f2aff6"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "outcome": "completed",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:e4fd1e2d",
+                "summary": "Built and merged in PR #1241 (merge 8b0f5e8): preview in the gesture view during countdown and recording, closed on every way out; 4 new tests; npm run verify 622/622 + 6/6 browser; CI green.",
+                "task_id": "NG-44",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T00:53:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:53:22+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:2eb015816cf9ce1bb1a3987fe09c76c8e79e811a7217edf2b45e92effa2c753f",
+                    "execution-evidence:sha256:e33c1aef30526d4bd0bcf395ce51d9830968c86aabab1bebc3c7ee00a28d43d8",
+                    "execution-evidence:sha256:a2d3e00965aef8b7dd224a66d64e93b9e69e7f6a11cf3a3424ad49ed7918f261",
+                    "execution-evidence:sha256:eb4ad1dbd162ca516d46310eb2555e52b0aabaaca9100f763ba5ab298e8a5a3b"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "schema_version": "1.0",
+                "task_id": "NG-44",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:2eb015816cf9ce1bb1a3987fe09c76c8e79e811a7217edf2b45e92effa2c753f",
+                    "execution-evidence:sha256:e33c1aef30526d4bd0bcf395ce51d9830968c86aabab1bebc3c7ee00a28d43d8",
+                    "execution-evidence:sha256:a2d3e00965aef8b7dd224a66d64e93b9e69e7f6a11cf3a3424ad49ed7918f261",
+                    "execution-evidence:sha256:eb4ad1dbd162ca516d46310eb2555e52b0aabaaca9100f763ba5ab298e8a5a3b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "context_id": "claude-subagent-ng44-correctness-review",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "observations": [
+                    "src/recognise/recognise.ts:642 If bridge.createPreview throws after an earlier successful start, the view-level preview variable keeps the old closed preview and its empty element is shown in the box (accepted follow-up).",
+                    "src/capture/capture.ts:452 If the preview's show() throws (swallowed by the capture), the countdown/recording show an empty dark preview box instead of the plain count line (accepted follow-up).",
+                    "src/recognise/recognise.ts:459 RECOGNISE_SYMBOLS escapes were replaced by literal characters; values are identical, unrelated churn outside the stated change.",
+                    "docs/recognise.md:121 The 320x480..820x1180 no-scroll fit is evidenced only by the documented headless-Chromium measurements; not re-measured in this review and not covered by an automated test."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:130ad2e8",
+                "summary": "Reviewed full diff e1f145b..8b0f5e8 against NG-44 contract. Preview requested once per camera start via bridge.createPreview, passed to start as preview, shown in a stable .recognise-preview box in countdown (count overlaid) and recording, emptied in every other state; controller closes it in stopCamera on every exit (finish, failure, back, gone, dispose, cancelled start); missing or throwing createPreview falls back to the previous view. Mirroring comes from the capture preview for facing user. Build ok, test/recognise.test.mjs 31/31 pass. Layout fit verified only via documented headless-Chromium measurements, not re-run here.",
+                "task_id": "NG-44",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T00:54:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:54:42+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:21d482fed77c947912fe8ce501e90f3cdffefab3c740ba9b0edb61959c75cfdf",
+                    "execution-evidence:sha256:33ca64f3c2745cf9191ae49de8851d30625397913ae4df9fe0157185cdd40810",
+                    "execution-evidence:sha256:cbcccf253dfa8b26fe1e4d67bd9190dc9d6e05fe9bb55f711c8dad6335833d95",
+                    "execution-evidence:sha256:3876a768011fdf7df18f3030816247dd8b9c36c0e87bc3c8493cdcc04910ccd2"
+                ],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "schema_version": "1.0",
+                "task_id": "NG-44",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:21d482fed77c947912fe8ce501e90f3cdffefab3c740ba9b0edb61959c75cfdf",
+                    "execution-evidence:sha256:33ca64f3c2745cf9191ae49de8851d30625397913ae4df9fe0157185cdd40810",
+                    "execution-evidence:sha256:cbcccf253dfa8b26fe1e4d67bd9190dc9d6e05fe9bb55f711c8dad6335833d95",
+                    "execution-evidence:sha256:3876a768011fdf7df18f3030816247dd8b9c36c0e87bc3c8493cdcc04910ccd2"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "context_id": "claude-subagent-ng44-blindspot-review",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "observations": [
+                    "public/styles.css: keeping the empty button column during the countdown depends on :has(); a browser without :has() hides the column in the countdown and shows it in the recording, so in a wide window the picture narrows when the recording starts. This is cosmetic and nothing breaks.",
+                    "src/recognise/recognise.ts: RECOGNISE_SYMBOLS changed from \\u escapes to literal characters. The values are the same, but this edit is outside the stated goal and the PR does not mention it.",
+                    "src/recognise/recognise.ts: dispose() goes through controller.dispose, which sets current to idle without onChange, so draw() does not run and the slot keeps the closed (empty) preview element. That element holds no stream and no picture."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:7177be42",
+                "summary": "Blind-spot review of e1f145b..8b0f5e8: privacy, camera stop, way back and layout seams hold. startCapture.shutDown stops every stream track and closes the preview; createCapturePreview.close pauses the video, sets srcObject to null and empties the box; nothing is copied, kept or sent (the canvas holds only drawn points). The controller's stopCamera also closes the preview, which covers a start cancelled before the camera opened. draw() empties .recognise-preview in every state except starting/countdown/recording. The back button sits in the top bar outside the slot, and the overlaid count and canvas have pointer-events:none, so the way back is never blocked. Tests cover all seven ways out plus missing/throwing previews. Layout numbers in docs/recognise.md come from headless Chromium only, not from a device.",
+                "task_id": "NG-44",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T00:57:52+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T00:57:52+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "schema_version": "1.0",
+                "task_id": "NG-44",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:2b9a7848861a33038d08075cb50ae33566e23d5377a0edbd35b5f3dd64a5ec9b",
+                    "execution-evidence:sha256:5a31542621328214ec94ac3f5f5db00942cbfd9a3ceca9ff3dcbe64a5f1e566c"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:e1f145b9146d60f93984402eeeff3abdc8734318:8c514123a3fa912f3303a2521a901f9a8cb8ae03",
+                "consistency_references": [
+                    "execution-evidence:sha256:245c06ad0a86a69ce517154f7a116831dbd575697a4889c5e49428e868fdfde6"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:de45fd5df748cca52e74b3611ec800edf2c56a6f69693e6b3762c084d09a8723",
+                "outcome": "pass",
+                "run_id": "run:NG-44:000851d232c6f089",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:81827c3da9ab2fcc379056db505760aecb3a941d502cb4ea813bbf9e7b94f8e1",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-44: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-44 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-44:000851d232c6f089 binds active Session 2026-11-24-ng-44-r1-63d04e59 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-44 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-44",
+                "validation_references": [
+                    "execution-evidence:sha256:2b9a7848861a33038d08075cb50ae33566e23d5377a0edbd35b5f3dd64a5ec9b",
+                    "execution-evidence:sha256:5a31542621328214ec94ac3f5f5db00942cbfd9a3ceca9ff3dcbe64a5f1e566c"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-44:000851d232c6f089",
+    "schema_version": "1.0",
+    "task_id": "NG-44"
+}

@@ -1,0 +1,176 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T00:59:46+00:00",
+            "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-45/contract.json",
+                "sha256": "sha256:522753dac3c2b0cdc8079d0ff11e7a24bf8c9e6eadfc3e25ab6572417558f257"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-45",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "e6050b6ce76179f473809d3affa864374ec1e1eddf4171e3fe8342bd4c1c0181",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-45.md",
+                "sha256": "sha256:e6050b6ce76179f473809d3affa864374ec1e1eddf4171e3fe8342bd4c1c0181"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "During countdown and recording a row under the picture shows two hand symbols lit for the hands seen (as the preview counts them) with German words for a caregiver; the row and the picture's frame are orange without a hand and green with one",
+                "Five dots show the seconds of the recording: all lit in the countdown, one goes out each second while recording, without animation; the ticks do not redraw the view or reset the press guard, and no timer is left after the camera stops",
+                "A preview whose show throws, or a later start whose createPreview throws, leaves no empty picture box (the NG-44 follow-ups)",
+                "Every state of the view still fits 320x480 to 820x1180 without page scroll"
+            ],
+            "goal": "A child making a gesture sees, without reading, whether the camera sees its hands and how much time is left.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-45/contract.json",
+                "sha256": "sha256:522753dac3c2b0cdc8079d0ff11e7a24bf8c9e6eadfc3e25ab6572417558f257"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-45/contract.json",
+                "sha256": "sha256:522753dac3c2b0cdc8079d0ff11e7a24bf8c9e6eadfc3e25ab6572417558f257"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-24T01:10:29+00:00",
+            "decided_by": "Lars Moelleken (approved in session, 2026-11-24)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-45:20a5a856e9c02e22",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/fb031417191b79f845fc23cebf2def611f0ca77ac1238c44e40fa4ff79363476.json",
+                "sha256": "sha256:11bb5a7e7936c0197d0364374ea301a7da6d16c985d77c4f3c2c66fbce3ae84b"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:811d416155d2d7eb6c3f578adb3b5ec8c30743812ee8b2039f2bc63f5a681214",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:88e35534ace32377c61cafba59b46e8f1d332810ea5710d0b92f9e1a14fe1a31"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/recognise/recognise.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognise.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 2,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-45:20a5a856e9c02e22",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "f90c3c401edd0fadf16d62bc6c92d7b96af6123b36d9b12ecaf894715878c8b4",
+            "compilation_id": "compilation.NG-45.2026-11-24-005946.d2d41e2e",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "7253685f761015177ca5a851439a1a137a2f76113845f0a29a522cf0b8977035",
+            "source": {
+                "path": ".agent-loop/recall/NG-45/meta.json",
+                "sha256": "sha256:96be9507ad04eae36ed47816b59a381aa3c4083e53d18e2f9ec488c36bfd76f1"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-45/reviews/NG-45.blindspots.json",
+                "sha256": "sha256:d680dc15f14d125650b845cdd4aec866af3870b903b5b279bff5ca9901be7de9"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "b79f77e2e31272fdb03d6b45405f799df06fdbd9",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-45-r1-ef3553a7",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-45-r1-ef3553a7/session.json",
+                "sha256": "sha256:62b953699b09c3be1be970ddc1443b7fa93c8f5d2281122e3a9583272b13f62f"
+            },
+            "state": "done",
+            "task_id": "NG-45"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:d3f6bcbcb96337fa815787909713f06c56e5a25590ef022f04d483ccad9b783e",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-45:20a5a856e9c02e22",
+            "source": {
+                "path": ".agent-loop/runs/NG-45/verification.json",
+                "sha256": "sha256:9b08a8ab843a5ec5dcc8ca696613697af565c1202361dbf43c7303a94bc05bd7"
+            },
+            "source_session_id": "2026-11-24-ng-45-r1-ef3553a7",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-45:20a5a856e9c02e22",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-45"
+}
