@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
     "history": [
         {
@@ -77,6 +77,139 @@
                 "summary": "deleteHold: refused flag; rearm() puts the hold hint back as soon as the name is right; idle() keeps a refusal; act() refuses with the reason when the name became wrong during the hold. deleteNameForm (NFC, no U+FE0F, whitespace runs incl. NBSP as one space, trimmed) on both sides; refusal adds 'Achte auf die Leerzeichen.' or 'Achte auf große und kleine Buchstaben.' when only those differ. Field aria-describedby = title, loss text, active line; label overflow-wrap: anywhere. 3 new tests (Enter/Space refusal, line follows input, change during hold, spacing/emoji/case/hints, describedby, CSS). Docs caregiver.md. npm run verify passed: 672 node tests; browser 7 pass.",
                 "task_id": "NG-8673319027843774136",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:18:38+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:18:38+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0b5c58f69183c44dc02b3fe6b0a0d795fce78e614d70e79d98fcc6941f39344f",
+                    "execution-evidence:sha256:89ec423111f81f0507c7a7ae29d3faca2731db4c39f516a47e8fafe882b1351e",
+                    "execution-evidence:sha256:9cc059b5816ed84872a53a01975c4eae43ba05847be0099b376a09541af6b0e6",
+                    "execution-evidence:sha256:ef618ff5e18f8ebb2eb2c0a39cf75a10aa920d5e4a7ee90709b75475a7c4f2d8"
+                ],
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319027843774136",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0b5c58f69183c44dc02b3fe6b0a0d795fce78e614d70e79d98fcc6941f39344f",
+                    "execution-evidence:sha256:89ec423111f81f0507c7a7ae29d3faca2731db4c39f516a47e8fafe882b1351e",
+                    "execution-evidence:sha256:9cc059b5816ed84872a53a01975c4eae43ba05847be0099b376a09541af6b0e6",
+                    "execution-evidence:sha256:ef618ff5e18f8ebb2eb2c0a39cf75a10aa920d5e4a7ee90709b75475a7c4f2d8"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "context_id": "reviewer-correctness-namepolish",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "observations": [
+                    "src/caregiver.ts:3096 after a refusal, typing another still-wrong name leaves the earlier refusal text (and its spaces/capitals hint) on the line until the next press; refusal() is only evaluated on a press.",
+                    "src/caregiver.ts:676 nameKey (NFC, trim, lower-case) does not collapse inner whitespace or drop U+FE0F, so the area lets 'Ben  Luca' and 'Ben Luca' (or with/without U+FE0F) exist side by side without a '(2)' label, shown identically in HTML; deleteNameForm accepts the same typed text for both. Not a wrong-profile delete (the confirmation is bound to the chosen id), but the two cards are indistinguishable; follow-up: align nameKey with deleteNameForm.",
+                    "src/caregiver.ts:3119 onReady still says 'Loslassen zum Löschen' when the name was made wrong during the hold; the release then refuses correctly."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:383d69f3",
+                "summary": "Correctness review of 86308d35 against base 5718d85e (diff limited to the 4 scoped files). No path deletes without a match: allowed() refuses at press for pointer, Enter and Space; act() now re-checks armed.ok() and refuses with the reason before calling the confirmView act, which itself re-checks named() before deleteProfile (src/caregiver.ts:3126-3134, 3187). The looser deleteNameForm (NFC, U+FE0F dropped, \\s+ -> one space, trim; src/caregiver.ts:727-729) only decides whether the already-open confirmation, bound to profile.id, may act; typing cannot select or arm another profile's delete. rearm() restores DELETE_HOLD_HINT once ok and clears refused; idle() keeps a refusal; a redraw builds a fresh deleteHold. Hints: spaces when equal without whitespace, capitals when equal case-folded. aria-describedby = title, loss, active ids; label overflow-wrap. Tests cover Enter/Space refusal, name changed during hold, NBSP (U+00A0 present in the test literal), FE0F, hints, describedby and CSS.",
+                "task_id": "NG-8673319027843774136",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:18:48+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:18:48+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a858af6800cefadc203ad197fec162f992bcd0202f4b67c4fe6aa4f0b9f93ac0",
+                    "execution-evidence:sha256:064c200421cd674b6c0764f257ccd99c586c50df65783b96e61b34f7c5f37eba",
+                    "execution-evidence:sha256:9357aa2991f06c45a1fe0560c1a638adc81c4868b48f6487291c768d90a5dc80",
+                    "execution-evidence:sha256:99f5ace2112536381bf37b00ed5ae71436645a97379cc227920b31c62c12beee"
+                ],
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319027843774136",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a858af6800cefadc203ad197fec162f992bcd0202f4b67c4fe6aa4f0b9f93ac0",
+                    "execution-evidence:sha256:064c200421cd674b6c0764f257ccd99c586c50df65783b96e61b34f7c5f37eba",
+                    "execution-evidence:sha256:9357aa2991f06c45a1fe0560c1a638adc81c4868b48f6487291c768d90a5dc80",
+                    "execution-evidence:sha256:99f5ace2112536381bf37b00ed5ae71436645a97379cc227920b31c62c12beee"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "context_id": "reviewer-blindspot-namepolish",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "observations": [
+                    "src/caregiver.ts:728 JS \\s also matches U+FEFF and other Unicode spaces (e.g. U+3000), so a typed BOM or ideographic space counts as a space; stored names cannot hold U+FEFF, so this only loosens typing slightly. Harmless, noted for the docs' 'every run of white space'.",
+                    "src/caregiver.ts:679 follow-up (also in correctness): nameKey vs deleteNameForm disagree, so profiles differing only in inner spacing or U+FE0F look identical without a '(2)' label."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:8637df4e",
+                "summary": "Blind-spot review of the typed-name delete polish. Looser matching cannot arm a different profile's delete (confirmation bound to profile.id) and does not make a tap-and-hold child path possible: a typed name is still required, capitals and all other characters still count. Accessibility improved (describedby title/loss/active, hint follows the field, wrapped label). Line refs corrected from the correctness submission: refused flag at src/caregiver.ts:3079, nameKey at :679, onReady RELEASE_TO_DELETE at :3124.",
+                "task_id": "NG-8673319027843774136",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T12:21:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T12:21:44+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319027843774136",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:0f42aa16888bafeb97f5cf2a3bbb624531b44fab61fc16fd1c7960a31dc45e5c",
+                    "execution-evidence:sha256:daf0e38bc7d990a6eb6996d47b8afb9e8edb9121aa4f38574804ca2067b8ff3c"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:5718d85e7371edeeec1ccb7674b4f743d6cbeb99:2884c929c239a3dd8c85f46e2ea7fed4d60ca73c",
+                "consistency_references": [
+                    "execution-evidence:sha256:cb5d01a7718cb93129815f2093e048e01f343d409f811f3245fef93639f328fd"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:7735d1c4b4c86a1ba4385aa1d99f36cbf69c899ffa4a33145731f44274a2b218",
+                "outcome": "pass",
+                "run_id": "run:NG-8673319027843774136:2c716ed57498263e",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:58b25ee65382f5780d2c94cc503d3d58016f535b1e9a2ed2b2e820abf16ddc4b",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-8673319027843774136: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-8673319027843774136 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-8673319027843774136:2c716ed57498263e binds active Session 2026-11-24-ng-8673319027843774136-r2-673ce14f to approved Contract revision 2\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-8673319027843774136 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-8673319027843774136",
+                "validation_references": [
+                    "execution-evidence:sha256:0f42aa16888bafeb97f5cf2a3bbb624531b44fab61fc16fd1c7960a31dc45e5c",
+                    "execution-evidence:sha256:daf0e38bc7d990a6eb6996d47b8afb9e8edb9121aa4f38574804ca2067b8ff3c"
+                ]
             }
         }
     ],
