@@ -3,7 +3,7 @@
     "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_stage_id": "verify",
     "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
     "history": [
         {
@@ -71,6 +71,82 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:73ea9a30",
                 "summary": "Click handler reads state.replay at the tap (stop only if this example plays and is not done, else play). Test taps Abspielen once after a finished replay: canvas present, button Anhalten; the test fails on the old code (checked) and passes now. npm run verify passed: 663 node tests; browser 4 pass 2 skipped.",
+                "task_id": "NG-8673320275707367168",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:43:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:43:43+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4e646b474b170da5af9408a0d58bf7cfcd85bd2b05eb26561a9fe7eaa752450f",
+                    "execution-evidence:sha256:79a1b5b749cec445ffe21c2fe703f878fd9d0790bd6a7440d6ae74491f99f0f6"
+                ],
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320275707367168",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4e646b474b170da5af9408a0d58bf7cfcd85bd2b05eb26561a9fe7eaa752450f",
+                    "execution-evidence:sha256:79a1b5b749cec445ffe21c2fe703f878fd9d0790bd6a7440d6ae74491f99f0f6"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "context_id": "reviewer-correctness-replayclick",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "outcome": "pass",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:2c7a78e8",
+                "summary": "src/caregiver.ts:2782-2787: the click handler now reads open.state.replay at tap time (same state object playExample/stopExample mutate), so a played-through replay (done=true) replays on one tap and a running one stops; matches the label logic and the replayButton reset after the last step. test/caregiver.test.mjs:7309-7313 covers the tap after a finished replay. No other behaviour changed.",
+                "task_id": "NG-8673320275707367168",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:43:50+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:43:50+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:61d4328cde7e176ec1b1c79e90d71e8d8b356d6c1c49080ca44e8d4d6c9e4e16",
+                    "execution-evidence:sha256:6279f46ec46c2d6a7618dc31c013caa8485b591a41faf1b83b44faf615802ec1"
+                ],
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320275707367168",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:61d4328cde7e176ec1b1c79e90d71e8d8b356d6c1c49080ca44e8d4d6c9e4e16",
+                    "execution-evidence:sha256:6279f46ec46c2d6a7618dc31c013caa8485b591a41faf1b83b44faf615802ec1"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "context_id": "reviewer-blindspot-replayclick",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "outcome": "pass",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:0e72ab5e",
+                "summary": "Blind spots checked: a tap between Abspielen and the first redraw (label still Abspielen, replay already started) now stops it, which matches the user's second-tap intent; a tap on another example's row starts that one (identity check stops the old timer); aria-label stays consistent with the action because replayButton resets the label when done. No new UI text, privacy or performance impact.",
                 "task_id": "NG-8673320275707367168",
                 "validation_references": []
             }
