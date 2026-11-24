@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+    "contract_revision": 1,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-24T06:22:06+00:00",
+    "reference": "execution-evidence:sha256:9f256c57996d2ba1a0d74a7bde31470f8188ea413fa16a06cdd3345f3bc4fe74",
+    "run_id": "run:NG-4:95b700dd728e56b7",
+    "schema_version": "1.0",
+    "source_digest": "sha256:14c3925eb9fa30d9663e826d9fb6d405ec5a125fa31e75bcc50ba6daec6c5b6b",
+    "source_reference": "workspace-file:src/caregiver.ts",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-4"
+}

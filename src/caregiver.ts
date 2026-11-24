@@ -461,7 +461,7 @@ const DISCARD = "Verwerfen";
 const BACK = "Zurück";
 const DELETE_ALL_EXAMPLES = "Alle Beispiele löschen";
 const STORED_EXAMPLES = "Gespeicherte Beispiele";
-const REPLAY_NOTE = "So vergleicht die App die Gebärde: nur die Bewegung der Hände, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht.";
+const REPLAY_NOTE = "So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht.";
 const NO_CAMERA_BRIDGE = "Die Kamera kann hier gerade nicht gestartet werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera.";
 const USAGE_LINES: Readonly<Record<Exclude<UsageLevel, "ok">, string>> = {
   near: "Der Platz für dieses Profil ist fast voll. Es passen nur noch wenige Beispiele hinein. Lösche Beispiele, die nicht mehr gebraucht werden.",

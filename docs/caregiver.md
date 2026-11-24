@@ -588,8 +588,9 @@ read, there is no line. One- and two-hand gestures are treated alike.
 **Replaying an example** (card NG-4). "Abspielen" on a stored example shows it once as a moving
 stick-figure hand on a canvas (240 × 180) under its row, in the colours and with the bones of the
 camera preview, mirrored as the front camera shows it, with the shoulder line when the shoulders
-were seen. Under it: "So vergleicht die App die Gebärde: nur die Bewegung der Hände, aus den
-gespeicherten Werten gezeichnet. Ein Video gibt es nicht." It is drawn from the stored features
+were seen. Under it: "So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den
+gespeicherten Werten gezeichnet. Ein Video gibt es nicht." (Movement and hand shape, as in the
+teaching intro.) It is drawn from the stored features
 (`src/teach/replay.ts`): per step, the joints relative to the wrist and the wrist relative to the
 shoulders. The size of the hand is not stored, so every hand is drawn at a third of a shoulder
 width. One step is shown for the recorded length divided by its 32 steps (between 40 and 250 ms);

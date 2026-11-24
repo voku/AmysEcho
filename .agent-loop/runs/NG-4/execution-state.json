@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
     "history": [
         {
@@ -171,6 +171,104 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:06f606ad",
                 "summary": "Review fix: exampleFit returns 'resembles' when the matcher says too_far, the closest concept is another one and this concept's own distance is within its calibrated limit (limitKey); a first example or one beyond its own limit stays 'first'/'differs'. New hand-made test with constant sequences covers all three. Replay: after the last step the button says 'Abspielen' again (state.replay.done), last step stays. Docs updated. npm run verify passed: 657 node tests; browser 4 pass 2 skipped.",
+                "task_id": "NG-4",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:21:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:21:44+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ce2fd02dd4fed794646f82a5516ae2be90974902712fa509db1ce46792c11c78",
+                    "execution-evidence:sha256:f1662904881a7df134595e950f4ef9004a1c5bb63b9312ea8d97ad7801620749",
+                    "execution-evidence:sha256:dc28f7e9152a6763159553c52c061586725ebffc3f3ce6127efaba00c08e0886",
+                    "execution-evidence:sha256:91596903ca58dbf89c469f15cd65662b58aeff20579cb8c4d9cb9b1ad5d868f1",
+                    "execution-evidence:sha256:9f1b191fe1c5c277cdd922d74a5b53cd3f44df4d77fe02774c0c0eecbe870d46",
+                    "execution-evidence:sha256:4e5ea853ee3bb9da93ec8446e9f0a48906cc2622cadc3b58e84b1b36f1ce049d",
+                    "execution-evidence:sha256:d847095aec113f793020067a8db333a8b62dc40042b23a444afd8bb81cef0ff9",
+                    "execution-evidence:sha256:9ee90b92762654454140e6801cdacd46134d41553f2d71cc3044173681bb8592",
+                    "execution-evidence:sha256:3cb7d9d9786b98a92d8a08bb2442d7cdff3030ffb1572edb42ce4ab1caf39295",
+                    "execution-evidence:sha256:f811b8c9355624f622945be60f01308362255bdea24a17cdd0f6627ed5cd97a5"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "schema_version": "1.0",
+                "task_id": "NG-4",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ce2fd02dd4fed794646f82a5516ae2be90974902712fa509db1ce46792c11c78",
+                    "execution-evidence:sha256:f1662904881a7df134595e950f4ef9004a1c5bb63b9312ea8d97ad7801620749",
+                    "execution-evidence:sha256:dc28f7e9152a6763159553c52c061586725ebffc3f3ce6127efaba00c08e0886",
+                    "execution-evidence:sha256:91596903ca58dbf89c469f15cd65662b58aeff20579cb8c4d9cb9b1ad5d868f1",
+                    "execution-evidence:sha256:9f1b191fe1c5c277cdd922d74a5b53cd3f44df4d77fe02774c0c0eecbe870d46",
+                    "execution-evidence:sha256:4e5ea853ee3bb9da93ec8446e9f0a48906cc2622cadc3b58e84b1b36f1ce049d",
+                    "execution-evidence:sha256:d847095aec113f793020067a8db333a8b62dc40042b23a444afd8bb81cef0ff9",
+                    "execution-evidence:sha256:9ee90b92762654454140e6801cdacd46134d41553f2d71cc3044173681bb8592",
+                    "execution-evidence:sha256:3cb7d9d9786b98a92d8a08bb2442d7cdff3030ffb1572edb42ce4ab1caf39295",
+                    "execution-evidence:sha256:f811b8c9355624f622945be60f01308362255bdea24a17cdd0f6627ed5cd97a5"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+                "context_id": "reviewer-correctness-ng4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "observations": [
+                    "src/teach/fit.ts:43: matchGesture ranks only the top 3 concepts, so when this concept is 4th or lower the too_far case still reports differs; acceptable, since three other concepts are closer.",
+                    "src/caregiver.ts build(): each new usable recording lists all profile examples and runs calibrateMaxDistance (quadratic DTW over the profile); not measured for large profiles."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:d65a8d3b",
+                "summary": "Round 2: fit.ts:42-49 now returns resembles on too_far when the closest concept is another one and this concept's own distance is within its calibrated limit (limitKey, FALLBACK otherwise); first/differs preserved; covered by hand-made constant sequences in test/teach.test.mjs:71-84. No file under src/recognition changed, no threshold changed. Replay: state.replay.done resets the button to Abspielen (caregiver.ts tick, replayButton reset per teachView build); timer stops via teaching(open)+replay identity. replaySteps matches writeHand layout and mirroring.",
+                "task_id": "NG-4",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:22:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:22:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:9f256c57996d2ba1a0d74a7bde31470f8188ea413fa16a06cdd3345f3bc4fe74",
+                    "execution-evidence:sha256:9cf9be92dc897b5adeee7008c0948ea0dc5a43eec22b0ae4dbe62b6c3a0ff4c1",
+                    "execution-evidence:sha256:0b5bce81195e4a2b7dc10bb1a12c026465a928d99ecb2d535f38e921efdb1783"
+                ],
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "schema_version": "1.0",
+                "task_id": "NG-4",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:9f256c57996d2ba1a0d74a7bde31470f8188ea413fa16a06cdd3345f3bc4fe74",
+                    "execution-evidence:sha256:9cf9be92dc897b5adeee7008c0948ea0dc5a43eec22b0ae4dbe62b6c3a0ff4c1",
+                    "execution-evidence:sha256:0b5bce81195e4a2b7dc10bb1a12c026465a928d99ecb2d535f38e921efdb1783"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:cf22568b61fbe91cb0ee2e494e71ae64acf96cdf:547f7ab357ef709dd52ebe58cc20c6d287e711c5",
+                "context_id": "reviewer-blindspot-ng4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "outcome": "changes_required",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:3d9ba788",
+                "summary": "Misleading caregiver/privacy text: src/caregiver.ts:464 REPLAY_NOTE says 'So vergleicht die App die Gebärde: nur die Bewegung der Hände ...', but the stored and compared features include the hand's joint shape (src/recognition/features.ts writeHand: 40 shape values per hand) and the replay itself draws that shape. The project already corrected exactly this wording for the teaching intro (docs/caregiver.md:559-561: 'Gespeichert werden nur Zahlen zu Bewegung und Handform ... the first build said \"Bewegung der Hände\" only'), so the new note reintroduces a fixed understatement on the same screen. Fix: e.g. 'So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht.' and update the quoted text in docs/caregiver.md (Replaying an example) and the assertion in test/caregiver.test.mjs. Other blindspots checked, non-blocking: the fit line 'passt' can reassure for a look-alike the matcher accepts (documented in docs/recognition.md); the canvas has role=img with a static German label and is untested with a screen reader (documented); each new usable recording runs calibrateMaxDistance over all profile examples (quadratic DTW), not measured on large profiles.",
                 "task_id": "NG-4",
                 "validation_references": []
             }

@@ -7256,7 +7256,7 @@ test("teach: 'Abspielen' draws a stored example as a moving hand on a canvas, on
     const canvas = byClass(caregiverRegion, "caregiver-replay");
     assert.equal(canvas.tagName, "canvas");
     assert.equal(canvas.role, "img");
-    assert.ok(textsIn(caregiverRegion).includes("So vergleicht die App die Gebärde: nur die Bewegung der Hände, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht."));
+    assert.ok(textsIn(caregiverRegion).includes("So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht."));
     // The fake canvas has no 2D context at first: nothing breaks. With one, the next steps are drawn.
     const calls = [];
     canvas.width = 240;
