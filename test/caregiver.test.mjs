@@ -22,7 +22,7 @@ const NEWER_ENTRY = "Diese Taste wurde mit einer neueren Version gespeichert. Bi
 
 /** Puts a fake document and speech engine in place; `focused.current` is the element that was focused last. */
 function installFakes(rect) {
-  const previous = { document: globalThis.document, window: globalThis.window, SpeechSynthesisUtterance: globalThis.SpeechSynthesisUtterance };
+  const previous = { document: globalThis.document, window: globalThis.window, SpeechSynthesisUtterance: globalThis.SpeechSynthesisUtterance, Image: globalThis.Image };
   const previousWarn = console.warn;
   const speech = { cancelled: 0, spoken: [] };
   const focused = { current: null };
@@ -87,6 +87,13 @@ function installFakes(rect) {
     },
   };
   globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+  // `new Image(width, height)` as the picture view uses it: an "img" element of the fake document.
+  globalThis.Image = function Image(width, height) {
+    const image = fakeElement("img");
+    image.width = width;
+    image.height = height;
+    return image;
+  };
   console.warn = () => undefined;
   return {
     speech, focused, fakeElement,
@@ -7167,5 +7174,24 @@ test("pictures: an own concept under a catalogue id has no picture of the app to
     await area.act(() => view.reset.click());
     assert.equal(area.status(), "„Hilf mir“ hat jetzt kein Bild.");
     assert.equal(area.concept("Hilf mir").picture, null);
+  });
+});
+
+test("pictures: the previews are image elements, and a value that is no stored picture or bundled icon never becomes a preview's source", async () => {
+  const catalogue = CONCEPTS.map((concept) => (concept.id === "pause" ? { ...concept, symbolPath: "javascript:alert(1)" } : concept));
+  await withArea({ seed: seedThree, catalogue, pictureFromFile: fakePicture }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Bild wählen").click());
+    let images = tree(pictureViewOf(caregiverRegion).view).filter((element) => element.tagName === "img");
+    assert.deepEqual(images.map((image) => [image.src, image.width, image.height, image.alt, image.className]), [["./icons/trinken.svg", 96, 96, "", "caregiver-picture-preview"]]);
+    await act(() => pictureViewOf(caregiverRegion).cancel.click());
+    await act(() => buttonNamed(concept("Pause").row, "Bild wählen").click());
+    const view = pictureViewOf(caregiverRegion);
+    assert.deepEqual(view.images, []);
+    assert.ok(view.texts.includes("Jetzt auf der Taste: kein Bild, nur das Wort."));
+    await chooseFile(area, "pause.png");
+    images = tree(pictureViewOf(caregiverRegion).view).filter((element) => element.tagName === "img");
+    assert.deepEqual(images.map((image) => image.src), [PICTURE_PNG]);
   });
 });

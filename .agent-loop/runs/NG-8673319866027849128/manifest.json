@@ -1,0 +1,164 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-8673319866027849128 before calling agent-loop finish NG-8673319866027849128",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-24T02:08:25+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673319866027849128/contract.json",
+                "sha256": "sha256:7145c8c5900b066e78039b0e84075a8189be26a9f5fe9f94eec8e08cd85782d0"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-8673319866027849128",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "b3332b522375ae5f5172ecfe764eee2bd09c6c59870872f708916d4b64b756e3",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-8673319866027849128.md",
+                "sha256": "sha256:b3332b522375ae5f5172ecfe764eee2bd09c6c59870872f708916d4b64b756e3"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Both previews in pictureView (the key's picture now and the chosen picture) are created with new Image() and get their src only after isSymbolDataUrl or from a bundled ./icons/ path",
+                "Behaviour and tests unchanged otherwise; a test shows a non-picture value never becomes a preview src"
+            ],
+            "goal": "The picture view's preview images are real image elements whose src is set only from a value isSymbolDataUrl accepts, so the chosen file can never reach any other kind of src; CodeQL alert 218 is expected to clear.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-8673319866027849128/contract.json",
+                "sha256": "sha256:7145c8c5900b066e78039b0e84075a8189be26a9f5fe9f94eec8e08cd85782d0"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-8673319866027849128/contract.json",
+                "sha256": "sha256:7145c8c5900b066e78039b0e84075a8189be26a9f5fe9f94eec8e08cd85782d0"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:b156e3faa15f73a5505b2805a874322eca75d1eee36d6b3c1c25576136e3a45b",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:619f5ebbf1f9219ab3d91d726e0eb9b0c48845e1a0414d02c87942df3887fcbc"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "2825187ca6ed6569faf303bbf6fc4d21ceb1fbf83a5be865fa1eeb384a8ea848",
+            "compilation_id": "compilation.NG-8673319866027849128.2026-11-24-020826.acae9ec7",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "c776c4536d6243067b3c8c16f8f68da85c7e6a0b86c45128f6621068fc0af668",
+            "source": {
+                "path": ".agent-loop/recall/NG-8673319866027849128/meta.json",
+                "sha256": "sha256:4ffae34003d89feb5fe684a4c9e1683f5a71cd355fdd6584eb41f6f2dcbca7ed"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-8673319866027849128/reviews/NG-8673319866027849128.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "0da544854875ed56d06f305361ff2599ee0b6b6f",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-24-ng-8673319866027849128-r1-c6ae3bd8",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-24-ng-8673319866027849128-r1-c6ae3bd8/session.json",
+                "sha256": "sha256:9ac238bf8c15ba6906a343f2b4fd968563aa0823a677e560c99c2829f69d6095"
+            },
+            "state": "active",
+            "task_id": "NG-8673319866027849128"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-8673319866027849128 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-8673319866027849128",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:8099c0fcc5f9f204e85e0b0009892f60d832064def8774d25c48e13ef22cf86d",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-8673319866027849128"
+}

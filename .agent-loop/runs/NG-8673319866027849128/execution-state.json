@@ -1,0 +1,47 @@
+{
+    "attention": null,
+    "candidate_revision": "0da544854875ed56d06f305361ff2599ee0b6b6f",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T02:10:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T02:10:10+00:00",
+                "artifact_references": [],
+                "candidate_revision": "0da544854875ed56d06f305361ff2599ee0b6b6f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "schema_version": "1.0",
+                "task_id": "NG-8673319866027849128",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "0da544854875ed56d06f305361ff2599ee0b6b6f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:d5b79b1e551d1c686c67a720e48068a6d47b4fc13e333dfc9acde2eb2c111202",
+                "outcome": "completed",
+                "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:ce78d1e3",
+                "summary": "CodeQL alert 218 points at preview.src in pictureView (src/caregiver.ts); both previews were made with the generic element() helper, so CodeQL cannot tell they are img elements; the value is already a validated data URL.",
+                "task_id": "NG-8673319866027849128",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-8673319866027849128:94af37adba5c50a3",
+    "schema_version": "1.0",
+    "task_id": "NG-8673319866027849128"
+}

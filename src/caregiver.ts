@@ -217,6 +217,24 @@ export interface CaregiverOptions {
   readonly pictureFromFile?: (file: Blob) => Promise<string>;
 }
 
+/** A bundled picture of the app, as the catalogue names it. */
+const BUNDLED_PICTURE = /^\.\/icons\/[a-z0-9-]+\.svg$/;
+
+/**
+ * A preview image of the picture view, or null for a value that is neither a
+ * picture board data stores (`isSymbolDataUrl`) nor a bundled icon. It is an
+ * image element made as one (card NG-8673319866027849128), so nothing chosen
+ * by a caregiver can become the source of any other kind of element.
+ */
+function previewImage(source: string): HTMLImageElement | null {
+  if (!isSymbolDataUrl(source) && !BUNDLED_PICTURE.test(source)) return null;
+  const image = new Image(96, 96);
+  image.className = "caregiver-picture-preview";
+  image.alt = "";
+  image.src = source;
+  return image;
+}
+
 /** The longer side of a stored picture, in pixels (card NG-8673323346005092805). */
 export const PICTURE_SIZE_PX = 256;
 /** Largest image file that is read at all. */
@@ -2213,16 +2231,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const view = element("section", "caregiver-section caregiver-takeover caregiver-picture");
     view.append(element("h2", "", `Bild für ${quoted(entry.labelDe)} – Tafel von ${quoted(profileLabel)}`));
     const onKey = element("div", "caregiver-picture-now");
-    if (entry.symbolPath === null) {
-      onKey.append(element("p", "caregiver-notice", PICTURE_NONE));
-    } else {
-      const current = element("img", "caregiver-picture-preview");
-      current.src = entry.symbolPath;
-      current.alt = "";
-      current.width = 96;
-      current.height = 96;
-      onKey.append(element("p", "caregiver-notice", PICTURE_NOW), current);
-    }
+    const current = entry.symbolPath === null ? null : previewImage(entry.symbolPath);
+    if (current === null) onKey.append(element("p", "caregiver-notice", PICTURE_NONE));
+    else onKey.append(element("p", "caregiver-notice", PICTURE_NOW), current);
     view.append(onKey, element("p", "caregiver-notice", PICTURE_LOCAL), element("p", "caregiver-notice", PICTURE_RIGHTS));
     const label = element("label", "caregiver-picture-label", PICTURE_FILE);
     label.htmlFor = "caregiver-picture-file";
@@ -2239,13 +2250,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     register.set("anchor:picture-file", view);
     view.append(label, input, hint);
     if (open.draft.reading) view.append(element("p", "caregiver-notice", PICTURE_READING));
-    if (open.draft.picture !== null) {
+    const preview = open.draft.picture === null ? null : previewImage(open.draft.picture);
+    if (preview !== null) {
       const chosen = element("div", "caregiver-picture-new");
-      const preview = element("img", "caregiver-picture-preview");
-      preview.src = open.draft.picture;
-      preview.alt = "";
-      preview.width = 96;
-      preview.height = 96;
       chosen.append(element("p", "caregiver-notice", PICTURE_NEW), preview);
       view.append(chosen);
     }
