@@ -2,10 +2,11 @@
 // with the real capture path (`startCapture`) on a fake camera and tracker, a clock and timers
 // moved by hand, and the view on a fake document with the real board.
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_TEXT,
-  analyseAttempt, attachRecognise, createRecogniser,
+  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT,
+  analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
 import { CAMERA_FACING_KEY, CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, captureBridge, nextShoulders, startCapture } from "../dist/capture/capture.js";
@@ -932,7 +933,7 @@ test("preview: the gesture view shows the live preview of the front camera durin
     assert.equal(slot.children[0], preview.element);
     assert.equal(slot.children[1].textContent, "3");
     const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
-    assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-preview"], "the line above the picture");
+    assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-preview", "recognise-feedback"], "the line above the picture, the feedback row (card NG-45) below it");
     time.advance(1000);
     assert.equal(slotOf(panel()), slot);
     assert.deepEqual(slot.children.map((element) => element.textContent), ["", "2"]);
@@ -1019,6 +1020,29 @@ test("preview: a bridge without one, or a preview that fails, leaves the gesture
       assert.equal(camera.running, false);
     });
   }
+  // Card NG-45: a preview that cannot show, or a later start whose preview cannot be made, leaves no
+  // empty box behind: the count is in its own line, as without a preview.
+  for (const failure of ["show", "create-after-success"]) {
+    await withView(async (context) => {
+      const { panel, buttonNamed, time, camera } = context;
+      const previews = recordingPreviews({ failShow: failure === "show" });
+      camera.bridge.createPreview = previews.createPreview;
+      if (failure === "create-after-success") {
+        await viewToRecording(context);
+        assert.ok(slotOf(panel()) !== null, "the first start has its picture");
+        buttonNamed(RECOGNISE_TEXT.back).click();
+        camera.bridge.createPreview = () => { throw new Error("no canvas"); };
+        time.advance(GESTURE_SHIELD_MS);
+      }
+      context.gestureButton().click();
+      await settle();
+      assert.equal(panel().dataset.state, "countdown", failure);
+      assert.equal(slotOf(panel()), null, `${failure}: no empty picture box`);
+      const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
+      assert.deepEqual(main.children.map((element) => element.className), ["recognise-line", "recognise-count", "recognise-feedback"], failure);
+      if (failure === "show") assert.ok(previews.made[0].closed >= 1, "the failed preview is closed");
+    });
+  }
 });
 
 test("preview: the controller passes one preview per start to the capture and closes it when the start is cancelled before the camera opened", async () => {
@@ -1037,4 +1061,121 @@ test("preview: the controller passes one preview per start to the capture and cl
   await settle();
   assert.equal(camera.log.cameraRequests, 0);
   assert.equal(made[0].closed >= 1, true, "closed although it never showed");
+});
+
+// --- Feedback without reading: hands seen and time left (card NG-45) ---
+
+test("hands seen: none, one or two usable hands of a tracked frame, as the preview sides them", () => {
+  assert.equal(handsSeen(frames(() => [], 1)[0]), 0);
+  assert.equal(handsSeen(frames(MOVES_RIGHT, 1)[0]), 1);
+  assert.equal(handsSeen(frames(BOTH_APART, 1)[0]), 2);
+  assert.equal(handsSeen({ timestampMs: 0, imageWidth: 0, imageHeight: 0, hands: [], pose: null }), 0, "a broken frame counts as none");
+  assert.equal(RECOGNISE_SECONDS, 5);
+});
+
+test("controller: hands seen on every frame of the countdown and the recording; the seconds left once a second, without a redraw", async () => {
+  const seen = [];
+  const left = [];
+  const camera = fakeCamera();
+  const time = fakeTime();
+  const states = [];
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: time.setTimer, now: time.now,
+    speak: () => undefined, onChange: (state) => states.push(state.kind), analyse: () => MATCH,
+    onSeen: (hands) => seen.push(hands), onTimeLeft: (seconds) => left.push(seconds),
+  });
+  recogniser.start();
+  await settle();
+  await camera.feed([]);
+  await camera.feed(MOVES_RIGHT(0));
+  time.advance(RECOGNISE_COUNTDOWN_S * 1000);
+  assert.deepEqual(left, [5], "the whole time when the recording starts");
+  await camera.feed(BOTH_APART(0));
+  assert.deepEqual(seen, [0, 1, 2]);
+  const drawn = states.length;
+  time.advance(1000);
+  time.advance(1000);
+  assert.deepEqual(left, [5, 4, 3]);
+  assert.equal(states.length, drawn, "the seconds are no redraw");
+  // The press guard counts from the recording's start, not from a tick: "Stopp" works now.
+  recogniser.finish();
+  assert.equal(recogniser.state().kind, "confirm");
+  assert.equal(time.pending(), 0, "no tick left after the recording");
+  await camera.feed(MOVES_RIGHT(1));
+  assert.deepEqual(seen, [0, 1, 2], "nothing after the camera stopped");
+  // Up to the time limit: 5 … 1, then the answer.
+  const full = setup({ outcome: MATCH });
+  const ticks = [];
+  const limited = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => full.camera.bridge, host: () => ({}), setTimer: full.time.setTimer, now: full.time.now,
+    speak: () => undefined, onChange: () => undefined, analyse: () => MATCH, onTimeLeft: (seconds) => ticks.push(seconds),
+  });
+  limited.start();
+  await settle();
+  full.time.advance(RECOGNISE_COUNTDOWN_S * 1000 + RECOGNISE_MAX_RECORDING_MS);
+  assert.deepEqual(ticks, [5, 4, 3, 2, 1]);
+  assert.equal(limited.state().kind, "confirm");
+  assert.equal(full.time.pending(), 0);
+});
+
+const feedbackOf = (panel) => tree(panel).find((element) => hasClass(element, "recognise-feedback")) ?? null;
+const litCount = (box, name) => tree(box).filter((element) => hasClass(element, name) && element.dataset.lit === "true").length;
+
+test("view: under the picture, hand symbols light up for the hands seen and one dot per second goes out while recording", async () => {
+  await withView(async (context) => {
+    const { panel, buttonNamed, time, camera } = context;
+    context.gestureButton().click();
+    await settle();
+    const feedback = feedbackOf(panel());
+    assert.ok(feedback !== null, "shown in the countdown");
+    const main = tree(panel()).find((element) => hasClass(element, "recognise-main"));
+    assert.equal(main.children.at(-1), feedback, "below the picture and the count");
+    assert.equal(feedback.dataset.seen, "0");
+    assert.equal(panel().dataset.seen, "0", "the frame is orange without a hand");
+    assert.match(textOf(feedback), /Keine Hand im Bild/);
+    assert.equal(litCount(feedback, "recognise-seen-hand"), 0);
+    assert.equal(litCount(feedback, "recognise-time-dot"), RECOGNISE_SECONDS, "the whole time ahead");
+    await camera.feed(MOVES_RIGHT(0));
+    assert.equal(panel().dataset.seen, "1");
+    assert.equal(litCount(feedback, "recognise-seen-hand"), 1);
+    assert.match(textOf(feedback), /Eine Hand im Bild/);
+    time.advance(1000);
+    assert.equal(feedbackOf(panel()), feedback, "the same row on the next tick");
+    assert.equal(litCount(feedback, "recognise-seen-hand"), 1, "kept through a redraw");
+    time.advance((RECOGNISE_COUNTDOWN_S - 1) * 1000);
+    assert.equal(panel().dataset.state, "recording");
+    assert.equal(feedbackOf(panel()), feedback, "the same row in the recording: nothing moves");
+    await camera.feed(BOTH_APART(0));
+    assert.equal(litCount(feedback, "recognise-seen-hand"), 2);
+    assert.match(textOf(feedback), /Zwei Hände im Bild/);
+    const time5 = tree(feedback).find((element) => hasClass(element, "recognise-time"));
+    assert.equal(time5.attributes["aria-label"], "Noch 5 Sekunden");
+    time.advance(2000);
+    assert.equal(litCount(feedback, "recognise-time-dot"), 3);
+    assert.equal(time5.attributes["aria-label"], "Noch 3 Sekunden");
+    await camera.feed([]);
+    assert.equal(panel().dataset.seen, "0", "orange again when the hands leave the picture");
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Stopp").click();
+    assert.equal(panel().dataset.state, "unusable", "three frames are too few: an answer all the same");
+    assert.equal(feedbackOf(panel()), null, "no row with the answer");
+    assert.equal(panel().dataset.seen, undefined);
+    // A new attempt starts with nothing seen and the whole time.
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Nochmal").click();
+    await settle();
+    assert.equal(feedbackOf(panel()).dataset.seen, "0");
+    assert.equal(litCount(feedback, "recognise-time-dot"), RECOGNISE_SECONDS);
+  });
+});
+
+test("the stylesheet: the feedback row is orange without a hand and green with one, the dots change without motion", async () => {
+  const css = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
+  const rule = (selector) => css.split("\n").find((line) => line.startsWith(`${selector} {`)) ?? "";
+  assert.match(rule(".recognise-feedback"), /border: 3px solid #b35400/);
+  assert.match(rule('.recognise-feedback[data-seen="1"], .recognise-feedback[data-seen="2"]'), /border-color: #1d6b40/);
+  assert.match(rule(".recognise[data-seen] .recognise-preview::after"), /border: 6px solid #b35400/);
+  assert.match(rule('.recognise[data-seen="1"] .recognise-preview::after, .recognise[data-seen="2"] .recognise-preview::after'), /border-color: #1d6b40/);
+  assert.match(rule('.recognise-time-dot[data-lit="true"]'), /background: #4b2a7a/);
+  assert.doesNotMatch(css.split("\n").filter((line) => line.includes("recognise-time") || line.includes("recognise-seen") || line.includes("recognise-feedback")).join("\n"), /transition|animation|transform/);
 });

@@ -1,0 +1,39 @@
+{
+    "acceptance_criteria": [
+        "While the camera runs in the gesture view (countdown and recording) the live preview of card NG-42 is shown: the front camera's picture mirrored, the tracked hands drawn with L/R and the shoulders",
+        "The preview is closed and gone after each attempt and on every way out; nothing is stored or sent; a bridge without createPreview or a failing preview leaves the view working as before",
+        "Every state of the view fits the window from 320x480 to 820x1180 without page scroll, with all buttons at least --tile-min high"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-24T00:48:45+00:00",
+    "approved_by": "Lars Moelleken (approved in session, 2026-11-24)",
+    "base_commit": "e1f145b9146d60f93984402eeeff3abdc8734318",
+    "behavior_anchors": [],
+    "created_at": "2026-11-23T19:46:26+00:00",
+    "goal": "Whoever records a gesture in the child's gesture view sees the camera picture with the detected hands, so it is clear where the gesture is captured.",
+    "kind": "task_contract",
+    "non_goals": [],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Claude (planned at the owner's request)",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/recognise/recognise.ts",
+        "public/styles.css",
+        "test/recognise.test.mjs",
+        "docs/recognise.md",
+        "docs/capture.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-44",
+    "updated_at": "2026-11-24T00:48:45+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}
