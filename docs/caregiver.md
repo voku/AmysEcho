@@ -560,8 +560,43 @@ body, like the rewording:
   kein Bild und kein Video." (The stored features hold the shape of the hand's joints as well as
   where the hands are; the first build said "Bewegung der Hände" only.);
 - "Gespeicherte Beispiele": one row per example, oldest first, "Beispiel 2: mit beiden Händen,
-  23.11.2026, 10:30 Uhr", each with "Löschen", and "Alle Beispiele löschen" from two examples on
-  (or when unusable ones are stored).
+  23.11.2026, 10:30 Uhr", each with "Abspielen" and "Löschen", and "Alle Beispiele löschen" from
+  two examples on (or when unusable ones are stored).
+
+**How a recording fits** (card NG-4). Under the result line of a usable recording, one line says
+how it relates to the examples the profile already has. `exampleFit` (`src/teach/fit.ts`) asks
+the matcher what the child's board would take the recording for, with the profile's own examples
+and the limits calibrated from them; no limit, weight or margin is changed, and nothing is
+stored. "Behalten" and "Verwerfen" stay as they are: the line is advice.
+
+- fits: "Die Aufnahme passt zu den bisherigen Beispielen für „<label>“."
+- beyond the tile's limit: "Die Aufnahme ist deutlich anders als die bisherigen Beispiele für
+  „<label>“. War es dieselbe Gebärde? Behalten geht trotzdem." (a warning)
+- the tile's examples were made with other hands: "Die bisherigen Beispiele für „<label>“ wurden
+  mit einer Hand (rechts) gemacht, diese Aufnahme mit beiden Händen. Sie werden getrennt erkannt;
+  am besten die Gebärde immer gleich machen." (a warning)
+- the shoulders were seen in the earlier examples and not now, or the other way round: a warning
+  that such recordings are not compared with each other;
+- another tile would take it, or is about as close: "Achtung: Die Aufnahme ähnelt der Gebärde für
+  „<other label>“. Wird sie behalten, können die beiden verwechselt werden." (a warning)
+- the tile's first example, and nothing else takes it: no line.
+
+The line is worked out once per recording from all of the profile's examples. When they cannot be
+read, there is no line. One- and two-hand gestures are treated alike.
+
+**Replaying an example** (card NG-4). "Abspielen" on a stored example shows it once as a moving
+stick-figure hand on a canvas (240 × 180) under its row, in the colours and with the bones of the
+camera preview, mirrored as the front camera shows it, with the shoulder line when the shoulders
+were seen. Under it: "So vergleicht die App die Gebärde: nur die Bewegung der Hände, aus den
+gespeicherten Werten gezeichnet. Ein Video gibt es nicht." It is drawn from the stored features
+(`src/teach/replay.ts`): per step, the joints relative to the wrist and the wrist relative to the
+shoulders. The size of the hand is not stored, so every hand is drawn at a third of a shoulder
+width. One step is shown for the recorded length divided by its 32 steps (between 40 and 250 ms);
+the last step stays. While it plays the button says "Anhalten". It stops on "Anhalten", on
+another "Abspielen", when the view closes, and when a recording starts; it is not offered while a
+recording counts down, runs or waits for "Behalten". Where the canvas has no 2D context nothing is
+drawn and nothing fails. Tested in Node with a recording fake canvas; not looked at in a browser,
+on a device or with a screen reader (the canvas has `role="img"` and a German label).
 
 **The camera only after the tap.** "Kamera starten" calls the capture module's `startCapture` (the
 real tracker and camera, card NG-3) through its bridge (below); before that tap nothing is

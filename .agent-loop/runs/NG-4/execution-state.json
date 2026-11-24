@@ -1,0 +1,47 @@
+{
+    "attention": null,
+    "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T06:16:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:16:51+00:00",
+                "artifact_references": [],
+                "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "schema_version": "1.0",
+                "task_id": "NG-4",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "cf22568b61fbe91cb0ee2e494e71ae64acf96cdf",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9b8e06dba2db327425fa5ca99feb0de983b04c95c62d2c943afbfcb06b1e41b1",
+                "outcome": "completed",
+                "run_id": "run:NG-4:95b700dd728e56b7",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:16ead92c",
+                "summary": "Teaching exists (NG-19): record, keep/discard, list, delete. Missing per NG-4: 'too different' feedback and replay. Stored examples hold only the 32x86 features: per hand 20 joints relative to the wrist /hand size *SHAPE_WEIGHT, wrist position relative to the anchor /scale, presence flag; enough for a stick figure at fixed hand size (1/3 shoulder width). matchGesture + calibrateMaxDistance give the board's own answer for a fit check. capture.js has import side effects, so replay keeps its own bone/colour lists, tied by a test.",
+                "task_id": "NG-4",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-4:95b700dd728e56b7",
+    "schema_version": "1.0",
+    "task_id": "NG-4"
+}

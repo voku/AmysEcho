@@ -7195,3 +7195,85 @@ test("pictures: the previews are image elements, and a value that is no stored p
     assert.deepEqual(images.map((image) => image.src), [PICTURE_PNG]);
   });
 });
+
+// --- How a recording fits, and replaying an example (card NG-4); the tracker data is synthetic ---
+
+const fitOf = (region) => byClass(teachViewOf(region).view, "caregiver-teach-fit") ?? null;
+
+test("teach: after a usable recording one line says how it fits the earlier examples; keeping stays possible", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const { caregiverRegion, act } = area;
+    await teachWithCamera(area, camera, "Trinken");
+    // The first example of a tile: nothing to compare with, no line.
+    await record(area, camera, 20, rightHand);
+    assert.equal(fitOf(caregiverRegion), null);
+    await act(() => area.button("Behalten").click());
+    // The same movement again fits.
+    await record(area, camera, 20, rightHand);
+    assert.equal(fitOf(caregiverRegion).textContent, "Die Aufnahme passt zu den bisherigen Beispielen für „Trinken“.");
+    assert.ok(!hasClass(fitOf(caregiverRegion), "caregiver-warning"));
+    await act(() => area.button("Behalten").click());
+    // Both hands, where the earlier examples used one: said, as a warning, and "Behalten" is still there.
+    await record(area, camera, 20, bothHands);
+    const line = fitOf(caregiverRegion);
+    assert.equal(line.textContent, "Die bisherigen Beispiele für „Trinken“ wurden mit einer Hand (rechts) gemacht, diese Aufnahme mit beiden Händen. Sie werden getrennt erkannt; am besten die Gebärde immer gleich machen.");
+    assert.ok(hasClass(line, "caregiver-warning"));
+    assert.deepEqual(teachViewOf(caregiverRegion).buttons.slice(0, 3), ["Behalten", "Verwerfen", "Zurück"]);
+    await act(() => area.button("Verwerfen").click());
+    assert.equal(fitOf(caregiverRegion), null);
+  });
+});
+
+test("teach: a recording of another tile's gesture is said to resemble it, by that tile's label", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const { caregiverRegion, act } = area;
+    await teachWithCamera(area, camera, "Hilfe");
+    await record(area, camera, 20, rightHand);
+    await act(() => area.button("Behalten").click());
+    await act(() => area.button("Zurück").click());
+    await act(() => area.concept("Trinken").teach.click());
+    await act(() => area.button("Kamera starten").click());
+    await untilTaught(area.handle, () => area.button("Aufnahme starten") !== undefined);
+    await record(area, camera, 20, rightHand);
+    assert.equal(fitOf(caregiverRegion).textContent, "Achtung: Die Aufnahme ähnelt der Gebärde für „Hilfe“. Wird sie behalten, können die beiden verwechselt werden.");
+  });
+});
+
+test("teach: 'Abspielen' draws a stored example as a moving hand on a canvas, once, and 'Anhalten' or leaving stops it", async () => {
+  const camera = fakeCamera();
+  await withArea({ seed: seedTeach, capture: camera.bridge }, async (area) => {
+    const { caregiverRegion, act, clock } = area;
+    await teachWithCamera(area, camera, "Trinken");
+    await record(area, camera, 20, rightHand);
+    // Not while a recording waits for "Behalten".
+    assert.equal(area.button("Abspielen"), undefined);
+    await act(() => area.button("Behalten").click());
+    const play = area.button("Abspielen");
+    assert.equal(play["aria-label"], "Beispiel 1 abspielen");
+    await act(() => play.click());
+    const canvas = byClass(caregiverRegion, "caregiver-replay");
+    assert.equal(canvas.tagName, "canvas");
+    assert.equal(canvas.role, "img");
+    assert.ok(textsIn(caregiverRegion).includes("So vergleicht die App die Gebärde: nur die Bewegung der Hände, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht."));
+    // The fake canvas has no 2D context at first: nothing breaks. With one, the next steps are drawn.
+    const calls = [];
+    canvas.width = 240;
+    canvas.height = 180;
+    canvas.getContext = () => new Proxy({}, { get: (target, name) => (name in target ? target[name] : (...args) => calls.push(name)), set: (target, name, value) => { target[name] = value; return true; } });
+    clock.advance(250);
+    assert.ok(calls.includes("stroke") && calls.includes("arc") && calls.includes("clearRect"), calls.join(","));
+    assert.equal(area.button("Anhalten")["aria-label"], "Beispiel 1 anhalten");
+    await act(() => area.button("Anhalten").click());
+    assert.equal(byClass(caregiverRegion, "caregiver-replay"), undefined);
+    const drawn = calls.length;
+    clock.advance(10_000);
+    assert.equal(calls.length, drawn);
+    // Leaving the view stops a running replay too.
+    await act(() => area.button("Abspielen").click());
+    await act(() => area.button("Zurück").click());
+    clock.advance(10_000);
+    assert.equal(byClass(caregiverRegion, "caregiver-replay"), undefined);
+  });
+});
