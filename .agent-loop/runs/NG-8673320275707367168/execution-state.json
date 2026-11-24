@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "f2099f207368c12ffe2010586de70d82811fc09c",
+    "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
     "history": [
         {
@@ -33,6 +33,44 @@
                 "stage_id": "investigate",
                 "submission_id": "submission:investigate:1:b4598f55",
                 "summary": "Codex P2 on PR 1245 confirmed: src/caregiver.ts play click handler captured 'playing' at render; after replay.done the first tap called stopExample.",
+                "task_id": "NG-8673320275707367168",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T06:43:19+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T06:43:19+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:50619800cbba968381582c3b74ad8004ea72354f961ae99d1fdf808f3591ba42",
+                    "execution-evidence:sha256:ab3d85d670bcba8242f8605c5224f7decce57ee5c40d34e3a05ee00f348c8e78"
+                ],
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "schema_version": "1.0",
+                "task_id": "NG-8673320275707367168",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:50619800cbba968381582c3b74ad8004ea72354f961ae99d1fdf808f3591ba42",
+                    "execution-evidence:sha256:ab3d85d670bcba8242f8605c5224f7decce57ee5c40d34e3a05ee00f348c8e78"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f2099f207368c12ffe2010586de70d82811fc09c:0e73304bd92e0ec46aca9e28d9ae53ed9338412b",
+                "context_id": "ccr-main-session-builder",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8a6470876fcbc0111b47e2c6444e6bfc6037f8f03a266437eee7bb9290db1895",
+                "outcome": "completed",
+                "run_id": "run:NG-8673320275707367168:bd7ee3bf870c9681",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:73ea9a30",
+                "summary": "Click handler reads state.replay at the tap (stop only if this example plays and is not done, else play). Test taps Abspielen once after a finished replay: canvas present, button Anhalten; the test fails on the old code (checked) and passes now. npm run verify passed: 663 node tests; browser 4 pass 2 skipped.",
                 "task_id": "NG-8673320275707367168",
                 "validation_references": []
             }
