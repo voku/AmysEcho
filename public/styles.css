@@ -90,6 +90,22 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .recognise-finish { border-color: #4b2a7a; background: #4b2a7a; color: white; }
 .recognise-back:active, .recognise-action:active, .recognise-camera:active { filter: brightness(.9); }
 .gesture-start:focus-visible, .recognise-back:focus-visible, .recognise-action:focus-visible, .recognise-camera:focus-visible { outline: 5px solid #cf681e; outline-offset: -5px; }
+/* Card NG-56: "Vormachen" next to the camera switch; its box above the view's content holds the concepts to choose from, or the caregiver's clip, large, with its buttons. The camera picture shrinks to make room; the tiles stay in view. */
+.recognise-demo-open { flex: 0 1 auto; max-width: 40%; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .3rem; min-width: 44px; min-height: var(--tile-min); margin: 0; padding: .3rem .6rem; border: 3px solid #4b2a7a; border-radius: 1rem; background: #efe7fa; color: #2a1747; font: 700 clamp(.9rem, 3.4vmin, 1.35rem)/1.15 system-ui, sans-serif; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+.recognise-demo-open:active { filter: brightness(.9); }
+.recognise-demo-open:focus-visible, .recognise-demo-choice:focus-visible { outline: 5px solid #cf681e; outline-offset: -5px; }
+.recognise-demo { container-type: inline-size; flex: 0 1 auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: .4rem; min-height: 0; padding: .4rem; border: 3px solid #4b2a7a; border-radius: 1rem; background: white; text-align: center; }
+.recognise-demo[hidden] { display: none; }
+.recognise-demo-line { flex: none; margin: 0; font: 800 clamp(1.1rem, 5vmin, 2rem)/1.2 system-ui, sans-serif; overflow-wrap: anywhere; }
+.recognise-demo-choices { flex: none; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); width: 100%; }
+.recognise-demo-choice { flex: 0 1 auto; min-width: var(--tile-min); min-height: var(--tile-min); }
+.recognise-demo-video { flex: 0 1 auto; display: block; width: auto; max-width: 100%; height: clamp(6rem, 28dvh, 24rem); min-height: 0; border-radius: .6rem; background: #2a1747; object-fit: contain; }
+.recognise-demo-video[data-mirrored="true"] { scale: -1 1; }
+.recognise-demo-actions { flex: none; display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: var(--gap); width: 100%; }
+.recognise-demo-actions > .recognise-action { min-height: 3.5rem; padding: .2rem .3rem; font-size: clamp(.7rem, 3.4cqi, 1.2rem); }
+/* While a clip is there the child's own picture stays, smaller: the child watches, then imitates. */
+.recognise[data-demo] .recognise-preview { min-height: 5rem; }
+.recognise-demo-actions > .recognise-action[aria-pressed="true"] { border-color: #4b2a7a; background: #4b2a7a; color: white; }
 .caregiver-entry { position: relative; flex: none; display: flex; flex-direction: row-reverse; align-items: center; gap: .6rem; min-height: 44px; padding: .35rem .5rem; padding: .35rem max(.5rem, env(safe-area-inset-right)) max(.35rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left)); }
 .caregiver-open { flex: none; min-height: 44px; min-width: 44px; padding: .5rem .9rem; border: 1px solid #9db4bf; border-radius: .6rem; background: transparent; color: #4a6472; font: 400 .9rem system-ui, sans-serif; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .caregiver-hold-progress { position: absolute; top: 0; left: .5rem; display: block; width: calc(100% - 1rem); height: .3rem; margin: 0; }
@@ -150,6 +166,12 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
 .caregiver-concept-pictured { position: relative; min-height: 48px; padding-left: calc(48px + .7rem); }
 .caregiver-concept-text img { position: absolute; top: 0; left: 0; width: 48px; height: 48px; object-fit: contain; }
 .caregiver-picture-now, .caregiver-picture-new { display: flex; align-items: center; gap: .8rem; }
+/* Card NG-56: the demo view; the live picture is shown like a mirror for the front camera, a clip as it was recorded. */
+.caregiver-demo-preview { box-sizing: border-box; width: min(100%, 30rem); aspect-ratio: 4 / 3; margin: .6rem 0 0; border-radius: .6rem; overflow: hidden; background: #dfe8ec; }
+.caregiver-demo-live { display: block; width: 100%; height: 100%; object-fit: cover; }
+.caregiver-demo-live[data-mirrored="true"] { scale: -1 1; }
+.caregiver-demo-now, .caregiver-demo-new { display: flex; flex-direction: column; align-items: flex-start; gap: .4rem; }
+.caregiver-demo-clip { display: block; width: min(100%, 30rem); max-height: 36dvh; border-radius: .6rem; background: #143146; }
 .caregiver-picture-preview { width: 96px; height: 96px; object-fit: contain; border: 1px solid #c8d3d8; border-radius: 8px; background: #ffffff; }
 .caregiver-picture-label { display: block; margin-top: 1rem; font-weight: 600; }
 .caregiver-picture-file { display: block; margin: .4rem 0; max-width: 100%; font: inherit; min-height: 44px; }
@@ -234,6 +256,13 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
   .recognise-actions:empty { display: none; }
   /* With the camera's picture the button column stays during the countdown, so the picture does not widen and shrink again (card NG-44). */
   .recognise[data-state="countdown"] .recognise-body:has(.recognise-preview) > .recognise-actions:empty { display: grid; }
+  /* Card NG-56: a clip in a wide window sits left of the view's content, at full height; the content keeps its picture and buttons on the right. */
+  .recognise[data-demo] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .recognise[data-demo] > .recognise-top { grid-column: 1 / -1; }
+  .recognise[data-demo] > .recognise-demo { grid-column: 1; grid-row: 2; min-height: 0; }
+  .recognise[data-demo] > .recognise-body { grid-column: 2; grid-row: 2; flex-direction: column; min-height: 0; }
+  .recognise[data-demo] .recognise-actions { flex: none; grid-auto-flow: column; grid-auto-rows: auto; }
+  .recognise[data-demo] .recognise-demo-video { flex: 1 1 0; height: 0; min-height: 4rem; }
 }
 /* The speech problem line sits in the lower part of the sentence bar, so the tiles do not move when it appears. */
 @supports selector(:has(*)) {

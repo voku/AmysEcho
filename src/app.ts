@@ -12,6 +12,7 @@ import { ProfileStore } from "./profiles/store.js";
 import { listExamples } from "./recognition/examples.js";
 import type { GestureExample } from "./recognition/matcher.js";
 import { attachRecognise } from "./recognise/recognise.js";
+import { listDemoClipIds, readDemoClip } from "./demo-clips.js";
 import { STARTUP_WAIT_MS, STORAGE_UNAVAILABLE, mountStartupView, mountView, resolveStartupView, runStartup } from "./startup.js";
 import type { StartupHost, StartupView } from "./startup.js";
 
@@ -72,6 +73,8 @@ export function createApp(boardRegion: HTMLElement, options: AppOptions): App {
    * without an entry here gets no gesture control.
    */
   const gestureExamples = new WeakMap<object, readonly GestureExample[]>();
+  /** Card NG-56: the concepts of a view's board that have a demo clip, in board order; read with the view, each clip only when it is played. */
+  const demoClips = new WeakMap<object, { readonly ids: readonly string[]; readonly load: (conceptId: string) => Promise<string | null> }>();
   /** Ends the gesture view of the board on screen (its camera too); called before anything replaces that board. */
   let detachGesture = (): void => undefined;
   const leaveBoard = (): void => {
@@ -105,6 +108,7 @@ export function createApp(boardRegion: HTMLElement, options: AppOptions): App {
           root: boardRegion, board, entries: view.entries, examples,
           // Card NG-54: the gesture view recognises continuously and stacks what it recognised.
           continuous: true,
+          ...(demoClips.has(view) ? { demos: demoClips.get(view)! } : {}),
           ...(options.capture === undefined ? {} : { capture: options.capture }),
           ...now,
         });
@@ -149,6 +153,23 @@ export function createApp(boardRegion: HTMLElement, options: AppOptions): App {
         if (usable.length > 0) gestureExamples.set(view, usable);
       } catch (error) {
         // Without examples the board is the board: no gesture control.
+        report(error);
+      }
+      try {
+        const stored = new Set(await listDemoClipIds(store, view.profileId));
+        const ids = view.entries.map((entry) => entry.id).filter((id) => stored.has(id));
+        const profileId = view.profileId;
+        if (ids.length > 0) {
+          demoClips.set(view, {
+            ids,
+            load: async (conceptId) => {
+              const clip = await readDemoClip(store, profileId, conceptId);
+              return clip.state === "ok" ? clip.dataUrl : null;
+            },
+          });
+        }
+      } catch (error) {
+        // Without clips the gesture view has no "Vormachen".
         report(error);
       }
     }

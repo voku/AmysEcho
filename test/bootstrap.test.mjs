@@ -137,7 +137,7 @@ test("index.html has the stable regions and a static German line for when script
   assert.doesNotMatch(board, /wird geladen|lädt/);
   // Still no inline script or style, and the same policy with one addition: 'wasm-unsafe-eval', so that the
   // hand tracker's WebAssembly compiles (card NG-3). Not 'unsafe-eval', no other source.
-  assert.match(html, /<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'">/);
+  assert.match(html, /<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' data:; object-src 'none'; base-uri 'none'">/);
   assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>|<style|\sstyle=|\son[a-z]+=/i);
 });
 

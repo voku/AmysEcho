@@ -8,6 +8,7 @@ import { putCustomConcept, setBoardConcepts } from "../dist/board-data.js";
 import { CAPTURE_TEXT, nextShoulders, startCapture } from "../dist/capture/capture.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { deleteExamples, saveExample, sequenceFromRecording } from "../dist/recognition/examples.js";
+import { setDemoClip } from "../dist/demo-clips.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileStore } from "../dist/profiles/store.js";
@@ -246,5 +247,67 @@ test("app: a store whose example listing fails gives the board without the contr
     failing = false;
     await app.refreshBoard();
     assert.notEqual(page.gestureControl(), null);
+  });
+});
+
+// Card NG-56: a caregiver's demo clip of a concept on the board gives the gesture view "Vormachen";
+// the clip is read only when it is played. The clip is a few made-up bytes.
+const CLIP = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYEC";
+const tree = (node) => [node, ...node.children.flatMap(tree)];
+
+test("app: a demo clip of a concept on the board gives the gesture view 'Vormachen'; clips of other concepts or profiles do not; a clip is read when played", async () => {
+  await withPage(async (page) => {
+    const { backend, store, mia } = await seed(["trinken"]);
+    const other = await store.create("Ben", []);
+    await setDemoClip(store, other.id, "trinken", CLIP);
+    await setDemoClip(store, mia.id, "ball", CLIP);
+    const { app } = start(page, backend);
+    await app.started;
+    page.gestureControl().click();
+    await settle();
+    const opener = () => tree(page.panel()).find((element) => hasClass(element, "recognise-demo-open"));
+    assert.equal(opener(), undefined, "no clip of a concept on Mia's board");
+    page.panel().children[0].children[0].click();
+    await setDemoClip(store, mia.id, "hilfe", CLIP);
+    const reads = [];
+    const realGet = backend.get.bind(backend);
+    backend.get = async (key) => {
+      if (typeof key === "string" && key.includes("/data/demo.")) reads.push(key.slice(key.lastIndexOf("/") + 1));
+      return realGet(key);
+    };
+    await app.refreshBoard();
+    assert.deepEqual(reads, [], "the clip is not read with the board");
+    page.gestureControl().click();
+    await settle();
+    opener().click();
+    await settle();
+    assert.deepEqual(reads, ["demo.hilfe"]);
+    const video = tree(page.panel()).find((element) => element.tagName === "video");
+    assert.equal(video.src, CLIP);
+    assert.equal(page.panel().dataset.state, "listening");
+  });
+});
+
+test("app: clips that cannot be listed leave the gesture view without 'Vormachen', and the failure is reported", async () => {
+  await withPage(async (page) => {
+    const { backend, store, mia } = await seed(["trinken"]);
+    await setDemoClip(store, mia.id, "trinken", CLIP);
+    // A start reads the profile's data names twice: for the examples, then for the clips. The second read fails.
+    const realKeys = backend.keys.bind(backend);
+    let dataListings = 0;
+    backend.keys = async (prefix) => {
+      if (typeof prefix === "string" && prefix.endsWith("/data/")) {
+        dataListings += 1;
+        if (dataListings === 2) throw new Error("listing failed");
+      }
+      return realKeys(prefix);
+    };
+    const { app, reported } = start(page, backend);
+    await app.started;
+    assert.notEqual(page.gestureControl(), null);
+    page.gestureControl().click();
+    await settle();
+    assert.equal(tree(page.panel()).find((element) => hasClass(element, "recognise-demo-open")), undefined);
+    assert.ok(reported.some((error) => error.message === "listing failed"));
   });
 });

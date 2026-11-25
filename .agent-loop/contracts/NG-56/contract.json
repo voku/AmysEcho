@@ -1,0 +1,61 @@
+{
+    "acceptance_criteria": [
+        "The product contract allows caregiver demo clips: stored only on the device in the profile after an explicit caregiver action that says what is kept, travels in the profile backup, removed with the profile, never uploaded or committed",
+        "A clip is stored as profile data 'demo.<conceptId>' { version: 1, dataUrl } with a strict video data URL check and a size cap; a newer version is not overwritten; it is exported and restored with the profile (tested)",
+        "In the caregiver area each concept on the board offers 'Vormachen aufnehmen': start the camera, a countdown, a recording of at most DEMO_MAX_MS without sound, then watch the new clip and save or discard it; an existing clip can be watched and deleted; the camera stops on leaving, closing or idle (tested with a fake recorder)",
+        "Deleting an own concept for good deletes its clip too",
+        "The gesture view shows 'Vormachen' when concepts on the board have clips; it lists them, plays the chosen one large, with 'Nochmal', 'Langsam' and 'Spiegeln', and closing it changes nothing about the recognition state; listening and stacking go on while it plays (tested)",
+        "The page policy allows playing the clips (media-src data:) and a real-browser test records a clip from a fake camera and plays it"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-25T18:30:00+00:00",
+    "approved_by": "Lars Moelleken (in session 2026-11-25: 'I approve this full task, so move on')",
+    "base_commit": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
+    "behavior_anchors": [],
+    "created_at": "2026-11-25T18:30:00+00:00",
+    "goal": "A caregiver records a short clip of themselves doing a gesture, per concept, kept only on the device and in the profile backup; the child watches it from the gesture view ('Vormachen'), optionally mirrored and slow, and imitates it while recognition keeps listening.",
+    "kind": "task_contract",
+    "non_goals": [
+        "No video of the child: the caregiver area asks for adults only and nothing records the child",
+        "No sound, no upload, no third-party videos, no scores or praise",
+        "No change to recognition, its thresholds or the examples"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (in session 2026-11-25: 'I approve this full task, so move on')",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 3,
+    "schema_version": "1.0",
+    "scope": [
+        "docs/s0a-product-contract-v0.1.md",
+        "src/demo-clips.ts",
+        "src/board-data.ts",
+        "src/caregiver.ts",
+        "src/recognise/recognise.ts",
+        "src/app.ts",
+        "public/styles.css",
+        "public/index.html",
+        "test/demo-clips.test.mjs",
+        "test/caregiver.test.mjs",
+        "test/recognise.test.mjs",
+        "test/app.test.mjs",
+        "test/bootstrap.test.mjs",
+        "test/browser/demo-clips.test.mjs",
+        "docs/caregiver.md",
+        "docs/recognise.md",
+        "docs/storage.md",
+        "docs/legacy-lessons.md",
+        "public/sw.js",
+        "test/capture.test.mjs"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-56",
+    "updated_at": "2026-11-25T18:30:00+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

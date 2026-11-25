@@ -1137,7 +1137,10 @@ test("the stylesheet mirrors only the shown video, keeps the whole picture, and 
   // and only in a box the preview marks as mirrored: the front camera's (card NG-43).
   assert.equal(rule(".capture-preview-video"), ".capture-preview-video { object-fit: contain; }");
   assert.equal(rule('.capture-preview[data-mirrored="true"] .capture-preview-video'), '.capture-preview[data-mirrored="true"] .capture-preview-video { scale: -1 1; }');
-  assert.equal(css.split("\n").filter((line) => !line.startsWith("/*") && line.includes("scale: -1 1")).length, 1, "nothing else is mirrored");
+  // Besides the preview only the two views of a demo clip (card NG-56) mirror a video, each only when it is marked as mirrored.
+  assert.deepEqual(css.split("\n").filter((line) => !line.startsWith("/*") && line.includes("scale: -1 1")).map((line) => line.slice(0, line.indexOf(" {"))), [
+    '.recognise-demo-video[data-mirrored="true"]', '.caregiver-demo-live[data-mirrored="true"]', '.capture-preview[data-mirrored="true"] .capture-preview-video',
+  ], "nothing else is mirrored");
   // The canvas is not mirrored: the points are mapped with x → 1 − x, so "L" and "R" read the right way round.
   assert.doesNotMatch(css, /capture-preview-points[^}]*(scale|transform)/);
   assert.match(rule(".capture-preview-video, .capture-preview-points"), /position: absolute; top: 0; left: 0; width: 100%; height: 100%;/);
