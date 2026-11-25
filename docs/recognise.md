@@ -269,11 +269,20 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
   - With exactly one tile, "Ja, sagen" (with the tile's picture) speaks its sentence through the
     board, as after one attempt, and the view closes.
 - **When nobody uses it** (card NG-55): after `RECOGNISE_IDLE_MS` (3 minutes) without a hand in
-  the picture the camera stops and the view closes, back to the board. A hand seen restarts the
-  wait. Nothing was spoken, so nothing is lost but the stacked tiles.
-- **No voice** (card NG-55): a tile tap that cannot be said (no local German voice, or the voice
-  reports a failure) shows "Keine Stimme. Das Wort steht auf der Kachel." in the line. The tile
-  stays; the line goes with the next tile or a word said.
+  the picture, the camera stops. The view stays open ("Die Kamera ist aus. Weiter mit ▶."), and
+  the stacked tiles stay too: they are the child's message, often waiting, hands in the lap, for
+  someone to read it.
+  - The tiles can still be tapped (a word), and "Ja, sagen" works with one tile.
+  - "▶ Weiter" listens again with the same tiles.
+  - A hand seen restarts the wait. A first version closed the view and lost the tiles; the review
+    of the card found that, and the owner chose this instead.
+- **No voice** (card NG-55): a tile tap that cannot be said shows the board's own lines, in the
+  board's order. The tile stays, and the line goes with the next tile or a word said.
+  - An empty voice list (the voices may still load) first gives "Keine Stimme. Bitte noch einmal
+    tippen.", and at the second tap in a row "Keine deutsche Stimme. Hol eine Bezugsperson."
+  - With no German voice at all: "Keine deutsche Stimme. Hol eine Bezugsperson."
+  - When the voice reports a failure: "Vorlesen ging nicht. Bitte noch einmal tippen.", and at a
+    second failure in a row "Vorlesen geht nicht. Hol eine Bezugsperson."
 - **A camera switch keeps the tiles** (card NG-55); any other start begins empty. The "zu lang" line
   goes once the hands have left the picture. Each frame is converted for the cut once, when it
   arrives, not again on every frame.

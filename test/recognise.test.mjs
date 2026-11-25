@@ -592,7 +592,7 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     let open = () => undefined;
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
     const said = [];
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed) => { said.push(text); if (voice === "fails") failed(); return voice !== false; } });
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed) => { said.push(text); if (voice === "fails") failed(); return typeof voice === "string" && voice !== "fails" ? voice : voice !== false; } });
     open = attached.open;
     const panel = () => root.children.find((child) => hasClass(child, "recognise")) ?? null;
     const buttonNamed = (text) => tree(panel() ?? root).find((element) => element.tagName === "button" && (element.textContent === text || element.attributes["aria-label"] === text));
@@ -1839,7 +1839,7 @@ test("view, continuous: a new tile moves the others, so a press right after it s
 
 // --- The continuous view, follow-ups (card NG-55) ---
 
-test("controller, continuous: the camera stops and the view closes after RECOGNISE_IDLE_MS without a hand; a hand restarts the wait", async () => {
+test("controller, continuous: the camera stops after RECOGNISE_IDLE_MS without a hand and the tiles stay; a hand restarts the wait; 'Weiter' listens again with them", async () => {
   assert.equal(RECOGNISE_IDLE_MS, 180_000);
   const context = setup();
   const recogniser = createRecogniser({
@@ -1848,6 +1848,8 @@ test("controller, continuous: the camera stops and the view closes after RECOGNI
   });
   recogniser.start();
   await settle();
+  await context.camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(context.camera);
   context.time.advance(RECOGNISE_IDLE_MS - 1000);
   await context.camera.feed(MOVES_RIGHT(0));
   context.time.advance(RECOGNISE_IDLE_MS - 1000);
@@ -1855,8 +1857,16 @@ test("controller, continuous: the camera stops and the view closes after RECOGNI
   assert.equal(recogniser.state().kind, "listening", "a hand was seen less than the idle time ago");
   context.time.advance(1001);
   await context.camera.feed([]);
-  assert.equal(recogniser.state().kind, "idle");
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"] }, "the child's message stays");
   assert.equal(context.camera.running, false);
+  // "Weiter": listening again, with the tiles; a press right after the pause appeared does nothing.
+  recogniser.start();
+  assert.equal(recogniser.state().kind, "paused");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: ["trinken"], dropped: false });
+  assert.equal(context.camera.running, true);
 });
 
 test("controller, continuous: a camera switch keeps the stacked tiles; a new start begins empty", async () => {
@@ -1895,8 +1905,13 @@ test("controller, continuous: the 'zu lang' line goes once the hands have left t
   assert.equal(recogniser.state().dropped, false, "the hint was followed: gone, though nothing was taken");
 });
 
-test("view, continuous: a tile that cannot be said shows so in the line; a new tile ends it", async () => {
-  for (const voice of [false, "fails"]) {
+test("view, continuous: a tile that cannot be said shows the board's line; a new tile ends it", async () => {
+  const lines = {
+    false: /Keine deutsche Stimme\. Hol eine Bezugsperson\./,
+    fails: /Vorlesen ging nicht\. Bitte noch einmal tippen\./,
+    unavailable: /Keine Stimme\. Bitte noch einmal tippen\./,
+  };
+  for (const voice of [false, "fails", "unavailable"]) {
     await withView(async (context) => {
       const { panel, time, camera } = context;
       context.gestureButton().click();
@@ -1905,11 +1920,17 @@ test("view, continuous: a tile that cannot be said shows so in the line; a new t
       await handsDown(camera);
       time.advance(RECOGNISE_GUARD_MS);
       takenTiles(panel())[0].click();
-      assert.match(textOf(panel()), /Keine Stimme\. Das Wort steht auf der Kachel\./, String(voice));
+      assert.match(textOf(panel()), lines[String(voice)], String(voice));
+      if (voice === "unavailable" || voice === "fails") {
+        // A second time in a row: tapping again does not help.
+        time.advance(RECOGNISE_GUARD_MS);
+        takenTiles(panel())[0].click();
+        assert.match(textOf(panel()), /Hol eine Bezugsperson\./, `${voice}, second tap`);
+      }
       assert.equal(takenTiles(panel()).length, 1, "the tile stays");
       await camera.feedAll(MOVES_UP);
       await handsDown(camera);
-      assert.doesNotMatch(textOf(panel()), /Keine Stimme/, "a new tile ends the line");
+      assert.doesNotMatch(textOf(panel()), /Stimme|Vorlesen/, "a new tile ends the line");
     }, { continuous: true, voice });
   }
 });
@@ -1982,5 +2003,41 @@ test("controller, continuous: tiles carried to a camera that fails do not come b
   slow.releaseTracker();
   await settle();
   assert.deepEqual(held.state().taken, ["trinken"]);
+});
+
+test("view, continuous: after minutes without a hand the camera is off, the tiles stay and can be said; 'Weiter' listens again", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, said, buttonNamed, speech } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_IDLE_MS + 1);
+    await camera.feed([]);
+    assert.equal(panel().dataset.state, "paused");
+    assert.equal(camera.running, false);
+    assert.match(textOf(panel()), /Die Kamera ist aus\. Weiter mit ▶\./);
+    assert.deepEqual(takenTiles(panel()).map((tile) => tile.dataset.concept), ["trinken"], "the message stays");
+    assert.equal(slotOf(panel()), null, "no picture: the camera is off");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    assert.deepEqual(said, ["Trinken"], "a tile still says its word");
+    buttonNamed("Ja, sagen").click();
+    assert.deepEqual(speech.spoken, ["Ich möchte trinken."]);
+    assert.equal(panel(), null);
+  }, { continuous: true });
+  await withView(async (context) => {
+    const { panel, time, camera, buttonNamed } = context;
+    context.gestureButton().click();
+    await settle();
+    time.advance(RECOGNISE_IDLE_MS + 1);
+    await camera.feed([]);
+    assert.equal(panel().dataset.state, "paused");
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Weiter").click();
+    await settle();
+    assert.equal(panel().dataset.state, "listening");
+    assert.equal(camera.running, true);
+  }, { continuous: true });
 });
 
