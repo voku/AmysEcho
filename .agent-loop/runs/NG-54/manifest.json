@@ -1,0 +1,166 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-54 before calling agent-loop finish NG-54",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-25T01:49:25+00:00",
+            "approved_by": "Lars Moelleken (approved the full task in session, 2026-11-25)",
+            "contract_revision": 3,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-54/contract.json",
+                "sha256": "sha256:884b1e4b23ca12bff565614a2d733f278abac0f52830dccc75e0f6e3c0e3bf2f"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-54",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "41f120f5ba51bb896bb75b503b623d5edd83a795ddd73b689995e2b127715f8d",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-54.md",
+                "sha256": "sha256:41f120f5ba51bb896bb75b503b623d5edd83a795ddd73b689995e2b127715f8d"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "In the app the gesture view starts listening without a countdown; each segment cut by segmentStream 'away' is compared as one attempt; a match of the board is stacked as a tile (at most MAX_TAKEN, newest last, no duplicates); anything else adds nothing; nothing is spoken without a tap",
+                "A tap on a stacked tile says only its word (labelDe) and the camera goes on; a tile pressed within RECOGNISE_GUARD_MS of appearing does nothing; with exactly one tile 'Ja, sagen' speaks its sentence through the board and closes the view as today",
+                "'Fertig' finishes the gesture still going on now (for a child who cannot lower the hands); a movement longer than SEGMENT_MAX_MS, open or finished, is let go and the line says so; the buffer never grows past it",
+                "The attempt flow with countdown stays for attachRecognise without 'continuous'; every state fits 320x480 to 820x1180 without page scroll; the NG-53 doc wording and evaluation fixes noted on the card are done"
+            ],
+            "goal": "The child's gesture view recognises continuously: the camera runs while the view is open, each gesture ends when the hands leave the picture (NG-53 'away') or with 'Fertig', and recognised gestures are stacked as tiles; a tile speaks its word, exactly one gesture offers its sentence after 'Ja, sagen'.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 3,
+            "run_revision": 3,
+            "source": {
+                "path": ".agent-loop/contracts/NG-54/contract.json",
+                "sha256": "sha256:884b1e4b23ca12bff565614a2d733f278abac0f52830dccc75e0f6e3c0e3bf2f"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 3,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-54/contract.json",
+                "sha256": "sha256:884b1e4b23ca12bff565614a2d733f278abac0f52830dccc75e0f6e3c0e3bf2f"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-54:c94347845572647c",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:16313f30f498814f4de6b0a7b83a5877276071843d1e0cbf1768172185833752",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:8a1e19fcbcea42cc6445970bebdfcd6e4f37222e4f47f0b3a06bb8b7dfb0fe62"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-54:c94347845572647c",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "9d59d2314558f54c14f5e6e1b6bc2ebcb8f1eee8a972d9a56b10e0eab6dae2d0",
+            "compilation_id": "compilation.NG-54.2026-11-25-014926.f5f850ee",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "1d9af636f82a06ea24d4b0c78e5b981e6ee663b28dde9042daa88bb30ba1f3f5",
+            "source": {
+                "path": ".agent-loop/recall/NG-54/meta.json",
+                "sha256": "sha256:f73a4cadade4fbd88580c23c8e13f4362a87915d47e6cf1f91d616f3e0a62f93"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-54/reviews/NG-54.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "05dbd4f4d341d40d708ae9daf42b56f9455b5a7b",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-25-ng-54-r3-5f50a309",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-25-ng-54-r3-5f50a309/session.json",
+                "sha256": "sha256:a187ee89b21b756bdf7e833408edc409baf18ca8f457d3cec6ad8108a0ac8235"
+            },
+            "state": "active",
+            "task_id": "NG-54"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-54 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-54",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:f2a7b884b4224d39f859ee100ed04013b0143d12eeda31b0dae47c11f2033fe4",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-54:c94347845572647c",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-54"
+}

@@ -1,0 +1,12 @@
+{
+    "approved_at": "2026-11-25T01:49:25+00:00",
+    "approved_by": "Lars Moelleken (approved the full task in session, 2026-11-25)",
+    "kind": "governed_run_supersession",
+    "recorded_at": "2026-11-25T01:49:26+00:00",
+    "replacement_contract_revision": 3,
+    "replacement_run_id": "run:NG-54:c94347845572647c",
+    "schema_version": "1.0",
+    "superseded_contract_revision": 2,
+    "superseded_run_id": "run:NG-54:828047c06d9fef87",
+    "task_id": "NG-54"
+}

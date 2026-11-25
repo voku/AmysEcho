@@ -103,6 +103,8 @@ export function createApp(boardRegion: HTMLElement, options: AppOptions): App {
       try {
         const attached = attachRecognise({
           root: boardRegion, board, entries: view.entries, examples,
+          // Card NG-54: the gesture view recognises continuously and stacks what it recognised.
+          continuous: true,
           ...(options.capture === undefined ? {} : { capture: options.capture }),
           ...now,
         });
