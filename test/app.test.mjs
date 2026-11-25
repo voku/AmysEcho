@@ -169,9 +169,10 @@ test("app: with examples the control is there from the first mount; the camera s
     page.gestureControl().click();
     await settle();
     assert.equal(camera.log.cameraRequests, 1);
-    assert.equal(page.panel().dataset.state, "countdown");
+    // Card NG-54: the app's gesture view recognises continuously: no countdown.
+    assert.equal(page.panel().dataset.state, "listening");
     assert.deepEqual(page.spoken, []);
-    // Ending the countdown is left to the real timer of the view; leaving now must stop everything.
+    // Leaving now must stop everything.
     page.panel().children[0].children[0].click();
     assert.equal(camera.running, false);
     assert.equal(page.panel(), null);

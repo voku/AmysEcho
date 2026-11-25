@@ -229,12 +229,14 @@ test("continuous stream, hands out of view between gestures, cut at those pauses
 });
 
 test("continuous stream, pauses shorter than the gap: the movements run together and nothing is said, rather than something wrong", (t) => {
-  const report = stream({ unknownKind: "unrelated", mode: "away", pause: "away", pauseMs: SEGMENT_GAP_MS - 100 });
-  t.diagnostic(streamLine("away, pauses shorter than the gap", report));
-  assert.equal(report.wrongAccept, 0, streamLine("short pauses", report));
-  assert.equal(report.falseAccept, 0, streamLine("short pauses", report));
-  assert.equal(report.spuriousAccepts, 0, streamLine("short pauses", report));
-  assert.ok(report.missed >= 0.9, streamLine("short pauses", report));
+  for (const pauseMs of [SEGMENT_GAP_MS - 100, SEGMENT_GAP_MS - 1]) {
+    const report = stream({ unknownKind: "unrelated", mode: "away", pause: "away", pauseMs });
+    t.diagnostic(streamLine(`away, pauses of ${pauseMs} ms`, report));
+    assert.equal(report.wrongAccept, 0, streamLine("short pauses", report));
+    assert.equal(report.falseAccept, 0, streamLine("short pauses", report));
+    assert.equal(report.spuriousAccepts, 0, streamLine("short pauses", report));
+    assert.ok(report.missed >= 0.9, streamLine("short pauses", report));
+  }
 });
 
 test("continuous stream, hands resting in view between gestures, cut at the rests: known limit, measured and reported", (t) => {

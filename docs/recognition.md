@@ -518,10 +518,14 @@ one finished attempt, so the stream has to be cut into attempts first. Code:
   - "hands rest": the hands rest at the end posture, move to the next start posture in 400 ms
     (`TRANSITION_MS`) and rest there.
   
+  An "away" pause keeps the hands out of view for exactly the pause (a review of card NG-54 found
+  one frame added to it before; the 600, 1000 and 1500 ms rows did not change).
+
   Each segment goes to the matcher. A segment belongs to the movement it overlaps most. A known
   gesture counts as top1 when a segment of it is accepted as the right concept and none as a
   wrong one, as wrong concept when a segment of it is accepted as a wrong one, and as missed
-  otherwise. Segments that overlap no movement and are accepted count as "said in a pause".
+  otherwise. A movement counts as split when more than one segment overlaps it at all, whichever
+  movement each segment is scored against (counted that way since card NG-54). Segments that overlap no movement and are accepted count as "said in a pause".
   - **Baseline:** the very same captures, each scored on its own as one attempt ("one by one").
 - **The gate.** In the stream, no more wrong concepts and no more unknown movements accepted than
   one by one on the same captures, and nothing said in a pause. No matcher threshold was changed.
@@ -542,14 +546,18 @@ Measured with `EVAL_FULL=1`-size streams (90 known gestures and 60 unknown movem
 | away | hands away 600 ms | 0.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 15.0 % |
 | away | hands away 600 ms | 1.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 0.0 % |
 | away | hands away 600 ms | 1.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 1.7 % |
-| rest | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | unrelated | 15.6 % | 0.0 % | 84.4 % | 0.0 % | 0 | 0 / 32 / 22 | 100.0 % / 0.0 % / 1.7 % |
-| rest | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | other-fingers | 15.6 % | 0.0 % | 84.4 % | 1.7 % | 0 | 1 / 41 / 23 | 100.0 % / 0.0 % / 8.3 % |
-| rest | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | unrelated | 11.1 % | 0.0 % | 88.9 % | 0.0 % | 0 | 1 / 36 / 22 | 98.9 % / 0.0 % / 0.0 % |
-| rest | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | other-fingers | 13.3 % | 0.0 % | 86.7 % | 0.0 % | 0 | 2 / 42 / 21 | 98.9 % / 0.0 % / 0.0 % |
-| rest | hands rest 1500 + move 400 + rest 1500 ms | 0.5 | unrelated | 100.0 % | 0.0 % | 0.0 % | 3.3 % | 0 | 123 / 124 / 0 | 100.0 % / 0.0 % / 1.7 % |
-| rest | hands rest 1500 + move 400 + rest 1500 ms | 0.5 | other-fingers | 100.0 % | 0.0 % | 0.0 % | 11.7 % | 0 | 123 / 124 / 0 | 100.0 % / 0.0 % / 1.7 % |
-| rest | hands rest 1500 + move 400 + rest 1500 ms | 1.5 | unrelated | 98.9 % | 0.0 % | 1.1 % | 0.0 % | 0 | 122 / 124 / 0 | 98.9 % / 0.0 % / 0.0 % |
-| rest | hands rest 1500 + move 400 + rest 1500 ms | 1.5 | other-fingers | 97.8 % | 0.0 % | 2.2 % | 3.3 % | 0 | 121 / 124 / 0 | 98.9 % / 0.0 % / 0.0 % |
+| away | hands away 699 ms | 0.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 1.7 % |
+| away | hands away 699 ms | 0.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 15.0 % |
+| away | hands away 699 ms | 1.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 0.0 % |
+| away | hands away 699 ms | 1.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 2 / 24 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | unrelated | 15.6 % | 0.0 % | 84.4 % | 0.0 % | 0 | 21 / 32 / 22 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | other-fingers | 15.6 % | 0.0 % | 84.4 % | 1.7 % | 0 | 27 / 41 / 23 | 100.0 % / 0.0 % / 8.3 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | unrelated | 11.1 % | 0.0 % | 88.9 % | 0.0 % | 0 | 21 / 36 / 22 | 98.9 % / 0.0 % / 0.0 % |
+| rest | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | other-fingers | 13.3 % | 0.0 % | 86.7 % | 0.0 % | 0 | 28 / 42 / 21 | 98.9 % / 0.0 % / 0.0 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 0.5 | unrelated | 100.0 % | 0.0 % | 0.0 % | 3.3 % | 0 | 150 / 124 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 0.5 | other-fingers | 100.0 % | 0.0 % | 0.0 % | 11.7 % | 0 | 149 / 124 / 0 | 100.0 % / 0.0 % / 1.7 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 1.5 | unrelated | 98.9 % | 0.0 % | 1.1 % | 0.0 % | 0 | 150 / 124 / 0 | 98.9 % / 0.0 % / 0.0 % |
+| rest | hands rest 1500 + move 400 + rest 1500 ms | 1.5 | other-fingers | 97.8 % | 0.0 % | 2.2 % | 3.3 % | 0 | 150 / 124 / 0 | 98.9 % / 0.0 % / 0.0 % |
 | away | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 100.0 % / 0.0 % / 1.7 % |
 | away | hands rest 1000 + move 400 + rest 1000 ms | 0.5 | other-fingers | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 100.0 % / 0.0 % / 8.3 % |
 | away | hands rest 1000 + move 400 + rest 1000 ms | 1.5 | unrelated | 0.0 % | 0.0 % | 100.0 % | 0.0 % | 0 | 0 / 0 / 26 | 98.9 % / 0.0 % / 0.0 % |
@@ -567,13 +575,15 @@ Measured with `EVAL_FULL=1`-size streams (90 known gestures and 60 unknown movem
     the picture ("Not measured" below).
   - The 15 % of "other-fingers" look-alikes accepted at low sloppiness are the matcher's, one by
     one as well: a known limit of the matcher (see above), not of the cut.
-- **A pause shorter than the gap is safe but useless.** At 600 ms the movements run together,
+- **A pause shorter than the gap is safe but useless.** At 600 ms, and at 699 ms just under the
+  gap, the movements run together,
   the long segments are dropped or match nothing, and nothing is said. No wrong concept, nothing
   accepted.
-- **"rest" fails the gate.**
-  - With 1 s rests the cut is too rare: the movements run together and 84 to 89 % of gestures are
-    missed.
-  - With 1.5 s rests the move between two postures becomes a segment of its own, and unknown
+- **"rest" is not usable.**
+  - With 1 s rests it passes the gate as defined (no wrong concept, unknown movements accepted no
+    more often), but the cut is too rare: the movements run together and 84 to 89 % of gestures
+    are missed.
+  - With 1.5 s rests it fails the gate: the move between two postures becomes a segment of its own, and unknown
     movements are accepted more often than one by one (3.3 % against 1.7 %, 11.7 % against 1.7 %).
     That segment is counted as "merged": the spans of the movements include their rests, so it
     always overlaps one and is scored against it. "Said in a pause" cannot happen in these rows.
@@ -584,7 +594,9 @@ Measured with `EVAL_FULL=1`-size streams (90 known gestures and 60 unknown movem
 **What follows for the view (card NG-54).** Continuous recognition cuts at "away". The child, or
 the caregiver, lowers the hands out of the picture for about a second between two gestures. The
 view has to make that clear without reading, for example by showing when a gesture has been taken.
-A child who keeps the hands up between gestures gets nothing said rather than something wrong.
+With the hands kept up between gestures, the measured streams were longer than 10 s and dropped, so
+nothing was said; short streams with the hands kept up were not measured. The view (card NG-54)
+therefore keeps an explicit way to end a gesture ("Fertig").
 
 **Not measured.** All of the above is synthetic. Real tracker streams have hands that leave
 slowly, half out of the picture, or a lap in view, and children who do not lower their hands. The

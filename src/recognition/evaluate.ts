@@ -647,7 +647,9 @@ function joinStream(items: readonly StreamItem[], pause: StreamOptions["pause"],
         tMs += TRANSITION_MS;
       }
     }
-    const offset = tMs - own[0]!.tMs + (index > 0 ? STREAM_FRAME_MS : 0);
+    // After a move between postures the next frame follows one frame later; after an "away" pause the
+    // hands are back exactly `pauseMs` after they left.
+    const offset = tMs - own[0]!.tMs + (index > 0 && pause === "rest" ? STREAM_FRAME_MS : 0);
     for (const frame of own) frames.push(shifted(frame, offset));
     spans.push([own[0]!.tMs + offset, own[own.length - 1]!.tMs + offset]);
     tMs = frames[frames.length - 1]!.tMs;
@@ -729,11 +731,14 @@ export function simulateStream(options: StreamOptions): StreamReport {
       tooLong += cut.tooLong;
       segmentsSeen += cut.segments.length;
       const answers: (string | null)[][] = streamItems.map(() => []);
+      /** Segments overlapping each movement at all, whichever movement they are scored against. */
+      const touching = streamItems.map(() => 0);
       for (const segment of cut.segments) {
         const start = segment[0]!.tMs;
         const end = segment[segment.length - 1]!.tMs;
         const overlaps = spans.map(([a, b]) => Math.max(0, Math.min(b, end) - Math.max(a, start)));
         const covered = overlaps.filter((overlap) => overlap > 0).length;
+        overlaps.forEach((overlap, at) => { if (overlap > 0) touching[at] += 1; });
         if (covered > 1) merged += 1;
         const best = overlaps.indexOf(Math.max(...overlaps));
         const answer = match(segment);
@@ -745,7 +750,7 @@ export function simulateStream(options: StreamOptions): StreamReport {
       }
       streamItems.forEach((item, index) => {
         const said = answers[index]!;
-        if (said.length > 1) split += 1;
+        if (touching[index]! > 1) split += 1;
         const accepted = said.filter((answer): answer is string => answer !== null);
         if (item.conceptId === null) {
           unknown += 1;

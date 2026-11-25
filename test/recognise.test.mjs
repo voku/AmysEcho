@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
+  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, MAX_TAKEN, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
   analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
@@ -583,7 +583,7 @@ function memoryStorage(entries = []) {
   return { items, getItem: (key) => items.get(key) ?? null, setItem: (key, value) => { items.set(key, String(value)); } };
 }
 
-async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage() } = {}) {
+async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage(), continuous = false } = {}) {
   const fakes = installDocument();
   try {
     const time = fakeTime();
@@ -591,13 +591,14 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     const root = fakeElement("section");
     let open = () => undefined;
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice });
+    const said = [];
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text) => said.push(text) });
     open = attached.open;
     const panel = () => root.children.find((child) => hasClass(child, "recognise")) ?? null;
     const buttonNamed = (text) => tree(panel() ?? root).find((element) => element.tagName === "button" && (element.textContent === text || element.attributes["aria-label"] === text));
     const tile = (label) => root.children.find((child) => hasClass(child, "concept-board")).children.find((element) => element.attributes["aria-label"] === label);
     const gestureButton = () => root.children.find((child) => hasClass(child, "gesture-start"));
-    await callback({ ...fakes, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
+    await callback({ ...fakes, said, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
   } finally {
     fakes.restore();
   }
@@ -1638,3 +1639,201 @@ test("view: no picture toggle without a preview; a focused toggle that goes with
     assert.equal(doc.activeElement, buttonNamed("Nein"), "not dropped to the page");
   });
 });
+
+// --- Continuous recognition, recognised gestures stacked (card NG-54) ---
+
+import { SEGMENT_GAP_MS, SEGMENT_MAX_MS } from "../dist/recognition/segment.js";
+
+/** Frames without a hand for longer than the gap (the fake camera sends one every 100 ms): the gesture before is finished. */
+const handsDown = async (camera) => { for (let i = 0; i <= SEGMENT_GAP_MS / 100 + 1; i += 1) await camera.feed([]); };
+const takenTiles = (panel) => tree(panel).filter((element) => hasClass(element, "recognise-taken-tile"));
+
+test("controller, continuous: no countdown; each gesture ends when the hands leave the picture and is compared alone; a match is stacked, nothing is spoken", async () => {
+  const outcomes = ["trinken", "nicht-da", null, "mehr", "trinken"];
+  const analysed = [];
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: (id) => context.spoken.push(id), onChange: () => undefined, continuous: () => true,
+    analyse: (frames) => {
+      analysed.push(frames.length);
+      const id = outcomes[analysed.length - 1];
+      return id === null ? { kind: "unknown", reason: "too_far", candidates: [], hands: "right" } : { kind: "match", conceptId: id, hands: "right" };
+    },
+  });
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: [], dropped: false });
+  for (let gesture = 0; gesture < outcomes.length; gesture += 1) {
+    await context.camera.feedAll(MOVES_RIGHT, 12);
+    await handsDown(context.camera);
+  }
+  assert.deepEqual(analysed, [12, 12, 12, 12, 12], "each gesture compared alone, with its own frames only");
+  // "nicht-da" is not on the board and the unknown one adds nothing; "trinken" again moves to the end.
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: ["mehr", "trinken"], dropped: false });
+  assert.deepEqual(context.spoken, []);
+  assert.equal(context.camera.running, true, "the camera goes on");
+  // With more than one gesture there is no sentence: "Ja, sagen" does nothing.
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.confirm();
+  assert.deepEqual(context.spoken, []);
+  assert.equal(recogniser.state().kind, "listening");
+  // At most MAX_TAKEN, the oldest goes first.
+  const many = [...ON_BOARD, "eins", "zwei", "drei"];
+  let next = 0;
+  const wide = setup();
+  const busy = createRecogniser({
+    examples: [], onBoard: new Set(many), bridge: () => wide.camera.bridge, host: () => ({}), setTimer: wide.time.setTimer, now: wide.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true,
+    analyse: () => ({ kind: "match", conceptId: many[next++], hands: "right" }),
+  });
+  busy.start();
+  await settle();
+  for (let gesture = 0; gesture < many.length; gesture += 1) {
+    await wide.camera.feedAll(MOVES_RIGHT, 5);
+    await handsDown(wide.camera);
+  }
+  assert.equal(MAX_TAKEN, 6);
+  assert.deepEqual(busy.state().taken, many.slice(-MAX_TAKEN));
+});
+
+test("controller, continuous: 'Fertig' finishes the gesture still going on; a movement longer than SEGMENT_MAX_MS is let go and said so", async () => {
+  const analysed = [];
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true,
+    analyse: (frames) => { analysed.push(frames.length); return { kind: "match", conceptId: "hilfe", hands: "right" }; },
+  });
+  recogniser.start();
+  await settle();
+  // The hands stay up: nothing is finished until "Fertig", which counts only after the press guard.
+  await context.camera.feedAll(MOVES_RIGHT, 15);
+  assert.deepEqual(analysed, []);
+  recogniser.finish();
+  assert.deepEqual(analysed, [], "'Fertig' right after the view appeared does nothing");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.finish();
+  assert.deepEqual(analysed, [15]);
+  assert.deepEqual(recogniser.state().taken, ["hilfe"]);
+  // Somebody stays in view, moving, for longer than a gesture can last: let go, never compared.
+  const long = SEGMENT_MAX_MS / 100 + 5;
+  await context.camera.feedAll((i) => MOVES_RIGHT(i % 20), long);
+  assert.equal(recogniser.state().dropped, true);
+  assert.deepEqual(analysed, [15]);
+  // What is left of that movement goes too, until the hands leave the picture; then a gesture is compared on its own again.
+  await context.camera.feedAll((i) => MOVES_RIGHT(i % 20), 8);
+  await handsDown(context.camera);
+  assert.deepEqual(analysed, [15], "the rest of the long movement is not compared");
+  await context.camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(context.camera);
+  assert.deepEqual(analysed, [15, 10]);
+  assert.equal(recogniser.state().dropped, false);
+});
+
+test("view, continuous: the gesture view listens, stacks what it recognised, a tile says its word, one gesture offers its sentence", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, speech, said, buttonNamed } = context;
+    context.gestureButton().click();
+    await settle();
+    assert.equal(panel().dataset.state, "listening");
+    assert.match(textOf(panel()), /Gebärden machen\. Dazwischen die Hände kurz runter\./);
+    assert.ok(buttonNamed("Fertig") !== undefined);
+    assert.equal(tree(panel()).find((element) => hasClass(element, "recognise-time")).hidden, true, "no seconds: no time limit");
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    assert.deepEqual(takenTiles(panel()).map((tile) => tile.dataset.concept), ["trinken"]);
+    assert.ok(buttonNamed("Ja, sagen") !== undefined, "one gesture: its sentence is offered");
+    assert.deepEqual(speech.spoken, [], "nothing spoken without a tap");
+    // A second gesture: two tiles, no sentence.
+    await camera.feedAll(MOVES_UP);
+    await handsDown(camera);
+    const tiles = takenTiles(panel());
+    assert.deepEqual(tiles.map((tile) => tile.dataset.concept), ["ball", "trinken"], "newest first: the top of the stack is always in view");
+    assert.equal(buttonNamed("Ja, sagen"), undefined);
+    assert.equal(tiles[0].attributes["aria-label"], "Ball");
+    assert.equal(cameraSwitch(panel()).hidden, false, "the camera switch while listening");
+    // The tile that just appeared is guarded; afterwards a tap says only the word, and the camera goes on.
+    tiles[0].click();
+    assert.deepEqual(said, []);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    takenTiles(panel())[1].click();
+    assert.deepEqual(said, ["Ball", "Trinken"]);
+    assert.deepEqual(speech.spoken, [], "not the sentence");
+    assert.equal(camera.running, true);
+    assert.equal(panel().dataset.state, "listening");
+  }, { continuous: true });
+  await withView(async (context) => {
+    const { panel, time, camera, speech, buttonNamed } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Ja, sagen").click();
+    assert.deepEqual(speech.spoken, ["Ich möchte trinken."], "the sentence, once, through the board");
+    assert.equal(panel(), null);
+    assert.equal(camera.running, false);
+  }, { continuous: true });
+});
+
+test("view, continuous: a movement too long to be a gesture says so; 'Zurück' always stops the camera", async () => {
+  await withView(async (context) => {
+    const { panel, camera, buttonNamed } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll((i) => MOVES_RIGHT(i % 20), SEGMENT_MAX_MS / 100 + 5);
+    assert.match(textOf(panel()), /Das war zu lang\. Hände kurz runter, dann neu\./);
+    buttonNamed(RECOGNISE_TEXT.back).click();
+    assert.equal(panel(), null);
+    assert.equal(camera.running, false);
+  }, { continuous: true });
+});
+
+test("controller, continuous: whenever the hands leave right as a too-long movement is let go, the next gesture is still compared", async () => {
+  for (const extra of [0, 1, 2, 3]) {
+    const analysed = [];
+    const context = setup();
+    const recogniser = createRecogniser({
+      examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+      speak: () => undefined, onChange: () => undefined, continuous: () => true,
+      analyse: (frames) => { analysed.push(frames.length); return { kind: "match", conceptId: "hilfe", hands: "right" }; },
+    });
+    recogniser.start();
+    await settle();
+    await context.camera.feedAll((i) => MOVES_RIGHT(i % 20), SEGMENT_MAX_MS / 100 + extra);
+    await handsDown(context.camera);
+    await context.camera.feedAll(MOVES_RIGHT, 10);
+    await handsDown(context.camera);
+    assert.equal(analysed.at(-1), 10, `${SEGMENT_MAX_MS / 100 + extra} frames up: ${analysed}`);
+    assert.deepEqual(recogniser.state().taken, ["hilfe"]);
+  }
+});
+
+test("view, continuous: a new tile moves the others, so a press right after it says nothing; the focused picture toggle keeps the focus", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, said, doc } = context;
+    camera.bridge.createPreview = recordingPreviews().createPreview;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    pictureToggle(panel()).focus();
+    const slot = slotOf(panel());
+    slot.moved = [];
+    await camera.feedAll(MOVES_UP);
+    await handsDown(camera);
+    assert.deepEqual(takenTiles(panel()).map((tile) => tile.dataset.concept), ["ball", "trinken"]);
+    assert.deepEqual(slot.moved, [], "the picture and its toggle stay in place while listening");
+    assert.equal(doc.activeElement, pictureToggle(panel()), "the focus stays on the toggle");
+    // "Trinken" moved from the first place to the second: a press there now was aimed at it before.
+    takenTiles(panel())[1].click();
+    assert.deepEqual(said, [], "a press right after the tiles moved says nothing");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[1].click();
+    assert.deepEqual(said, ["Trinken"]);
+  }, { continuous: true });
+});
+

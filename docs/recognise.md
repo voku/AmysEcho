@@ -240,6 +240,61 @@ films itself, or a caregiver films the child). This revises the NG-43 decision b
   `facingMode: { exact: "environment" }`; whether a child finds the switch or presses it by
   mistake; whether children recognise themselves in the points without the picture.
 
+**Continuous recognition, recognised gestures stacked** (card NG-54; owner request 2026-11-24).
+In the app the gesture view no longer counts down to one attempt: it listens while it is open.
+
+- **Listening.** After "Gebärde" the camera starts, and the view says "Gebärden machen. Dazwischen
+  die Hände kurz runter." The picture, the hands-seen row, the camera switch and "Bild an / aus"
+  stay as before; the seconds are hidden, as there is no time limit.
+- **Cutting.** Each gesture ends when the hands leave the picture for longer than `SEGMENT_GAP_MS`
+  (700 ms), the "away" cut of card NG-53 ([recognition.md](recognition.md), "A continuous stream
+  cut into gestures"); the "rest" cut failed its gate and is not used.
+  - Each finished gesture is compared alone, exactly as one attempt (`analyseAttempt`).
+  - Only frames not yet used are kept: the controller cuts its own buffer after each gesture, so
+    nothing is compared twice and the buffer stays short.
+- **"Fertig"** finishes the gesture still going on, for a child who cannot lower the hands. It
+  counts after the press guard, like "Stopp".
+- **Too long.** A movement longer than `SEGMENT_MAX_MS` (10 s), finished or still going on, is let
+  go, and the line says "Das war zu lang. Hände kurz runter, dann neu." What is left of it goes
+  too, until the hands leave the picture; it is never compared as a gesture of its own.
+- **Stacked tiles.** A match of the board is stacked as a tile under the hands-seen row, newest
+  first (the top of the stack, always in view; the row scrolls sideways when full), at most
+  `MAX_TAKEN` (6). The same concept again goes to the top. Anything else, an
+  unknown movement or a concept not on the board, adds nothing, and the child sees no error.
+- **Nothing is spoken without a tap.**
+  - A tap on a stacked tile says only its word (`labelDe`, the device's local German voice), and
+    the camera goes on.
+  - A tile pressed within `RECOGNISE_GUARD_MS` of appearing does nothing, because a child may be
+    reaching for something else just as it appears.
+  - With exactly one tile, "Ja, sagen" (with the tile's picture) speaks its sentence through the
+    board, as after one attempt, and the view closes.
+- **The attempt flow** (countdown, "Stopp", answer views) stays for `attachRecognise` without
+  `continuous`; the app passes `continuous: true`.
+- **Tested** (fake camera, synthetic hands):
+  - each gesture is compared alone, with its own frames;
+  - only matches of the board are stacked, at most six, a repeat moves to the end;
+  - nothing is spoken;
+  - "Fertig" and its guard work;
+  - a too-long movement and its rest are let go;
+  - a tile says its word after its guard, and one gesture gives its sentence;
+  - "Zurück" stops the camera.
+- **Measured in headless Chromium** (real stylesheet, board and view; six made-up movements, the
+  hands out of view for 1 s between them; Chromium's fake camera) at 320x480, 360x640, 640x360,
+  844x390 and 820x1180, listening with no tile, one and six tiles: no page scroll, nothing outside
+  the window but the tile row's own sideways scroll. With tiles the picture shrinks: 145 px high at
+  360x640, 89 px at 320x480, and only 53 px at 640x360 and 79 px at 844x390 (held sideways).
+- **DGS videos** (test/browser/recognise.test.mjs; real tracker answers replayed, examples taught
+  from the videos through the caregiver area): each word made in the continuous view and ended with
+  "Fertig": 4 of 4 taught words stacked as the right tile, none as a wrong one; 2 of 2 untaught
+  words stacked nothing; the sentence spoken only after "Ja, sagen", a word only after a tile tap.
+  Six videos are not an evaluation; they show the flow end to end.
+- **Not checked on a device:**
+  - whether the picture is still useful held sideways with tiles (53 px high at 640x360);
+  - whether children lower their hands between gestures;
+  - how a hand that leaves slowly or half is cut;
+  - the battery cost of a camera that runs while the view is open;
+  - whether a word or a sentence is what a child wants from a stacked tile.
+
 **Camera picture on or off** (card NG-52; owner feedback 2026-11-24: without the picture the view
 looked oddly empty). The NG-49 points-only view above became a choice, and the picture is back by
 default.

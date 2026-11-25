@@ -245,7 +245,7 @@ async function installFeeder(page) {
   });
 }
 
-test("recognising on the board: DGS videos taught as examples, attempted through the board's own flow; nothing is spoken without 'Ja, sagen'", { skip, timeout: 15 * 60_000 }, async () => {
+test("recognising on the board: DGS videos taught as examples, made in the board's continuous view (card NG-54); nothing is spoken without a tap", { skip, timeout: 15 * 60_000 }, async () => {
   assert.ok(historyAvailable, `${REF} is missing: CI must git fetch origin main_old`);
   const started = Date.now();
   await readFile(new URL("vendor/mediapipe/manifest.json", DIST)).catch(() => {
@@ -350,123 +350,91 @@ test("recognising on the board: DGS videos taught as examples, attempted through
       return panel === null ? null : { state: panel.dataset.state, concept: panel.dataset.concept ?? null, reason: panel.dataset.reason ?? null, hands: panel.dataset.hands ?? null };
     });
 
-    /** One attempt through the board: tap "Gebärde", wait for the recording, feed the frames, tap "Stopp"; returns the view it ends in. */
+    const tiles = () => page.evaluate(() => [...document.querySelectorAll("#board-region .recognise-taken-tile")].map((tile) => tile.dataset.concept));
+
+    /**
+     * One gesture through the board's continuous view (card NG-54): tap "Gebärde", wait until it
+     * listens, feed the frames, then "Fertig" (the replayed frames end with the hands in view, as when
+     * a child does not lower them). Returns what was stacked: the concept, or null.
+     */
     const attempt = async (name, pass) => {
       await page.waitForTimeout(BEFORE_GESTURE_MS);
       await gesture.click();
-      await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state === "recording", undefined, { timeout: 90_000 });
-      const recordingSince = Date.now();
-      assert.ok(await gesture.isHidden(), "the board is covered while recording");
+      await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state === "listening", undefined, { timeout: 90_000 });
+      const listeningSince = Date.now();
+      assert.ok(await gesture.isHidden(), "the board is covered while listening");
       const before = await page.evaluate(() => window.__camera.tracked);
       const fed = await page.evaluate((key) => window.__feed(key), `${name}:${pass}`);
-      await page.waitForFunction(({ until }) => window.__camera.tracked >= until
-        || document.querySelector("#board-region .recognise")?.dataset.state !== "recording", { until: before + fed }, { timeout: 60_000 });
-      // "Stopp" ignores presses sooner than RECOGNISE_GUARD_MS (700 ms) after the recording view appears,
-      // so wait past that; then the press must end the recording at once. If it does not (a broken or
-      // ignored "Stopp", or the time limit got there first), the attempt counts as cut and the test fails.
-      const wait = 1_000 - (Date.now() - recordingSince);
+      await page.waitForFunction(({ until }) => window.__camera.tracked >= until, { until: before + fed }, { timeout: 60_000 });
+      // "Fertig" ignores presses sooner than RECOGNISE_GUARD_MS (700 ms) after the view appears.
+      const wait = 1_000 - (Date.now() - listeningSince);
       if (wait > 0) await page.waitForTimeout(wait);
-      let cut = (await panelState()).state !== "recording";
-      if (!cut) {
-        await page.getByRole("button", { name: "Stopp" }).click({ timeout: 3_000 }).catch(() => undefined);
-        cut = !(await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state !== "recording", undefined, { timeout: 1_500 }).then(() => true, () => false));
-      }
-      await page.waitForFunction(() => document.querySelector("#board-region .recognise")?.dataset.state !== "recording", undefined, { timeout: 10_000 });
-      const camera = await page.evaluate(() => window.__camera);
-      assert.equal(camera.stops, camera.starts, `${name}: the camera is still on after the attempt`);
-      return { ...await panelState(), cut, frames: fed };
+      await page.getByRole("button", { name: "Fertig" }).click({ timeout: 3_000 });
+      await page.waitForTimeout(300);
+      const stacked = await tiles();
+      const line = await page.locator("#board-region .recognise .recognise-line").textContent();
+      return { state: (await panelState()).state, concept: stacked[0] ?? null, tiles: stacked.length, dropped: /zu lang/.test(line), frames: fed };
     };
     const back = async () => {
       await page.getByRole("button", { name: "Zurück zur Tafel" }).click();
       assert.equal(await panelState(), null);
+      const camera = await page.evaluate(() => window.__camera);
+      assert.equal(camera.stops, camera.starts, "the camera is still on after 'Zurück'");
     };
 
     const outcomes = [];
     let confirmedSpoken = 0;
-    let rejected = 0;
-    let candidateSpoken = 0;
-    let firstRecognised = null;
-    /** One attempt and the answer to its view. `reject`: press "Nein" even on the right concept. */
-    const handle = async (name, word, conceptId, pass, { reject = false } = {}) => {
+    let wordsSpoken = 0;
+    /** One gesture and the answer to it: the first one recognised is spoken with "Ja, sagen" (its sentence), a later one with a tap on its tile (its word). */
+    const handle = async (name, word, conceptId, pass) => {
       const before = await spoken();
       const result = await attempt(name, pass);
       outcomes.push({ name, word, ...result });
-      assert.deepEqual(await spoken(), before, `${name}: spoken before any confirming tap`);
-      if (result.state === "confirm") {
-        assert.ok(await page.getByRole("button", { name: "Ja, sagen" }).isVisible());
-        assert.ok(await page.getByRole("button", { name: "Nein" }).isVisible());
-        assert.ok(await page.getByRole("button", { name: "Zurück zur Tafel" }).isVisible());
+      assert.equal(result.state, "listening", `${name}: the view listens on after 'Fertig'`);
+      assert.ok(result.tiles <= 1, `${name}: one gesture stacked at most one tile`);
+      assert.deepEqual(await spoken(), before, `${name}: spoken before any tap`);
+      if (result.concept !== null && conceptId !== null && result.concept === conceptId) {
         await page.waitForTimeout(AFTER_VIEW_MS);
-        if (!reject && result.concept === conceptId && confirmedSpoken === 0) {
-          firstRecognised ??= { name, conceptId };
+        if (confirmedSpoken === 0) {
           await page.getByRole("button", { name: "Ja, sagen" }).click();
           assert.equal(await panelState(), null);
-          assert.deepEqual(await spoken(), [...before, SPEECH[conceptId]], `${name}: 'Ja, sagen' speaks the concept once`);
+          assert.deepEqual(await spoken(), [...before, SPEECH[conceptId]], `${name}: 'Ja, sagen' speaks the sentence once`);
           assert.equal(await sentence(), SPEECH[conceptId], "the sentence bar shows it, as after a tap on the tile");
           confirmedSpoken += 1;
-        } else {
-          if (result.concept === conceptId) firstRecognised ??= { name, conceptId };
-          await page.getByRole("button", { name: "Nein" }).click();
-          assert.equal(await panelState(), null);
-          assert.deepEqual(await spoken(), before, `${name}: 'Nein' spoke`);
-          rejected += 1;
+          return;
         }
-      } else {
-        assert.match(await page.locator("#board-region .recognise .recognise-line").textContent(),
-          result.state === "unknown" ? /^Das habe ich nicht verstanden\.$/ : /./);
-        if (result.state === "unknown" && candidateSpoken === 0) {
-          const candidates = page.locator("#board-region .recognise-candidate");
-          const count = await candidates.count();
-          assert.ok(count <= 3);
-          if (count > 0) {
-            await page.waitForTimeout(AFTER_VIEW_MS);
-            const chosen = await candidates.first().getAttribute("data-concept");
-            await candidates.first().click();
-            // A candidate only asks: the same confirm view, and nothing is spoken before "Ja, sagen".
-            assert.deepEqual(await panelState(), { state: "confirm", concept: chosen, reason: null, hands: result.hands }, `${name}: a candidate tap`);
-            assert.deepEqual(await spoken(), before, `${name}: a candidate tap spoke`);
-            await page.waitForTimeout(AFTER_VIEW_MS);
-            await page.getByRole("button", { name: "Ja, sagen" }).click();
-            assert.equal(await panelState(), null);
-            assert.deepEqual(await spoken(), [...before, SPEECH[chosen]], `${name}: 'Ja, sagen' after a candidate speaks it once`);
-            assert.equal(await sentence(), SPEECH[chosen]);
-            candidateSpoken += 1;
-            return;
-          }
+        if (wordsSpoken === 0) {
+          await page.locator("#board-region .recognise-taken-tile").first().click();
+          const said = await spoken();
+          assert.equal(said.length, before.length + 1, `${name}: a tile tap says one thing`);
+          assert.notEqual(said.at(-1), SPEECH[conceptId], `${name}: a tile says its word, not the sentence`);
+          wordsSpoken += 1;
         }
-        await back();
-        assert.deepEqual(await spoken(), before, `${name}: an unknown or refused attempt spoke`);
       }
+      await back();
     };
 
     for (const entry of TAUGHT) for (const name of entry.videos) await handle(name, entry.word, entry.conceptId, 1);
     for (const entry of UNTAUGHT) for (const name of entry.videos) await handle(name, entry.word, null, 1);
-    // "Nein" on a recognised word, if no confirm view was left for it yet: the same frames give the same answer.
     const planned = outcomes.length;
-    if (rejected === 0 && firstRecognised !== null) await handle(firstRecognised.name, firstRecognised.conceptId, firstRecognised.conceptId, 1, { reject: true });
-
     const taughtOutcomes = outcomes.slice(0, planned).filter((outcome) => TAUGHT.some((entry) => entry.videos.includes(outcome.name)));
     const untaughtOutcomes = outcomes.slice(0, planned).filter((outcome) => !TAUGHT.some((entry) => entry.videos.includes(outcome.name)));
     const count = (list, predicate) => list.filter(predicate).length;
     const wordOf = (name) => TAUGHT.find((entry) => entry.videos.includes(name))?.conceptId ?? null;
     const lines = [
-      `Recognise on the board (${((Date.now() - started) / 1000).toFixed(0)} s): taught ${Object.keys(taughtHands).length} examples ${JSON.stringify(taughtHands)}`,
-      `  attempts ${outcomes.length} (${outcomes.length - planned} repeated for 'Nein'): taught words ${taughtOutcomes.length} (recognised ${count(taughtOutcomes, (outcome) => outcome.state === "confirm" && outcome.concept === wordOf(outcome.name))}, `
-        + `wrong concept shown ${count(taughtOutcomes, (outcome) => outcome.state === "confirm" && outcome.concept !== wordOf(outcome.name))}, `
-        + `unknown ${count(taughtOutcomes, (outcome) => outcome.state === "unknown")}, refused ${count(taughtOutcomes, (outcome) => outcome.state === "unusable")})`,
-      `  untaught words ${untaughtOutcomes.length}: confirm view shown ${count(untaughtOutcomes, (outcome) => outcome.state === "confirm")}, unknown ${count(untaughtOutcomes, (outcome) => outcome.state === "unknown")}, refused ${count(untaughtOutcomes, (outcome) => outcome.state === "unusable")}`,
-      `  spoken: after 'Ja, sagen' on a match ${confirmedSpoken}, after a candidate and 'Ja, sagen' ${candidateSpoken}; 'Nein' pressed ${rejected}; recordings cut by the time limit ${count(outcomes, (outcome) => outcome.cut)}`,
-      ...outcomes.map((outcome) => `    ${outcome.name} (${outcome.frames} frames): ${outcome.state}${outcome.concept === null ? "" : ` ${outcome.concept}`}${outcome.reason === null ? "" : ` (${outcome.reason})`}${outcome.hands === null ? "" : `, attempt ${outcome.hands === "both" ? "two-hand" : "one-hand"}`}`),
+      `Recognise on the board, continuous (${((Date.now() - started) / 1000).toFixed(0)} s): taught ${Object.keys(taughtHands).length} examples ${JSON.stringify(taughtHands)}`,
+      `  gestures ${outcomes.length}: taught words ${taughtOutcomes.length} (stacked right ${count(taughtOutcomes, (outcome) => outcome.concept === wordOf(outcome.name))}, `
+        + `stacked wrong ${count(taughtOutcomes, (outcome) => outcome.concept !== null && outcome.concept !== wordOf(outcome.name))}, nothing ${count(taughtOutcomes, (outcome) => outcome.concept === null)})`,
+      `  untaught words ${untaughtOutcomes.length}: stacked ${count(untaughtOutcomes, (outcome) => outcome.concept !== null)}, nothing ${count(untaughtOutcomes, (outcome) => outcome.concept === null)}`,
+      `  spoken: sentence after 'Ja, sagen' ${confirmedSpoken}, word after a tile tap ${wordsSpoken}; too long ${count(outcomes, (outcome) => outcome.dropped)}`,
+      ...outcomes.map((outcome) => `    ${outcome.name} (${outcome.frames} frames): ${outcome.concept ?? "nothing"}${outcome.dropped ? " (too long)" : ""}`),
     ];
     console.log(lines.join("\n"));
 
-    // A broken "Stopp" must not hide as a cut: with replayed frames every attempt is fed long before the limit, so every one must end through "Stopp".
     assert.deepEqual(await page.evaluate(() => window.__replayFaults ?? []), [], "the replayed tracker answers went out of step with the capture");
-    assert.deepEqual(outcomes.filter((outcome) => outcome.state === "problem").map((outcome) => outcome.name), [], "an attempt ended in a problem view");
-    assert.ok(outcomes.every((outcome) => !outcome.cut), "an attempt was not ended by 'Stopp'");
-    assert.ok(confirmedSpoken >= 1, "no attempt was recognised and confirmed");
-    assert.ok(rejected >= 1, "'Nein' was never tried");
-    assert.equal((await spoken()).length, confirmedSpoken + candidateSpoken, "something was spoken without a confirming tap");
+    assert.deepEqual(outcomes.filter((outcome) => outcome.state !== "listening").map((outcome) => outcome.name), [], "a gesture ended outside the listening view");
+    assert.ok(confirmedSpoken >= 1, "no gesture was recognised and confirmed");
+    assert.equal((await spoken()).length, confirmedSpoken + wordsSpoken, "something was spoken without a tap");
     assert.deepEqual(foreign, [], "a request left the app's origin");
     assert.deepEqual(errors, []);
     await context.close();

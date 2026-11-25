@@ -56,7 +56,9 @@ import type { CameraFacing, CaptureBridge, CapturePreview, CaptureProblem, Captu
 import { sequenceFromRecording } from "../recognition/examples.js";
 import type { FeatureFailure, HandKind } from "../recognition/features.js";
 import { DEFAULT_MIN_MARGIN, calibrateMaxDistance, matchGesture } from "../recognition/matcher.js";
+import { requestLocalGermanSpeech } from "../speech.js";
 import type { GestureExample, UnknownReason } from "../recognition/matcher.js";
+import { SEGMENT_MAX_MS, segmentStream } from "../recognition/segment.js";
 import { toLandmarkFrame } from "../recognition/tracker-adapter.js";
 import type { TrackerFrame } from "../recognition/tracker-adapter.js";
 
@@ -71,6 +73,8 @@ export const RECOGNISE_MAX_RECORDING_MS = 5000;
  * presses for as long after the view closed. A guess.
  */
 export const RECOGNISE_GUARD_MS = 700;
+/** Card NG-54: at most this many recognised gestures are stacked while listening; the oldest goes first. */
+export const MAX_TAKEN = 6;
 /** The dots of the recording's time: one per second of `RECOGNISE_MAX_RECORDING_MS`. */
 export const RECOGNISE_SECONDS = Math.ceil(RECOGNISE_MAX_RECORDING_MS / 1000);
 /**
@@ -96,6 +100,12 @@ export const RECOGNISE_TEXT = {
   countdown: (left: number): string =>
     `Gleich geht’s los: ${Array.from({ length: RECOGNISE_COUNTDOWN_S }, (_, at) => RECOGNISE_COUNTDOWN_S - at).filter((step) => step >= left).join(" … ")}`,
   recording: "Jetzt die Gebärde machen.",
+  /** Card NG-54: while recognising continuously. */
+  listening: "Gebärden machen. Dazwischen die Hände kurz runter.",
+  dropped: "Das war zu lang. Hände kurz runter, dann neu.",
+  done: "Fertig",
+  /** The accessible name of the row of recognised gestures. */
+  taken: "Erkannt",
   finish: "Stopp",
   question: "Meinst du das?",
   yes: "Ja, sagen",
@@ -187,6 +197,13 @@ export type RecogniseState =
   | { readonly kind: "starting"; readonly line: string }
   | { readonly kind: "countdown"; readonly left: number }
   | { readonly kind: "recording" }
+  /**
+   * Card NG-54: continuous recognition. The camera runs while the view is open; each gesture ends
+   * when the hands leave the picture (NG-53, "away") or with "Fertig". `taken`: the concepts
+   * recognised so far, oldest first, at most `MAX_TAKEN`. `dropped`: the last movement was too long
+   * to be a gesture and was let go.
+   */
+  | { readonly kind: "listening"; readonly taken: readonly string[]; readonly dropped: boolean }
   /** `hands`: which hands the attempt showed (one-hand and two-hand attempts are compared with examples of their kind only). */
   /**
    * `from`: the unknown answer whose candidate the child tapped; "Nein" goes back to it. Absent
@@ -237,6 +254,13 @@ export interface RecogniserOptions {
   readonly analyse?: (frames: readonly TrackerFrame[]) => AttemptOutcome;
   /** Card NG-49: the camera to ask for, read on each start. Default the front camera. */
   readonly facing?: () => CameraFacing;
+  /**
+   * Card NG-54: recognise continuously ("listening") instead of one attempt after a countdown.
+   * Read on each camera start.
+   */
+  readonly continuous?: () => boolean;
+  /** Card NG-54: says only the word of a recognised concept (a stacked tile); nothing else. */
+  readonly sayWord?: (conceptId: string) => void;
 }
 
 export interface Recogniser {
@@ -245,8 +269,13 @@ export interface Recogniser {
   start(pressAt?: number): void;
   /** "Stopp": ends the recording now. */
   finish(pressAt?: number): void;
-  /** "Ja, sagen": back to the board, which then speaks the concept once. */
+  /** "Ja, sagen": back to the board, which then speaks the concept once. While listening: with exactly one gesture taken, its sentence. */
   confirm(pressAt?: number): void;
+  /**
+   * Card NG-54: a tap on a stacked tile while listening: only that concept's word is said, the
+   * camera goes on. A tile that appeared less than `RECOGNISE_GUARD_MS` before the press does nothing.
+   */
+  sayWord(conceptId: string, pressAt?: number): void;
   /** "Nein": back to the board, or to the candidates the concept was chosen from; nothing spoken. */
   reject(pressAt?: number): void;
   /** A candidate of an unknown answer: the confirm view for it ("Nein" returns to the candidates). Speaks nothing. */
@@ -266,6 +295,10 @@ export interface Recogniser {
 
 interface Camera {
   readonly controller: AbortController;
+  /** Card NG-54: the frames since the last gesture was taken, while listening. */
+  buffer: TrackerFrame[];
+  /** Card NG-54: a movement too long to be a gesture was let go; its rest goes too, until the hands leave the picture. */
+  dropping: boolean;
   session: CaptureSession | null;
   cancelTimer: () => void;
   /** The once-a-second tick of the recording's time (card NG-45). */
@@ -359,6 +392,63 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       const candidates = outcome.kind === "unknown" ? outcome.candidates : [];
       show({ kind: "unknown", reason, candidates: candidates.filter((id) => options.onBoard.has(id)).slice(0, MAX_CANDIDATES), hands: outcome.hands });
     }
+  };
+
+  /** Card NG-54: when each taken concept appeared, for the tile's press guard. */
+  const takenAt = new Map<string, number>();
+  /**
+   * Card NG-54: cuts the frames heard so far at the hands leaving the picture (NG-53, "away"), and
+   * compares each finished gesture as one attempt. `force` ("Fertig"): the gesture still going on is
+   * finished now. A movement longer than `SEGMENT_MAX_MS` is let go, nothing compared.
+   */
+  const listen = (own: Camera, force: boolean): void => {
+    if (camera !== own || current.kind !== "listening") return;
+    const frames = own.buffer;
+    const sided = frames.map((frame) => toLandmarkFrame(frame, 0));
+    const index = new Map(sided.map((frame, at) => [frame, at]));
+    const nowMs = force ? Number.POSITIVE_INFINITY : (frames.length === 0 ? 0 : frames[frames.length - 1]!.timestampMs);
+    const cut = segmentStream(sided, "away", nowMs);
+    let taken = current.taken;
+    let dropped = current.dropped;
+    let usedTo = -1;
+    for (const segment of cut.segments) {
+      const first = index.get(segment[0]!)!;
+      const last = index.get(segment[segment.length - 1]!)!;
+      usedTo = last;
+      if (own.dropping) {
+        // The rest of the movement that was let go: not a gesture of its own.
+        own.dropping = false;
+        continue;
+      }
+      let outcome: AttemptOutcome;
+      try {
+        outcome = analyse(frames.slice(first, last + 1));
+      } catch {
+        continue;
+      }
+      // Only a gesture of the board is taken; anything else adds nothing (no error for the child).
+      if (outcome.kind === "match" && options.onBoard.has(outcome.conceptId)) {
+        taken = [...taken.filter((id) => id !== outcome.conceptId), outcome.conceptId].slice(-MAX_TAKEN);
+        takenAt.set(outcome.conceptId, options.now());
+        dropped = false;
+      }
+    }
+    if (cut.tooLong > 0) dropped = true;
+    if (cut.open !== null && cut.open[cut.open.length - 1]!.tMs - cut.open[0]!.tMs > SEGMENT_MAX_MS) {
+      // Somebody stays in view, moving: let it go, and the rest of it, and say so. Its last frame with a
+      // hand stays, so that "the rest of it" is always this movement, even if the hands leave right now,
+      // and never the next gesture.
+      usedTo = index.get(cut.open[cut.open.length - 1]!)! - 1;
+      dropped = true;
+      own.dropping = true;
+    } else if (cut.open === null && usedTo < 0) {
+      // Nothing begun: keep only the last frames, which may start a gesture.
+      usedTo = frames.length - 2;
+    } else if (cut.open !== null && usedTo < 0) {
+      usedTo = index.get(cut.open[0]!)! - 1;
+    }
+    if (usedTo >= 0) own.buffer = frames.slice(usedTo + 1);
+    if (taken !== current.taken || dropped !== current.dropped) show({ kind: "listening", taken, dropped });
   };
 
   const countdown = (own: Camera, left: number): void => {
@@ -456,7 +546,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     }
     const own: Camera = {
       controller: new AbortController(), session: null, cancelTimer: () => undefined, cancelTick: () => undefined, preview,
-      recordingEndsAt: Number.POSITIVE_INFINITY, shownSeen: 0, lowerSince: null, lowerMax: 0,
+      recordingEndsAt: Number.POSITIVE_INFINITY, shownSeen: 0, lowerSince: null, lowerMax: 0, buffer: [], dropping: false,
     };
     camera = own;
     const ours = (): boolean => camera === own && !own.controller.signal.aborted;
@@ -480,7 +570,15 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
         },
         onFrame: (frame) => {
           if (!ours() || gone()) return;
-          if (options.onSeen === undefined || (current.kind !== "countdown" && current.kind !== "recording")) return;
+          if (current.kind === "listening") {
+            own.buffer.push(frame);
+            try {
+              listen(own, false);
+            } catch {
+              // A frame that cannot be read: the next one goes on.
+            }
+          }
+          if (options.onSeen === undefined || (current.kind !== "countdown" && current.kind !== "recording" && current.kind !== "listening")) return;
           try {
             options.onSeen(steadySeen(own, handsSeen(frame)));
           } catch {
@@ -508,7 +606,12 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
         if (camera !== own) return;
         failed(end.kind === "problem" ? RECOGNISE_TEXT.problems[end.problem] : RECOGNISE_TEXT.stopped);
       });
-      countdown(own, RECOGNISE_COUNTDOWN_S);
+      if (options.continuous?.() === true) {
+        takenAt.clear();
+        show({ kind: "listening", taken: [], dropped: false });
+      } else {
+        countdown(own, RECOGNISE_COUNTDOWN_S);
+      }
     }, () => failed(RECOGNISE_TEXT.problems.tracker_unavailable));
   };
 
@@ -524,8 +627,23 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     },
     finish(pressAt) {
       if (current.kind === "recording" && aimed(pressAt)) finishRecording();
+      if (current.kind === "listening" && aimed(pressAt) && camera !== null) listen(camera, true);
+    },
+    sayWord(conceptId, pressAt) {
+      if (current.kind !== "listening" || !current.taken.includes(conceptId)) return;
+      // Each new tile moves the others: a press soon after any change may have been aimed at another tile.
+      if (!aimed(pressAt)) return;
+      if ((pressAt ?? options.now()) < (takenAt.get(conceptId) ?? Number.POSITIVE_INFINITY) + RECOGNISE_GUARD_MS) return;
+      options.sayWord?.(conceptId);
     },
     confirm(pressAt) {
+      if (current.kind === "listening" && current.taken.length === 1 && aimed(pressAt)) {
+        const [conceptId] = current.taken;
+        // As "Ja, sagen" of one attempt: the camera goes off, the board speaks the sentence once.
+        leave();
+        options.speak(conceptId!);
+        return;
+      }
       if (current.kind !== "confirm" || !aimed(pressAt)) return;
       const { conceptId } = current;
       // The view goes first, so a second tap finds nothing to confirm: spoken once.
@@ -544,7 +662,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     },
     switchCamera(change, pressAt) {
       if (disposed) return false;
-      const live = current.kind === "starting" || current.kind === "countdown" || current.kind === "recording" || current.kind === "problem";
+      const live = current.kind === "starting" || current.kind === "countdown" || current.kind === "recording" || current.kind === "listening" || current.kind === "problem";
       if (!live || (pressAt ?? options.now()) < cameraAskedAt + RECOGNISE_GUARD_MS) return false;
       change();
       stopCamera();
@@ -576,6 +694,10 @@ export interface AttachOptions {
   readonly now?: () => number;
   /** Where the camera choice is kept (card NG-49); default `localStorage`. For tests. */
   readonly storage?: () => ChoiceStorage | null;
+  /** Card NG-54: recognise continuously and stack the recognised gestures. Default false: one attempt after a countdown. */
+  readonly continuous?: boolean;
+  /** Card NG-54: says a word; default the device's local German voice. For tests. */
+  readonly sayText?: (text: string) => void;
 }
 
 export interface AttachedRecogniser {
@@ -844,12 +966,14 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     delete panel.dataset["reason"];
     delete panel.dataset["hands"];
     delete panel.dataset["from"];
-    if (state.kind !== "countdown" && state.kind !== "recording") delete panel.dataset["seen"];
-    cameraButton.hidden = !(state.kind === "starting" || state.kind === "countdown" || state.kind === "recording" || state.kind === "problem");
+    if (state.kind !== "countdown" && state.kind !== "recording" && state.kind !== "listening") delete panel.dataset["seen"];
+    // Card NG-54: no time limit while listening, so no seconds.
+    timeBox.hidden = state.kind === "listening";
+    cameraButton.hidden = !(state.kind === "starting" || state.kind === "countdown" || state.kind === "recording" || state.kind === "listening" || state.kind === "problem");
     if (switchFocused && cameraButton.hidden) focusLost = true;
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
-    if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording") previewSlot.replaceChildren();
+    if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording" && state.kind !== "listening") previewSlot.replaceChildren();
     if (state.kind === "idle") {
       board.uncover();
       return;
@@ -882,6 +1006,44 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         showSeen(seen);
         content.push(feedback);
         break;
+      case "listening": {
+        line.textContent = state.dropped ? RECOGNISE_TEXT.dropped : RECOGNISE_TEXT.listening;
+        if (preview !== null) {
+          place(previewSlot, [preview.element, pictureButton]);
+          content.push(previewSlot);
+        }
+        showSeen(seen);
+        content.push(feedback);
+        // Card NG-54: the recognised gestures, newest first (the top of the stack, always in view); a tap says only that word.
+        if (state.taken.length > 0) {
+          const row = element("div", "recognise-taken");
+          row.setAttribute("role", "group");
+          row.setAttribute("aria-label", RECOGNISE_TEXT.taken);
+          for (const id of [...state.taken].reverse()) {
+            const entry = byId.get(id);
+            if (entry === undefined) continue;
+            const tile = button(entry.symbolPath === null ? "concept concept-text recognise-taken-tile" : "concept recognise-taken-tile", "");
+            tile.setAttribute("aria-label", entry.labelDe);
+            tile.dataset["concept"] = id;
+            conceptContent(tile, entry, 48);
+            tile.addEventListener("click", () => recogniser.sayWord(id, pressStart()));
+            row.append(tile);
+            focusable.push(tile);
+          }
+          content.push(row);
+        }
+        const done = actionButton("recognise-finish", RECOGNISE_SYMBOLS.finish, RECOGNISE_TEXT.done);
+        done.addEventListener("click", () => recogniser.finish(pressStart()));
+        buttons.push(done);
+        // Exactly one gesture: its sentence, as after one attempt.
+        if (state.taken.length === 1) {
+          const entry = byId.get(state.taken[0]!);
+          const yes = actionButton("recognise-yes", RECOGNISE_SYMBOLS.yes, RECOGNISE_TEXT.yes, entry?.symbolPath ?? null);
+          yes.addEventListener("click", () => recogniser.confirm(pressStart()));
+          buttons.push(yes);
+        }
+        break;
+      }
       case "recording": {
         line.textContent = RECOGNISE_TEXT.recording;
         if (preview !== null) {
@@ -1012,6 +1174,17 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     onTimeLeft: showTimeLeft,
     stillShown: () => !root.hidden && !hiddenPage(),
     facing: () => facing,
+    continuous: () => options.continuous === true,
+    sayWord: (conceptId) => {
+      const entry = byId.get(conceptId);
+      if (entry === undefined) return;
+      const say = options.sayText ?? ((text: string) => { requestLocalGermanSpeech(text, () => undefined); });
+      try {
+        say(entry.labelDe);
+      } catch {
+        // No voice: the tile stays; nothing else changes.
+      }
+    },
   });
   pictureButton.addEventListener("click", () => {
     picture = !picture;
