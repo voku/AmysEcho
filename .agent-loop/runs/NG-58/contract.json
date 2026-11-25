@@ -8,11 +8,11 @@
         "A real-browser test saves and restores a synthetic profile with a demo clip through Web Crypto"
     ],
     "acceptance_observations": [],
-    "approved_at": "2026-11-25T20:00:37+00:00",
-    "approved_by": "Lars Moelleken (owner decision in session 2026-11-25: backup 'Ja mit Passwort'; earlier: 'Alles mit ins Backup, sodass man das Gerät wechseln kann'; session approved)",
+    "approved_at": "2026-11-25T20:03:20+00:00",
+    "approved_by": "Lars Moelleken (owner decision in session 2026-11-25: backup 'Ja mit Passwort'; session approved)",
     "base_commit": "ff802fa6af9d0582a06fdabb70db3d1ad891978c",
     "behavior_anchors": [],
-    "created_at": "2026-11-25T20:00:37+00:00",
+    "created_at": "2026-11-25T20:03:20+00:00",
     "goal": "A caregiver saves a password-protected backup file of a profile (board, wording, pictures, taught gestures, demo clips) and restores it on another device, so a device can be replaced without losing data.",
     "kind": "task_contract",
     "non_goals": [
@@ -22,11 +22,11 @@
     ],
     "operating_prompt_manifest": null,
     "operating_prompts": [],
-    "planned_by": "Lars Moelleken (owner decision in session 2026-11-25: backup 'Ja mit Passwort'; earlier: 'Alles mit ins Backup, sodass man das Gerät wechseln kann'; session approved)",
+    "planned_by": "Lars Moelleken (owner decision in session 2026-11-25: backup 'Ja mit Passwort'; session approved)",
     "rejected_at": null,
     "rejected_by": null,
     "rejection_reason": null,
-    "revision": 1,
+    "revision": 2,
     "schema_version": "1.0",
     "scope": [
         "src/profiles/backup-file.ts",
@@ -40,12 +40,13 @@
         "test/browser/backup.test.mjs",
         "docs/caregiver.md",
         "docs/storage.md",
-        "docs/s0a-product-contract-v0.1.md"
+        "docs/s0a-product-contract-v0.1.md",
+        "test/profiles.test.mjs"
     ],
     "status": "approved",
     "tags": [],
     "task_id": "NG-58",
-    "updated_at": "2026-11-25T20:00:37+00:00",
+    "updated_at": "2026-11-25T20:03:20+00:00",
     "validation": [
         "npm ci --ignore-scripts",
         "npm run verify"
