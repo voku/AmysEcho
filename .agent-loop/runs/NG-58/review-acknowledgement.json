@@ -1,10 +1,10 @@
 {
-    "acknowledged_at": "2026-11-25T20:13:08+00:00",
-    "acknowledged_by": "Claude (agent; owner Lars Moelleken approved in session 2026-11-25)",
+    "acknowledged_at": "2026-11-25T20:50:16+00:00",
+    "acknowledged_by": "Claude (agent; owner Lars Moelleken decided 'Ja mit Passwort' in session 2026-11-25)",
     "contract_revision": 2,
-    "implementation_snapshot": "sha256:060c9d4810ee63cc5916e3e817a6830fd6e586e1f11e82325055d374ab608bd1",
+    "implementation_snapshot": "sha256:65b5d6c0fb739733ddf4684ef5e285cf142d198340b3223eafd678e4b815ab0e",
     "kind": "review_acknowledgement",
-    "report_sha256": "sha256:9910bcb27b881af4172e043463e5dc648463ec1df94a05cb0cc704028906a13a",
+    "report_sha256": "sha256:145bcfb00aaaca943d8c62a61cdad090099927e74659b604e6fc74ffb1d6d69b",
     "run_id": "run:NG-58:97fde80392bba081",
     "schema_version": "1.0",
     "task_id": "NG-58"

@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-58 before calling agent-loop finish NG-58",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-25T20:03:20+00:00",
@@ -77,11 +77,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-25T20:50:17+00:00",
+            "decided_by": "Claude (agent; owner Lars Moelleken decided 'Ja mit Passwort' in session 2026-11-25)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-58:97fde80392bba081",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/9455c81bc6e088dcdf0cf9a352b173dd0e5b703c6d5cec78d7327ebd0e527538.json",
+                "sha256": "sha256:edae1e6cdfa7523cb6c712a6c433a486b24d6e6c16d2af12c8af42a0957a7172"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -92,7 +98,30 @@
                 "path": ".agent-loop/map/php-symbols.json",
                 "sha256": "sha256:e2725e69de34b7cd208aef57b087c5f5e921c9cd411b49fc3ed827daf0bb083b"
             },
-            "state": "ready"
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/profiles/backup-file.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/backup-file.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/browser/backup.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 5,
+            "state": "stale"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
@@ -115,14 +144,17 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-58/reviews/NG-58.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-58/reviews/NG-58.blindspots.json",
+                "sha256": "sha256:145bcfb00aaaca943d8c62a61cdad090099927e74659b604e6fc74ffb1d6d69b"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/search.sqlite",
-            "state": "missing"
+            "state": "unavailable"
         },
         "session": {
             "base_commit": "ff802fa6af9d0582a06fdabb70db3d1ad891978c",
@@ -132,37 +164,27 @@
             "session_id": "2026-11-25-ng-58-r2-52bd7b37",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-25-ng-58-r2-52bd7b37/session.json",
-                "sha256": "sha256:aadf823fe1d93b90b8fabec277086a2fd6c927fcee79bdceed2a9da56d778dfd"
+                "sha256": "sha256:cabeea74f66209716988070e5604049ce83dc010b0f4ddcda9302d042f83e565"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-58"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-58 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-58",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "execution_review",
-            "implementation_snapshot": "sha256:060c9d4810ee63cc5916e3e817a6830fd6e586e1f11e82325055d374ab608bd1",
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:65b5d6c0fb739733ddf4684ef5e285cf142d198340b3223eafd678e4b815ab0e",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "independent review pipeline is incomplete at stage investigate",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-58:97fde80392bba081",
+            "source": {
+                "path": ".agent-loop/runs/NG-58/verification.json",
+                "sha256": "sha256:99af09d96456ea375afcf84d0cbbc9556f38d792e7ee6b5cee2a6e7edbd9ee3d"
+            },
+            "source_session_id": "2026-11-25-ng-58-r2-52bd7b37",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-58:97fde80392bba081",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-58"
 }

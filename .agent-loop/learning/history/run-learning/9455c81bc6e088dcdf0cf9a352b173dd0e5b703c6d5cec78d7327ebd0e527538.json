@@ -1,0 +1,15 @@
+{
+    "schema_version": "1.0",
+    "kind": "run_learning_decision",
+    "run_id": "run:NG-58:97fde80392bba081",
+    "decision": "follow_up_required",
+    "decided_by": "Claude (agent; owner Lars Moelleken decided 'Ja mit Passwort' in session 2026-11-25)",
+    "decided_at": "2026-11-25T20:50:17+00:00",
+    "reason": null,
+    "finding_ids": [],
+    "follow_up_ref": "NG-62",
+    "contract_revision": 2,
+    "implementation_snapshot": "sha256:65b5d6c0fb739733ddf4684ef5e285cf142d198340b3223eafd678e4b815ab0e",
+    "validation_evidence_sha256": "sha256:9da9229339189e3da9b9a27094c4c7fdfd5ad51df2c6dcd64bff41b7f80e4bca",
+    "review_evidence_sha256": "sha256:145bcfb00aaaca943d8c62a61cdad090099927e74659b604e6fc74ffb1d6d69b"
+}
