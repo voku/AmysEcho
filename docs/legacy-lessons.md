@@ -42,3 +42,22 @@ optimistic. Together they support per-child examples and say nothing yet about r
 - Evaluation is split by recording session, never by window or frame.
 - "Unknown" is a first-class result.
 - The demo videos are reference material on `main_old`, not ground truth and not fixtures here.
+
+## Features of the first version, reviewed for NG (2026-11-25)
+
+The owner asked which parts of `main_old` are worth building again. None is ported; each is judged
+against the findings above and the product contract ([s0a-product-contract-v0.1.md](s0a-product-contract-v0.1.md)).
+
+| In `main_old` | What it did | For NG |
+| --- | --- | --- |
+| `DgsVideoPlayer` | A child-friendly player for DGS videos, with large controls and speeds 🐢 / 🐇 / 🐆. No page mounted it; only its own test used it. | The idea yes, the videos no. The videos are from SignDict, with the licence unchecked per video. They show different signs for one word (finding 6), and their own README warns that they may not match the child's signs. The slow replay is worth keeping. |
+| Learning hub (`/lernen`) | A list of gestures with categories and search, and "start training". | Already covered by teaching in the caregiver area (card NG-4). |
+| Smart practice, adaptive learning | Success rates, difficulty levels, weak gestures, generated exercises. | No. It needs measured data that does not exist (finding 4), and it puts a child under pressure to perform; the contract says "no pressure to perform". |
+| `Celebration` | A random praise overlay after a recognised gesture. | No. In AAC being understood is the reward; praise for signing "right" turns communication into a test. |
+| Server training, accounts, admin, history | An MLP trained on a server, login, a gesture history. | No: no backend, and no child data off the device. |
+| Mirrored training data | Left/right mirrored copies of recordings as extra samples. | No. The matcher compares only what the child itself recorded. |
+
+What NG takes from this is card NG-56, "Vormachen". The child's *own* taught example is shown as
+a moving hand, from the features that are already stored (`src/teach/replay.ts`). It is mirrored
+like a mirror and can be played slowly. The child imitates it while the gesture view keeps
+listening. There are no videos, no scores and no praise.

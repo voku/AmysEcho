@@ -1,0 +1,661 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+    "contract_revision": 2,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+    "history": [
+        {
+            "accepted_at": "2026-11-25T07:05:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:05:08+00:00",
+                "artifact_references": [],
+                "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:6e219d67",
+                "summary": "As revision 1; since then the owner decided: on idle only the camera stops and the tiles stay (paused state with Weiter), and tile voice failures use the board's lines in the board's order.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:05:09+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:05:09+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:3b00b3eb0bbe2dcc9185589914f9e6ef63eea94002556ead740be0bf8131b2ae",
+                    "execution-evidence:sha256:0a4b1310c2e980cf539fe688155d84b40934ac1bee8768e8ce3f30230ad6be4e",
+                    "execution-evidence:sha256:6eed543b0253e7da9f329be7fa7dc301a95292b331b0e4614a90124432955aa0"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:3b00b3eb0bbe2dcc9185589914f9e6ef63eea94002556ead740be0bf8131b2ae",
+                    "execution-evidence:sha256:0a4b1310c2e980cf539fe688155d84b40934ac1bee8768e8ce3f30230ad6be4e",
+                    "execution-evidence:sha256:6eed543b0253e7da9f329be7fa7dc301a95292b331b0e4614a90124432955aa0"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:c2c3c80c",
+                "summary": "Idle: paused state (camera off, tiles stay, sayWord/confirm work, Weiter resumes with them); voice: board lines (unavailable twice escalates, no-voice, failed twice escalates); carry per camera start; sided cache; zu-lang clears on close; tests for all; mutants caught. npm run verify 708/708 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:06:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:06:45+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:61177d75e7201cba971c7a46bbe077843f6461b0fbce1952543eb64d144bac65",
+                    "execution-evidence:sha256:f39adfc0a0335a64783483c52c80192c4ecc3ad746d5bb51ebf802dc78275cfb",
+                    "execution-evidence:sha256:90073c779a1fbef8a29bcc52268991b560ae9ccb6197bee458b0054c42f49e0e"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:61177d75e7201cba971c7a46bbe077843f6461b0fbce1952543eb64d144bac65",
+                    "execution-evidence:sha256:f39adfc0a0335a64783483c52c80192c4ecc3ad746d5bb51ebf802dc78275cfb",
+                    "execution-evidence:sha256:90073c779a1fbef8a29bcc52268991b560ae9ccb6197bee458b0054c42f49e0e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "context_id": "claude-subagent-ng55-r2-correctness",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:5adbea27",
+                "summary": "Async voice failures never escalate: sayWord resets failures to 0 on every 'requested' result (src/recognise/recognise.ts:1303), while real failures arrive later via utterance.onerror, so two failed taps in a row both show 'Vorlesen ging nicht' and never 'Vorlesen geht nicht. Hol eine Bezugsperson.' (reproduced with an asynchronous failed() probe). board.ts:355-362 resets failures only on onEnd. The test (test/recognise.test.mjs:595) only calls failed() synchronously. Fix: do not reset failures on 'requested'; reset on utterance end by passing onEnd to requestLocalGermanSpeech at recognise.ts:1277 (and extend sayText for tests), keep show(null) for a word said; add a test that calls failed() after sayText returns, twice in a row, expecting the 'geht nicht' line. Paused paths, carry, switch, guard, focus and draw checked without defects.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:10:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:10:28+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:29b224b7d7d284b445166adab070e3a49017bec8c7bdc6366f0cf1e430b9dc2d",
+                    "execution-evidence:sha256:5f75a794139d96a024b67bb287c510732eca8ba36f331ddaf0acf9751d156bd9",
+                    "execution-evidence:sha256:4f89d19fe39f28c05d1fad4ea59e2bdd2827b95a7d5f72730e1afdefe4d0c490"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:29b224b7d7d284b445166adab070e3a49017bec8c7bdc6366f0cf1e430b9dc2d",
+                    "execution-evidence:sha256:5f75a794139d96a024b67bb287c510732eca8ba36f331ddaf0acf9751d156bd9",
+                    "execution-evidence:sha256:4f89d19fe39f28c05d1fad4ea59e2bdd2827b95a7d5f72730e1afdefe4d0c490"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:daefe643",
+                "summary": "Review fix: failures reset only in the utterance end callback (sayText gets ended), not on 'requested'; late-failure test (two taps, failure after the call) expects the escalation and fails with the old reset; voice line cleared on a kind change; counters reset when the view closes; idle comment. npm run verify 709/709 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:11:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:11:34+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7dfaa9e0647a654be3e703ef339755a64c629259df68daebcb13c60883cc1699",
+                    "execution-evidence:sha256:797263b68e6627e237c09a4164c91901ccf77a4c9aebb5e8e2cd782611d8da58",
+                    "execution-evidence:sha256:f30357ec18aee8808d0999b2cd0c17ba82f205ffecfa300cade9efa09746b8d7"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7dfaa9e0647a654be3e703ef339755a64c629259df68daebcb13c60883cc1699",
+                    "execution-evidence:sha256:797263b68e6627e237c09a4164c91901ccf77a4c9aebb5e8e2cd782611d8da58",
+                    "execution-evidence:sha256:f30357ec18aee8808d0999b2cd0c17ba82f205ffecfa300cade9efa09746b8d7"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "context_id": "claude-subagent-ng55-r2-correctness-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "observations": [
+                    "src/recognise/recognise.ts:1292-1295 sayWord callbacks have no per-attempt guard, unlike board.ts:354-362 (thisAttempt !== currentAttempt). A failure reported after the view closed or during 'starting' after Weiter still increments failures (show() is skipped), so the next first visible failure reads 'Vorlesen geht nicht. Hol eine Bezugsperson.' instead of 'ging nicht'. A late end is harmless. Low impact; a token captured per sayWord call would match the board.",
+                    "src/recognise/recognise.ts:1300 an engine that fires onend after onerror for the same utterance resets the count and the escalation never shows; board.ts has the same behaviour, so this is parity, not a regression."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:e0d1cdbd",
+                "summary": "51682d75 fixes the attempt-1 defect: failures reset only in the utterance end callback (recognise.ts:1300), default maps to requestLocalGermanSpeech(text, failed, ended) whose onEnd also covers interrupted/canceled as on the board; show(null) on requested only clears a line for a new successful request, as board.ts:365 shows ''. The new test passes and fails (verified in a scratch copy) when the per-request reset is restored. Voice line clears on kind change; counters reset off listening/paused. 69/69 tests pass in recognise+app.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:12:33+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:12:33+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c091bafb6db254b62bc7cfc186d45c549d736d73dd7d903036618e05a48992ca",
+                    "execution-evidence:sha256:c5756fe8ddf892603846ce538be5d2f02a77f06b47d7ef19e52f8d076c836711",
+                    "execution-evidence:sha256:88365f84818fcf226b8c0ab540b7786ab766f7e5f4a6be66413cd9b9e702ba51"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c091bafb6db254b62bc7cfc186d45c549d736d73dd7d903036618e05a48992ca",
+                    "execution-evidence:sha256:c5756fe8ddf892603846ce538be5d2f02a77f06b47d7ef19e52f8d076c836711",
+                    "execution-evidence:sha256:88365f84818fcf226b8c0ab540b7786ab766f7e5f4a6be66413cd9b9e702ba51"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "context_id": "claude-subagent-ng55-r2-blindspot",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:8c89829c",
+                "summary": "Partial-failure blind spot in owner decision (a): '▶ Weiter' from paused calls startCamera, which shows 'starting' without the tiles and, if the camera then fails (problem: busy/permission/stopped, recognise.ts:584-588,643-645,657) or the permission ask ends without a problem (leave(), recognise.ts:645), the paused tiles are gone: 'Nochmal' restarts with carried=[] (recognise.ts:685,661-663). The owner kept the tiles because they are the child's message waiting to be read; a failed resume destroys it irreversibly and no test covers it. Smallest fix: when a start that carried tiles fails or is refused, return to { kind: 'paused', taken: carry } (or keep carry for the problem view's retry), plus one controller test. Also noted: page hide/pagehide calls recogniser.back() in every state (recognise.ts:1341-1344), so a paused view (camera already off) closes and loses the tiles on screen lock, and device auto-lock (often 30 s-2 min) usually fires before RECOGNISE_IDLE_MS; docs/recognise.md 'The view stays open' does not say this. Verified fine: nothing is spoken without a tap; idle stop calls stopCamera and the test asserts camera.running false; paused hides the camera switch and keeps 'Zurück zur Tafel'; no frames buffered while paused (camera=null).",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:16:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:16:31+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ad0d8b8b3ece06f1799be8d3d91b1e7c7ff6a7e3ab2f2cb541867129136fc43c",
+                    "execution-evidence:sha256:460ce2a61a8677010fcb5d5b043d7b198a4a9c74295cf3804d95de3df1532206",
+                    "execution-evidence:sha256:0f62e87b9883befebad7f1951f507555fedfb6e34c3c07992f866088a4bced15"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ad0d8b8b3ece06f1799be8d3d91b1e7c7ff6a7e3ab2f2cb541867129136fc43c",
+                    "execution-evidence:sha256:460ce2a61a8677010fcb5d5b043d7b198a4a9c74295cf3804d95de3df1532206",
+                    "execution-evidence:sha256:0f62e87b9883befebad7f1951f507555fedfb6e34c3c07992f866088a4bced15"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:082078b1",
+                "summary": "Blind-spot fix: failed() and the no-problem refusal pause with own.carry when it is non-empty (line = problem line); paused added to switchCamera's live states and the camera button; recogniser.hide() pauses listening (stopCamera) and keeps paused, else leave; page hide handlers call hide(). Tests: failed switch -> paused with tiles then switch back listens with them; hide -> paused; refused Weiter -> paused with tiles. npm run verify 710/710 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:17:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:17:55+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a6847b0b60d24f51596a1feb3154ff68f0fc83fdf0098f32c243ddeddd7aea85",
+                    "execution-evidence:sha256:a5ce26cf153a90e6c9b87fcbcdbe76c2cb3ec39044278941af34df8266aaf4ce",
+                    "execution-evidence:sha256:c0dbd2db1294306d53e4d65ebcf7afd52297cd05f7325ff117f4d357f096bde3"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a6847b0b60d24f51596a1feb3154ff68f0fc83fdf0098f32c243ddeddd7aea85",
+                    "execution-evidence:sha256:a5ce26cf153a90e6c9b87fcbcdbe76c2cb3ec39044278941af34df8266aaf4ce",
+                    "execution-evidence:sha256:c0dbd2db1294306d53e4d65ebcf7afd52297cd05f7325ff117f4d357f096bde3"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "context_id": "claude-subagent-ng55-r2-correctness-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:13435055",
+                "summary": "Two tile-loss paths remain. (1) recognise.ts:594 failed() pauses with own.carry, the start-time snapshot: after Weiter with [trinken], a new tile hilfe, then the camera stopping, the pause shows only [trinken] (probe-verified); a start without carry that fails while listening still drops all tiles to problem. Fix: keep current.kind==='listening' ? current.taken : own.carry, and pause when that is non-empty. (2) recognise.ts:746-753 hide() during starting with carried tiles (Weiter or switch) calls leave(): state idle, tiles lost (probe-verified), against docs/recognise.md:283. Fix: in hide(), when current.kind==='starting' and camera.carry is non-empty, stopCamera and pause with that carry. Camera is off in every probed path; countdown/recording hide, gone, dispose unchanged; 70/70 tests pass. Also: the problem lines in the pause say tap Nochmal (recognise.ts:146-155) but the pause shows Weiter.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:22:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:22:51+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6c0866b30c6bc5f1128f359a001ce800692dcf8539e7623759920c8f785c3dc8",
+                    "execution-evidence:sha256:96453ff295062e28855e955ece7218b8a8af35c8524052576684111f00024ef9",
+                    "execution-evidence:sha256:fdbd4b55ea1c09363c0bd42d3db91234585bb7b608dda393490ffa0c15c23e40"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6c0866b30c6bc5f1128f359a001ce800692dcf8539e7623759920c8f785c3dc8",
+                    "execution-evidence:sha256:96453ff295062e28855e955ece7218b8a8af35c8524052576684111f00024ef9",
+                    "execution-evidence:sha256:fdbd4b55ea1c09363c0bd42d3db91234585bb7b608dda393490ffa0c15c23e40"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:ba84b839",
+                "summary": "Build attempt 4 (after the human resolved the review attention): the candidate of 241d2cd0 - failed() keeps the current tiles while listening, hide() while starting keeps the carry, the pause line names Weiter; all earlier NG-55 changes. npm run verify 712/712 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:24:53+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:24:53+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8326f5b787beeeac72870f0600ea3f9ec31d3800cdf0486a5e4c176188c3256a",
+                    "execution-evidence:sha256:72bf1b3c15a271914c0a1d3d12519d346dd156d25c1d5b1ecf4f12480c9cb3e0",
+                    "execution-evidence:sha256:12ede49c936760598ab903af17ea2cd15c55e9818155fdd174dede2756aed494"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8326f5b787beeeac72870f0600ea3f9ec31d3800cdf0486a5e4c176188c3256a",
+                    "execution-evidence:sha256:72bf1b3c15a271914c0a1d3d12519d346dd156d25c1d5b1ecf4f12480c9cb3e0",
+                    "execution-evidence:sha256:12ede49c936760598ab903af17ea2cd15c55e9818155fdd174dede2756aed494"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
+                "context_id": "claude-subagent-ng55-r2-correctness-4",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:7a60fe39",
+                "summary": "Tile-loss path remains: 'Weiter' or a camera switch whose bridge lookup returns null (or throws) shows 'problem' and drops the carried tiles (src/recognise/recognise.ts:572-575), contradicting docs/recognise.md:280-282; reproduced against dist. Test gaps (mutations survive the suite): cancelled start with carried tiles (recognise.ts:654), takenAt kept on a carried start so carried tiles stay tappable after Weiter/switch (recognise.ts:674), and failures reset on utterance end (recognise.ts:1328).",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:22:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:22:28+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4275b57ce922bd40438b8bef675f2c34d51a2c16a3416f7be0274e3ffbc298df",
+                    "execution-evidence:sha256:bc92a9af1566230dc87a088ad681fefd7b9e2fa8946c74cbcebe01ac8fd6ab7e",
+                    "execution-evidence:sha256:0f1edcc0e6e0dfd600f8c470209c8464ba4043d42845fc7dbfa22a554899a528"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4275b57ce922bd40438b8bef675f2c34d51a2c16a3416f7be0274e3ffbc298df",
+                    "execution-evidence:sha256:bc92a9af1566230dc87a088ad681fefd7b9e2fa8946c74cbcebe01ac8fd6ab7e",
+                    "execution-evidence:sha256:0f1edcc0e6e0dfd600f8c470209c8464ba4043d42845fc7dbfa22a554899a528"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:788a1ed6",
+                "summary": "Build attempt 5: bridge-null branch pauses with carried tiles (noCamera line); tests for a start refused without a problem, a carried tile said after Weiter, and the end-only failure reset; 4 mutants each caught. npm run verify 714/714 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:24:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:24:56+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:034d01aa5b457e2c299819f61ed4dfd7f4138ce9802365c6d8e8cfe1e3c12cb4",
+                    "execution-evidence:sha256:914caa04d74db7a2558b3207b389e231574d5062edcb90ee906b686451630a15",
+                    "execution-evidence:sha256:b991ea2a30b00dbb47e23971a322b1cd0bcb12f28999ae1a92964d1b86a7f533"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:034d01aa5b457e2c299819f61ed4dfd7f4138ce9802365c6d8e8cfe1e3c12cb4",
+                    "execution-evidence:sha256:914caa04d74db7a2558b3207b389e231574d5062edcb90ee906b686451630a15",
+                    "execution-evidence:sha256:b991ea2a30b00dbb47e23971a322b1cd0bcb12f28999ae1a92964d1b86a7f533"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "context_id": "claude-subagent-ng55-r2-correctness-5",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:152ce6ff",
+                "summary": "The bridge-null fix is correct, and each new test fails without its change (checked by mutation). One defect remains against owner decision (b). In draw() at src/recognise/recognise.ts:1108 the voice failure count (and emptyLists) is reset on every state other than listening or paused. That includes the 'starting' state shown on 'Weiter' and on a camera switch. So a failure, then 'Weiter', then a second failure shows 'Vorlesen ging nicht' again instead of 'Vorlesen geht nicht. Hol eine Bezugsperson.'. A probe test reproduced this. The owner's rule is that the count resets only when an utterance ends, and docs/recognise.md:295 says the same. Fix: reset failures, emptyLists and lastTaken only on idle (the end of the message), or keep them while starting. Add a test for a failure, then 'Weiter' or a switch, then a failure. No other path loses the tiles or leaves the camera on.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:28:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:28:20+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:41f04e490571e93d399167c95f5489a7294dae60fa0acf55f40f43bdf6e4a1e8",
+                    "execution-evidence:sha256:068c034165c112ac4afad4b542bbc6dec84ffdb5a21f0ba533452d183d15d98c",
+                    "execution-evidence:sha256:1af4581738836eb97a28a2d3d6d2b6c53f77dab6b924948972e255cf90920a6e"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:41f04e490571e93d399167c95f5489a7294dae60fa0acf55f40f43bdf6e4a1e8",
+                    "execution-evidence:sha256:068c034165c112ac4afad4b542bbc6dec84ffdb5a21f0ba533452d183d15d98c",
+                    "execution-evidence:sha256:1af4581738836eb97a28a2d3d6d2b6c53f77dab6b924948972e255cf90920a6e"
+                ],
+                "attempt": 6,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:6:35846bcc",
+                "summary": "Build attempt 6: voice counts (failures, emptyLists, lastTaken) reset only on idle, not on starting; test: failure, hide, Weiter, failure -> 'Vorlesen geht nicht. Hol eine Bezugsperson.' (fails with the old reset). npm run verify green.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:29:17+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:29:17+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c6264596b14cfd8d33e8570cdb6c833d821ad6bb897bd557b41c2fa08e344319",
+                    "execution-evidence:sha256:32fb1671899267c8837e3579ac968fa6bb087141cbeebd1803c3862a65164adb",
+                    "execution-evidence:sha256:bb024eb71ad9dc093625bfba6203b9093e4a410ee43d0a384da9142874f19866"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c6264596b14cfd8d33e8570cdb6c833d821ad6bb897bd557b41c2fa08e344319",
+                    "execution-evidence:sha256:32fb1671899267c8837e3579ac968fa6bb087141cbeebd1803c3862a65164adb",
+                    "execution-evidence:sha256:bb024eb71ad9dc093625bfba6203b9093e4a410ee43d0a384da9142874f19866"
+                ],
+                "attempt": 6,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "context_id": "claude-subagent-ng55-r2-correctness-6",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "observations": [
+                    "docs/recognise.md:295 says failures in a row end only when a word is said to its end; the code (src/recognise/recognise.ts:1110) also ends them, and the empty-list count, on the way back to the board. The docs do not say that the counts carry across 'Weiter' or a camera switch.",
+                    "test/recognise.test.mjs:2254 covers the carry-over across 'Weiter' only. The camera-switch path uses the same idle-only reset but has no test of its own.",
+                    "src/recognise/recognise.ts:1110 counts survive rejecting every tile followed by a camera problem and 'Nochmal' (problem, not idle), so a fresh empty message can begin with failures=1; an edge case, arguably the same message."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:6:ca08b48f",
+                "summary": "ffb9290f resets voice-trouble counts (failures, emptyLists, lastTaken) only on idle; they now carry across Weiter and a camera switch. Reverting the condition to the old non-listening/paused reset makes the new 'Weiter' test fail (mutation verified), so the test catches the bug. lastTaken kept across pause/starting is harmless because a kind change clears voiceLine before the listening takenKey check. Build plus recognise and app tests: 75/75 pass. Docs match the code, with one small gap noted as an observation.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:30:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:30:34+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:904737ec8041f3610e3b18a370da14a511d2f172633ff4dc5f2ba3ab614be684",
+                    "execution-evidence:sha256:a70cb249c9bc564661753da7f7a0a9fc014352dc7b9ecd0a6e1a0d1fdccb804e",
+                    "execution-evidence:sha256:590b8db6530b24636ce5c46218df44e91d322084bf421d60e7a58d541b9ae76f"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:904737ec8041f3610e3b18a370da14a511d2f172633ff4dc5f2ba3ab614be684",
+                    "execution-evidence:sha256:a70cb249c9bc564661753da7f7a0a9fc014352dc7b9ecd0a6e1a0d1fdccb804e",
+                    "execution-evidence:sha256:590b8db6530b24636ce5c46218df44e91d322084bf421d60e7a58d541b9ae76f"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "context_id": "claude-subagent-ng55-r2-blindspot-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "observations": [
+                    "recognise.ts hide()/idle stop: a listening view with no tiles now pauses (empty pause with Weiter) instead of returning to the board; camera is off so harmless, but the docs describe the pause only in terms of tiles.",
+                    "recognise.ts paused case: the Nochmal->Weiter swap is a literal replace of the quoted „Nochmal“; a future problem line worded differently would name a button absent in the pause. Inferred, no test covers every problem line in the pause.",
+                    "The pause has no timeout back to the board: after a screen lock the child's tiles stay on screen until someone acts. This is intended (the message is kept) and nothing is stored, so there is no privacy issue."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:00bd641d",
+                "summary": "No new blocking blind spots. Camera stops verified on idle (onFrame fires for every frame, hands or not, capture.ts:491), hide in all states, and a late start after hide (answer.session.stop when !ours). Tiles kept on every carried start path. Speech only from taps (sayWord/confirm, behind the aimed and guard checks). No new storage of child data. The docs match the code.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:33:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:33:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:389685e2079cd213a07f8547d1679587480fe31bb7db4c85fdce91bdf42999d3",
+                    "execution-evidence:sha256:bb0ad09478c900a0ad8735f2a0cff2904359c9712b20379b3c35881ffba60ab7"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "consistency_references": [
+                    "execution-evidence:sha256:2a6d244999e1e0cb3235c08233d576b43d1457e9f94304b13ad57d036cdb92e0"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:312b8cc5892f6aef4723da0b9adde02b5cbd5a8f7260b236a510f79e56ad53c3",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-55: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-55 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-55:7b2fb3521aa9c190 binds active Session 2026-11-25-ng-55-r2-ae8d1633 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-55 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-55",
+                "validation_references": [
+                    "execution-evidence:sha256:389685e2079cd213a07f8547d1679587480fe31bb7db4c85fdce91bdf42999d3",
+                    "execution-evidence:sha256:bb0ad09478c900a0ad8735f2a0cff2904359c9712b20379b3c35881ffba60ab7"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-55:7b2fb3521aa9c190",
+    "schema_version": "1.0",
+    "task_id": "NG-55"
+}

@@ -268,6 +268,36 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
     reaching for something else just as it appears.
   - With exactly one tile, "Ja, sagen" (with the tile's picture) speaks its sentence through the
     board, as after one attempt, and the view closes.
+- **When nobody uses it** (card NG-55): after `RECOGNISE_IDLE_MS` (3 minutes) without a hand in
+  the picture, the camera stops. The view stays open ("Die Kamera ist aus. Weiter mit ▶."), and
+  the stacked tiles stay too: they are the child's message, often waiting, hands in the lap, for
+  someone to read it.
+  - The tiles can still be tapped (a word), and "Ja, sagen" works with one tile.
+  - "▶ Weiter" listens again with the same tiles.
+  - A hand seen restarts the wait. A first version closed the view and lost the tiles; the review
+    of the card found that, and the owner chose this instead.
+  - The tiles are never lost on the way back:
+    - A start that carried tiles ("Weiter", or a camera switch) and fails or is refused goes back
+      to the pause with the tiles, and the line says why (the problem line, with "Weiter" where
+      it names "Nochmal"). The camera failing while listening pauses with the tiles shown then.
+    - Hiding the page while "Weiter" or a switch still starts the camera pauses with the tiles too.
+    - The camera switch is shown in the pause too and listens again with the tiles.
+    - Hiding the page (a screen lock, another app) stops the camera and pauses with the tiles;
+      before, it closed the view. Device locks often come before the 3 minutes.
+    - Opening the caregiver area, or "Zurück zur Tafel", closes the view and ends the message.
+- **No voice** (card NG-55): a tile tap that cannot be said shows the board's own lines, in the
+  board's order. The tile stays, and the line goes with the next tile or a word said.
+  - An empty voice list (the voices may still load) first gives "Keine Stimme. Bitte noch einmal
+    tippen.", and at the second tap in a row "Keine deutsche Stimme. Hol eine Bezugsperson."
+  - With no German voice at all: "Keine deutsche Stimme. Hol eine Bezugsperson."
+  - When the voice reports a failure: "Vorlesen ging nicht. Bitte noch einmal tippen.", and at a
+    second failure in a row "Vorlesen geht nicht. Hol eine Bezugsperson."
+    Failures in a row end only when a word is said to its end, as on the board; a device reports
+    a failure after the tap, and a test does the same.
+  - A voice line belongs to the view it is shown in: the pause and a new listening start without it.
+- **A camera switch keeps the tiles** (card NG-55); any other start begins empty. The "zu lang" line
+  goes once the hands have left the picture. Each frame is converted for the cut once, when it
+  arrives, not again on every frame.
 - **The attempt flow** (countdown, "Stopp", answer views) stays for `attachRecognise` without
   `continuous`; the app passes `continuous: true`.
 - **Tested** (fake camera, synthetic hands):

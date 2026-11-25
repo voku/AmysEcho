@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, MAX_TAKEN, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
+  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, MAX_TAKEN, RECOGNISE_IDLE_MS, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
   analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
@@ -583,7 +583,7 @@ function memoryStorage(entries = []) {
   return { items, getItem: (key) => items.get(key) ?? null, setItem: (key, value) => { items.set(key, String(value)); } };
 }
 
-async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage(), continuous = false } = {}) {
+async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage(), continuous = false, voice = true } = {}) {
   const fakes = installDocument();
   try {
     const time = fakeTime();
@@ -592,13 +592,22 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     let open = () => undefined;
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
     const said = [];
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text) => said.push(text) });
+    const lateFailures = [];
+    const current = { voice };
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed, ended) => {
+      if (current.voice === "ends") { said.push(text); ended(); return "requested"; }
+      said.push(text);
+      if (current.voice === "fails") failed();
+      // As on a device: the failure comes after the call, from the engine.
+      if (current.voice === "fails later") { lateFailures.push(failed); return "requested"; }
+      return typeof current.voice === "string" && current.voice !== "fails" ? current.voice : current.voice !== false;
+    } });
     open = attached.open;
     const panel = () => root.children.find((child) => hasClass(child, "recognise")) ?? null;
     const buttonNamed = (text) => tree(panel() ?? root).find((element) => element.tagName === "button" && (element.textContent === text || element.attributes["aria-label"] === text));
     const tile = (label) => root.children.find((child) => hasClass(child, "concept-board")).children.find((element) => element.attributes["aria-label"] === label);
     const gestureButton = () => root.children.find((child) => hasClass(child, "gesture-start"));
-    await callback({ ...fakes, said, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
+    await callback({ ...fakes, setVoice: (next) => { current.voice = next; }, said, lateFailures, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
   } finally {
     fakes.restore();
   }
@@ -1835,5 +1844,432 @@ test("view, continuous: a new tile moves the others, so a press right after it s
     takenTiles(panel())[1].click();
     assert.deepEqual(said, ["Trinken"]);
   }, { continuous: true });
+});
+
+// --- The continuous view, follow-ups (card NG-55) ---
+
+test("controller, continuous: the camera stops after RECOGNISE_IDLE_MS without a hand and the tiles stay; a hand restarts the wait; 'Weiter' listens again with them", async () => {
+  assert.equal(RECOGNISE_IDLE_MS, 180_000);
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  recogniser.start();
+  await settle();
+  await context.camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(context.camera);
+  context.time.advance(RECOGNISE_IDLE_MS - 1000);
+  await context.camera.feed(MOVES_RIGHT(0));
+  context.time.advance(RECOGNISE_IDLE_MS - 1000);
+  await context.camera.feed([]);
+  assert.equal(recogniser.state().kind, "listening", "a hand was seen less than the idle time ago");
+  context.time.advance(1001);
+  await context.camera.feed([]);
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"] }, "the child's message stays");
+  assert.equal(context.camera.running, false);
+  // "Weiter": listening again, with the tiles; a press right after the pause appeared does nothing.
+  recogniser.start();
+  assert.equal(recogniser.state().kind, "paused");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: ["trinken"], dropped: false });
+  assert.equal(context.camera.running, true);
+});
+
+test("controller, continuous: a camera switch keeps the stacked tiles; a new start begins empty", async () => {
+  let facing = "user";
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, facing: () => facing,
+  });
+  recogniser.start();
+  await settle();
+  await context.camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(context.camera);
+  assert.deepEqual(recogniser.state().taken, ["trinken"]);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  assert.equal(recogniser.switchCamera(() => { facing = "environment"; }), true);
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: ["trinken"], dropped: false }, "kept over the switch");
+  recogniser.back();
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state().taken, [], "a new start begins empty");
+});
+
+test("controller, continuous: the 'zu lang' line goes once the hands have left the picture", async () => {
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => ({ kind: "unknown", reason: "too_far", candidates: [], hands: "right" }),
+  });
+  recogniser.start();
+  await settle();
+  await context.camera.feedAll((i) => MOVES_RIGHT(i % 20), SEGMENT_MAX_MS / 100 + 5);
+  assert.equal(recogniser.state().dropped, true);
+  await handsDown(context.camera);
+  assert.equal(recogniser.state().dropped, false, "the hint was followed: gone, though nothing was taken");
+});
+
+test("view, continuous: a tile that cannot be said shows the board's line; a new tile ends it", async () => {
+  const lines = {
+    false: /Keine deutsche Stimme\. Hol eine Bezugsperson\./,
+    fails: /Vorlesen ging nicht\. Bitte noch einmal tippen\./,
+    unavailable: /Keine Stimme\. Bitte noch einmal tippen\./,
+  };
+  for (const voice of [false, "fails", "unavailable"]) {
+    await withView(async (context) => {
+      const { panel, time, camera } = context;
+      context.gestureButton().click();
+      await settle();
+      await camera.feedAll(MOVES_RIGHT);
+      await handsDown(camera);
+      time.advance(RECOGNISE_GUARD_MS);
+      takenTiles(panel())[0].click();
+      assert.match(textOf(panel()), lines[String(voice)], String(voice));
+      if (voice === "unavailable" || voice === "fails") {
+        // A second time in a row: tapping again does not help.
+        time.advance(RECOGNISE_GUARD_MS);
+        takenTiles(panel())[0].click();
+        assert.match(textOf(panel()), /Hol eine Bezugsperson\./, `${voice}, second tap`);
+      }
+      assert.equal(takenTiles(panel()).length, 1, "the tile stays");
+      await camera.feedAll(MOVES_UP);
+      await handsDown(camera);
+      assert.doesNotMatch(textOf(panel()), /Stimme|Vorlesen/, "a new tile ends the line");
+    }, { continuous: true, voice });
+  }
+});
+
+test("view, continuous: hiding the page, pagehide, a hidden board region and dispose stop the camera while listening", async () => {
+  for (const how of ["visibilitychange", "pagehide", "region hidden", "dispose"]) {
+    await withView(async (context) => {
+      const { root, panel, camera, doc, win, attached } = context;
+      context.gestureButton().click();
+      await settle();
+      assert.equal(panel().dataset.state, "listening");
+      if (how === "visibilitychange") {
+        doc.visibilityState = "hidden";
+        doc.dispatch("visibilitychange");
+      } else if (how === "pagehide") {
+        win.dispatch("pagehide");
+      } else if (how === "region hidden") {
+        root.hidden = true;
+        await camera.feed(MOVES_RIGHT(0));
+      } else {
+        attached.dispose();
+      }
+      assert.equal(camera.running, false, how);
+    }, { continuous: true });
+  }
+});
+
+test("controller, continuous: tiles carried to a camera that fails stay in the pause, not in a later start; a second switch while starting keeps them", async () => {
+  let facing = "user";
+  const camera = fakeCamera({ noBackCamera: true });
+  const context = setup({ camera });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, facing: () => facing,
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.switchCamera(() => { facing = "environment"; });
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"], line: RECOGNISE_TEXT.backCamera }, "no back camera: the tiles stay, and the line says why");
+  // The switch back to the front camera from the pause listens again with them.
+  context.time.advance(RECOGNISE_GUARD_MS);
+  assert.equal(recogniser.switchCamera(() => { facing = "user"; }), true);
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: ["trinken"], dropped: false });
+  // "Zurück", then a new start: it begins empty.
+  recogniser.back();
+  facing = "user";
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state().taken, [], "an unrelated start begins empty");
+  // A second switch while the first restart still starts keeps the tiles.
+  const slow = fakeCamera({ holdTracker: true });
+  const other = setup({ camera: slow });
+  let side = "user";
+  const held = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => slow.bridge, host: () => ({}), setTimer: other.time.setTimer, now: other.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, facing: () => side,
+  });
+  held.start();
+  await settle();
+  slow.releaseTracker();
+  await settle();
+  await slow.feedAll(MOVES_RIGHT, 10);
+  await handsDown(slow);
+  assert.deepEqual(held.state().taken, ["trinken"]);
+  other.time.advance(RECOGNISE_GUARD_MS);
+  held.switchCamera(() => { side = "environment"; });
+  assert.equal(held.state().kind, "starting");
+  other.time.advance(RECOGNISE_GUARD_MS);
+  held.switchCamera(() => { side = "user"; });
+  slow.releaseTracker();
+  await settle();
+  assert.deepEqual(held.state().taken, ["trinken"]);
+});
+
+test("view, continuous: after minutes without a hand the camera is off, the tiles stay and can be said; 'Weiter' listens again", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, said, buttonNamed, speech } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_IDLE_MS + 1);
+    await camera.feed([]);
+    assert.equal(panel().dataset.state, "paused");
+    assert.equal(camera.running, false);
+    assert.match(textOf(panel()), /Die Kamera ist aus\. Weiter mit ▶\./);
+    assert.deepEqual(takenTiles(panel()).map((tile) => tile.dataset.concept), ["trinken"], "the message stays");
+    assert.equal(slotOf(panel()), null, "no picture: the camera is off");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    assert.deepEqual(said, ["Trinken"], "a tile still says its word");
+    buttonNamed("Ja, sagen").click();
+    assert.deepEqual(speech.spoken, ["Ich möchte trinken."]);
+    assert.equal(panel(), null);
+  }, { continuous: true });
+  await withView(async (context) => {
+    const { panel, time, camera, buttonNamed } = context;
+    context.gestureButton().click();
+    await settle();
+    time.advance(RECOGNISE_IDLE_MS + 1);
+    await camera.feed([]);
+    assert.equal(panel().dataset.state, "paused");
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Weiter").click();
+    await settle();
+    assert.equal(panel().dataset.state, "listening");
+    assert.equal(camera.running, true);
+  }, { continuous: true });
+});
+
+test("view, continuous: two voice failures in a row reported after the call, as on a device, end with 'Hol eine Bezugsperson'", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, lateFailures } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen ging nicht\. Bitte noch einmal tippen\./);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    assert.doesNotMatch(textOf(panel()), /Vorlesen/, "a new try clears the line while it is said");
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen geht nicht\. Hol eine Bezugsperson\./, "the second failure in a row");
+  }, { continuous: true, voice: "fails later" });
+});
+
+test("controller, continuous: 'Weiter' that cannot start the camera keeps the tiles in the pause; hiding the page pauses and keeps them", async () => {
+  const camera = fakeCamera();
+  const context = setup({ camera });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  // The page is hidden (a screen lock): the camera goes off, the message stays.
+  recogniser.hide();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"] });
+  assert.equal(camera.running, false);
+  recogniser.hide();
+  assert.equal(recogniser.state().kind, "paused", "hidden again: still paused");
+  // "Weiter", but the camera is now refused: the tiles stay, with the reason.
+  const refused = fakeCamera({ cameraError: "NotAllowedError" });
+  camera.bridge.start = refused.bridge.start;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"], line: RECOGNISE_TEXT.problems.denied });
+});
+
+test("controller, continuous: the camera failing while listening pauses with the tiles of now; hiding while 'Weiter' starts keeps them", async () => {
+  let outcome = "trinken";
+  const camera = fakeCamera();
+  const context = setup({ camera });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => ({ kind: "match", conceptId: outcome, hands: "right" }),
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  recogniser.hide();
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  outcome = "hilfe";
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  assert.deepEqual(recogniser.state().taken, ["trinken", "hilfe"]);
+  camera.fail();
+  await settle();
+  assert.equal(recogniser.state().kind, "paused");
+  assert.deepEqual(recogniser.state().taken, ["trinken", "hilfe"], "the tiles of now, not of the start");
+  assert.ok(recogniser.state().line.length > 0, "the line says why");
+  // A start without carried tiles that fails while listening keeps them too.
+  const fresh = fakeCamera();
+  const other = setup({ camera: fresh });
+  const plain = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => fresh.bridge, host: () => ({}), setTimer: other.time.setTimer, now: other.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  plain.start();
+  await settle();
+  await fresh.feedAll(MOVES_RIGHT, 10);
+  await handsDown(fresh);
+  fresh.fail();
+  await settle();
+  assert.deepEqual(plain.state().taken, ["trinken"]);
+  assert.equal(plain.state().kind, "paused");
+  // Hidden while "Weiter" still starts the camera: paused with the tiles, camera off.
+  const slow = fakeCamera({ holdTracker: true });
+  const third = setup({ camera: slow });
+  const held = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => slow.bridge, host: () => ({}), setTimer: third.time.setTimer, now: third.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  held.start();
+  await settle();
+  slow.releaseTracker();
+  await settle();
+  await slow.feedAll(MOVES_RIGHT, 10);
+  await handsDown(slow);
+  held.hide();
+  third.time.advance(RECOGNISE_GUARD_MS);
+  held.start();
+  assert.equal(held.state().kind, "starting");
+  held.hide();
+  assert.deepEqual(held.state(), { kind: "paused", taken: ["trinken"] });
+  assert.equal(slow.running, false);
+});
+
+test("view, continuous: a problem line in the pause names 'Weiter', the button there", async () => {
+  await withView(async (context) => {
+    const { panel, camera, doc } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    camera.fail();
+    await settle();
+    assert.equal(panel().dataset.state, "paused");
+    assert.match(textOf(panel()), /Bitte „Weiter“ tippen\./);
+    assert.doesNotMatch(textOf(panel()), /Nochmal/);
+    doc.visibilityState = "hidden";
+    doc.dispatch("visibilitychange");
+    assert.equal(panel().dataset.state, "paused", "hiding the page keeps the pause");
+  }, { continuous: true });
+});
+
+test("controller, continuous: without a camera bridge, or a cancelled start, the carried tiles stay in the pause; a carried tile still says its word", async () => {
+  let available = true;
+  const camera = fakeCamera();
+  const context = setup({ camera });
+  const words = [];
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => (available ? camera.bridge : null), host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, sayWord: (id) => words.push(id),
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  recogniser.hide();
+  available = false;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"], line: RECOGNISE_TEXT.noCamera }, "no bridge: the tiles stay");
+  // A start cancelled before the camera answered (no problem): the pause keeps the tiles.
+  available = true;
+  const held = fakeCamera({ holdTracker: true });
+  camera.bridge.start = held.bridge.start;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  assert.equal(recogniser.state().kind, "starting");
+  recogniser.hide();
+  held.releaseTracker();
+  await settle();
+  assert.deepEqual(recogniser.state().taken, ["trinken"]);
+  // A start that ends without a problem (a permission prompt dismissed): the pause keeps the tiles.
+  camera.bridge.start = async () => ({ ok: false });
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"] }, "refused without a problem");
+  // Back to listening with the carried tile: its guard is kept, so a tap says its word.
+  camera.bridge.start = fakeCamera().bridge.start;
+  const again = fakeCamera();
+  camera.bridge.start = again.bridge.start;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.equal(recogniser.state().kind, "listening");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.sayWord("trinken");
+  assert.deepEqual(words, ["trinken"], "a carried tile can be said after 'Weiter'");
+});
+
+test("view, continuous: a word said to its end resets the failures in a row", async () => {
+  let mode = "fails later";
+  await withView(async (context) => {
+    const { panel, time, camera, lateFailures } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen ging nicht/);
+    context.setVoice("ends");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    context.setVoice("fails later");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen ging nicht\. Bitte noch einmal tippen\./, "after a word said to its end, a failure is the first again");
+  }, { continuous: true, voice: mode });
+});
+
+test("view, continuous: the failures in a row go on across 'Weiter': the second one asks for a caregiver", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, lateFailures, buttonNamed, attached } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    attached.recogniser.hide();
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Weiter").click();
+    await settle();
+    assert.equal(panel().dataset.state, "listening");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen geht nicht\. Hol eine Bezugsperson\./);
+  }, { continuous: true, voice: "fails later" });
 });
 
