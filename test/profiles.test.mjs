@@ -337,7 +337,7 @@ test("store operations issued together run one after another", async () => {
 test("src/profiles uses no network API and imports only its own files", async () => {
   const directory = new URL("../src/profiles/", import.meta.url);
   const files = (await readdir(directory)).filter((name) => name.endsWith(".ts"));
-  assert.deepEqual(files.sort(), ["backend.ts", "backup.ts", "indexeddb-backend.ts", "memory-backend.ts", "profile.ts", "store.ts"]);
+  assert.deepEqual(files.sort(), ["backend.ts", "backup-file.ts", "backup.ts", "indexeddb-backend.ts", "memory-backend.ts", "profile.ts", "store.ts"]);
   for (const name of files) {
     const source = await readFile(new URL(name, directory), "utf8");
     for (const banned of [/\bfetch\b/, /XMLHttpRequest/, /WebSocket/, /sendBeacon/, /EventSource/, /\bimportScripts\b/, /https?:\/\//]) {

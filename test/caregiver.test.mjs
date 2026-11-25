@@ -230,6 +230,9 @@ async function withArea(options, callback) {
       ...(options.pictureFromFile === undefined ? {} : { pictureFromFile: options.pictureFromFile }),
       ...(options.openDemoCamera === undefined ? {} : { openDemoCamera: options.openDemoCamera }),
       ...(options.clipFromBlob === undefined ? {} : { clipFromBlob: options.clipFromBlob }),
+      ...(options.saveFile === undefined ? {} : { saveFile: options.saveFile }),
+      // Card NG-58: the fewest PBKDF2 rounds a backup file may have, so the tests stay fast.
+      backupIterations: 100_000,
     });
     const [opener, progress, hint] = entry.children;
     const area = {
@@ -1728,7 +1731,7 @@ const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genü
   + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
   + "Ein Video wird nur als Vormachen-Clip gespeichert, den eine Bezugsperson von sich selbst aufnimmt. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
-  + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
+  + "Ein Profil kann hier umbenannt und gelöscht werden; mit „Sicherung speichern“ kommt es mit Passwort in eine Datei, die auf einem anderen Gerät eingespielt werden kann. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
   + "Der Browser kann diese Daten auch von sich aus löschen.";
 
@@ -2548,10 +2551,10 @@ test("profiles: each card has its name, the badge on the active one, and its act
   await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, profiles }) => {
     await holdOpen();
     const [ben, mia] = profiles();
-    assert.deepEqual(buttonsIn(ben.item).map((element) => element.textContent), ["Als aktive Tafel verwenden", "Tafel bearbeiten", "Umbenennen", "Löschen"]);
-    assert.deepEqual(buttonsIn(mia.item).map((element) => element.textContent), ["Tafel bearbeiten", "Umbenennen", "Löschen"]);
+    assert.deepEqual(buttonsIn(ben.item).map((element) => element.textContent), ["Als aktive Tafel verwenden", "Tafel bearbeiten", "Umbenennen", "Sicherung speichern", "Löschen"]);
+    assert.deepEqual(buttonsIn(mia.item).map((element) => element.textContent), ["Tafel bearbeiten", "Umbenennen", "Sicherung speichern", "Löschen"]);
     assert.deepEqual([ben.active, mia.active], [false, true]);
-    assert.deepEqual(buttonsIn(ben.item).map((element) => element["aria-label"]), ["Als aktive Tafel verwenden: Ben", "Tafel bearbeiten: Ben", "Umbenennen: Ben", "Löschen: Ben"]);
+    assert.deepEqual(buttonsIn(ben.item).map((element) => element["aria-label"]), ["Als aktive Tafel verwenden: Ben", "Tafel bearbeiten: Ben", "Umbenennen: Ben", "Sicherung speichern: Ben", "Löschen: Ben"]);
     // "Löschen" does not look like the primary button.
     assert.ok(hasClass(ben.remove, "caregiver-danger-quiet"));
     assert.ok(!hasClass(ben.remove, "caregiver-primary"));
@@ -2677,7 +2680,7 @@ test("rename: the profile gets the name as it was when the form was sent, also w
 
 // --- Delete ---
 
-const DELETE_LOSS = "Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
+const DELETE_LOSS = "Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren, außer sie stehen in einer Sicherung.";
 const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel aktiv ist.";
 const DELETE_HOLD_HINT = "Zum Löschen 2 Sekunden gedrückt halten.";
 const PLEASE_WAIT = "Bitte kurz warten.";
@@ -6518,7 +6521,7 @@ test("teach: a profile with examples says so before it is deleted, and deleting 
     await area.act(() => area.button("Behalten").click());
     await area.act(() => area.button("Zurück").click());
     await area.act(() => area.profile("Mia").remove.click());
-    assert.ok(area.confirmation().texts.includes("Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht."));
+    assert.ok(area.confirmation().texts.includes("Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren, außer sie stehen in einer Sicherung."));
     await area.confirmDelete();
     assert.deepEqual(Object.keys(area.backend.snapshot()).filter((entry) => entry.includes("gesture.")), []);
   });
@@ -7992,5 +7995,174 @@ test("vormachen (card NG-60): after a failed save the buttons work again; a came
     stuck.log.releaseStop();
     await settleDemo(area);
     assert.equal(demoViewOf(caregiverRegion).save, null);
+  });
+});
+
+// --- Backup (card NG-58): a profile into a password-protected file and back; all data synthetic ---
+
+const backupViewOf = (region) => {
+  const view = byClass(region, "caregiver-backup");
+  if (view === undefined) return null;
+  const find = (id) => tree(view).find((element) => element.id === id) ?? null;
+  return {
+    view, texts: textsIn(view), form: byClass(view, "caregiver-backup-form") ?? null,
+    password: find("caregiver-backup-password"), repeat: find("caregiver-backup-repeat"),
+    file: find("caregiver-restore-file"), restorePassword: find("caregiver-restore-password"),
+    save: buttonNamed(view, "Sicherung speichern") ?? null, go: buttonNamed(view, "Einspielen") ?? null, cancel: buttonNamed(view, "Abbrechen") ?? null,
+    replace: buttonNamed(view, "Ersetzen") ?? null, copy: buttonNamed(view, "Als Kopie einspielen") ?? null,
+  };
+};
+/** Waits for the area and for Web Crypto, which answers outside the area's queue. */
+const settleCrypto = async (area) => {
+  for (let i = 0; i < 6; i += 1) {
+    await area.handle.settled();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  await area.handle.settled();
+};
+const BACKUP_PASSWORD = "Sonnenblume 42";
+
+/** Saves a backup of `name` with `password` and returns the file the area handed over. */
+async function saveBackupOf(area, saved, name, password = BACKUP_PASSWORD) {
+  await area.act(() => buttonNamed(area.profile(name).item, "Sicherung speichern").click());
+  const view = backupViewOf(area.caregiverRegion);
+  view.password.value = password;
+  view.repeat.value = password;
+  await area.act(() => view.form.dispatch("submit"));
+  await settleCrypto(area);
+  return saved.at(-1);
+}
+/** Opens "Sicherung einspielen", chooses `file`, types `password` and sends the form. */
+async function restoreBackupFile(area, file, password = BACKUP_PASSWORD) {
+  await area.act(() => area.button("Sicherung einspielen").click());
+  const view = backupViewOf(area.caregiverRegion);
+  view.file.files = file === null ? [] : [file];
+  view.restorePassword.value = password;
+  await area.act(() => view.form.dispatch("submit"));
+  await settleCrypto(area);
+}
+
+test("backup: 'Sicherung speichern' says what the file holds and that it is private; the password is typed twice and checked; the file is handed over, named without the child", async () => {
+  const saved = [];
+  await withArea({ seed: seedThree, saveFile: (file, name) => saved.push({ file, name }), date: () => new Date("2026-11-25T10:00:00Z") }, async (area) => {
+    const { holdOpen, act, caregiverRegion, profile, focused } = area;
+    await holdOpen();
+    const control = buttonNamed(profile("Mia").item, "Sicherung speichern");
+    assert.equal(control["aria-label"], "Sicherung speichern: Mia");
+    await act(() => control.click());
+    let view = backupViewOf(caregiverRegion);
+    assert.deepEqual(view.texts, [
+      "Sicherung von „Mia“",
+      "Die Sicherung ist eine Datei mit allem, was zu dieser Tafel gehört: Name, Begriffe, eigene Texte und Bilder, beigebrachte Gebärden und die Vormachen-Clips der Bezugspersonen. Mit ihr kann die Tafel auf einem anderen Gerät eingespielt werden.",
+      "Die Datei wird mit dem Passwort verschlüsselt. Bitte trotzdem sicher aufbewahren und nicht teilen. Ohne das Passwort kann niemand die Datei öffnen. Ein vergessenes Passwort kann nicht wiederhergestellt werden.",
+      "Passwort (mindestens 8 Zeichen)", "Passwort wiederholen", "Sicherung speichern", "Abbrechen",
+    ]);
+    assert.equal(view.password.type, "password");
+    assert.equal(view.password.autocomplete, "new-password");
+    assert.equal(focused.current, view.password);
+    // Too short, then two different passwords: said, nothing handed over.
+    view.password.value = "kurz";
+    view.repeat.value = "kurz";
+    await act(() => view.form.dispatch("submit"));
+    assert.equal(area.status(), "Das Passwort braucht mindestens 8 Zeichen.");
+    view = backupViewOf(caregiverRegion);
+    view.password.value = BACKUP_PASSWORD;
+    view.repeat.value = `${BACKUP_PASSWORD}!`;
+    await act(() => view.form.dispatch("submit"));
+    assert.equal(area.status(), "Die beiden Passwörter sind nicht gleich.");
+    assert.equal(saved.length, 0);
+    await act(() => backupViewOf(caregiverRegion).cancel.click());
+    const file = await saveBackupOf(area, saved, "Mia");
+    assert.equal(file.name, "amys-echo-sicherung-2026-11-25.amysecho");
+    assert.equal(area.status(), "Die Sicherung ist gespeichert: amys-echo-sicherung-2026-11-25.amysecho. Bitte die Datei und das Passwort gut aufheben.");
+    const text = await file.file.text();
+    assert.equal(JSON.parse(text).format, "amys-echo-backup");
+    for (const secret of ["Mia", "Trinken", "trinken"]) assert.equal(text.includes(secret), false, `"${secret}" is not readable in the file`);
+    assert.equal(backupViewOf(caregiverRegion), null);
+    assert.equal(focused.current, buttonNamed(profile("Mia").item, "Sicherung speichern"));
+  });
+});
+
+test("backup: on a new device 'Sicherung einspielen' restores the board with its clip and makes it the active board; a wrong password, another file and no file are refused", async () => {
+  const saved = [];
+  let file = null;
+  await withArea({ seed: async (store) => {
+    const mia = await seedThree(store);
+    await store.data(mia.id).set("demo.trinken", { version: 1, dataUrl: CLIP });
+    return mia;
+  }, saveFile: (blob, name) => saved.push({ file: blob, name }) }, async (area) => {
+    await area.holdOpen();
+    file = (await saveBackupOf(area, saved, "Mia")).file;
+  });
+  // A new device: no profile yet.
+  await withArea({}, async (area) => {
+    const { holdOpen, caregiverRegion, backend, focused } = area;
+    await holdOpen();
+    assert.notEqual(area.button("Sicherung einspielen"), undefined, "offered without any profile");
+    await area.act(() => area.button("Sicherung einspielen").click());
+    const view = backupViewOf(caregiverRegion);
+    assert.deepEqual(view.texts, [
+      "Sicherung einspielen",
+      "Wähle eine Sicherungsdatei (.amysecho) und gib ihr Passwort ein. Die Tafel darin kommt auf dieses Gerät, mit allem, was in ihr gespeichert ist.",
+      "Sicherungsdatei", "Passwort der Sicherung", "Einspielen", "Abbrechen",
+    ]);
+    assert.equal(view.file.type, "file");
+    assert.equal(focused.current, view.file);
+    await area.act(() => view.cancel.click());
+    assert.equal(focused.current, area.button("Sicherung einspielen"));
+    const before = JSON.stringify(backend.snapshot());
+    for (const [input, password, line] of [
+      [null, BACKUP_PASSWORD, "Bitte zuerst eine Sicherungsdatei wählen."],
+      [file, "", "Bitte das Passwort der Sicherung eingeben."],
+      [file, "falsches Passwort", "Das Passwort passt nicht zu dieser Datei, oder die Datei wurde verändert. Es wurde nichts eingespielt."],
+      [new Blob(["{\"hello\":1}"]), BACKUP_PASSWORD, "Diese Datei ist keine Sicherung dieser App, oder sie stammt aus einer neueren Version. Es wurde nichts eingespielt."],
+    ]) {
+      await restoreBackupFile(area, input, password);
+      assert.equal(area.status(), line);
+      assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+      assert.notEqual(backupViewOf(caregiverRegion), null, "the view stays");
+      await area.act(() => backupViewOf(caregiverRegion).cancel.click());
+    }
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    await restoreBackupFile(area, file);
+    assert.equal(area.status(), "Eingespielt: Tafel von „Mia“. Sie ist jetzt die aktive Tafel.");
+    assert.equal(backupViewOf(caregiverRegion), null);
+    const store = await area.store();
+    const active = await store.getActive();
+    assert.equal((await store.get(active)).displayName, "Mia");
+    assert.deepEqual(await store.data(active).get("demo.trinken"), { version: 1, dataUrl: CLIP });
+    assert.deepEqual(area.onBoard(), ["Hilfe", "Trinken", "Pause"]);
+  });
+});
+
+test("backup: a profile that is already on the device asks first; 'Als Kopie einspielen' keeps both, 'Ersetzen' puts the backup's state back", async () => {
+  const saved = [];
+  await withArea({ seed: seedThree, saveFile: (blob, name) => saved.push({ file: blob, name }) }, async (area) => {
+    const { holdOpen, caregiverRegion, seeded } = area;
+    await holdOpen();
+    const { file } = await saveBackupOf(area, saved, "Mia");
+    await area.remove("Pause");
+    assert.deepEqual(area.onBoard(), ["Hilfe", "Trinken"]);
+    await restoreBackupFile(area, file);
+    let view = backupViewOf(caregiverRegion);
+    assert.deepEqual(view.texts, [
+      "Sicherung einspielen", "Die Tafel „Mia“ gibt es auf diesem Gerät schon.",
+      "„Ersetzen“ überschreibt sie mit dem Stand der Sicherung. „Als Kopie einspielen“ behält beide.",
+      "Als Kopie einspielen", "Ersetzen", "Abbrechen",
+    ]);
+    assert.equal(area.focused.current, view.replace);
+    await area.act(() => view.copy.click());
+    await settleCrypto(area);
+    assert.equal(area.status(), "Eingespielt: Tafel von „Mia“.");
+    assert.equal(area.profiles().length, 2, "both kept");
+    const store = await area.store();
+    assert.deepEqual((await store.get(seeded.id)).conceptIds, ["hilfe", "trinken"], "the one on the device is unchanged");
+    // "Ersetzen": the backup's state replaces the one on the device.
+    await restoreBackupFile(area, file);
+    view = backupViewOf(caregiverRegion);
+    await area.act(() => view.replace.click());
+    await settleCrypto(area);
+    assert.deepEqual((await store.get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause"]);
+    assert.equal(area.profiles().length, 2);
   });
 });
