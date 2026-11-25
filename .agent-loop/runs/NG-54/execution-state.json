@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:5f2533c3b06248feedf22941b8b5b67b2a0f0e69",
+    "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
     "contract_revision": 3,
-    "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
     "history": [
         {
@@ -147,6 +147,225 @@
                 "summary": "Three defects in the continuous view. (1) recognise.ts:436-441: when a too-long movement is dropped on its last hand frame (the hands leave right then), the buffer is emptied and own.dropping stays true, so the next real gesture is silently discarded as the 'rest' (reproduced: 102 frames held up, hands down, then a 10-frame gesture gives analysed=[], taken=[]; with 103 frames it gives [10]). Fix: keep the triggering frame (usedTo = frames.length - 2) or clear dropping once the hands are away for longer than SEGMENT_GAP_MS. (2) recognise.ts:972 still clears previewSlot for 'listening', so each redraw (tile taken, dropped line) takes the preview and 'Bild an / aus' out and back in; a focused picture toggle drops focus to the page (Chromium: a removed and re-added focused button leaves activeElement=BODY), and the draw does not count it as lost (pictureShown is true). This breaks NG-48 and the NG-47 place() intent. Fix: add state.kind !== 'listening' to that condition. (3) recognise.ts:630-633 with 1018: the tiles are shown newest first, so each take moves every older tile one place; sayWord checks only the taken concept's own takenAt and not aimed(pressAt), so a press aimed at an old tile within RECOGNISE_GUARD_MS of the redraw says the word of the tile that moved into its place. Fix: also require aimed(pressAt) in sayWord, or append tiles newest last. Correct as checked: the index map (segments are slices of the same sided objects); the usedTo branches; the bounded buffer; force with Infinity; the takenAt reset on a repeat; confirm and leave; switchCamera and onSeen; sw.js precache; the evaluation fixes; the docs table matches a rerun (away 600/699/1000; rest 2000/3000; away over rests). The tests fail without the change. 70/70 node tests pass.",
                 "task_id": "NG-54",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T02:02:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T02:02:07+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a15895e2ae23832e2d66c1ecfce364c9fdc9ac57fa187cc118267fefcc545640",
+                    "execution-evidence:sha256:a889ece19ffeebb393c8f0640617a97fc3e4b6d75c7dd75a0e3c9635a8fc25be",
+                    "execution-evidence:sha256:a9a057a976a1dd6c1268259b841633cc4ab8b7e5c7be62e8396b660e1a40e7f7",
+                    "execution-evidence:sha256:4257a148f7d74f4dd308d6ccf95d6d9ee2625e470a96a872be01f8831d260a15",
+                    "execution-evidence:sha256:ae51679c9165621d181746ec6d6fdb8147b0627c5c03dbab8d3492bc41ce0d26",
+                    "execution-evidence:sha256:0972f33b51a9292c051c3601f821eda5b58370bbcee40f2a918bc7a3e7e3c9dc",
+                    "execution-evidence:sha256:aa130c2288c4404a620853262183061a2c8e27b3b86e6635d230d048eaa7697e",
+                    "execution-evidence:sha256:4a4eb9ed2e9463ce8adbde1260611d446aff3ca1c18dc9e478ceee9ba08db6c0",
+                    "execution-evidence:sha256:f6218979f29c635baf81eb92f03655886c21ab77bd7be723d4fae2bd12afaa94",
+                    "execution-evidence:sha256:2d5065eb27760d158d9d57f784e7e80962df34898849b7cc10005694843de602",
+                    "execution-evidence:sha256:0ae2432ff23bcc7033c6cacf398448c49cca97d63e2c00a510f5694517fb3080"
+                ],
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-54:c94347845572647c",
+                "schema_version": "1.0",
+                "task_id": "NG-54",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a15895e2ae23832e2d66c1ecfce364c9fdc9ac57fa187cc118267fefcc545640",
+                    "execution-evidence:sha256:a889ece19ffeebb393c8f0640617a97fc3e4b6d75c7dd75a0e3c9635a8fc25be",
+                    "execution-evidence:sha256:a9a057a976a1dd6c1268259b841633cc4ab8b7e5c7be62e8396b660e1a40e7f7",
+                    "execution-evidence:sha256:4257a148f7d74f4dd308d6ccf95d6d9ee2625e470a96a872be01f8831d260a15",
+                    "execution-evidence:sha256:ae51679c9165621d181746ec6d6fdb8147b0627c5c03dbab8d3492bc41ce0d26",
+                    "execution-evidence:sha256:0972f33b51a9292c051c3601f821eda5b58370bbcee40f2a918bc7a3e7e3c9dc",
+                    "execution-evidence:sha256:aa130c2288c4404a620853262183061a2c8e27b3b86e6635d230d048eaa7697e",
+                    "execution-evidence:sha256:4a4eb9ed2e9463ce8adbde1260611d446aff3ca1c18dc9e478ceee9ba08db6c0",
+                    "execution-evidence:sha256:f6218979f29c635baf81eb92f03655886c21ab77bd7be723d4fae2bd12afaa94",
+                    "execution-evidence:sha256:2d5065eb27760d158d9d57f784e7e80962df34898849b7cc10005694843de602",
+                    "execution-evidence:sha256:0ae2432ff23bcc7033c6cacf398448c49cca97d63e2c00a510f5694517fb3080"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "outcome": "completed",
+                "run_id": "run:NG-54:c94347845572647c",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:02c3790b",
+                "summary": "Review fixes: drop keeps the dropped movement's last hand frame as its rest (next gesture compared for 100..103 frames up); previewSlot not cleared while listening (toggle keeps focus, no moves); sayWord also requires aimed(). 2 new tests; 3 mutants caught. npm run verify green.",
+                "task_id": "NG-54",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T02:06:30+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T02:06:30+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:5d1accd8b932f259ef6ef173a665e0956629d06a2e9c365c8c3762b6e25011da",
+                    "execution-evidence:sha256:313ec595545a792e4a4522ada5ed2c318a14f651385b615b78e28e96eb3fd4ef",
+                    "execution-evidence:sha256:209d2d3d6f8a11bc0b1d3cb4cd8f7a5dad0d45e5c475e7e7dcc3331b780bb640",
+                    "execution-evidence:sha256:9cdd4375fd51897a2e219061e5a5f7755f18154d2384820ed54cd932cd9e152c",
+                    "execution-evidence:sha256:96d03ed084c166d8fd1844c7a93ff86ded2911a87bfb60a94085915964d7bafe",
+                    "execution-evidence:sha256:07ef18e34c569ff963f2b0685edaa638a6c542131d0fc09708c54bc7e8f773b2",
+                    "execution-evidence:sha256:33366d025c2752b3bc922a5af996027d81667c315bcc74f1404ee9d7b1c45065",
+                    "execution-evidence:sha256:3818fcc40fa34d2ca0b970bfa79cfa8795a3e75fc98af5f2a258327866aa16ed",
+                    "execution-evidence:sha256:8444daf54ca6403edc0f4897bbcd7bb6ce02f1971b9488976f37af572db1c344",
+                    "execution-evidence:sha256:572b2e980df0adcffba9b87c7293d40ae9e7a0aa676e1c6d526a7ceca2f57f46",
+                    "execution-evidence:sha256:023726c0621233bdc0c4fd5b1ba116857fad20f4e46c6691820776efd67f243f"
+                ],
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-54:c94347845572647c",
+                "schema_version": "1.0",
+                "task_id": "NG-54",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:5d1accd8b932f259ef6ef173a665e0956629d06a2e9c365c8c3762b6e25011da",
+                    "execution-evidence:sha256:313ec595545a792e4a4522ada5ed2c318a14f651385b615b78e28e96eb3fd4ef",
+                    "execution-evidence:sha256:209d2d3d6f8a11bc0b1d3cb4cd8f7a5dad0d45e5c475e7e7dcc3331b780bb640",
+                    "execution-evidence:sha256:9cdd4375fd51897a2e219061e5a5f7755f18154d2384820ed54cd932cd9e152c",
+                    "execution-evidence:sha256:96d03ed084c166d8fd1844c7a93ff86ded2911a87bfb60a94085915964d7bafe",
+                    "execution-evidence:sha256:07ef18e34c569ff963f2b0685edaa638a6c542131d0fc09708c54bc7e8f773b2",
+                    "execution-evidence:sha256:33366d025c2752b3bc922a5af996027d81667c315bcc74f1404ee9d7b1c45065",
+                    "execution-evidence:sha256:3818fcc40fa34d2ca0b970bfa79cfa8795a3e75fc98af5f2a258327866aa16ed",
+                    "execution-evidence:sha256:8444daf54ca6403edc0f4897bbcd7bb6ce02f1971b9488976f37af572db1c344",
+                    "execution-evidence:sha256:572b2e980df0adcffba9b87c7293d40ae9e7a0aa676e1c6d526a7ceca2f57f46",
+                    "execution-evidence:sha256:023726c0621233bdc0c4fd5b1ba116857fad20f4e46c6691820776efd67f243f"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "context_id": "claude-subagent-ng54-correctness-2",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "observations": [
+                    "test/recognise.test.mjs:1795 the loop over extra in [0,1,2,3] only exercises a drop for extra 2 and 3: at 100 ms per frame, 100 or 101 frames span at most 10000 ms, which is not over SEGMENT_MAX_MS (inferred from the feed cadence). The extra 0 and 1 cases test an ordinary long gesture, not a drop on the last hand frame.",
+                    "src/recognise/recognise.ts:1090 in a listening redraw, a focused tile or 'Ja, sagen' is rebuilt and the focus goes to the first button ('Fertig'), not to the same tile. This follows the NG-48 rule, but a switch user loses their place in the tile row each time a tile is added."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-54:c94347845572647c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:4a88b8c3",
+                "summary": "All three attempt-1 fixes are correct and complete. In listen(), usedTo = index(open last) - 1 keeps exactly the drop-triggering hand frame (the open run's span grows only on hand frames, so the trigger is always the newest, hand-bearing frame). That frame is the first hand frame of the buffer, so it is in the next finished segment, which dropping absorbs. Fertig (force, nowMs=Infinity) still finishes the open run. previewSlot is no longer cleared while listening. sayWord now checks aimed(). Each new test fails when its fix is reverted (checked by mutation in a scratch copy), and the 699 ms eval row fails without the joinStream fix. typecheck, build, npm test (701/701) and smoke:offline pass. Docs match the measured rows.",
+                "task_id": "NG-54",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T02:08:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T02:08:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:64be09f72446b61efc70d19091950e5b9d2aff9237891c533bbde9c74dd0230e",
+                    "execution-evidence:sha256:73bdd18acf682ef0a707cdc8c6eb2bcef19a97a78b2971d4329068cfbc7313ca",
+                    "execution-evidence:sha256:9016b6e17bc239928aa828d45853b168e40cba95412304eec2effc1fb57a272b",
+                    "execution-evidence:sha256:ae028f31e04738393d764198ac82fbb19529fffe1230b23805df3090f763d2cf",
+                    "execution-evidence:sha256:3be9bf028bc08a87fd9aa48e42cd945c561793ecf438f197f47d2512071413e9",
+                    "execution-evidence:sha256:18580247e0acb16c267a42eca778f1235f4248f1c15c7f027c8046ee2644fb45",
+                    "execution-evidence:sha256:b13dc8b62672179a9e81c77a2cc15d0856c590be0098ac94fc30cadf01e1ac6a",
+                    "execution-evidence:sha256:e2fa3c13888bd484c35f32360c6c0865f681976fdb8c8b7a6291bedb1ecb9edd",
+                    "execution-evidence:sha256:a5390917e2ee9fb10fc72936418cbc95590de23cd03674b2bbef35da0b0dedad",
+                    "execution-evidence:sha256:c7e8e50bdb3b4cdb1404d1e9eac9acf75f4efe746acd2c58f131a2b74db44418",
+                    "execution-evidence:sha256:758fe8235b7ddf03c5b14ddbed8d2d1cda9973389ae076deb86cb65dd911dc3f"
+                ],
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-54:c94347845572647c",
+                "schema_version": "1.0",
+                "task_id": "NG-54",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:64be09f72446b61efc70d19091950e5b9d2aff9237891c533bbde9c74dd0230e",
+                    "execution-evidence:sha256:73bdd18acf682ef0a707cdc8c6eb2bcef19a97a78b2971d4329068cfbc7313ca",
+                    "execution-evidence:sha256:9016b6e17bc239928aa828d45853b168e40cba95412304eec2effc1fb57a272b",
+                    "execution-evidence:sha256:ae028f31e04738393d764198ac82fbb19529fffe1230b23805df3090f763d2cf",
+                    "execution-evidence:sha256:3be9bf028bc08a87fd9aa48e42cd945c561793ecf438f197f47d2512071413e9",
+                    "execution-evidence:sha256:18580247e0acb16c267a42eca778f1235f4248f1c15c7f027c8046ee2644fb45",
+                    "execution-evidence:sha256:b13dc8b62672179a9e81c77a2cc15d0856c590be0098ac94fc30cadf01e1ac6a",
+                    "execution-evidence:sha256:e2fa3c13888bd484c35f32360c6c0865f681976fdb8c8b7a6291bedb1ecb9edd",
+                    "execution-evidence:sha256:a5390917e2ee9fb10fc72936418cbc95590de23cd03674b2bbef35da0b0dedad",
+                    "execution-evidence:sha256:c7e8e50bdb3b4cdb1404d1e9eac9acf75f4efe746acd2c58f131a2b74db44418",
+                    "execution-evidence:sha256:758fe8235b7ddf03c5b14ddbed8d2d1cda9973389ae076deb86cb65dd911dc3f"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "context_id": "claude-subagent-ng54-blindspot",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "observations": [
+                    "src/recognise/recognise.ts:1177-1187: a tile tap speaks labelDe through requestLocalGermanSpeech directly and ignores its result and onFailure, so with no local German voice (the offline case the product contract expects) the tap gives no sign; board.say (src/board.ts:353-378) shows NO_VOICE/NO_GERMAN_VOICE lines. The tile's visible label remains the output.",
+                    "src/recognise/recognise.ts:609-614: continuous listening has no idle stop or time limit; the camera and tracker run until the page is hidden or the view is left. AAC tablets are often set never to lock, so an unattended open view keeps the camera on indefinitely (battery, heat, a running camera in the room). docs/recognise.md lists battery as not checked; an idle stop (e.g. no hands seen for N minutes) is a candidate follow-up for the owner.",
+                    "src/recognise/recognise.ts:397-452: any hand in view keeps the away-segment open, so caregiver hands (help=physical in the S0a protocol) merge gestures or push a movement past SEGMENT_MAX_MS, and a caregiver's movement can be stacked as a tile; nothing is spoken, but a single false tile is then offered by 'Ja, sagen'. Not measured.",
+                    "test/browser/recognise.test.mjs: the 'Nein' and candidate paths of the attempt flow are no longer exercised end to end in a browser; they remain covered only by the fake-camera tests in test/recognise.test.mjs (e.g. line 664). The app no longer uses the attempt flow, so this is a coverage reduction for a non-shipped path.",
+                    "test/recognise.test.mjs:779-800: the hidden-page, pagehide and region-hidden stops are tested for the attempt flow only, not while listening; they hold by construction because back is leave() for every state, but no test pins that for the state the app now uses."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-54:c94347845572647c",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:3641112b",
+                "summary": "Blind-spot review: nothing is spoken without a tap (listen() only stacks; sayWord and confirm are guarded by aimed() and the per-tile takenAt guard); the camera stops through the shared leave()/stopCamera() on Zurueck, visibilitychange, pagehide, region hidden and dispose, and the frame buffer lives only on the Camera object dropped there; segment.js is precached; docs state unchecked device facts including battery. Non-blocking follow-ups recorded as observations.",
+                "task_id": "NG-54",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T02:11:32+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T02:11:32+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-54:c94347845572647c",
+                "schema_version": "1.0",
+                "task_id": "NG-54",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:8145a02d0357766ad53002b456aa068ebd0e2326e248937556e410a21a1eaaf8",
+                    "execution-evidence:sha256:1a16120fa0024a0c1a424284bb2efba197c5b0d4e11ab18b8b3afb2fd31dcfb9"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:05dbd4f4d341d40d708ae9daf42b56f9455b5a7b:10066c79ab3d2ee5952734c2bc1978905a047ab1",
+                "consistency_references": [
+                    "execution-evidence:sha256:122277da66ec5507f262904773a289cb9a82f9969d8a851003903e1ef5385783"
+                ],
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:5d67169b884d43776f106ac8bbf3c6a368d4a920f5dbdeb981fcba95019af059",
+                "outcome": "pass",
+                "run_id": "run:NG-54:c94347845572647c",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:b2e8ad125e06fa2cb17eb95bd6b4b1aeb1d84e0886b866f4ecb0a017e1c6ad32",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-54: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-54 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-54:c94347845572647c binds active Session 2026-11-25-ng-54-r3-5f50a309 to approved Contract revision 3\n[OK] sessions: 3 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-54 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-54",
+                "validation_references": [
+                    "execution-evidence:sha256:8145a02d0357766ad53002b456aa068ebd0e2326e248937556e410a21a1eaaf8",
+                    "execution-evidence:sha256:1a16120fa0024a0c1a424284bb2efba197c5b0d4e11ab18b8b3afb2fd31dcfb9"
+                ]
             }
         }
     ],
