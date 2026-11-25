@@ -570,7 +570,9 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       bridge = null;
     }
     if (bridge === null) {
-      show({ kind: "problem", line: RECOGNISE_TEXT.noCamera });
+      // Card NG-55: a start that carried tiles keeps them in the pause, even without a camera.
+      if (carried.length > 0) show({ kind: "paused", taken: carried, line: RECOGNISE_TEXT.noCamera });
+      else show({ kind: "problem", line: RECOGNISE_TEXT.noCamera });
       return;
     }
     const text = bridge.text;

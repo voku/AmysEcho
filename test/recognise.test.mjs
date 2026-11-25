@@ -593,19 +593,21 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
     const said = [];
     const lateFailures = [];
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed) => {
+    const current = { voice };
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed, ended) => {
+      if (current.voice === "ends") { said.push(text); ended(); return "requested"; }
       said.push(text);
-      if (voice === "fails") failed();
+      if (current.voice === "fails") failed();
       // As on a device: the failure comes after the call, from the engine.
-      if (voice === "fails later") { lateFailures.push(failed); return "requested"; }
-      return typeof voice === "string" && voice !== "fails" ? voice : voice !== false;
+      if (current.voice === "fails later") { lateFailures.push(failed); return "requested"; }
+      return typeof current.voice === "string" && current.voice !== "fails" ? current.voice : current.voice !== false;
     } });
     open = attached.open;
     const panel = () => root.children.find((child) => hasClass(child, "recognise")) ?? null;
     const buttonNamed = (text) => tree(panel() ?? root).find((element) => element.tagName === "button" && (element.textContent === text || element.attributes["aria-label"] === text));
     const tile = (label) => root.children.find((child) => hasClass(child, "concept-board")).children.find((element) => element.attributes["aria-label"] === label);
     const gestureButton = () => root.children.find((child) => hasClass(child, "gesture-start"));
-    await callback({ ...fakes, said, lateFailures, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
+    await callback({ ...fakes, setVoice: (next) => { current.voice = next; }, said, lateFailures, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
   } finally {
     fakes.restore();
   }
@@ -2176,5 +2178,76 @@ test("view, continuous: a problem line in the pause names 'Weiter', the button t
     doc.dispatch("visibilitychange");
     assert.equal(panel().dataset.state, "paused", "hiding the page keeps the pause");
   }, { continuous: true });
+});
+
+test("controller, continuous: without a camera bridge, or a cancelled start, the carried tiles stay in the pause; a carried tile still says its word", async () => {
+  let available = true;
+  const camera = fakeCamera();
+  const context = setup({ camera });
+  const words = [];
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => (available ? camera.bridge : null), host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, sayWord: (id) => words.push(id),
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  recogniser.hide();
+  available = false;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"], line: RECOGNISE_TEXT.noCamera }, "no bridge: the tiles stay");
+  // A start cancelled before the camera answered (no problem): the pause keeps the tiles.
+  available = true;
+  const held = fakeCamera({ holdTracker: true });
+  camera.bridge.start = held.bridge.start;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  assert.equal(recogniser.state().kind, "starting");
+  recogniser.hide();
+  held.releaseTracker();
+  await settle();
+  assert.deepEqual(recogniser.state().taken, ["trinken"]);
+  // A start that ends without a problem (a permission prompt dismissed): the pause keeps the tiles.
+  camera.bridge.start = async () => ({ ok: false });
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"] }, "refused without a problem");
+  // Back to listening with the carried tile: its guard is kept, so a tap says its word.
+  camera.bridge.start = fakeCamera().bridge.start;
+  const again = fakeCamera();
+  camera.bridge.start = again.bridge.start;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.equal(recogniser.state().kind, "listening");
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.sayWord("trinken");
+  assert.deepEqual(words, ["trinken"], "a carried tile can be said after 'Weiter'");
+});
+
+test("view, continuous: a word said to its end resets the failures in a row", async () => {
+  let mode = "fails later";
+  await withView(async (context) => {
+    const { panel, time, camera, lateFailures } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen ging nicht/);
+    context.setVoice("ends");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    context.setVoice("fails later");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen ging nicht\. Bitte noch einmal tippen\./, "after a word said to its end, a failure is the first again");
+  }, { continuous: true, voice: mode });
 });
 
