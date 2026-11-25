@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:faf0152385600f01a81b3b46bb0fc492ba312d1f",
+    "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:5b0c81386423d0dd9ed035eac825658e778cb5c3",
     "contract_revision": 2,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
     "history": [
         {
@@ -175,6 +175,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:2:3c312f62",
                 "summary": "context-id: 598c8c9d-edbc-4471-9d25-e5cbc137a33b. restoreBackup (src/caregiver.ts) checks mode only before decryptBackup, so Abbrechen, Escape or closing during key derivation still imports the profile, may activate it and says 'Eingespielt'; add a check after decrypt and a test. Also: selectedId set after close; undo offers survive 'Ersetzen'.",
+                "task_id": "NG-58",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T20:39:20+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T20:39:20+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:5b0c81386423d0dd9ed035eac825658e778cb5c3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "schema_version": "1.0",
+                "task_id": "NG-58",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:5b0c81386423d0dd9ed035eac825658e778cb5c3",
+                "context_id": "main-session-ng58-build",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "outcome": "completed",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:f4c2db72",
+                "summary": "Fixed: restoreBackup returns without writing when the view was left or the area closed during decryption; the error path stays silent then (tests for cancel and close, backend unchanged). 'Ersetzen' drops the undo offers of that profile; selectedId only while open. npm run verify: 744 unit, 9 browser pass.",
                 "task_id": "NG-58",
                 "validation_references": []
             }
