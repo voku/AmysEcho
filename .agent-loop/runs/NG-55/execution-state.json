@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
     "contract_revision": 2,
-    "current_attempt": 4,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 5,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
     "history": [
         {
@@ -360,10 +360,50 @@
                 "task_id": "NG-55",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-25T07:24:53+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:24:53+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8326f5b787beeeac72870f0600ea3f9ec31d3800cdf0486a5e4c176188c3256a",
+                    "execution-evidence:sha256:72bf1b3c15a271914c0a1d3d12519d346dd156d25c1d5b1ecf4f12480c9cb3e0",
+                    "execution-evidence:sha256:12ede49c936760598ab903af17ea2cd15c55e9818155fdd174dede2756aed494"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8326f5b787beeeac72870f0600ea3f9ec31d3800cdf0486a5e4c176188c3256a",
+                    "execution-evidence:sha256:72bf1b3c15a271914c0a1d3d12519d346dd156d25c1d5b1ecf4f12480c9cb3e0",
+                    "execution-evidence:sha256:12ede49c936760598ab903af17ea2cd15c55e9818155fdd174dede2756aed494"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
+                "context_id": "claude-subagent-ng55-r2-correctness-4",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:7a60fe39",
+                "summary": "Tile-loss path remains: 'Weiter' or a camera switch whose bridge lookup returns null (or throws) shows 'problem' and drops the carried tiles (src/recognise/recognise.ts:572-575), contradicting docs/recognise.md:280-282; reproduced against dist. Test gaps (mutations survive the suite): cancelled start with carried tiles (recognise.ts:654), takenAt kept on a carried start so carried tiles stay tappable after Weiter/switch (recognise.ts:674), and failures reset on utterance end (recognise.ts:1328).",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": "attention:b78711c656537536",
+    "last_attention_id": null,
     "recovery_history": [],
     "run_id": "run:NG-55:7b2fb3521aa9c190",
     "schema_version": "1.0",
