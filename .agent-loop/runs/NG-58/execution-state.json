@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:faf0152385600f01a81b3b46bb0fc492ba312d1f",
     "contract_revision": 2,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
     "history": [
         {
@@ -137,6 +137,44 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:d63ef7c4",
                 "summary": "Fixed F1: after a conflict the focus goes to 'Als Kopie einspielen' (test asserts it). Also: no download after the area closed during PBKDF2 (tested), activation failure no longer reported as restore failure, MAX_BACKUP_ITERATIONS 2M (tested), local-day file name (tested), tests for a failed save and the size guard; file tests check only the readable part (a 3-letter name appeared by chance in base64 ciphertext once). npm run verify: 743 unit, 9 browser pass.",
+                "task_id": "NG-58",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T20:36:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T20:36:06+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4ca30c1463f853a424c135d70e16f07bab89599771facf52561a9deec1605ae5",
+                    "execution-evidence:sha256:eb2ada8ba38ae26c63b8571a12681fa44f693c73d8ad2f0b451ea8d1b1e696cf"
+                ],
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:faf0152385600f01a81b3b46bb0fc492ba312d1f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "schema_version": "1.0",
+                "task_id": "NG-58",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4ca30c1463f853a424c135d70e16f07bab89599771facf52561a9deec1605ae5",
+                    "execution-evidence:sha256:eb2ada8ba38ae26c63b8571a12681fa44f693c73d8ad2f0b451ea8d1b1e696cf"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:faf0152385600f01a81b3b46bb0fc492ba312d1f",
+                "context_id": "598c8c9d-edbc-4471-9d25-e5cbc137a33b",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "outcome": "changes_required",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:3c312f62",
+                "summary": "context-id: 598c8c9d-edbc-4471-9d25-e5cbc137a33b. restoreBackup (src/caregiver.ts) checks mode only before decryptBackup, so Abbrechen, Escape or closing during key derivation still imports the profile, may activate it and says 'Eingespielt'; add a check after decrypt and a test. Also: selectedId set after close; undo offers survive 'Ersetzen'.",
                 "task_id": "NG-58",
                 "validation_references": []
             }

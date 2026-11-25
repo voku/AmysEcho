@@ -938,7 +938,9 @@ Sicherung dieser App, oder sie stammt aus einer neueren Version. …", too large
 profile with the same id already on the device asks first: "Die Tafel „<name>“ gibt es auf diesem
 Gerät schon.", "Als Kopie einspielen" (both kept, the copy under a new id) or "Ersetzen" (the
 device's state is overwritten with the backup's), or "Abbrechen"; the focus goes to "Als Kopie
-einspielen", never to "Ersetzen", so an Enter meant for "Einspielen" cannot overwrite anything. A restored profile becomes the
+einspielen", never to "Ersetzen", so an Enter meant for "Einspielen" cannot overwrite anything. A
+restore left with "Abbrechen", Escape or by closing the area while the file is read writes
+nothing, as every other action of the area that is left before its write. A restored profile becomes the
 active board when none is active, which is the case on a new device: "Eingespielt: Tafel von
 „<name>“. Sie ist jetzt die aktive Tafel."
 

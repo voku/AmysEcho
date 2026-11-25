@@ -8205,3 +8205,29 @@ test("backup: a save that fails is said and the view stays; a file over the size
     assert.equal(saved.length, 0, "the area closed while the key was derived");
   });
 });
+
+test("backup: a restore left with 'Abbrechen' or by closing while the file is read writes nothing", async () => {
+  const saved = [];
+  let file = null;
+  await withArea({ seed: seedThree, saveFile: (blob, name) => saved.push({ file: blob, name }) }, async (area) => {
+    await area.holdOpen();
+    file = (await saveBackupOf(area, saved, "Mia")).file;
+  });
+  for (const leave of ["cancel", "close"]) {
+    await withArea({}, async (area) => {
+      await area.holdOpen();
+      const before = JSON.stringify(area.backend.snapshot());
+      await area.act(() => area.button("Sicherung einspielen").click());
+      const view = backupViewOf(area.caregiverRegion);
+      view.file.files = [file];
+      view.restorePassword.value = BACKUP_PASSWORD;
+      // Sent, and left at once, while the key is still being derived.
+      view.form.dispatch("submit");
+      if (leave === "cancel") view.cancel.click();
+      else await area.handle.close();
+      await settleCrypto(area);
+      assert.equal(JSON.stringify(area.backend.snapshot()), before, `${leave}: nothing written`);
+      if (leave === "cancel") assert.notEqual(area.status(), "Eingespielt: Tafel von „Mia“. Sie ist jetzt die aktive Tafel.");
+    });
+  }
+});

@@ -2281,7 +2281,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       activated = false;
     }
     if (mode === open) mode = null;
-    selectedId = profile.id;
+    // Taking back a change of the board that was just replaced would change the restored one instead.
+    if (onConflict === "replace") dropUndo((offer) => offer.profileId === profile.id);
+    if (isOpen) selectedId = profile.id;
     say(`Eingespielt: Tafel von ${quoted(profile.displayName)}.${activated ? " Sie ist jetzt die aktive Tafel." : ""}`);
     await draw([`edit:${profile.id}`, "profiles-heading"]);
   };
@@ -2321,9 +2323,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       try {
         if (store === null || mode !== open) return;
         const document = await decryptBackup(await readFileText(file), password);
+        // Left ("Abbrechen", Escape, closing) while the file was read: as everywhere in the area, it is dropped.
+        if (mode !== open || !isOpen) return;
         await restoreExport(store, open, document, "reject");
       } catch (error) {
         open.draft.busy = false;
+        if (mode !== open || !isOpen) return;
         say(restoreErrorLine(error), true);
         await draw(["restore-file"], { toTop: true });
       }
