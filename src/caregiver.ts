@@ -487,6 +487,7 @@ const DEMO_READY = "Die Kamera läuft. Tippe auf „Aufnahme starten“.";
 const DEMO_RECORDING = "Die Aufnahme läuft. Jetzt die Gebärde vormachen.";
 const DEMO_READING = "Der Clip wird gelesen …";
 const DEMO_DELETE = "Clip löschen";
+const DEMO_UNPLAYABLE = "Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden.";
 const DEMO_CAMERA_ENDED = "Die Kamera ist ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen.";
 const DEMO_FULL = "Der Platz für dieses Profil ist voll. Der Clip wurde nicht gespeichert. Entferne Clips, Bilder oder Gebärden, dann ist wieder Platz.";
 const NEWER_DEMO = "Der Clip dieses Begriffs wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
@@ -1905,7 +1906,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     drawDemo(open, ["demo-cancel"]);
     let opening: Promise<DemoCamera>;
     try {
-      opening = makeDemoCamera(currentFacing());
+      // Always the front camera, the one facing the caregiver who holds the device (card NG-59): the device's camera
+      // choice for teaching and the gesture view may be "hinten", which would point at the child.
+      opening = makeDemoCamera("user");
     } catch (error) {
       opening = Promise.reject(error);
     }
@@ -1924,7 +1927,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       video.setAttribute("aria-label", "Bild der Kamera");
       video.srcObject = camera.stream;
       // The front camera is shown like a mirror, as in the teaching view; the clip itself is recorded as the camera sees.
-      video.dataset["mirrored"] = String(currentFacing() === "user");
+      video.dataset["mirrored"] = "true";
       demo.video = video;
       state.camera = "on";
       // A camera that goes away by itself (permission taken back, device unplugged) ends the view's camera; a recording is dropped.
@@ -2665,16 +2668,28 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return control;
   };
 
-  /** A clip to watch in the demo view: muted, inline, with the browser's controls; null for a value that is no clip. */
-  const clipVideo = (dataUrl: string, className: string): HTMLVideoElement | null => {
-    if (!isDemoDataUrl(dataUrl)) return null;
+  /**
+   * A clip to watch in the demo view, put into `holder`: muted, inline, with the browser's controls. A clip
+   * this browser cannot play (card NG-59: one recorded on another device) is replaced by a line saying so.
+   */
+  const clipVideo = (dataUrl: string, className: string, holder: HTMLElement): HTMLVideoElement | null => {
+    if (!isDemoDataUrl(dataUrl)) {
+      holder.append(element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE));
+      return null;
+    }
     const video = element("video", className);
     video.muted = true;
     video.playsInline = true;
     video.loop = true;
     video.controls = true;
     video.preload = "metadata";
+    video.addEventListener("error", () => {
+      if (video.hidden) return;
+      video.hidden = true;
+      holder.append(element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE));
+    });
     video.src = dataUrl;
+    holder.append(video);
     return video;
   };
 
@@ -2695,10 +2710,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const cameraRuns = state.camera !== "off";
     if (!cameraRuns && state.draft === null && !state.reading) {
       if (stored.state === "ok") {
-        const video = clipVideo(stored.dataUrl, "caregiver-demo-clip");
         const shown = element("div", "caregiver-demo-now");
         shown.append(element("p", "caregiver-notice", DEMO_NOW));
-        if (video !== null) shown.append(video);
+        clipVideo(stored.dataUrl, "caregiver-demo-clip", shown);
         view.append(shown);
       } else if (stored.state === "missing") {
         view.append(element("p", "caregiver-notice", DEMO_NONE));
@@ -2720,13 +2734,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     if (state.reading && !cameraRuns) view.append(element("p", "caregiver-notice", DEMO_READING));
     if (state.draft !== null) {
-      const video = clipVideo(state.draft, "caregiver-demo-clip");
-      if (video !== null) {
-        video.autoplay = true;
-        const chosen = element("div", "caregiver-demo-new");
-        chosen.append(element("p", "caregiver-notice", DEMO_NEW), video);
-        view.append(chosen);
-      }
+      const chosen = element("div", "caregiver-demo-new");
+      chosen.append(element("p", "caregiver-notice", DEMO_NEW));
+      const video = clipVideo(state.draft, "caregiver-demo-clip", chosen);
+      if (video !== null) video.autoplay = true;
+      view.append(chosen);
     }
     const actions = element("div", "caregiver-profile-actions");
     const add = (text: string, key: string, act: () => void, primary = false): void => {

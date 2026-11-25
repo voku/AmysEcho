@@ -927,9 +927,10 @@ that takes over the body:
 - the stored clip ("Jetzt gespeichert:", a muted looping video with the browser's controls), or "Für
   diesen Begriff gibt es noch keinen Clip.", or a line for a clip a newer version stored or one that
   cannot be read;
-- "Kamera starten" (focused on opening). No camera is asked for before that tap. The camera is the
-  one teaching uses (card NG-43, front unless switched); its live picture is shown like a mirror for
-  the front camera, while the clip is recorded as the camera sees it;
+- "Kamera starten" (focused on opening). No camera is asked for before that tap. It is always the
+  front camera, the one facing the caregiver who holds the device (card NG-59), whatever the device's
+  camera choice for teaching and the gesture view is ("hinten" would point at the child); its live
+  picture is shown like a mirror, while the clip is recorded as the camera sees it;
 - "Aufnahme starten", a countdown of `TEACH_COUNTDOWN_S` seconds written in place ("Abbrechen" ends
   it, nothing is recorded), then "Die Aufnahme läuft. Jetzt die Gebärde vormachen." and "Aufnahme
   beenden"; the recording ends by itself after `DEMO_MAX_MS`. The camera stops when the recording
@@ -938,6 +939,8 @@ that takes over the body:
   "Speichern"; it is one queued write through `setDemoClip`, the status line says "Gespeichert:
   Vormachen für „<label>“." and the focus returns to the row's "Vormachen";
 - with a clip stored: "Clip löschen", one tap; the clip can be recorded again.
+- a clip this browser cannot play (one recorded on another device, card NG-59) is replaced by "Dieser
+  Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden.";
 - while a recording is read after "Aufnahme beenden" the line says "Der Clip wird gelesen …" and
   nothing new can be recorded; a camera that ends by itself (permission taken back, device
   unplugged) stops the view's camera, drops a running recording and says "Die Kamera ist

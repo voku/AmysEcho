@@ -1154,6 +1154,16 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       video.dataset["mirrored"] = String(demoMirror);
       video.setAttribute("aria-label", RECOGNISE_TEXT.demoVideo(entry.labelDe));
       applyRate(video);
+      // Card NG-59: a clip this browser cannot play (one recorded on another device) says so instead of an empty box.
+      video.addEventListener("error", () => {
+        if (mine !== demoToken) return;
+        // The clip's buttons go: a focus on one of them moves to "Schließen".
+        const focusInBox = typeof document !== "undefined" && [again, slow, mirror, close].includes(document.activeElement as HTMLElement);
+        stopDemoVideo();
+        line.textContent = RECOGNISE_TEXT.demoFailed;
+        demoBox.replaceChildren(line, demoRow(close));
+        if (focusInBox) focusOn(close);
+      });
       video.src = url;
       demoVideo = video;
       line.textContent = entry.labelDe;

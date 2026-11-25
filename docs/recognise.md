@@ -497,8 +497,9 @@ read only when it is played; a failed listing is reported and the view has no "V
 - The chosen clip plays in the box, muted and inline, under its label, with "Nochmal" (from the
   start), "Langsam" (half speed) and "Spiegeln" (shown like a mirror); both switches show
   `aria-pressed` and are remembered on the device (`amysecho-demo-slow`, `amysecho-demo-mirror`),
-  off unless chosen. A clip that cannot be read says "Dieser Clip kann gerade nicht abgespielt
-  werden.".
+  off unless chosen. A clip that cannot be read, or that this browser cannot play (card NG-59: one
+  recorded on another device; the video's error event), says "Dieser Clip kann gerade nicht
+  abgespielt werden." with only "Schließen", which gets the focus if a clip button had it.
 - Nothing in the box changes the recogniser: the camera runs on, the child imitates the clip and the
   recognised gesture is stacked as ever. No score, no praise, nothing spoken by the clip.
 - "Schließen" puts the focus back on "Vormachen"; going back to the board closes the box and pauses

@@ -7862,3 +7862,29 @@ test("vormachen: while a recording is being read nothing new can be recorded; a 
     assert.notEqual(view.remove, null, "it can still be deleted");
   });
 });
+
+test("vormachen (card NG-59): a clip is always recorded with the front camera, whatever the device's camera choice; a clip this browser cannot play says so", async () => {
+  const cameraStorage = memoryStorage();
+  cameraStorage.setItem(CAPTURE_FACING_KEY, "environment");
+  const demo = fakeDemo();
+  await withArea({ seed: seedThree, cameraStorage, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    assert.deepEqual(demo.log.facings, ["user"], "never the back camera, which would point at the child");
+    assert.equal(demoViewOf(caregiverRegion).live.dataset.mirrored, "true");
+    assert.equal(cameraStorage.getItem(CAPTURE_FACING_KEY), "environment", "the device's choice for teaching stays");
+    // A new clip that cannot be played here: the video goes, a line says so; it can still be discarded.
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await settleDemo(area);
+    area.clock.advance(DEMO_MAX_MS);
+    await settleDemo(area);
+    const view = demoViewOf(caregiverRegion);
+    view.videos[0].dispatch("error");
+    assert.equal(view.videos[0].hidden, true);
+    assert.ok(textsIn(view.view).includes("Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden."));
+  });
+});

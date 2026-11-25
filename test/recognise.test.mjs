@@ -2442,3 +2442,22 @@ test("view, Vormachen: a clip that cannot be read says so; a clip read after the
     assert.equal(demoVideoOf(panel()), null);
   }, { continuous: true, demos: slow.demos });
 });
+
+test("view, Vormachen (card NG-59): a clip this browser cannot play says so instead of an empty box; the focus stays in the box", async () => {
+  const clips = demoClips({ trinken: CLIP });
+  await withView(async (context) => {
+    const { panel, doc } = context;
+    context.gestureButton().click();
+    await settle();
+    demoOpener(panel()).click();
+    await settle();
+    const video = demoVideoOf(panel());
+    assert.equal(doc.activeElement?.attributes["aria-label"], "Nochmal");
+    video.dispatch("error");
+    assert.equal(demoVideoOf(panel()), null);
+    assert.match(textOf(demoBoxOf(panel())), /Dieser Clip kann gerade nicht abgespielt werden\./);
+    assert.deepEqual(demoButtonsOf(panel()), ["Schließen"]);
+    assert.equal(doc.activeElement?.attributes["aria-label"], "Schließen");
+    assert.equal(panel().dataset.state, "listening");
+  }, { continuous: true, demos: clips.demos });
+});
