@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  DEMO_SLOW_RATE, RECOGNISE_DEMO_MIRROR_KEY, RECOGNISE_DEMO_SLOW_KEY,
   CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, MAX_TAKEN, RECOGNISE_IDLE_MS, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
   analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
@@ -583,7 +584,7 @@ function memoryStorage(entries = []) {
   return { items, getItem: (key) => items.get(key) ?? null, setItem: (key, value) => { items.set(key, String(value)); } };
 }
 
-async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage(), continuous = false, voice = true } = {}) {
+async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage(), continuous = false, voice = true, demos } = {}) {
   const fakes = installDocument();
   try {
     const time = fakeTime();
@@ -594,7 +595,7 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     const said = [];
     const lateFailures = [];
     const current = { voice };
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed, ended) => {
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, ...(demos === undefined ? {} : { demos }), sayText: (text, failed, ended) => {
       if (current.voice === "ends") { said.push(text); ended(); return "requested"; }
       said.push(text);
       if (current.voice === "fails") failed();
@@ -2273,3 +2274,190 @@ test("view, continuous: the failures in a row go on across 'Weiter': the second 
   }, { continuous: true, voice: "fails later" });
 });
 
+
+// --- Vormachen (card NG-56): a caregiver's clip in the gesture view; the clips are a few made-up bytes ---
+
+const CLIP = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYEC";
+const BALL_CLIP = "data:video/mp4;base64,AAAAGGZ0eXBtcDQy";
+/** Clips by concept; `loads` lists what was read. A load answers when `release` is called if `hold` is set. */
+function demoClips(clips, { hold = false } = {}) {
+  const loads = [];
+  const waiting = [];
+  return {
+    loads,
+    release: () => { for (const answer of waiting.splice(0)) answer(); },
+    demos: {
+      ids: Object.keys(clips),
+      load: (id) => {
+        loads.push(id);
+        const value = clips[id];
+        const answer = value instanceof Error ? Promise.reject(value) : Promise.resolve(value ?? null);
+        if (!hold) return answer;
+        return new Promise((resolve) => { waiting.push(() => resolve(answer)); });
+      },
+    },
+  };
+}
+const demoBoxOf = (panel) => tree(panel).find((element) => hasClass(element, "recognise-demo"));
+const demoOpener = (panel) => tree(panel).find((element) => hasClass(element, "recognise-demo-open"));
+const demoVideoOf = (panel) => tree(demoBoxOf(panel)).find((element) => element.tagName === "video") ?? null;
+const demoButtonsOf = (panel) => tree(demoBoxOf(panel)).filter((element) => element.tagName === "button").map((element) => element.attributes["aria-label"]);
+
+test("view, Vormachen: no clip, no button; with clips the top offers 'Vormachen', which lists the concepts with a clip in board order", async () => {
+  await withView(async (context) => {
+    context.gestureButton().click();
+    await settle();
+    assert.equal(demoOpener(context.panel()), undefined);
+    assert.equal(demoBoxOf(context.panel()).hidden, true);
+  }, { continuous: true });
+  // "ball" before "trinken" in the list given; the board order decides. An id not on the board is left out.
+  const clips = demoClips({ ball: BALL_CLIP, trinken: CLIP, "nicht-da": CLIP });
+  clips.demos.ids = ["ball", "nicht-da", "trinken"];
+  await withView(async (context) => {
+    const { panel, doc } = context;
+    context.gestureButton().click();
+    await settle();
+    const opener = demoOpener(panel());
+    assert.equal(opener.attributes["aria-label"], "Vormachen");
+    assert.equal(textOf(opener), "▷ Vormachen");
+    opener.click();
+    const box = demoBoxOf(panel());
+    assert.equal(box.hidden, false);
+    assert.equal(panel().dataset.demo, "choose");
+    assert.match(textOf(box), /Welche Gebärde vormachen\?/);
+    const choices = tree(box).filter((element) => hasClass(element, "recognise-demo-choice"));
+    assert.deepEqual(choices.map((tile) => tile.dataset.concept), ["ball", "trinken"]);
+    assert.equal(doc.activeElement, choices[0]);
+    assert.deepEqual(clips.loads, [], "nothing is read before a choice");
+    // "Schließen": the box goes, the focus returns to "Vormachen", the view listens on.
+    tree(box).find((element) => element.attributes["aria-label"] === "Schließen").click();
+    assert.equal(box.hidden, true);
+    assert.equal(panel().dataset.demo, undefined);
+    assert.equal(doc.activeElement, opener);
+    assert.equal(panel().dataset.state, "listening");
+  }, { continuous: true, demos: clips.demos });
+});
+
+test("view, Vormachen: the chosen clip plays large and muted with 'Nochmal', 'Langsam' and 'Spiegeln'; imitating it stacks its tile while it plays", async () => {
+  const clips = demoClips({ trinken: CLIP, ball: BALL_CLIP });
+  const choice = memoryStorage();
+  await withView(async (context) => {
+    const { panel, camera, doc, buttonNamed } = context;
+    context.gestureButton().click();
+    await settle();
+    demoOpener(panel()).click();
+    tree(demoBoxOf(panel())).find((element) => element.dataset.concept === "trinken").click();
+    assert.equal(panel().dataset.demo, "play");
+    assert.match(textOf(demoBoxOf(panel())), /Der Clip wird geladen …/);
+    await settle();
+    assert.deepEqual(clips.loads, ["trinken"]);
+    const video = demoVideoOf(panel());
+    assert.equal(video.src, CLIP);
+    assert.equal(video.muted, true);
+    assert.equal(video.autoplay, true);
+    assert.equal(video.playsInline, true);
+    assert.equal(video.attributes["aria-label"], "Trinken vorgemacht");
+    assert.equal(video.playbackRate, 1);
+    assert.equal(video.dataset.mirrored, "false");
+    assert.deepEqual(demoButtonsOf(panel()), ["Nochmal", "Langsam", "Spiegeln", "Schließen"]);
+    assert.equal(doc.activeElement?.attributes["aria-label"], "Nochmal", "the focus moves from 'Schließen' to 'Nochmal' once the clip is there");
+    // "Nochmal" starts the clip again.
+    video.currentTime = 2.5;
+    let played = 0;
+    video.play = () => { played += 1; return Promise.resolve(); };
+    tree(demoBoxOf(panel())).find((element) => element.attributes["aria-label"] === "Nochmal").click();
+    assert.equal(video.currentTime, 0);
+    assert.equal(played, 1);
+    // "Langsam" and "Spiegeln" switch, say so, and are remembered.
+    const slow = tree(demoBoxOf(panel())).find((element) => element.attributes["aria-label"] === "Langsam");
+    const mirror = tree(demoBoxOf(panel())).find((element) => element.attributes["aria-label"] === "Spiegeln");
+    assert.equal(slow.attributes["aria-pressed"], "false");
+    slow.click();
+    assert.equal(video.playbackRate, DEMO_SLOW_RATE);
+    assert.equal(video.defaultPlaybackRate, DEMO_SLOW_RATE);
+    assert.equal(slow.attributes["aria-pressed"], "true");
+    mirror.click();
+    assert.equal(video.dataset.mirrored, "true");
+    assert.equal(mirror.attributes["aria-pressed"], "true");
+    assert.equal(choice.items.get(RECOGNISE_DEMO_SLOW_KEY), "on");
+    assert.equal(choice.items.get(RECOGNISE_DEMO_MIRROR_KEY), "on");
+    // The child imitates while the clip is there: the view listens on and stacks the tile.
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    assert.deepEqual(takenTiles(panel()).map((tile) => tile.dataset.concept), ["trinken"]);
+    assert.equal(demoVideoOf(panel()), video, "the clip stays while a tile is stacked");
+    assert.equal(panel().dataset.state, "listening");
+    assert.equal(camera.running, true);
+    // Back to the board: the clip goes with the view.
+    const box = demoBoxOf(panel());
+    let paused = 0;
+    video.pause = () => { paused += 1; };
+    buttonNamed(RECOGNISE_TEXT.back).click();
+    assert.equal(panel(), null);
+    assert.equal(box.hidden, true);
+    assert.deepEqual(box.children, []);
+    assert.equal(paused, 1);
+  }, { continuous: true, demos: clips.demos, choice });
+  // A new view starts slow and mirrored, as chosen; with one clip "Vormachen" plays it at once.
+  const one = demoClips({ ball: BALL_CLIP });
+  await withView(async (context) => {
+    const { panel } = context;
+    context.gestureButton().click();
+    await settle();
+    demoOpener(panel()).click();
+    await settle();
+    const video = demoVideoOf(panel());
+    assert.equal(video.src, BALL_CLIP);
+    assert.equal(video.playbackRate, DEMO_SLOW_RATE);
+    assert.equal(video.dataset.mirrored, "true");
+  }, { continuous: true, demos: one.demos, choice });
+});
+
+test("view, Vormachen: a clip that cannot be read says so; a clip read after the box was closed is dropped", async () => {
+  const clips = demoClips({ trinken: null, ball: new Error("read failed"), hilfe: "data:text/html;base64,PHNjcmlwdD4=" });
+  await withView(async (context) => {
+    const { panel } = context;
+    context.gestureButton().click();
+    await settle();
+    for (const id of ["hilfe", "trinken", "ball"]) {
+      demoOpener(panel()).click();
+      tree(demoBoxOf(panel())).find((element) => element.dataset.concept === id).click();
+      await settle();
+      assert.match(textOf(demoBoxOf(panel())), /Dieser Clip kann gerade nicht abgespielt werden\./, id);
+      assert.equal(demoVideoOf(panel()), null);
+      assert.deepEqual(demoButtonsOf(panel()), ["Schließen"]);
+      tree(demoBoxOf(panel())).find((element) => element.attributes["aria-label"] === "Schließen").click();
+    }
+  }, { continuous: true, demos: clips.demos });
+  const slow = demoClips({ trinken: CLIP }, { hold: true });
+  await withView(async (context) => {
+    const { panel } = context;
+    context.gestureButton().click();
+    await settle();
+    demoOpener(panel()).click();
+    tree(demoBoxOf(panel())).find((element) => element.attributes["aria-label"] === "Schließen").click();
+    slow.release();
+    await settle();
+    assert.equal(demoBoxOf(panel()).hidden, true);
+    assert.equal(demoVideoOf(panel()), null);
+  }, { continuous: true, demos: slow.demos });
+});
+
+test("view, Vormachen (card NG-59): a clip this browser cannot play says so instead of an empty box; the focus stays in the box", async () => {
+  const clips = demoClips({ trinken: CLIP });
+  await withView(async (context) => {
+    const { panel, doc } = context;
+    context.gestureButton().click();
+    await settle();
+    demoOpener(panel()).click();
+    await settle();
+    const video = demoVideoOf(panel());
+    assert.equal(doc.activeElement?.attributes["aria-label"], "Nochmal");
+    video.dispatch("error");
+    assert.equal(demoVideoOf(panel()), null);
+    assert.match(textOf(demoBoxOf(panel())), /Dieser Clip kann gerade nicht abgespielt werden\./);
+    assert.deepEqual(demoButtonsOf(panel()), ["Schließen"]);
+    assert.equal(doc.activeElement?.attributes["aria-label"], "Schließen");
+    assert.equal(panel().dataset.state, "listening");
+  }, { continuous: true, demos: clips.demos });
+});

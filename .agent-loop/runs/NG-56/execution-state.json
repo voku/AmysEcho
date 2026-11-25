@@ -1,0 +1,344 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+    "contract_revision": 3,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+    "history": [
+        {
+            "accepted_at": "2026-11-25T18:39:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:39:23+00:00",
+                "artifact_references": [],
+                "candidate_revision": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "completed",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:0d07d0c3",
+                "summary": "Located the seams: profile data is JSON-only key-value per profile (src/profiles/store.ts, 64 MB export limit), pictures already stored as data URLs (board-data.ts symbol.<id>) and exported with the profile; the caregiver area's teaching/picture views (src/caregiver.ts: openMode/leaveMode/stopTeachCamera/draw Built.teaching) give the pattern for a takeover view with a camera; the gesture view (src/recognise/recognise.ts attachRecognise) builds its own top row and draws recogniser states into main/actions, so a separate demo box above body does not touch recogniser state; app.ts readView reads examples per view and passes them to attachRecognise; the page CSP lacks media-src; public/sw.js precaches every module; test/capture.test.mjs counts mirrored CSS rules.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:39:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:39:31+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "context_id": "main-session-ng56-build",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "completed",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:f0440421",
+                "summary": "Built: src/demo-clips.ts (strict demo.<id> entries, set/remove/list/read, browser recorder openDemoCamera without audio, clipFromBlob with size cap); caregiver 'Vormachen' takeover view (camera, countdown, DEMO_MAX_MS recording, save/discard/delete, camera stops on every exit, own-concept delete removes the clip); gesture view 'Vormachen' box (choose, play muted, Nochmal/Langsam/Spiegeln remembered, closes with the view, recogniser untouched); app.ts lists clip ids per view and loads a clip on play; CSP media-src data:, sw precache, CSS for portrait/landscape; product contract amendment; docs; tests (unit, caregiver, recognise, app, real-browser record+play). npm run verify: 730 unit and 8 browser tests pass.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:41:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:41:59+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:29873750cba44f977889577ac706c8aa67794900b21add15f0b93f83d84a9b69",
+                    "execution-evidence:sha256:7b2ba1d18708ab5dc3e730c76537ecd109f69c9063fe3825e43afecaea3d69bf"
+                ],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:29873750cba44f977889577ac706c8aa67794900b21add15f0b93f83d84a9b69",
+                    "execution-evidence:sha256:7b2ba1d18708ab5dc3e730c76537ecd109f69c9063fe3825e43afecaea3d69bf"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "context_id": "ng56-cr-7f3a91",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "changes_required",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:7093e717",
+                "summary": "context-id: ng56-cr-7f3a91. While a demo recording is being read the caregiver demo view still offers 'Aufnahme starten' and shows the 'Kamera läuft' line; startDemoRecording does not refuse while reading (src/caregiver.ts). Also: ambiguous German sentence in NAME_NOTICE; codecs regex rejects a space after ';'; recording offered when the stored clip is from a newer version; a camera track that ends on its own is not detected.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:45:40+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:45:40+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "context_id": "main-session-ng56-build",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "completed",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:547cae7d",
+                "summary": "Fixed the correctness finding: startDemoRecording refuses while state.reading, no 'Aufnahme starten' while reading, line says 'Der Clip wird gelesen …' (test with a pending stop()). Observations addressed: a camera track that ends stops the camera and says so (tested); no recording offered over a clip of a newer version (tested); codecs regex allows '; codecs='; clearer German. npm run verify: 731 unit, 8 browser tests pass.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:47:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:47:43+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:dda7da8549c2d42cf87dff3a6c15dd3078e5b8ea1bffb421c658d2df13bbcc37",
+                    "execution-evidence:sha256:be1004b6ed6e9108925ad613e3f9d5a728665f3262ebf8850b4f9cc66a7c050e",
+                    "execution-evidence:sha256:4a3303a7100c700ab35c269e7f05b2836987eaf9664981042cb4b4b9f82cec4f",
+                    "execution-evidence:sha256:6630fd4eca0239bb8f27b86ba01c5fd02003819d24508879623202d914630c8d",
+                    "execution-evidence:sha256:153b7db781d020d277cca66d6e091df581451985442ea3a8f5e48d5436670e40",
+                    "execution-evidence:sha256:a1d6b39ec27d86cb29f060b0e5b2d32ba29e04fe097c6cc6ffed5b04669463a7",
+                    "execution-evidence:sha256:cd156fc9ad2d22a288f68090fe522bbc8ec51afb9ef840cac73aad0fddcd8785",
+                    "execution-evidence:sha256:effdd408e8a67ac62073fb4c25d56beabc2f68e3fbed4979c1d79620e01f60ee",
+                    "execution-evidence:sha256:d479773f3ed80a9099906a2d252c04360fa5555f5942359eb48871df7d2c6f40",
+                    "execution-evidence:sha256:e391920c8c90bbcc4f0a829e3592159cc6f693c077a770b430cac7357f813a16",
+                    "execution-evidence:sha256:e9349f8d556c0e9401adf306e99fc9ad47b0285da89ac9020ee7787ea0ab671d",
+                    "execution-evidence:sha256:f23d1bd09a9ac27a45267207d2628e8316e06867a132f23c38d5d2bcb9a698bc",
+                    "execution-evidence:sha256:e3af8e29ccfda581e26e41ec746c386cb794305a9d0ccdff3b0844c003a2bf7a",
+                    "execution-evidence:sha256:20addc0a569f88a8996843b3c9befa60779ebf0aec444fd5ca3bb27182ca7a70",
+                    "execution-evidence:sha256:d0d05016f54369c2b5b12a840c4dcb4e7989b5892acacdfd4eeceedf4f5eeb92",
+                    "execution-evidence:sha256:384fabc8f54fb412b7b190158e948b7c1f27275ae8532226807213aba54e3ad4",
+                    "execution-evidence:sha256:32c17bbd229ed02120b488d89f75379855ee72feb30b1951c4acd8114867f1a1",
+                    "execution-evidence:sha256:d656d08cd963ffbbfab6e4b5bbfd2b6e3e02b5122d2b9395c73147d888bba15f"
+                ],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:dda7da8549c2d42cf87dff3a6c15dd3078e5b8ea1bffb421c658d2df13bbcc37",
+                    "execution-evidence:sha256:be1004b6ed6e9108925ad613e3f9d5a728665f3262ebf8850b4f9cc66a7c050e",
+                    "execution-evidence:sha256:4a3303a7100c700ab35c269e7f05b2836987eaf9664981042cb4b4b9f82cec4f",
+                    "execution-evidence:sha256:6630fd4eca0239bb8f27b86ba01c5fd02003819d24508879623202d914630c8d",
+                    "execution-evidence:sha256:153b7db781d020d277cca66d6e091df581451985442ea3a8f5e48d5436670e40",
+                    "execution-evidence:sha256:a1d6b39ec27d86cb29f060b0e5b2d32ba29e04fe097c6cc6ffed5b04669463a7",
+                    "execution-evidence:sha256:cd156fc9ad2d22a288f68090fe522bbc8ec51afb9ef840cac73aad0fddcd8785",
+                    "execution-evidence:sha256:effdd408e8a67ac62073fb4c25d56beabc2f68e3fbed4979c1d79620e01f60ee",
+                    "execution-evidence:sha256:d479773f3ed80a9099906a2d252c04360fa5555f5942359eb48871df7d2c6f40",
+                    "execution-evidence:sha256:e391920c8c90bbcc4f0a829e3592159cc6f693c077a770b430cac7357f813a16",
+                    "execution-evidence:sha256:e9349f8d556c0e9401adf306e99fc9ad47b0285da89ac9020ee7787ea0ab671d",
+                    "execution-evidence:sha256:f23d1bd09a9ac27a45267207d2628e8316e06867a132f23c38d5d2bcb9a698bc",
+                    "execution-evidence:sha256:e3af8e29ccfda581e26e41ec746c386cb794305a9d0ccdff3b0844c003a2bf7a",
+                    "execution-evidence:sha256:20addc0a569f88a8996843b3c9befa60779ebf0aec444fd5ca3bb27182ca7a70",
+                    "execution-evidence:sha256:d0d05016f54369c2b5b12a840c4dcb4e7989b5892acacdfd4eeceedf4f5eeb92",
+                    "execution-evidence:sha256:384fabc8f54fb412b7b190158e948b7c1f27275ae8532226807213aba54e3ad4",
+                    "execution-evidence:sha256:32c17bbd229ed02120b488d89f75379855ee72feb30b1951c4acd8114867f1a1",
+                    "execution-evidence:sha256:d656d08cd963ffbbfab6e4b5bbfd2b6e3e02b5122d2b9395c73147d888bba15f"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "context_id": "ng56-cr2-7f3a91",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "observations": [
+                    "demo-clips.ts stop() waits on the recorder's stop event only; if it never fires the view stays reading until Zurück",
+                    "saveDemo without a draft gives the generic write-failed line (not reachable from the UI)",
+                    "Kamera starten silently discards an unsaved draft (documented)",
+                    "NG-58 should mention clips in its backup texts"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:ed8154d1",
+                "summary": "context-id: ng56-cr2-7f3a91. Fresh correctness review of the whole diff: attempt-1 defect fixed (record not offered or accepted while reading; test added). Camera lifecycle, stale-load guards, strict data URL and size checks, export/restore/delete, CSP and contract amendment checked; no blocking defect. Targeted tests 423/423.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:49:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:49:31+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:18d8e3f946af338714eb86248723dba7e6f8f28565dd97047a08d0e1b7cfbe73",
+                    "execution-evidence:sha256:94169b50dfa1a6a5bbc1c76af37f7faa6b7b5e83e4912aa568388d48c54b17b3",
+                    "execution-evidence:sha256:89ab8bd049061619fdfa22bebbfe08532e654cbe1c7949060814312a84375647",
+                    "execution-evidence:sha256:b656751fd3475ffefb7ba35c7acf30ed75a384c114adac6d91ec7938e9f68d7c",
+                    "execution-evidence:sha256:6dde41a4d78e6b3de9ab356b730037e42a3ed19bd26343192e1babdbaf1f2f70",
+                    "execution-evidence:sha256:d86d54231f7d456660aef315347a6b1290cc969dbff651983f536305a3c893d0",
+                    "execution-evidence:sha256:ba532ac3d793ec3a1c2c9efdc9b948c8c37af1f20b4d645e52deff3816702159",
+                    "execution-evidence:sha256:009ac1a29d2809b1e299a3229e52f830a0d3625964e1d3221429cc2aaae88ce3",
+                    "execution-evidence:sha256:313caf64b359725e447436fb466723445885dc824bcb80198ea26ed64027d48c",
+                    "execution-evidence:sha256:1be15719e9da2b1b7ad723d25be83d561efbed504a98821e785dbd890760f954",
+                    "execution-evidence:sha256:601b446b77206cfc151cbff8c213d8c0d804bda27089ea946ffb0d01df6c8c1e",
+                    "execution-evidence:sha256:5bdc2c0e1acdf2b67b9f8ac78d0b6e98b429b71f472c288ae32ea9cd198e1fa2",
+                    "execution-evidence:sha256:d2f2a4d79b59b5822ac6cf8081693f41ce6d610aa99d2e32964ba35ca1c95c65",
+                    "execution-evidence:sha256:a694fa93025457f1ad97940068a083c1a193b0d145d73da6d0dad3796dc78d1e",
+                    "execution-evidence:sha256:a6bfe698770f014a79331c6a0d6bc08a7727e76391184e2abb11ea873e3aac88",
+                    "execution-evidence:sha256:12e4736dd5108461c0d6c6bb689880b30e0769fd9c738bc48c7baff1eacac832",
+                    "execution-evidence:sha256:05afa32dc32b5bf3c78200bbf275e1f2058b23469cd1947c4ad381f9aa9ac036",
+                    "execution-evidence:sha256:d280535ab568b9a9ad22e92ca85bd0c42ba7343abedf983776706e84fcff385b"
+                ],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:18d8e3f946af338714eb86248723dba7e6f8f28565dd97047a08d0e1b7cfbe73",
+                    "execution-evidence:sha256:94169b50dfa1a6a5bbc1c76af37f7faa6b7b5e83e4912aa568388d48c54b17b3",
+                    "execution-evidence:sha256:89ab8bd049061619fdfa22bebbfe08532e654cbe1c7949060814312a84375647",
+                    "execution-evidence:sha256:b656751fd3475ffefb7ba35c7acf30ed75a384c114adac6d91ec7938e9f68d7c",
+                    "execution-evidence:sha256:6dde41a4d78e6b3de9ab356b730037e42a3ed19bd26343192e1babdbaf1f2f70",
+                    "execution-evidence:sha256:d86d54231f7d456660aef315347a6b1290cc969dbff651983f536305a3c893d0",
+                    "execution-evidence:sha256:ba532ac3d793ec3a1c2c9efdc9b948c8c37af1f20b4d645e52deff3816702159",
+                    "execution-evidence:sha256:009ac1a29d2809b1e299a3229e52f830a0d3625964e1d3221429cc2aaae88ce3",
+                    "execution-evidence:sha256:313caf64b359725e447436fb466723445885dc824bcb80198ea26ed64027d48c",
+                    "execution-evidence:sha256:1be15719e9da2b1b7ad723d25be83d561efbed504a98821e785dbd890760f954",
+                    "execution-evidence:sha256:601b446b77206cfc151cbff8c213d8c0d804bda27089ea946ffb0d01df6c8c1e",
+                    "execution-evidence:sha256:5bdc2c0e1acdf2b67b9f8ac78d0b6e98b429b71f472c288ae32ea9cd198e1fa2",
+                    "execution-evidence:sha256:d2f2a4d79b59b5822ac6cf8081693f41ce6d610aa99d2e32964ba35ca1c95c65",
+                    "execution-evidence:sha256:a694fa93025457f1ad97940068a083c1a193b0d145d73da6d0dad3796dc78d1e",
+                    "execution-evidence:sha256:a6bfe698770f014a79331c6a0d6bc08a7727e76391184e2abb11ea873e3aac88",
+                    "execution-evidence:sha256:12e4736dd5108461c0d6c6bb689880b30e0769fd9c738bc48c7baff1eacac832",
+                    "execution-evidence:sha256:05afa32dc32b5bf3c78200bbf275e1f2058b23469cd1947c4ad381f9aa9ac036",
+                    "execution-evidence:sha256:d280535ab568b9a9ad22e92ca85bd0c42ba7343abedf983776706e84fcff385b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "context_id": "blindspot-ng56-9aadd351-c7f3",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "observations": [
+                    "demo recording uses the shared camera choice; a device set to the back camera records with it, likely pointed at the child",
+                    "no error listener on the clip video: an undecodable clip shows an empty box instead of the failure line",
+                    "2 MiB data URL cap equals Chromium's URL limit; blob: URLs would avoid it",
+                    "clip size measured only with Chromium's synthetic camera; Safari bitrate/MP4 size unknown",
+                    "front-camera preview mirrored, saved clip not; which default helps imitation is a product question",
+                    "video decoding during tracking may lower the frame rate on low-end tablets; not measured",
+                    "clips added while the gesture view is open appear after the next board refresh"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:51e29758",
+                "summary": "context-id: blindspot-ng56-9aadd351-c7f3. No blocking issue: storage, deletion paths, no-audio recording, media-src policy, sw.js list, clip closed on idle/dispose, recogniser independence checked.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:52:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:52:29+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:7fed4559dfc4ea3156ca96dacb2d778a4ca6514c6d51439284ff590c7de0c4cd",
+                    "execution-evidence:sha256:7fd268e525778d91f7ebc259b63c6a3f8bb7b20dce54132f81df5a6c8f6c1770"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+                "consistency_references": [
+                    "execution-evidence:sha256:9c96ee232eef0b0e859c3718900119913a44e301737bd43f17c484e52faae6a8"
+                ],
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "pass",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:16efb11950f1543d45951862dead1ec281d403b148d8d2d94e57bead7527ea62",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-56: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-56 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-56:70a609c12940d002 binds active Session 2026-11-25-ng-56-r3-b453146c to approved Contract revision 3\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-56 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-56",
+                "validation_references": [
+                    "execution-evidence:sha256:7fed4559dfc4ea3156ca96dacb2d778a4ca6514c6d51439284ff590c7de0c4cd",
+                    "execution-evidence:sha256:7fd268e525778d91f7ebc259b63c6a3f8bb7b20dce54132f81df5a6c8f6c1770"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-56:70a609c12940d002",
+    "schema_version": "1.0",
+    "task_id": "NG-56"
+}

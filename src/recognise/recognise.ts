@@ -60,6 +60,7 @@ import { requestLocalGermanSpeech, type SpeechAttempt } from "../speech.js";
 import type { GestureExample, UnknownReason } from "../recognition/matcher.js";
 import { SEGMENT_MAX_MS, segmentStream } from "../recognition/segment.js";
 import { toLandmarkFrame } from "../recognition/tracker-adapter.js";
+import { isDemoDataUrl } from "../demo-clips.js";
 import type { TrackerFrame } from "../recognition/tracker-adapter.js";
 
 /** Seconds counted down after the camera runs and before frames are kept, so the hand that tapped can leave the picture. As in teaching. */
@@ -136,6 +137,16 @@ export const RECOGNISE_TEXT = {
   cameraSwitch: (facing: CameraFacing): string => `Kamera wechseln, jetzt ${facing === "user" ? "vorne" : "hinten"}`,
   /** The back camera does not open (missing or busy); the switch is right above. The front camera keeps the capture's lines. */
   backCamera: "Die Kamera hinten geht gerade nicht. Oben auf „Kamera“ tippen für die Kamera vorne.",
+  /** Card NG-56: a caregiver's own clip of a gesture, to watch and imitate. */
+  demo: "Vormachen",
+  demoChoose: "Welche Gebärde vormachen?",
+  demoLoading: "Der Clip wird geladen …",
+  demoFailed: "Dieser Clip kann gerade nicht abgespielt werden.",
+  demoSlow: "Langsam",
+  demoMirror: "Spiegeln",
+  demoClose: "Schließen",
+  /** The accessible name of the clip: what it shows. */
+  demoVideo: (label: string): string => `${label} vorgemacht`,
   /**
    * The capture's problems, short and for this view: its retry is "Nochmal", not "Kamera starten"
    * (the capture's own texts name that button of the camera test and teaching).
@@ -792,6 +803,12 @@ export interface AttachOptions {
    * calls `failed`, when it cannot be said. For tests.
    */
   readonly sayText?: (text: string, failed: () => void, ended: () => void) => SpeechAttempt | boolean | void;
+  /**
+   * Card NG-56: the concepts on the board that have a caregiver's demo clip, in
+   * board order, and how to read one (null when it cannot be read). Without
+   * any, the view has no "Vormachen".
+   */
+  readonly demos?: { readonly ids: readonly string[]; readonly load: (conceptId: string) => Promise<string | null> };
 }
 
 export interface AttachedRecogniser {
@@ -830,7 +847,13 @@ function conceptContent(target: HTMLElement, entry: BoardEntry, size: number): v
 }
 
 /** The symbols on the view's buttons, for a child who does not read: the text stays next to them. */
-export const RECOGNISE_SYMBOLS = { yes: "✓", no: "✗", finish: "■", again: "↻", camera: "⇄", picture: "◐", resume: "▶" } as const;
+export const RECOGNISE_SYMBOLS = { yes: "✓", no: "✗", finish: "■", again: "↻", camera: "⇄", picture: "◐", resume: "▶", demo: "▷", slow: "½", mirror: "⇋", close: "✗" } as const;
+
+/** Card NG-56: where the gesture view keeps "Langsam" and "Spiegeln" of the demo clip on this device ("on" or "off"; nothing readable means off). */
+export const RECOGNISE_DEMO_SLOW_KEY = "amysecho-demo-slow";
+export const RECOGNISE_DEMO_MIRROR_KEY = "amysecho-demo-mirror";
+/** The speed of a clip with "Langsam". */
+export const DEMO_SLOW_RATE = 0.5;
 
 /** Card NG-52: where the gesture view keeps "Bild an / aus" on this device; "off" for points only, anything else is on. */
 export const RECOGNISE_PICTURE_KEY = "amysecho-recognise-picture";
@@ -867,6 +890,22 @@ export function loadRecognisePicture(storage: ChoiceStorage | null): boolean {
     return storage?.getItem(RECOGNISE_PICTURE_KEY) !== "off";
   } catch {
     return true;
+  }
+}
+
+function loadSwitch(storage: ChoiceStorage | null, key: string): boolean {
+  try {
+    return storage?.getItem(key) === "on";
+  } catch {
+    return false;
+  }
+}
+
+function saveSwitch(storage: ChoiceStorage | null, key: string, on: boolean): void {
+  try {
+    storage?.setItem(key, on ? "on" : "off");
+  } catch {
+    // Nothing: a convenience, not data.
   }
 }
 
@@ -991,12 +1030,179 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   };
   pictureButton.setAttribute("aria-label", RECOGNISE_TEXT.pictureName);
   showPicture();
+  /**
+   * Card NG-56: "Vormachen" at the top when concepts on the board have a caregiver's clip. It opens a
+   * box above the view's content: the concepts to choose from (one clip plays at once), then the clip,
+   * large, with "Nochmal", "Langsam" and "Spiegeln". The camera and the recognising go on underneath:
+   * nothing in the box changes the recogniser's state, so imitating the clip stacks its tile as ever.
+   */
+  const demoIds = (options.demos?.ids ?? []).filter((id, index, all) => byId.has(id) && all.indexOf(id) === index);
+  const demoButton = button("recognise-demo-open", "");
+  const demoMark = element("span", "recognise-mark", RECOGNISE_SYMBOLS.demo);
+  demoMark.setAttribute("aria-hidden", "true");
+  demoButton.append(demoMark, element("span", "recognise-demo-text", RECOGNISE_TEXT.demo));
+  demoButton.setAttribute("aria-label", RECOGNISE_TEXT.demo);
+  // Only where there is a clip: otherwise the top is as before.
+  if (demoIds.length > 0) top.append(demoButton);
+  const demoBox = element("section", "recognise-demo");
+  demoBox.setAttribute("aria-label", RECOGNISE_TEXT.demo);
+  demoBox.hidden = true;
+  let demoSlow = loadSwitch(storage(), RECOGNISE_DEMO_SLOW_KEY);
+  let demoMirror = loadSwitch(storage(), RECOGNISE_DEMO_MIRROR_KEY);
+  let demoVideo: HTMLVideoElement | null = null;
+  /** A new number for every opening, choice and close: a clip read for an earlier one is dropped. */
+  let demoToken = 0;
+  const stopDemoVideo = (): void => {
+    const video = demoVideo;
+    demoVideo = null;
+    if (video === null) return;
+    try {
+      video.pause?.();
+      video.removeAttribute?.("src");
+    } catch {
+      // Only a display.
+    }
+  };
+  const closeDemo = (focusBack: boolean): void => {
+    demoToken += 1;
+    stopDemoVideo();
+    const wasOpen = !demoBox.hidden;
+    demoBox.hidden = true;
+    demoBox.replaceChildren();
+    delete panel.dataset["demo"];
+    if (wasOpen && focusBack && typeof demoButton.focus === "function") demoButton.focus();
+  };
+  const demoRow = (...nodes: HTMLElement[]): HTMLElement => {
+    const row = element("div", "recognise-demo-actions");
+    row.append(...nodes);
+    return row;
+  };
+  const demoCloseButton = (): HTMLElement => {
+    const close = actionButton("recognise-demo-close", RECOGNISE_SYMBOLS.close, RECOGNISE_TEXT.demoClose);
+    close.addEventListener("click", () => closeDemo(true));
+    return close;
+  };
+  const demoSwitch = (className: string, symbol: string, text: string, on: boolean, flip: () => boolean): HTMLElement => {
+    const control = actionButton(className, symbol, text);
+    control.setAttribute("aria-pressed", String(on));
+    control.addEventListener("click", () => control.setAttribute("aria-pressed", String(flip())));
+    return control;
+  };
+  const applyRate = (video: HTMLVideoElement): void => {
+    const rate = demoSlow ? DEMO_SLOW_RATE : 1;
+    video.defaultPlaybackRate = rate;
+    video.playbackRate = rate;
+  };
+  const focusOn = (node: HTMLElement | undefined): void => {
+    if (node !== undefined && typeof node.focus === "function") node.focus();
+  };
+  const chooseDemo = (): void => {
+    demoToken += 1;
+    stopDemoVideo();
+    demoBox.hidden = false;
+    panel.dataset["demo"] = "choose";
+    const line = element("p", "recognise-demo-line", RECOGNISE_TEXT.demoChoose);
+    const list = element("div", "recognise-demo-choices");
+    list.setAttribute("role", "group");
+    list.setAttribute("aria-label", RECOGNISE_TEXT.demoChoose);
+    const tiles: HTMLElement[] = [];
+    for (const id of demoIds) {
+      const entry = byId.get(id)!;
+      const tile = button(entry.symbolPath === null ? "concept concept-text recognise-demo-choice" : "concept recognise-demo-choice", "");
+      tile.setAttribute("aria-label", entry.labelDe);
+      tile.dataset["concept"] = id;
+      conceptContent(tile, entry, 64);
+      tile.addEventListener("click", () => playDemo(id));
+      list.append(tile);
+      tiles.push(tile);
+    }
+    demoBox.replaceChildren(line, list, demoRow(demoCloseButton()));
+    focusOn(tiles[0]);
+  };
+  const playDemo = (id: string): void => {
+    const entry = byId.get(id);
+    const load = options.demos?.load;
+    if (entry === undefined || load === undefined) return;
+    demoToken += 1;
+    const mine = demoToken;
+    stopDemoVideo();
+    demoBox.hidden = false;
+    panel.dataset["demo"] = "play";
+    const line = element("p", "recognise-demo-line", RECOGNISE_TEXT.demoLoading);
+    line.setAttribute("role", "status");
+    line.setAttribute("aria-live", "polite");
+    const close = demoCloseButton();
+    demoBox.replaceChildren(line, demoRow(close));
+    focusOn(close);
+    let reading: Promise<string | null>;
+    try {
+      reading = load(id);
+    } catch {
+      reading = Promise.resolve(null);
+    }
+    void reading.catch(() => null).then((url) => {
+      if (mine !== demoToken) return;
+      if (url === null || !isDemoDataUrl(url)) {
+        line.textContent = RECOGNISE_TEXT.demoFailed;
+        return;
+      }
+      const video = document.createElement("video") as HTMLVideoElement;
+      video.className = "recognise-demo-video";
+      video.muted = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      video.dataset["mirrored"] = String(demoMirror);
+      video.setAttribute("aria-label", RECOGNISE_TEXT.demoVideo(entry.labelDe));
+      applyRate(video);
+      // Card NG-59: a clip this browser cannot play (one recorded on another device) says so instead of an empty box.
+      video.addEventListener("error", () => {
+        if (mine !== demoToken) return;
+        // The clip's buttons go: a focus on one of them moves to "Schließen".
+        const focusInBox = typeof document !== "undefined" && [again, slow, mirror, close].includes(document.activeElement as HTMLElement);
+        stopDemoVideo();
+        line.textContent = RECOGNISE_TEXT.demoFailed;
+        demoBox.replaceChildren(line, demoRow(close));
+        if (focusInBox) focusOn(close);
+      });
+      video.src = url;
+      demoVideo = video;
+      line.textContent = entry.labelDe;
+      const again = actionButton("recognise-demo-again", RECOGNISE_SYMBOLS.again, RECOGNISE_TEXT.again);
+      again.addEventListener("click", () => {
+        try {
+          video.currentTime = 0;
+          void video.play?.()?.catch(() => undefined);
+        } catch {
+          // Only a display.
+        }
+      });
+      const slow = demoSwitch("recognise-demo-slow", RECOGNISE_SYMBOLS.slow, RECOGNISE_TEXT.demoSlow, demoSlow, () => {
+        demoSlow = !demoSlow;
+        saveSwitch(storage(), RECOGNISE_DEMO_SLOW_KEY, demoSlow);
+        applyRate(video);
+        return demoSlow;
+      });
+      const mirror = demoSwitch("recognise-demo-mirror", RECOGNISE_SYMBOLS.mirror, RECOGNISE_TEXT.demoMirror, demoMirror, () => {
+        demoMirror = !demoMirror;
+        saveSwitch(storage(), RECOGNISE_DEMO_MIRROR_KEY, demoMirror);
+        video.dataset["mirrored"] = String(demoMirror);
+        return demoMirror;
+      });
+      const focusWasOnClose = typeof document !== "undefined" && document.activeElement === close;
+      demoBox.replaceChildren(line, video, demoRow(again, slow, mirror, close));
+      if (focusWasOnClose) focusOn(again);
+    });
+  };
+  demoButton.addEventListener("click", () => {
+    if (demoIds.length === 1) playDemo(demoIds[0]!);
+    else chooseDemo();
+  });
   // The state's content and its buttons: one above the other in a window held upright, side by side in a wide one (style sheet).
   const body = element("div", "recognise-body");
   const main = element("div", "recognise-main");
   const actions = element("div", "recognise-actions");
   body.append(main, actions);
-  panel.append(top, body);
+  panel.append(top, demoBox, body);
   /** The preview of the current camera start (card NG-44); shown while the camera runs. */
   let preview: CapturePreview | null = null;
   /** The box the preview sits in, the same for countdown and recording, so the picture does not jump. */
@@ -1113,6 +1319,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       failures = 0;
     }
     if (state.kind === "idle") {
+      // Back to the board: an open clip goes with the view.
+      closeDemo(false);
       board.uncover();
       return;
     }
@@ -1381,6 +1589,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   return {
     open: () => recogniser.start(),
     dispose() {
+      closeDemo(false);
       recogniser.dispose();
       if (listen && typeof document.removeEventListener === "function") document.removeEventListener("visibilitychange", onHidden);
       if (typeof window !== "undefined" && typeof window.removeEventListener === "function") window.removeEventListener("pagehide", onPageHide);

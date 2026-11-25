@@ -10,6 +10,8 @@ import {
   CAMERA_FACING_KEY as CAPTURE_FACING_KEY, CAPTURE_BRIDGE_KEY as CAPTURE_MODULE_KEY, CAPTURE_TEXT, PREVIEW_COLOURS, captureBridge, createCapturePreview, loadCameraFacing, nextShoulders, startCapture,
 } from "../dist/capture/capture.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
+import { DEMO_MAX_MS, DemoRecordingRefusal } from "../dist/demo-clips.js";
+import { exportProfile, importProfile } from "../dist/profiles/backup.js";
 import { listExamples } from "../dist/recognition/examples.js";
 import { ProfileStore } from "../dist/profiles/store.js";
 
@@ -225,6 +227,8 @@ async function withArea(options, callback) {
       // The device's camera choice (card NG-43): a storage of the test's own, never the process's.
       cameraStorage: () => cameraStorage,
       ...(options.pictureFromFile === undefined ? {} : { pictureFromFile: options.pictureFromFile }),
+      ...(options.openDemoCamera === undefined ? {} : { openDemoCamera: options.openDemoCamera }),
+      ...(options.clipFromBlob === undefined ? {} : { clipFromBlob: options.clipFromBlob }),
     });
     const [opener, progress, hint] = entry.children;
     const area = {
@@ -983,7 +987,7 @@ test("board editor: adding, moving and removing is saved at once and is on the c
     assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Fertig"]);
     assert.deepEqual(more(), ["Trinken", "Mehr"]);
     const boardRows = () => concepts().filter((row) => row.onBoard);
-    assert.deepEqual(boardRows().map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]));
+    assert.deepEqual(boardRows().map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Vormachen", "Entfernen"]));
     assert.deepEqual(boardRows().map((row) => [row.name, row.sentence, row.picture]), [
       ["Pause", "Ich brauche eine Pause.", "./icons/pause.svg"], ["Hilfe", "Ich brauche Hilfe.", "./icons/hilfe.svg"], ["Fertig", "Ich bin fertig.", "./icons/fertig.svg"],
     ]);
@@ -1095,9 +1099,9 @@ test("board editor: a mixed board shows editable rows with buttons and each kind
     ]);
     // A locked row cannot be moved or taken off. One that the board shows can be reworded and taught a gesture; one that it cannot show has no button at all.
     assert.deepEqual(concepts().filter((candidate) => candidate.locked).map((row) => [row.name, row.buttons]), [
-      ["Begriff „mein.ball“", []], ["Begriff „neu“", []], ["Begriff „geist“", []], ["Schaukel", ["Text ändern", "Bild wählen", "Gebärde beibringen"]],
+      ["Begriff „mein.ball“", []], ["Begriff „neu“", []], ["Begriff „geist“", []], ["Schaukel", ["Text ändern", "Bild wählen", "Gebärde beibringen", "Vormachen"]],
     ]);
-    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(4).fill(["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]));
+    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(4).fill(["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Vormachen", "Entfernen"]));
     assert.equal(concepts().find((row) => row.name === "Schaukel").sentence, "Ich möchte schaukeln.");
     assert.equal(concepts().find((row) => row.name === "Ball").sentence, "Ich möchte mit dem Ball spielen.");
     // "nach oben" / "nach unten" end at the ends of the editable sequence, not of the list.
@@ -1721,6 +1725,7 @@ const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ei
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name, die ausgewählten Begriffe, eigene Texte dazu und beigebrachte Gebärden werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
+  + "Ein Video wird nur als Vormachen-Clip gespeichert, den eine Bezugsperson von sich selbst aufnimmt. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -5221,7 +5226,7 @@ test("reword: an entry that a newer app wrote has no 'Text ändern' and says tha
     // The board shows the app's text for it; it can still be moved and taken off.
     const row = concept("Trinken");
     // Teaching a gesture does not write the entry, so it stays.
-    assert.deepEqual(row.buttons, ["nach oben", "nach unten", "Bild wählen", "Gebärde beibringen", "Entfernen"]);
+    assert.deepEqual(row.buttons, ["nach oben", "nach unten", "Bild wählen", "Gebärde beibringen", "Vormachen", "Entfernen"]);
     assert.equal(row.note, NEWER_ENTRY);
     assert.deepEqual(concepts().filter((other) => other.onBoard && other.name !== "Trinken").map((other) => [other.reword !== null, other.note]), [[true, null], [true, null]]);
   });
@@ -5835,7 +5840,7 @@ test("teach: every tile on the board offers 'Gebärde beibringen'; it opens a vi
     await holdOpen();
     assert.deepEqual(area.onBoard(), ["Trinken", "Hilfe"]);
     for (const name of ["Trinken", "Hilfe"]) {
-      assert.deepEqual(concept(name).buttons, ["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]);
+      assert.deepEqual(concept(name).buttons, ["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Vormachen", "Entfernen"]);
       assert.equal(concept(name).teach["aria-label"], `Gebärde beibringen: ${name}`);
       assert.equal(concept(name).gesture, null);
     }
@@ -6802,7 +6807,7 @@ test("own concepts: 'Eigenen Begriff anlegen' takes over the body with a word an
     assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause", id]);
     assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause", "Ball"]);
     // A full row: it can be moved, reworded, taught a gesture and taken off.
-    assert.deepEqual(concept("Ball").buttons, ["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Entfernen"]);
+    assert.deepEqual(concept("Ball").buttons, ["nach oben", "nach unten", "Text ändern", "Bild wählen", "Gebärde beibringen", "Vormachen", "Entfernen"]);
     assert.equal(concept("Ball").picture, null);
     assert.equal(focused.current, concept("Ball").row);
     await handle.close();
@@ -6901,7 +6906,7 @@ test("own concepts: 'Endgültig löschen' asks first; a hold deletes the concept
     let view = confirmation();
     assert.deepEqual(view.texts.slice(0, 2), [
       "„Ball“ aus dem Profil „Mia“ endgültig löschen?",
-      "Das Wort, der Satz und die beigebrachten Gebärden dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "Das Wort, der Satz, die beigebrachten Gebärden und der Vormachen-Clip dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.",
     ]);
     assert.equal(focused.current, view.cancel);
     // A tap deletes nothing: it has to be held.
@@ -7503,4 +7508,383 @@ test("delete name: the field describes itself with the title and what is lost; a
   });
   const css = await readFile(new URL("../dist/styles.css", import.meta.url), "utf8");
   assert.match(css, /^\.caregiver-delete-name-label \{[^}]*overflow-wrap: anywhere;/m);
+});
+
+// --- Vormachen: a caregiver's own clip of a gesture (card NG-56); every clip here is a few made-up bytes ---
+
+const CLIP = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYEC";
+const OTHER_CLIP = "data:video/webm;codecs=vp9;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYEDAA==";
+/**
+ * A camera for demo clips: `log` counts what was asked of it. `error`: opening fails with it.
+ * The recorder hands back a fake blob; `clips` are the data URLs the converter returns, in turn,
+ * and a DemoRecordingRefusal reason in their place is thrown instead.
+ */
+function fakeDemo({ error = null, clips = [CLIP], holdStop = false } = {}) {
+  const log = { facings: [], opened: 0, started: 0, stopped: 0, closed: 0, converted: 0, endTrack: () => undefined, releaseStop: () => undefined };
+  const queue = [...clips];
+  return {
+    log,
+    openDemoCamera: async (facing) => {
+      log.facings.push(facing);
+      if (error !== null) throw error;
+      log.opened += 1;
+      const ended = [];
+      log.endTrack = () => { for (const handler of ended) handler(); };
+      const track = { addEventListener(name, handler) { if (name === "ended") ended.push(handler); } };
+      return {
+        stream: { id: "demo-stream", getTracks: () => [track] },
+        start() { log.started += 1; },
+        async stop() {
+          log.stopped += 1;
+          if (holdStop) await new Promise((resolve) => { log.releaseStop = resolve; });
+          return { size: 64, type: "video/webm" };
+        },
+        close() { log.closed += 1; },
+      };
+    },
+    clipFromBlob: async () => {
+      log.converted += 1;
+      const next = queue.length > 1 ? queue.shift() : queue[0];
+      if (!next.startsWith("data:")) throw new DemoRecordingRefusal(next);
+      return next;
+    },
+  };
+}
+const demoViewOf = (region) => {
+  const view = byClass(region, "caregiver-demo");
+  if (view === undefined) return null;
+  const videos = tree(view).filter((element) => element.tagName === "video");
+  return {
+    view, texts: textsIn(view), videos,
+    clips: videos.filter((video) => video.src !== undefined && video.src !== "").map((video) => video.src),
+    live: videos.find((video) => hasClass(video, "caregiver-demo-live")) ?? null,
+    camera: buttonNamed(view, "Kamera starten") ?? null, record: buttonNamed(view, "Aufnahme starten") ?? null,
+    stop: buttonNamed(view, "Aufnahme beenden") ?? null, cancelCountdown: buttonNamed(view, "Abbrechen") ?? null,
+    save: buttonNamed(view, "Speichern") ?? null, back: buttonNamed(view, "Zurück") ?? null, discard: buttonNamed(view, "Verwerfen") ?? null,
+    remove: buttonNamed(view, "Clip löschen") ?? null,
+    line: byClass(view, "caregiver-teach-camera")?.textContent ?? null,
+  };
+};
+/** Waits for the area and for promises of the fake camera and converter. */
+const settleDemo = async (area) => {
+  for (let i = 0; i < 3; i += 1) {
+    await area.handle.settled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  await area.handle.settled();
+};
+/** Opens the camera, counts down and records until the time is up; the new clip is then shown. */
+const recordDemo = async (area) => {
+  await area.act(() => demoViewOf(area.caregiverRegion).camera.click());
+  await settleDemo(area);
+  await area.act(() => demoViewOf(area.caregiverRegion).record.click());
+  area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+  await settleDemo(area);
+  area.clock.advance(DEMO_MAX_MS);
+  await settleDemo(area);
+};
+const DEMO_TEXTS = [
+  "Nimm dich selbst auf, wie du die Gebärde machst. Das Kind sieht den Clip in der Gebärden-Ansicht unter „Vormachen“ und kann ihn nachmachen. Die Aufnahme dauert höchstens 5 Sekunden.",
+  "Bitte nur Erwachsene aufnehmen, nie das Kind.",
+  "Der Clip wird ohne Ton nur in diesem Browser auf diesem Gerät gespeichert, in diesem Profil, und mit dem Profil gelöscht. Die App sendet ihn nicht.",
+];
+
+test("vormachen: every tile on the board offers 'Vormachen'; it opens a view that says what is kept and that only adults are recorded, and starts no camera", async () => {
+  const demo = fakeDemo();
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, focused } = area;
+    await holdOpen();
+    const control = buttonNamed(concept("Trinken").row, "Vormachen");
+    assert.equal(control["aria-label"], "Vormachen: Trinken");
+    await act(() => control.click());
+    const view = demoViewOf(caregiverRegion);
+    assert.deepEqual(view.texts, [
+      "Vormachen für „Trinken“ – Tafel von „Mia“", ...DEMO_TEXTS, "Für diesen Begriff gibt es noch keinen Clip.", "Kamera starten", "Zurück",
+    ]);
+    assert.deepEqual(byClass(caregiverRegion, "caregiver-body").children, [view.view]);
+    assert.equal(focused.current, view.camera);
+    assert.equal(view.remove, null);
+    assert.equal(demo.log.facings.length, 0);
+    await act(() => view.back.click());
+    assert.equal(demoViewOf(caregiverRegion), null);
+    assert.equal(focused.current, buttonNamed(concept("Trinken").row, "Vormachen"));
+  });
+});
+
+test("vormachen: camera, countdown and a recording that ends by itself after DEMO_MAX_MS; the clip is stored only on 'Speichern', shown next time, and 'Clip löschen' deletes it", async () => {
+  const demo = fakeDemo({ clips: [CLIP, OTHER_CLIP] });
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, status, backend, seeded, focused, clock } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    const before = JSON.stringify(backend.snapshot());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    let view = demoViewOf(caregiverRegion);
+    assert.deepEqual(demo.log.facings, ["user"]);
+    assert.equal(view.line, "Die Kamera läuft. Tippe auf „Aufnahme starten“.");
+    assert.equal(view.live.srcObject.id, "demo-stream");
+    assert.equal(view.live.muted, true);
+    assert.equal(view.live.dataset.mirrored, "true");
+    assert.equal(focused.current, view.record);
+    await act(() => view.record.click());
+    assert.equal(demoViewOf(caregiverRegion).line, "Gleich geht’s los: 3");
+    clock.advance(1000);
+    assert.equal(demoViewOf(caregiverRegion).line, "Gleich geht’s los: 3 … 2");
+    assert.equal(demo.log.started, 0);
+    clock.advance((TEACH_COUNTDOWN_S - 1) * 1000);
+    await settleDemo(area);
+    view = demoViewOf(caregiverRegion);
+    assert.equal(demo.log.started, 1);
+    assert.equal(view.line, "Die Aufnahme läuft. Jetzt die Gebärde vormachen.");
+    assert.equal(focused.current, view.stop);
+    clock.advance(DEMO_MAX_MS - 1);
+    assert.equal(demo.log.stopped, 0);
+    clock.advance(1);
+    await settleDemo(area);
+    view = demoViewOf(caregiverRegion);
+    assert.equal(demo.log.stopped, 1);
+    assert.equal(demo.log.closed, 1);
+    assert.equal(view.live, null);
+    assert.ok(view.texts.includes("Neuer Clip:"));
+    assert.deepEqual(view.clips, [CLIP]);
+    assert.equal(view.videos[0].muted, true);
+    assert.equal(focused.current, view.save);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    // "Verwerfen" instead of "Zurück" while a clip waits.
+    assert.notEqual(view.discard, null);
+    await act(() => view.save.click());
+    assert.equal(status(), "Gespeichert: Vormachen für „Trinken“.");
+    assert.deepEqual(backend.snapshot()[`profile/${seeded.id}/data/demo.trinken`], { version: 1, dataUrl: CLIP });
+    assert.equal(demoViewOf(caregiverRegion), null);
+    assert.equal(focused.current, buttonNamed(concept("Trinken").row, "Vormachen"));
+    // Opened again: the stored clip, and a new recording replaces it on "Speichern" only.
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    view = demoViewOf(caregiverRegion);
+    assert.ok(view.texts.includes("Jetzt gespeichert:"));
+    assert.deepEqual(view.clips, [CLIP]);
+    await recordDemo(area);
+    assert.deepEqual(demoViewOf(caregiverRegion).clips, [OTHER_CLIP]);
+    await act(() => demoViewOf(caregiverRegion).save.click());
+    assert.deepEqual(backend.snapshot()[`profile/${seeded.id}/data/demo.trinken`], { version: 1, dataUrl: OTHER_CLIP });
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).remove.click());
+    assert.equal(status(), "Der Clip für „Trinken“ wurde gelöscht.");
+    assert.equal(backend.snapshot()[`profile/${seeded.id}/data/demo.trinken`], undefined);
+  });
+});
+
+test("vormachen: 'Aufnahme beenden' ends early; 'Abbrechen' in the countdown records nothing; leaving or closing stops the camera and drops the clip", async () => {
+  const demo = fakeDemo();
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, backend, clock, handle } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    await act(() => demoViewOf(caregiverRegion).cancelCountdown.click());
+    clock.advance(10_000);
+    assert.equal(demo.log.started, 0);
+    assert.notEqual(demoViewOf(caregiverRegion).record, null);
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await settleDemo(area);
+    clock.advance(1000);
+    await act(() => demoViewOf(caregiverRegion).stop.click());
+    await settleDemo(area);
+    assert.equal(demo.log.stopped, 1);
+    assert.deepEqual(demoViewOf(caregiverRegion).clips, [CLIP]);
+    // The time running out later changes nothing.
+    clock.advance(DEMO_MAX_MS);
+    await settleDemo(area);
+    assert.equal(demo.log.stopped, 1);
+    const before = JSON.stringify(backend.snapshot());
+    await act(() => demoViewOf(caregiverRegion).discard.click());
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    // Leaving while the camera runs stops it.
+    await act(() => buttonNamed(concept("Hilfe").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    const closedBefore = demo.log.closed;
+    await act(() => demoViewOf(caregiverRegion).back.click());
+    assert.equal(demo.log.closed, closedBefore + 1);
+    // Closing the area during a recording stops the camera; nothing is stored.
+    await act(() => buttonNamed(concept("Hilfe").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await settleDemo(area);
+    await handle.close();
+    assert.equal(demo.log.closed, closedBefore + 2);
+    clock.advance(DEMO_MAX_MS);
+    await settleDemo(area);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+  });
+  // A camera that answers only after the view was left is closed at once.
+  let answer;
+  const late = fakeDemo();
+  const slow = { ...late, openDemoCamera: (facing) => new Promise((resolve) => { answer = () => resolve(late.openDemoCamera(facing)); }) };
+  await withArea({ seed: seedThree, ...slow }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    await area.act(() => demoViewOf(area.caregiverRegion).camera.click());
+    assert.equal(demoViewOf(area.caregiverRegion).line, "Die Kamera startet …");
+    assert.equal(demoViewOf(area.caregiverRegion).camera, null);
+    await area.act(() => demoViewOf(area.caregiverRegion).back.click());
+    answer();
+    await settleDemo(area);
+    assert.equal(late.log.opened, 1);
+    assert.equal(late.log.closed, 1);
+    assert.equal(demoViewOf(area.caregiverRegion), null);
+  });
+});
+
+test("vormachen: a camera that cannot open and a recording that cannot become a clip are said in German; nothing is stored", async () => {
+  for (const [name, line] of [
+    ["NotAllowedError", "Die Kamera ist nicht erlaubt. Du kannst sie in den Einstellungen des Browsers erlauben."],
+    ["NotFoundError", "Es wurde keine Kamera gefunden."],
+    ["NotReadableError", "Die Kamera kann gerade nicht starten. Vielleicht benutzt eine andere App sie. Bitte die andere App schließen und noch einmal versuchen."],
+    ["TypeError", "Dieser Browser kann hier keine Clips aufnehmen. Die Tafel funktioniert auch ohne."],
+  ]) {
+    const error = new Error("camera");
+    error.name = name;
+    await withArea({ seed: seedThree, ...fakeDemo({ error }) }, async (area) => {
+      await area.holdOpen();
+      await area.act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+      await area.act(() => demoViewOf(area.caregiverRegion).camera.click());
+      await settleDemo(area);
+      assert.equal(area.status(), line);
+      assert.ok(hasClass(statusElement(area.caregiverRegion), "caregiver-status-error"));
+      assert.equal(area.focused.current, demoViewOf(area.caregiverRegion).camera);
+    });
+  }
+  const demo = fakeDemo({ clips: ["too-large", "unreadable", "data:video/ogg;base64,AAAA"] });
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    const before = JSON.stringify(area.backend.snapshot());
+    for (const line of [
+      "Der Clip ist zu groß geworden. Bitte kürzer aufnehmen.",
+      "Die Aufnahme konnte nicht gelesen werden. Bitte noch einmal aufnehmen.",
+      // A converter that hands back something that is not a clip.
+      "Die Aufnahme konnte nicht gelesen werden. Bitte noch einmal aufnehmen.",
+    ]) {
+      await recordDemo(area);
+      assert.equal(area.status(), line);
+      const view = demoViewOf(area.caregiverRegion);
+      assert.equal(view.save, null);
+      assert.equal(view.live, null);
+      assert.equal(area.focused.current, view.camera);
+    }
+    assert.equal(demo.log.closed, 3);
+    assert.equal(JSON.stringify(area.backend.snapshot()), before);
+  });
+});
+
+test("vormachen: the clip is part of the profile export (for a later backup screen, card NG-58); deleting an own concept for good deletes its clip", async () => {
+  const demo = fakeDemo();
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, backend, seeded, status } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    await recordDemo(area);
+    await act(() => demoViewOf(caregiverRegion).save.click());
+    const store = await area.store();
+    const exported = await exportProfile(store, seeded.id);
+    assert.deepEqual(exported.data["demo.trinken"], { version: 1, dataUrl: CLIP });
+    const elsewhere = await ProfileStore.open(new MemoryBackend());
+    const restored = await importProfile(elsewhere, JSON.parse(JSON.stringify(exported)));
+    assert.deepEqual(await elsewhere.data(restored.id).get("demo.trinken"), { version: 1, dataUrl: CLIP });
+    // An own concept: its clip goes with it.
+    await createOwn(area, "Ball", "Ich möchte Ball spielen.");
+    const [id] = ownEntries(backend, seeded)[0];
+    await act(() => buttonNamed(concept("Ball").row, "Vormachen").click());
+    await recordDemo(area);
+    await act(() => demoViewOf(caregiverRegion).save.click());
+    assert.ok(Object.keys(backend.snapshot()).some((key) => key.endsWith(`demo.${id}`)));
+    await area.remove("Ball");
+    await act(() => buttonNamed(concept("Ball").row, "Endgültig löschen").click());
+    await area.confirmDelete();
+    assert.equal(status(), "„Ball“ wurde endgültig gelöscht.");
+    assert.ok(!Object.keys(backend.snapshot()).some((key) => key.includes(id)));
+  });
+});
+
+test("vormachen: while a recording is being read nothing new can be recorded; a camera that goes away is said; a clip of a newer version is not offered a new recording", async () => {
+  const demo = fakeDemo({ holdStop: true });
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, clock } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).stop.click());
+    await settleDemo(area);
+    let view = demoViewOf(caregiverRegion);
+    assert.equal(view.line, "Der Clip wird gelesen …");
+    assert.equal(view.record, null, "no new recording while the last one is read");
+    assert.equal(view.stop, null);
+    assert.equal(view.camera, null);
+    clock.advance(10_000);
+    assert.equal(demo.log.started, 1);
+    demo.log.releaseStop();
+    await settleDemo(area);
+    view = demoViewOf(caregiverRegion);
+    assert.deepEqual(view.clips, [CLIP]);
+    assert.equal(demo.log.closed, 1);
+    // A camera that ends by itself while it runs: the camera of the view stops and the line says so.
+    await act(() => view.camera.click());
+    await settleDemo(area);
+    assert.notEqual(demoViewOf(caregiverRegion).record, null);
+    demo.log.endTrack();
+    await settleDemo(area);
+    assert.equal(area.status(), "Die Kamera ist ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen.");
+    assert.equal(demo.log.closed, 2);
+    assert.equal(demoViewOf(caregiverRegion).live, null);
+    assert.equal(area.focused.current, demoViewOf(caregiverRegion).camera);
+  });
+  // A clip a newer version stored: said, and no recording offered that could not be saved.
+  await withArea({ seed: async (store) => {
+    const mia = await seedThree(store);
+    await store.data(mia.id).set("demo.trinken", { version: 2, dataUrl: CLIP });
+    return mia;
+  }, ...fakeDemo() }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Trinken").row, "Vormachen").click());
+    const view = demoViewOf(area.caregiverRegion);
+    assert.ok(view.texts.includes("Der Clip dieses Begriffs wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren."));
+    assert.equal(view.camera, null);
+    assert.notEqual(view.remove, null, "it can still be deleted");
+  });
+});
+
+test("vormachen (card NG-59): a clip is always recorded with the front camera, whatever the device's camera choice; a clip this browser cannot play says so", async () => {
+  const cameraStorage = memoryStorage();
+  cameraStorage.setItem(CAPTURE_FACING_KEY, "environment");
+  const demo = fakeDemo();
+  await withArea({ seed: seedThree, cameraStorage, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    assert.deepEqual(demo.log.facings, ["user"], "never the back camera, which would point at the child");
+    assert.equal(demoViewOf(caregiverRegion).live.dataset.mirrored, "true");
+    assert.equal(cameraStorage.getItem(CAPTURE_FACING_KEY), "environment", "the device's choice for teaching stays");
+    // A new clip that cannot be played here: the video goes, a line says so; it can still be discarded.
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    area.clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await settleDemo(area);
+    area.clock.advance(DEMO_MAX_MS);
+    await settleDemo(area);
+    const view = demoViewOf(caregiverRegion);
+    view.videos[0].dispatch("error");
+    assert.equal(view.videos[0].hidden, true);
+    assert.ok(textsIn(view.view).includes("Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden."));
+  });
 });

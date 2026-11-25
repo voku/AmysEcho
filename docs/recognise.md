@@ -485,6 +485,32 @@ most 3 s and prints how many recordings the limit cut: none when it ran alone, o
 30-frame video, still recognised) in one run under `npm run verify`, where the DGS test tracks in
 parallel. The test takes about 70 s, mostly tracking; `npm run verify` took 2 min 47 s.
 
+## Vormachen (card NG-56)
+
+When concepts on the board have a caregiver's demo clip ([caregiver.md](caregiver.md), "Vormachen"),
+the app reads their ids with the board (`listDemoClipIds`, data names only) and the view's top row has
+"Vormachen" (▷) after the camera switch. Without a clip the top row is as before. A clip itself is
+read only when it is played; a failed listing is reported and the view has no "Vormachen".
+
+- A tap opens a box above the view's content: "Welche Gebärde vormachen?" with the concepts that
+  have a clip, in board order, as tiles, and "Schließen". With one clip it plays at once.
+- The chosen clip plays in the box, muted and inline, under its label, with "Nochmal" (from the
+  start), "Langsam" (half speed) and "Spiegeln" (shown like a mirror); both switches show
+  `aria-pressed` and are remembered on the device (`amysecho-demo-slow`, `amysecho-demo-mirror`),
+  off unless chosen. A clip that cannot be read, or that this browser cannot play (card NG-59: one
+  recorded on another device; the video's error event), says "Dieser Clip kann gerade nicht
+  abgespielt werden." with only "Schließen", which gets the focus if a clip button had it.
+- Nothing in the box changes the recogniser: the camera runs on, the child imitates the clip and the
+  recognised gesture is stacked as ever. No score, no praise, nothing spoken by the clip.
+- "Schließen" puts the focus back on "Vormachen"; going back to the board closes the box and pauses
+  the clip.
+- Layout: in a window held upright the box sits above the content and the child's own picture keeps
+  at least 5 rem; in a wide window the box is on the left, the content on the right. Looked at in
+  headless Chromium at 390 x 844, 360 x 640 and 844 x 390 with Chromium's synthetic camera; not on a
+  device, not with a child.
+- The page's policy allows `media-src 'self' data:` for this; `test/browser/demo-clips.test.mjs`
+  records a clip from Chromium's fake camera and plays it under that policy.
+
 ## Not in scope now (follow-ups)
 
 - **Saving a chosen candidate as a new example** (the card's "correction becomes a new example"):

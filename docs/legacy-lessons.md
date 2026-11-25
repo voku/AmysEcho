@@ -57,7 +57,10 @@ against the findings above and the product contract ([s0a-product-contract-v0.1.
 | Server training, accounts, admin, history | An MLP trained on a server, login, a gesture history. | No: no backend, and no child data off the device. |
 | Mirrored training data | Left/right mirrored copies of recordings as extra samples. | No. The matcher compares only what the child itself recorded. |
 
-What NG takes from this is card NG-56, "Vormachen". The child's *own* taught example is shown as
-a moving hand, from the features that are already stored (`src/teach/replay.ts`). It is mirrored
-like a mirror and can be played slowly. The child imitates it while the gesture view keeps
-listening. There are no videos, no scores and no praise.
+What NG takes from this is card NG-56, "Vormachen". A first idea, the child's own taught example
+replayed as a moving stick hand, was dropped by the owner on 2026-11-25: strokes are too abstract
+for children like Amy, who learn gestures from familiar people. Instead a caregiver records a short
+clip of themselves doing the gesture, kept only on the device. The child watches it, optionally
+mirrored and slow, and imitates it while the gesture view keeps listening. There is no child video,
+no third-party video, no score and no praise. Storing these clips needs an amendment of the product
+contract first.

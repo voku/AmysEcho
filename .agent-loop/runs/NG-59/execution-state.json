@@ -1,0 +1,222 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+    "history": [
+        {
+            "accepted_at": "2026-11-25T19:02:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:02:26+00:00",
+                "artifact_references": [],
+                "candidate_revision": "a1261a034bdefb09c459fa0f832c086a0709f4f4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "schema_version": "1.0",
+                "task_id": "NG-59",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "a1261a034bdefb09c459fa0f832c086a0709f4f4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "outcome": "completed",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:a2a5f8d9",
+                "summary": "Located: src/caregiver.ts startDemoCamera opened makeDemoCamera(currentFacing()) (shared CAMERA_FACING_KEY) and mirrored by it; clipVideo and recognise.ts playDemo set video.src without an error listener.",
+                "task_id": "NG-59",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:02:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:02:26+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "schema_version": "1.0",
+                "task_id": "NG-59",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "context_id": "main-session-ng59-build",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "outcome": "completed",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:d186d311",
+                "summary": "Demo recording always opens the front camera ('user'), preview mirrored; the device choice is untouched (tested). Video error: caregiver clipVideo hides the video and adds a German line; gesture view replaces the clip with demoFailed and only 'Schließen', focus moved there (tested). Docs updated. npm run verify: 733 unit, 8 browser pass.",
+                "task_id": "NG-59",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:03:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:03:23+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e7ec34b6092fdb03fec03b41398224fc6c0a15a78cdb2c7795d161621fa32155",
+                    "execution-evidence:sha256:dc20457273beeebfdebb60043ab1a3f3e957611005b87f3abbe1edb8215a22a0",
+                    "execution-evidence:sha256:ab216e8dd0a6767ac40c337a920ac691cf7cc1279ca9ba41245e1c4956cd3754",
+                    "execution-evidence:sha256:4e0d3d302c26c052492b1ab0e3925162663bc50699286cc55d1036d5b36ba9a0",
+                    "execution-evidence:sha256:24aa8fb62ba5370a0e1eda84b0d1e5d9df2cd00d6484fca1c26be80f61a4c20d",
+                    "execution-evidence:sha256:24d1ebb463f12ede9f5d564c1360b06ff98657d89db22d0b8244e1662e554d96"
+                ],
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "schema_version": "1.0",
+                "task_id": "NG-59",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e7ec34b6092fdb03fec03b41398224fc6c0a15a78cdb2c7795d161621fa32155",
+                    "execution-evidence:sha256:dc20457273beeebfdebb60043ab1a3f3e957611005b87f3abbe1edb8215a22a0",
+                    "execution-evidence:sha256:ab216e8dd0a6767ac40c337a920ac691cf7cc1279ca9ba41245e1c4956cd3754",
+                    "execution-evidence:sha256:4e0d3d302c26c052492b1ab0e3925162663bc50699286cc55d1036d5b36ba9a0",
+                    "execution-evidence:sha256:24aa8fb62ba5370a0e1eda84b0d1e5d9df2cd00d6484fca1c26be80f61a4c20d",
+                    "execution-evidence:sha256:24d1ebb463f12ede9f5d564c1360b06ff98657d89db22d0b8244e1662e554d96"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "context_id": "ng59-cr-7f3a91c2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "observations": [
+                    "Speichern still offered for a new clip that cannot play",
+                    "focus on the hidden video's controls is lost; the unplayable line is not announced",
+                    "no test for the stored-clip error path or a late error from a stale clip"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:cd45d0ff",
+                "summary": "context-id: ng59-cr-7f3a91c2. Front camera at the only call site; device choice untouched; error listeners guarded; tests would fail on a revert.",
+                "task_id": "NG-59",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:04:27+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:04:27+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:448a75c8d822bf15b3bde759ed5b267cecae0105dd319618e807ec6d5f6b2620",
+                    "execution-evidence:sha256:74fde9699c4cd9c54c06d37ad6138317628c825cab443fa2af35c18bbc9df69e",
+                    "execution-evidence:sha256:2f5c65e46ec010f71130ada5b167ad6aac6b71f548fc3d0f2a1e6cf274f5f247",
+                    "execution-evidence:sha256:d9d5a7b1a1e3c6cf9f9207ed19114dda66afc5c70809ec25f1428ae20593e335",
+                    "execution-evidence:sha256:20f6b2acd8ea0e069c6f7c9df3bb6c03595116bfe71b9c3c71172b3999b33664",
+                    "execution-evidence:sha256:66b598e0e6b0b3ebeebf23b25b294e77c56b1e1841bfc90735da4544d5e9797f"
+                ],
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "schema_version": "1.0",
+                "task_id": "NG-59",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:448a75c8d822bf15b3bde759ed5b267cecae0105dd319618e807ec6d5f6b2620",
+                    "execution-evidence:sha256:74fde9699c4cd9c54c06d37ad6138317628c825cab443fa2af35c18bbc9df69e",
+                    "execution-evidence:sha256:2f5c65e46ec010f71130ada5b167ad6aac6b71f548fc3d0f2a1e6cf274f5f247",
+                    "execution-evidence:sha256:d9d5a7b1a1e3c6cf9f9207ed19114dda66afc5c70809ec25f1428ae20593e335",
+                    "execution-evidence:sha256:20f6b2acd8ea0e069c6f7c9df3bb6c03595116bfe71b9c3c71172b3999b33664",
+                    "execution-evidence:sha256:66b598e0e6b0b3ebeebf23b25b294e77c56b1e1841bfc90735da4544d5e9797f"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "context_id": "ng59-blindspot-7f3c2a91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "observations": [
+                    "a device without a front camera may get the back camera; check track facingMode after opening",
+                    "unplayable line in the caregiver view has no live region; focus may drop",
+                    "Speichern offered for a new clip that cannot play; line advice does not name Verwerfen",
+                    "replaceChildren re-inserts the status line in the gesture view"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:be5ddde4",
+                "summary": "context-id: ng59-blindspot-7f3c2a91. Both criteria met and tested; facingMode 'user' is a preference as in capture.ts.",
+                "task_id": "NG-59",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:07:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:07:31+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "schema_version": "1.0",
+                "task_id": "NG-59",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:e9521e342fdd4997eef885569bd33b8956c2733369b691dfda28fa7dd44aee9d",
+                    "execution-evidence:sha256:2963b4db7139fcfd4fc358106bc2b71489c3b5d035a346105ac824fe55040770"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a1261a034bdefb09c459fa0f832c086a0709f4f4:6438a3631f356e100468b4a2fb2d6a1258270230",
+                "consistency_references": [
+                    "execution-evidence:sha256:e4561242f6617baf312232292e190594e3192049a1147ab155cf8585381841cd"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:8831e510b0a4b21124bb6fac8085475146ec2340ecb82f70a29d19c744d7bdbc",
+                "outcome": "pass",
+                "run_id": "run:NG-59:ac008b569850f7fa",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:bde8f8d7f3a40c908e5d9559a9483998e37d2cc01818caf643d2bcec50409a8b",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-59: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-59 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-59:ac008b569850f7fa binds active Session 2026-11-25-ng-59-r1-bc0c17ca to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-59 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-59",
+                "validation_references": [
+                    "execution-evidence:sha256:e9521e342fdd4997eef885569bd33b8956c2733369b691dfda28fa7dd44aee9d",
+                    "execution-evidence:sha256:2963b4db7139fcfd4fc358106bc2b71489c3b5d035a346105ac824fe55040770"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-59:ac008b569850f7fa",
+    "schema_version": "1.0",
+    "task_id": "NG-59"
+}

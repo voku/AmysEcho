@@ -3,8 +3,9 @@
  * child's screen, and inside it a header that says which board the child
  * sees after closing, the profiles as cards (make active, edit, rename,
  * delete), creating a profile, and a board editor of two lists, with own
- * concepts of a profile (card NG-34) and own pictures for concepts (card
- * NG-8673323346005092805).
+ * concepts of a profile (card NG-34), own pictures for concepts (card
+ * NG-8673323346005092805) and a caregiver's own clip of a gesture for the
+ * child to imitate ("Vormachen", card NG-56).
  *
  * This module writes into the caregiver region and into the entry element
  * that holds the opening control. Of the board region it only reads
@@ -39,6 +40,8 @@ import { exampleFit } from "./teach/fit.js";
 import type { ExampleFit } from "./teach/fit.js";
 import { REPLAY_COLOURS, REPLAY_CONNECTIONS, replayBox, replayStepMs, replaySteps } from "./teach/replay.js";
 import type { ReplayStep } from "./teach/replay.js";
+import { DEMO_MAX_MS, DemoClipError, DemoRecordingRefusal, clipFromBlob, isDemoDataUrl, openDemoCamera, readDemoClip, removeDemoClip, setDemoClip } from "./demo-clips.js";
+import type { DemoCamera, StoredDemoClip } from "./demo-clips.js";
 
 /** A recording of a gesture example stops by itself after this long (card NG-19). */
 export const TEACH_MAX_RECORDING_MS = 8000;
@@ -220,6 +223,10 @@ export interface CaregiverOptions {
    * accepts, or a `PictureRefusal`; for tests. Default: `pictureFromFile`.
    */
   readonly pictureFromFile?: (file: Blob) => Promise<string>;
+  /** Opens the camera for a demo clip (card NG-56); for tests. Default: `openDemoCamera`. */
+  readonly openDemoCamera?: (facing: CameraFacing) => Promise<DemoCamera>;
+  /** Turns a recorded clip into the data URL that is stored, or a `DemoRecordingRefusal`; for tests. Default: `clipFromBlob`. */
+  readonly clipFromBlob?: (blob: Blob) => Promise<string>;
 }
 
 /**
@@ -345,6 +352,7 @@ const NAME_DETAILS = "Was wird gespeichert?";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name, die ausgewählten Begriffe, eigene Texte dazu und beigebrachte Gebärden werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
+  + "Ein Video wird nur als Vormachen-Clip gespeichert, den eine Bezugsperson von sich selbst aufnimmt. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -408,7 +416,7 @@ const CREATE_CONCEPT = "Eigenen Begriff anlegen";
 const OWN_CONCEPTS = "Eigene Begriffe, nicht auf der Tafel";
 const OWN_HELP = "Eigene Begriffe gibt es nur in diesem Profil. Von der Tafel genommen, bleiben sie hier, bis sie endgültig gelöscht werden.";
 const OWN_CREATE_NOTE = "Der Begriff kommt ans Ende der Tafel. Danach kann ihm eine Gebärde beigebracht werden.";
-const OWN_DELETE_LOSS = "Das Wort, der Satz und die beigebrachten Gebärden dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.";
+const OWN_DELETE_LOSS = "Das Wort, der Satz, die beigebrachten Gebärden und der Vormachen-Clip dieses Begriffs werden gelöscht. Das kann nicht rückgängig gemacht werden.";
 const PICTURE = "Bild wählen";
 const PICTURE_FILE = "Bilddatei auswählen";
 const PICTURE_FILE_HINT = "PNG, JPEG, WebP, GIF oder SVG. Das Bild wird auf höchstens 256 × 256 Pixel verkleinert.";
@@ -465,6 +473,47 @@ const BACK = "Zurück";
 const DELETE_ALL_EXAMPLES = "Alle Beispiele löschen";
 const STORED_EXAMPLES = "Gespeicherte Beispiele";
 const REPLAY_NOTE = "So vergleicht die App die Gebärde: nur Bewegung und Handform, aus den gespeicherten Werten gezeichnet. Ein Video gibt es nicht.";
+const DEMO = "Vormachen";
+const DEMO_INTRO = "Nimm dich selbst auf, wie du die Gebärde machst. Das Kind sieht den Clip in der Gebärden-Ansicht unter „Vormachen“ und kann ihn nachmachen. "
+  + `Die Aufnahme dauert höchstens ${DEMO_MAX_MS / 1000} Sekunden.`;
+const DEMO_ADULTS = "Bitte nur Erwachsene aufnehmen, nie das Kind.";
+const DEMO_LOCAL = "Der Clip wird ohne Ton nur in diesem Browser auf diesem Gerät gespeichert, in diesem Profil, und mit dem Profil gelöscht. "
+  + "Die App sendet ihn nicht.";
+const DEMO_NOW = "Jetzt gespeichert:";
+const DEMO_NONE = "Für diesen Begriff gibt es noch keinen Clip.";
+const DEMO_NEW = "Neuer Clip:";
+const DEMO_STARTING = "Die Kamera startet …";
+const DEMO_READY = "Die Kamera läuft. Tippe auf „Aufnahme starten“.";
+const DEMO_RECORDING = "Die Aufnahme läuft. Jetzt die Gebärde vormachen.";
+const DEMO_READING = "Der Clip wird gelesen …";
+const DEMO_DELETE = "Clip löschen";
+const DEMO_UNPLAYABLE = "Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden.";
+const DEMO_CAMERA_ENDED = "Die Kamera ist ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen.";
+const DEMO_FULL = "Der Platz für dieses Profil ist voll. Der Clip wurde nicht gespeichert. Entferne Clips, Bilder oder Gebärden, dann ist wieder Platz.";
+const NEWER_DEMO = "Der Clip dieses Begriffs wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
+const DEMO_DAMAGED = "Der gespeicherte Clip kann nicht gelesen werden. Er kann gelöscht oder durch einen neuen ersetzt werden.";
+const DEMO_REFUSED: Readonly<Record<DemoRecordingRefusal["reason"], string>> = {
+  unsupported: "Dieser Browser kann hier keine Clips aufnehmen. Die Tafel funktioniert auch ohne.",
+  "too-large": "Der Clip ist zu groß geworden. Bitte kürzer aufnehmen.",
+  unreadable: "Die Aufnahme konnte nicht gelesen werden. Bitte noch einmal aufnehmen.",
+};
+/** Why the camera of the demo view did not open, from the name of the browser's error. */
+function demoCameraLine(error: unknown): string {
+  if (error instanceof DemoRecordingRefusal) return DEMO_REFUSED[error.reason];
+  switch ((error as { name?: unknown } | null)?.name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return "Die Kamera ist nicht erlaubt. Du kannst sie in den Einstellungen des Browsers erlauben.";
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return "Es wurde keine Kamera gefunden.";
+    case "NotReadableError":
+    case "AbortError":
+      return "Die Kamera kann gerade nicht starten. Vielleicht benutzt eine andere App sie. Bitte die andere App schließen und noch einmal versuchen.";
+    default:
+      return DEMO_REFUSED.unsupported;
+  }
+}
 const NO_CAMERA_BRIDGE = "Die Kamera kann hier gerade nicht gestartet werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera.";
 const USAGE_LINES: Readonly<Record<Exclude<UsageLevel, "ok">, string>> = {
   near: "Der Platz für dieses Profil ist fast voll. Es passen nur noch wenige Beispiele hinein. Lösche Beispiele, die nicht mehr gebraucht werden.",
@@ -557,7 +606,39 @@ type Mode =
   | CreateConceptMode
   | { readonly kind: "delete-concept"; readonly id: string; readonly conceptId: string; readonly title: string }
   | PictureMode
+  | DemoMode
   | null;
+/**
+ * Recording a caregiver's own clip of the gesture of one concept (card NG-56).
+ * Takes over the body like the teaching view. `state.draft` is the new clip,
+ * kept in memory until "Speichern".
+ */
+interface DemoMode {
+  readonly kind: "demo";
+  readonly id: string;
+  readonly conceptId: string;
+  readonly title: string;
+  readonly state: DemoState;
+}
+interface DemoState {
+  camera: "off" | "starting" | "on";
+  /** Seconds left before the recording begins, or null when no countdown runs. */
+  countdown: number | null;
+  recording: boolean;
+  /** The recording ended and is being read into a clip. */
+  reading: boolean;
+  draft: string | null;
+  /** A save or delete is asked for and has not ended. */
+  busy: boolean;
+}
+/** The camera of the open demo view, from "Kamera starten" until it stops. */
+interface DemoCameraRun {
+  readonly mode: DemoMode;
+  camera: DemoCamera | null;
+  /** The live picture of the camera; moved into each redraw's box. */
+  video: HTMLVideoElement | null;
+  stopTimer: () => void;
+}
 /**
  * Choosing a picture for one concept of the profile `id` (card
  * NG-8673323346005092805). Takes over the body like a rewording. `draft.picture`
@@ -663,6 +744,8 @@ interface Built {
   readonly confirming?: boolean;
   /** The teaching view whose controls are in the content (not its delete confirmation): its camera may run on. */
   readonly teaching?: TeachMode;
+  /** The demo view whose controls are in the content: its camera may run on. */
+  readonly demo?: DemoMode;
 }
 
 function damagedLine(count: number): string {
@@ -912,6 +995,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let teachCameraLine: HTMLElement | null = null;
   /** The fixed-size box of the teaching view on screen that holds the camera's preview while the camera runs (card NG-42). */
   let teachPreviewSlot: HTMLElement | null = null;
+  /** The camera of the open demo view (card NG-56), if it runs or starts: ended like the teaching camera. */
+  let demoCamera: DemoCameraRun | null = null;
+  /** The box of the demo view on screen that holds the live picture while the camera runs. */
+  let demoPreviewSlot: HTMLElement | null = null;
+  /** The line of the demo view on screen that counts down; written in place. */
+  let demoLine: HTMLElement | null = null;
+  const makeDemoCamera = options.openDemoCamera ?? openDemoCamera;
+  const makeClip = options.clipFromBlob ?? clipFromBlob;
   /** Names a concept of the profile in a teaching view's fit line: its label on the board, or the catalogue's. */
   let teachLabels: (conceptId: string) => string = () => "einen anderen Begriff dieses Profils";
   /** The canvas of the example being replayed, while it is on screen (card NG-4). */
@@ -1120,7 +1211,30 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * loading, the permission asked, running, recording), through the capture's
    * own cancel signal and `stop`. A recording that was not stopped is dropped.
    */
+  /** Stops the camera of the demo view, if one runs or starts; a recording that was not read yet is dropped. */
+  const stopDemoCamera = (): void => {
+    const demo = demoCamera;
+    if (demo === null) return;
+    demoCamera = null;
+    demo.stopTimer();
+    try {
+      demo.camera?.close();
+    } catch {
+      // Nothing more to undo.
+    }
+    if (demo.video !== null) {
+      demo.video.srcObject = null;
+      demo.video.remove?.();
+    }
+    const { state } = demo.mode;
+    state.camera = "off";
+    state.countdown = null;
+    state.recording = false;
+  };
+
   const stopTeachCamera = (): void => {
+    // Every way out of a view stops its camera: the demo view's too (card NG-56).
+    stopDemoCamera();
     const camera = teachCamera;
     if (camera === null) return;
     teachCamera = null;
@@ -1355,6 +1469,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       teachCameraLine = null;
       teachPreviewSlot = null;
     }
+    if (demoCamera !== null && built.demo !== demoCamera.mode) stopDemoCamera();
+    if (built.demo === undefined) {
+      demoPreviewSlot = null;
+      demoLine = null;
+    }
+    // As for teaching: the live picture moves into the new box in the same task as the swap, so it is not paused.
+    const live = demoCamera?.video ?? null;
+    if (live !== null && demoPreviewSlot !== null && built.demo === demoCamera?.mode) demoPreviewSlot.append(live);
     // The running preview moves into the new view's box in the same task as the swap: a video taken
     // out of the page and not put back before the task ends is paused by the browser.
     const shown = teachCamera?.preview ?? null;
@@ -1507,7 +1629,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     stopTeachCamera();
     mode = null;
-    const back = was.kind === "reword" || was.kind === "teach" || was.kind === "delete-concept" || was.kind === "picture"
+    const back = was.kind === "reword" || was.kind === "teach" || was.kind === "delete-concept" || was.kind === "picture" || was.kind === "demo"
       ? `${was.kind}:${was.conceptId}`
       : was.kind === "create-concept" ? "create-concept" : `${was.kind}:${was.id}`;
     run(() => draw([back]));
@@ -1658,6 +1780,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         const own = (await listCustomConcepts(store, mine.id)).concepts.some((concept) => concept.id === mine.conceptId);
         if (!own) throw new Refusal("Dieser Begriff kann in dieser Version nicht gelöscht werden.");
         await deleteExamples(store, mine.id, mine.conceptId);
+        // Its demo clip goes with it (card NG-56).
+        await removeDemoClip(store, mine.id, mine.conceptId);
         await removeCustomConcept(store, mine.id, mine.conceptId, catalogue);
         writes += 1;
         leave();
@@ -1750,6 +1874,227 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     await clearSymbol(current, open.id, open.conceptId);
     const known = open.source === "catalogue" ? catalogue.find((concept) => concept.id === open.conceptId) : undefined;
     return known !== undefined ? `${quoted(open.title)} zeigt wieder das Bild der App.` : `${quoted(open.title)} hat jetzt kein Bild.`;
+  });
+
+  /** The demo view of `mode`, while it is the open one. */
+  const demoOpen = (open: DemoMode): boolean => mode === open && isOpen;
+
+  /** Redraws the demo view (queued), with the focus on the first of `focus` that is there. */
+  const drawDemo = (open: DemoMode, focus: readonly string[]): void => {
+    run(async () => {
+      if (mode === open) await draw([...focus, "demo-cancel"], { toTop: true });
+    });
+  };
+
+  /** "Vormachen" of one concept: opens its demo view; the camera starts only on "Kamera starten". */
+  const openDemo = (profileId: string, entry: BoardEntry): void => {
+    openMode({
+      kind: "demo", id: profileId, conceptId: entry.id, title: entry.labelDe,
+      state: { camera: "off", countdown: null, recording: false, reading: false, draft: null, busy: false },
+    }, "demo-camera");
+  };
+
+  /** "Kamera starten" in the demo view: the camera's live picture is shown; a new clip replaces an unsaved one. */
+  const startDemoCamera = (open: DemoMode): void => {
+    const { state } = open;
+    if (!demoOpen(open) || state.camera !== "off" || state.busy || state.reading) return;
+    clearStatus();
+    state.draft = null;
+    state.camera = "starting";
+    const demo: DemoCameraRun = { mode: open, camera: null, video: null, stopTimer: () => undefined };
+    demoCamera = demo;
+    drawDemo(open, ["demo-cancel"]);
+    let opening: Promise<DemoCamera>;
+    try {
+      // Always the front camera, the one facing the caregiver who holds the device (card NG-59): the device's camera
+      // choice for teaching and the gesture view may be "hinten", which would point at the child.
+      opening = makeDemoCamera("user");
+    } catch (error) {
+      opening = Promise.reject(error);
+    }
+    void opening.then((camera) => {
+      // Left or stopped meanwhile: this camera is not wanted any more.
+      if (demoCamera !== demo || !demoOpen(open)) {
+        camera.close();
+        return;
+      }
+      demo.camera = camera;
+      const video = document.createElement("video");
+      video.className = "caregiver-demo-live";
+      video.muted = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.setAttribute("aria-label", "Bild der Kamera");
+      video.srcObject = camera.stream;
+      // The front camera is shown like a mirror, as in the teaching view; the clip itself is recorded as the camera sees.
+      video.dataset["mirrored"] = "true";
+      demo.video = video;
+      state.camera = "on";
+      // A camera that goes away by itself (permission taken back, device unplugged) ends the view's camera; a recording is dropped.
+      try {
+        for (const track of camera.stream.getTracks()) {
+          track.addEventListener("ended", () => {
+            if (demoCamera !== demo || state.reading) return;
+            stopDemoCamera();
+            if (!demoOpen(open)) return;
+            say(DEMO_CAMERA_ENDED, true);
+            drawDemo(open, ["demo-camera"]);
+          });
+        }
+      } catch {
+        // Without track events the camera is stopped by the view's own ways out.
+      }
+      drawDemo(open, ["demo-record"]);
+    }, (error: unknown) => {
+      if (demoCamera !== demo) return;
+      demoCamera = null;
+      state.camera = "off";
+      if (!demoOpen(open)) return;
+      say(demoCameraLine(error), true);
+      drawDemo(open, ["demo-camera"]);
+    });
+  };
+
+  /** "Aufnahme starten": a countdown, then the recorder runs until "Aufnahme beenden" or `DEMO_MAX_MS`. */
+  const startDemoRecording = (open: DemoMode): void => {
+    const { state } = open;
+    const demo = demoCamera;
+    if (!demoOpen(open) || demo === null || demo.mode !== open || demo.camera === null) return;
+    // Not while the last recording is still being read: its recorder has stopped and the camera goes with it.
+    if (state.recording || state.countdown !== null || state.reading) return;
+    clearStatus();
+    state.countdown = TEACH_COUNTDOWN_S;
+    const ours = (): boolean => demoCamera === demo && mode === open;
+    const schedule = (callback: () => void, milliseconds: number): void => {
+      demo.stopTimer();
+      try {
+        demo.stopTimer = setTimer(callback, milliseconds);
+      } catch {
+        // Without a timer nothing is counted: the recording starts at once and ends by the tap only.
+        demo.stopTimer = () => undefined;
+        if (state.countdown !== null) {
+          state.countdown = 1;
+          tick();
+        }
+      }
+    };
+    const tick = (): void => {
+      if (!ours() || state.countdown === null) return;
+      const left = state.countdown - 1;
+      if (left > 0) {
+        state.countdown = left;
+        if (demoLine !== null) demoLine.textContent = COUNTDOWN_LINE(left);
+        schedule(tick, 1000);
+        return;
+      }
+      state.countdown = null;
+      try {
+        demo.camera?.start();
+      } catch {
+        say(DEMO_REFUSED.unsupported, true);
+        stopDemoCamera();
+        drawDemo(open, ["demo-camera"]);
+        return;
+      }
+      state.recording = true;
+      schedule(() => stopDemoRecording(open), DEMO_MAX_MS);
+      drawDemo(open, ["demo-stop"]);
+    };
+    schedule(tick, 1000);
+    drawDemo(open, ["demo-countdown-cancel"]);
+  };
+
+  /** "Abbrechen" during the countdown: nothing is recorded, the camera keeps running. */
+  const cancelDemoCountdown = (open: DemoMode): void => {
+    const demo = demoCamera;
+    if (!demoOpen(open) || open.state.countdown === null) return;
+    clearStatus();
+    demo?.stopTimer();
+    if (demo !== null) demo.stopTimer = () => undefined;
+    open.state.countdown = null;
+    drawDemo(open, ["demo-record"]);
+  };
+
+  /** "Aufnahme beenden", or the time is up: the camera stops and the recording becomes the new clip, shown until "Speichern". */
+  const stopDemoRecording = (open: DemoMode): void => {
+    const { state } = open;
+    const demo = demoCamera;
+    if (!demoOpen(open) || demo === null || demo.mode !== open || demo.camera === null || !state.recording) return;
+    clearStatus();
+    demo.stopTimer();
+    demo.stopTimer = () => undefined;
+    state.recording = false;
+    state.reading = true;
+    const camera = demo.camera;
+    let stopping: Promise<Blob>;
+    try {
+      stopping = camera.stop();
+    } catch (error) {
+      stopping = Promise.reject(error);
+    }
+    void stopping
+      .then((blob) => makeClip(blob))
+      .then((clip) => {
+        if (!isDemoDataUrl(clip)) throw new DemoRecordingRefusal("unreadable");
+        return { clip, line: null as string | null };
+      }, (error: unknown) => ({ clip: null, line: DEMO_REFUSED[error instanceof DemoRecordingRefusal ? error.reason : "unreadable"] }))
+      .catch(() => ({ clip: null, line: DEMO_REFUSED.unreadable }))
+      .then(({ clip, line }) => {
+        state.reading = false;
+        if (demoCamera === demo) stopDemoCamera();
+        else camera.close();
+        // Left meanwhile: the clip is dropped.
+        if (!demoOpen(open)) return;
+        state.draft = clip;
+        if (line !== null) say(line, true);
+        drawDemo(open, clip === null ? ["demo-camera"] : ["demo-save"]);
+      });
+    drawDemo(open, ["demo-cancel"]);
+  };
+
+  /** Saves or deletes the clip of the open demo view, as one queued write. */
+  const settleDemo = (write: (current: ProfileStore, open: DemoMode) => Promise<string>): void => {
+    const mine = mode;
+    if (mine === null || mine.kind !== "demo" || mine.state.busy || mine.state.reading || mine.state.recording || mine.state.countdown !== null) return;
+    mine.state.busy = true;
+    clearStatus();
+    runWrite(async () => {
+      try {
+        if (store === null || mode !== mine) return;
+        try {
+          say(await write(store, mine));
+          writes += 1;
+          if (acting === session && mode === mine) mode = null;
+          await draw([`demo:${mine.conceptId}`]);
+        } catch (error) {
+          if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
+            if (acting === session && mode === mine) mode = null;
+            say(PROFILE_GONE, true);
+            await draw(["profiles-heading"]);
+            return;
+          }
+          if (error instanceof ProfileSizeError) say(DEMO_FULL, true);
+          else if (error instanceof DemoClipError && error.kind === "unsupported-entry") say(`${NEWER_DEMO} Der Clip wurde nicht geändert.`, true);
+          else say(`${WRITE_FAILED} Der Clip ist unverändert.`, true);
+          await draw(["demo-save", "demo-camera"], { toTop: true });
+        }
+      } finally {
+        mine.state.busy = false;
+      }
+    });
+  };
+
+  const saveDemo = (): void => settleDemo(async (current, open) => {
+    if (open.state.draft === null) throw new Refusal("no clip");
+    stopDemoCamera();
+    await setDemoClip(current, open.id, open.conceptId, open.state.draft);
+    return `Gespeichert: Vormachen für ${quoted(open.title)}.`;
+  });
+
+  const deleteDemo = (): void => settleDemo(async (current, open) => {
+    stopDemoCamera();
+    await removeDemoClip(current, open.id, open.conceptId);
+    return `Der Clip für ${quoted(open.title)} wurde gelöscht.`;
   });
 
   const resetWording = (): void => settleWording(async (current, open) => {
@@ -2313,6 +2658,123 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return view;
   };
 
+  /** "Vormachen" for one concept of a board (card NG-56); null where "Gebärde beibringen" is not offered either. */
+  const demoButton = (profileId: string, entry: BoardEntry, register: Map<string, Focusable>): HTMLButtonElement | null => {
+    if (!isExampleConceptId(entry.id)) return null;
+    const control = button(DEMO);
+    control.setAttribute("aria-label", `${DEMO}: ${entry.labelDe}`);
+    control.addEventListener("click", () => openDemo(profileId, entry));
+    register.set(`demo:${entry.id}`, control);
+    return control;
+  };
+
+  /**
+   * A clip to watch in the demo view, put into `holder`: muted, inline, with the browser's controls. A clip
+   * this browser cannot play (card NG-59: one recorded on another device) is replaced by a line saying so.
+   */
+  const clipVideo = (dataUrl: string, className: string, holder: HTMLElement): HTMLVideoElement | null => {
+    if (!isDemoDataUrl(dataUrl)) {
+      holder.append(element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE));
+      return null;
+    }
+    const video = element("video", className);
+    video.muted = true;
+    video.playsInline = true;
+    video.loop = true;
+    video.controls = true;
+    video.preload = "metadata";
+    video.addEventListener("error", () => {
+      if (video.hidden) return;
+      video.hidden = true;
+      holder.append(element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE));
+    });
+    video.src = dataUrl;
+    holder.append(video);
+    return video;
+  };
+
+  /**
+   * The demo clip of one concept (card NG-56). Like the teaching view it is the
+   * whole body while it is open: what it is for, that only adults are recorded
+   * and where the clip is kept, the stored clip, the camera and the new clip.
+   */
+  const demoView = (open: DemoMode, stored: StoredDemoClip, profileLabel: string, register: Map<string, Focusable>): HTMLElement => {
+    const { state } = open;
+    const view = element("section", "caregiver-section caregiver-takeover caregiver-demo");
+    const heading = element("h2", "", `${DEMO} für ${quoted(open.title)} – Tafel von ${quoted(profileLabel)}`);
+    heading.tabIndex = -1;
+    register.set("demo-heading", heading);
+    view.append(heading, element("p", "caregiver-notice", DEMO_INTRO), element("p", "caregiver-notice caregiver-warning", DEMO_ADULTS),
+      element("p", "caregiver-notice", DEMO_LOCAL));
+    register.set("anchor:demo-camera", view);
+    const cameraRuns = state.camera !== "off";
+    if (!cameraRuns && state.draft === null && !state.reading) {
+      if (stored.state === "ok") {
+        const shown = element("div", "caregiver-demo-now");
+        shown.append(element("p", "caregiver-notice", DEMO_NOW));
+        clipVideo(stored.dataUrl, "caregiver-demo-clip", shown);
+        view.append(shown);
+      } else if (stored.state === "missing") {
+        view.append(element("p", "caregiver-notice", DEMO_NONE));
+      } else {
+        view.append(element("p", "caregiver-notice caregiver-warning", stored.damage === "unsupported-version" ? NEWER_DEMO : DEMO_DAMAGED));
+      }
+    }
+    if (cameraRuns) {
+      demoPreviewSlot = element("div", "caregiver-demo-preview");
+      const text = state.camera === "starting" ? DEMO_STARTING
+        : state.countdown !== null ? COUNTDOWN_LINE(state.countdown)
+          : state.recording ? DEMO_RECORDING : state.reading ? DEMO_READING : DEMO_READY;
+      demoLine = element("p", "caregiver-teach-camera", text);
+      demoLine.setAttribute("role", "status");
+      view.append(demoPreviewSlot, demoLine);
+    } else {
+      demoPreviewSlot = null;
+      demoLine = null;
+    }
+    if (state.reading && !cameraRuns) view.append(element("p", "caregiver-notice", DEMO_READING));
+    if (state.draft !== null) {
+      const chosen = element("div", "caregiver-demo-new");
+      chosen.append(element("p", "caregiver-notice", DEMO_NEW));
+      const video = clipVideo(state.draft, "caregiver-demo-clip", chosen);
+      if (video !== null) video.autoplay = true;
+      view.append(chosen);
+    }
+    const actions = element("div", "caregiver-profile-actions");
+    const add = (text: string, key: string, act: () => void, primary = false): void => {
+      const control = button(text, primary ? "caregiver-button caregiver-primary" : "caregiver-button");
+      control.disabled = state.busy;
+      control.addEventListener("click", () => {
+        if (aimed(now())) act();
+      });
+      register.set(key, control);
+      actions.append(control);
+    };
+    if (state.draft !== null && !cameraRuns) add(SAVE, "demo-save", saveDemo, true);
+    // A clip a newer version stored cannot be replaced by this one: nothing to record for.
+    const newerStored = stored.state === "damaged" && stored.damage === "unsupported-version";
+    if (state.camera === "off" && !state.reading && !newerStored) add(CAMERA_START, "demo-camera", () => startDemoCamera(open), state.draft === null);
+    if (state.camera === "on" && state.countdown === null && !state.recording && !state.reading) add(RECORD_START, "demo-record", () => startDemoRecording(open), true);
+    if (state.countdown !== null) add(CANCEL_COUNTDOWN, "demo-countdown-cancel", () => cancelDemoCountdown(open));
+    if (state.recording) add(RECORD_STOP, "demo-stop", () => stopDemoRecording(open), true);
+    const back = button(state.draft !== null ? DISCARD : BACK);
+    back.addEventListener("click", leaveMode);
+    register.set("demo-cancel", back);
+    actions.append(back);
+    view.append(actions);
+    // Only where there is a clip to take away, and not while a new one is made.
+    if (stored.state !== "missing" && !cameraRuns && state.draft === null && !state.reading) {
+      const remove = button(DEMO_DELETE);
+      remove.disabled = state.busy;
+      remove.addEventListener("click", () => {
+        if (aimed(now())) deleteDemo();
+      });
+      register.set("demo-delete", remove);
+      view.append(remove);
+    }
+    return view;
+  };
+
   /** "Text ändern" for one concept of a board: opens the rewording with the wording that is stored now. */
   const rewordButton = (profileId: string, entry: BoardEntry, register: Map<string, Focusable>): HTMLButtonElement => {
     const control = button(REWORD);
@@ -2378,10 +2840,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     register.set(`remove:${id}`, remove);
     // An entry a newer app wrote is not overwritten: no rewording, and a line that says what to do.
     const teach = teachButton(profileId, entry, register);
+    const demo = demoButton(profileId, entry, register);
     actions.append(
       move(MOVE_UP, -1, place > 0), move(MOVE_DOWN, 1, place < editableOrder.length - 1),
       ...(newer ? [] : [rewordButton(profileId, entry, register)]), ...(newerPicture ? [] : [pictureButton(profileId, entry, register)]),
-      ...(teach === null ? [] : [teach]), remove,
+      ...(teach === null ? [] : [teach]), ...(demo === null ? [] : [demo]), remove,
     );
     row.append(conceptText(entry, "", examples), actions);
     if (newer) row.append(element("p", "caregiver-concept-note", NEWER_ENTRY));
@@ -2405,7 +2868,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     const actions = element("div", "caregiver-row-actions");
     const teach = teachButton(profileId, entry, register);
-    actions.append(rewordButton(profileId, entry, register), ...(newerPicture ? [] : [pictureButton(profileId, entry, register)]), ...(teach === null ? [] : [teach]));
+    const demo = demoButton(profileId, entry, register);
+    actions.append(rewordButton(profileId, entry, register), ...(newerPicture ? [] : [pictureButton(profileId, entry, register)]), ...(teach === null ? [] : [teach]),
+      ...(demo === null ? [] : [demo]));
     row.append(conceptText(entry, "", examples), actions, element("p", "caregiver-concept-note", entry.source === "retired" ? `${RETIRED} ${LOCKED_PLACE}` : LOCKED_PLACE));
     if (newerPicture) row.append(element("p", "caregiver-concept-note", NEWER_PICTURE));
     return row;
@@ -3311,6 +3776,19 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       mode = null;
     }
 
+    // And the demo clip of a concept (card NG-56), while the concept is on the board and shown there.
+    if (mode !== null && mode.kind === "demo") {
+      const open = mode;
+      const owner = profiles.find((profile) => profile.id === open.id);
+      const board = owner === undefined ? null : await resolveBoard(current, owner.id, catalogue).catch(() => null);
+      const entry = board?.entries.find((candidate) => candidate.id === open.conceptId);
+      if (owner !== undefined && entry !== undefined) {
+        const stored = await readDemoClip(current, owner.id, open.conceptId).catch((): StoredDemoClip => ({ state: "damaged", damage: "unreadable" }));
+        return { content: [demoView(open, stored, labelOf(owner), register)], afterClose: header, confirming: true, demo: open };
+      }
+      mode = null;
+    }
+
     // So does the rewording of a concept, while that concept is on the board and this version may write its entry.
     if (mode !== null && mode.kind === "reword") {
       const open = mode;
@@ -3413,6 +3891,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     teachLive = null;
     teachCameraLine = null;
     teachPreviewSlot = null;
+    demoPreviewSlot = null;
+    demoLine = null;
     mode = null;
     createDraft = "";
     dropHold();

@@ -1,0 +1,15 @@
+{
+    "schema_version": "1.0",
+    "kind": "run_learning_decision",
+    "run_id": "run:NG-56:70a609c12940d002",
+    "decision": "follow_up_required",
+    "decided_by": "Claude (agent; owner Lars Moelleken approved the full task in session 2026-11-25)",
+    "decided_at": "2026-11-25T18:57:36+00:00",
+    "reason": null,
+    "finding_ids": [],
+    "follow_up_ref": "NG-59",
+    "contract_revision": 3,
+    "implementation_snapshot": "sha256:54dd62164e91ded8abca1bf70df5b53d42958267f12a897e48a3ac3178d26d7e",
+    "validation_evidence_sha256": "sha256:4877be33d96e0c422c07aa7049fff0d0b4ff922671af11d3712c720faff70c31",
+    "review_evidence_sha256": "sha256:d2c73314f12cc13f5d1b86704804d9faa38f801931ccdc0262e125339933d53f"
+}

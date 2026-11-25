@@ -426,7 +426,8 @@ Under the field is one short line, which is also the field's description (`aria-
 The full notice is behind "Was wird gespeichert?" (a `<details>`): this is a test version; a first
 name or nickname is enough and no surname should be entered (owner decision on card NG-7); the
 name, the chosen concepts, own texts for them and taught gestures are stored only in this browser on this
-device, and of a gesture only numbers about the movement of the hands, no picture and no video (card NG-19); the app sends
+device, and of a gesture only numbers about the movement of the hands, no picture and no video (card NG-19), the only
+video being a demo clip a caregiver records of themselves (card NG-56); the app sends
 nothing, but the device's keyboard may process what is typed on its own; a profile can be renamed
 and deleted here and there is no backup; clearing the website data in the browser removes all
 profiles in this browser and the offline copy of the app; the browser may remove the data on its
@@ -910,6 +911,61 @@ gets the focus on opening, shows a focus outline. The header line is not a live 
 in its guard time says so through `aria-disabled`, and through the status line once a press was
 ignored. The line under "Endgültig löschen" is its description and a live region for the
 countdown. None of this was checked with assistive technology.
+
+**Vormachen: a caregiver's own clip** (card NG-56, owner decisions of 2026-11-25; product rule in
+[s0a-product-contract-v0.1.md](s0a-product-contract-v0.1.md), section 6). Every row that offers
+"Gebärde beibringen" also offers "Vormachen" (`aria-label` "Vormachen: <label>"). It opens a view
+that takes over the body:
+
+- the heading "Vormachen für „<label>“ – Tafel von „<name>“", what the clip is for (the child sees it
+  in the gesture view under „Vormachen“ and can imitate it; at most `DEMO_MAX_MS`, 5 seconds), the
+  warning line "Bitte nur Erwachsene aufnehmen, nie das Kind." and where the clip is kept: without
+  sound, only in this browser on this device, in this profile, deleted with the profile, never sent.
+  The clip is part of the profile's export (`src/profiles/backup.ts`), so a backup takes it along
+  (owner decision); the caregiver area has no backup screen yet (card NG-58), so the view does not
+  promise one;
+- the stored clip ("Jetzt gespeichert:", a muted looping video with the browser's controls), or "Für
+  diesen Begriff gibt es noch keinen Clip.", or a line for a clip a newer version stored or one that
+  cannot be read;
+- "Kamera starten" (focused on opening). No camera is asked for before that tap. It is always the
+  front camera, the one facing the caregiver who holds the device (card NG-59), whatever the device's
+  camera choice for teaching and the gesture view is ("hinten" would point at the child); its live
+  picture is shown like a mirror, while the clip is recorded as the camera sees it;
+- "Aufnahme starten", a countdown of `TEACH_COUNTDOWN_S` seconds written in place ("Abbrechen" ends
+  it, nothing is recorded), then "Die Aufnahme läuft. Jetzt die Gebärde vormachen." and "Aufnahme
+  beenden"; the recording ends by itself after `DEMO_MAX_MS`. The camera stops when the recording
+  ends;
+- "Neuer Clip:" with the new clip, "Speichern" and "Verwerfen". Nothing is stored before
+  "Speichern"; it is one queued write through `setDemoClip`, the status line says "Gespeichert:
+  Vormachen für „<label>“." and the focus returns to the row's "Vormachen";
+- with a clip stored: "Clip löschen", one tap; the clip can be recorded again.
+- a clip this browser cannot play (one recorded on another device, card NG-59) is replaced by "Dieser
+  Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden.";
+- while a recording is read after "Aufnahme beenden" the line says "Der Clip wird gelesen …" and
+  nothing new can be recorded; a camera that ends by itself (permission taken back, device
+  unplugged) stops the view's camera, drops a running recording and says "Die Kamera ist
+  ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen."; with a clip a newer version stored,
+  the view says so and offers only "Clip löschen", no recording that could not be saved.
+
+The recorder is `openDemoCamera` (`src/demo-clips.ts`): `getUserMedia` without audio and a
+`MediaRecorder` (WebM VP9, VP8 or MP4, whichever the browser has first, at 600 kbit/s). `clipFromBlob`
+reads the recording as a data URL and refuses one over `MAX_DEMO_DATA_URL_LENGTH` (2 MiB of text) or
+one that is not a video data URL. Refusals are German error lines and the view stays: the camera's
+("Die Kamera ist nicht erlaubt. …", "Es wurde keine Kamera gefunden.", "Die Kamera kann gerade nicht
+starten. …", "Dieser Browser kann hier keine Clips aufnehmen. …"), "Der Clip ist zu groß geworden.
+Bitte kürzer aufnehmen." and "Die Aufnahme konnte nicht gelesen werden. Bitte noch einmal
+aufnehmen.". A full profile says "Der Platz für dieses Profil ist voll. Der Clip wurde nicht
+gespeichert. …". Leaving the view, opening another one, closing the area (also by the idle time or a
+hidden page) stops the camera like teaching's; a camera that answers after the view was left is
+closed at once, and a recording read after that is dropped. Deleting an own concept for good
+deletes its clip too ("Das Wort, der Satz, die beigebrachten Gebärden und der Vormachen-Clip dieses
+Begriffs werden gelöscht. …").
+
+Looked at once in headless Chromium (Playwright, Chromium's synthetic camera pattern, no person) at
+390 x 844 with a probe that is not part of the repository: open, camera, countdown, a recording
+that stopped by itself, "Speichern". The stored clip was WebM VP9 of about 250 000 characters for
+five seconds (so a profile's 64 MB holds well over a hundred), no video element was left after
+saving, no console error. Not tried: a real camera, a phone, Safari (MP4), a caregiver.
 
 ## Deliberately missing
 

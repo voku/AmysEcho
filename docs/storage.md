@@ -55,6 +55,12 @@ profile/<id>/usage          { names, bytes }: how much data the profile holds
 profile/<id>/data/<name>    data owned by that profile
 ```
 
+Data names used today: `concept.<id>` and `symbol.<id>` (board data, `src/board-data.ts`),
+`gesture.<id>.<12 hex characters>` (gesture examples, `src/recognition/examples.ts`) and `demo.<id>` (a caregiver's
+demo clip, `src/demo-clips.ts`, card NG-56: `{ version: 1, dataUrl }`, a base64 WebM or MP4 video
+data URL of at most 2 MiB of text). Being data of the profile, a clip is exported, restored and
+deleted with it.
+
 - `<id>` is 16 random bytes from `crypto.getRandomValues` as 32 lowercase hex characters. It contains
   no timestamp and nothing derived from the name.
 - `<name>` matches `[a-z0-9][a-z0-9._-]{0,63}`. Ids and names are checked before a key is built and

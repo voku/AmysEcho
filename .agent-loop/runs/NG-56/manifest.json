@@ -1,0 +1,186 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-25T18:30:00+00:00",
+            "approved_by": "Lars Moelleken (in session 2026-11-25: 'I approve this full task, so move on')",
+            "contract_revision": 3,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-56/contract.json",
+                "sha256": "sha256:bc51028950d053ea62166e7788f47c2787ebdd6f13a68c74c5ad590112531dbc"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-56",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "064c945f58db9fd6f2d14f013b4f2d1261a4d29dfa2427099729c39fa047405d",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-56.md",
+                "sha256": "sha256:064c945f58db9fd6f2d14f013b4f2d1261a4d29dfa2427099729c39fa047405d"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The product contract allows caregiver demo clips: stored only on the device in the profile after an explicit caregiver action that says what is kept, travels in the profile backup, removed with the profile, never uploaded or committed",
+                "A clip is stored as profile data 'demo.<conceptId>' { version: 1, dataUrl } with a strict video data URL check and a size cap; a newer version is not overwritten; it is exported and restored with the profile (tested)",
+                "In the caregiver area each concept on the board offers 'Vormachen aufnehmen': start the camera, a countdown, a recording of at most DEMO_MAX_MS without sound, then watch the new clip and save or discard it; an existing clip can be watched and deleted; the camera stops on leaving, closing or idle (tested with a fake recorder)",
+                "Deleting an own concept for good deletes its clip too",
+                "The gesture view shows 'Vormachen' when concepts on the board have clips; it lists them, plays the chosen one large, with 'Nochmal', 'Langsam' and 'Spiegeln', and closing it changes nothing about the recognition state; listening and stacking go on while it plays (tested)",
+                "The page policy allows playing the clips (media-src data:) and a real-browser test records a clip from a fake camera and plays it"
+            ],
+            "goal": "A caregiver records a short clip of themselves doing a gesture, per concept, kept only on the device and in the profile backup; the child watches it from the gesture view ('Vormachen'), optionally mirrored and slow, and imitates it while recognition keeps listening.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 3,
+            "run_revision": 3,
+            "source": {
+                "path": ".agent-loop/contracts/NG-56/contract.json",
+                "sha256": "sha256:bc51028950d053ea62166e7788f47c2787ebdd6f13a68c74c5ad590112531dbc"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 3,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-56/contract.json",
+                "sha256": "sha256:bc51028950d053ea62166e7788f47c2787ebdd6f13a68c74c5ad590112531dbc"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-25T18:57:36+00:00",
+            "decided_by": "Claude (agent; owner Lars Moelleken approved the full task in session 2026-11-25)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-56:70a609c12940d002",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/8d934aa5ce673a20d65989f103b30e3fc5c0c11c32b85840c222c47cbbee9f04.json",
+                "sha256": "sha256:775efcaf9b5b98ffa483eefd74bc918ee62df1d1f5d4c86b0ab14b8ed20b4a8c"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:3e677116aa7ac50160d587052c0d7e8a523c8f360013e948c62c71be9df5a0e6",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:cca8dfe27a9501655d27422c494c2385df64fad19134d9296a9ac8cee5bbf51d"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/demo-clips.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/demo-clips.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 4,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-56:70a609c12940d002",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "1e2257d208c3e92a9dffa326f1b3d0d485ae7aae89a399876809b30d70808717",
+            "compilation_id": "compilation.NG-56.2026-11-25-183553.63035dc4",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "28a9a4e9ca832ed761a82b7e60e3931b8c0f950dacb61449a81cd7c1458963ba",
+            "source": {
+                "path": ".agent-loop/recall/NG-56/meta.json",
+                "sha256": "sha256:2cde8f699ee23ff54bfd20443075895155187406d5019dcbd800d876e4fe3bc1"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-56/reviews/NG-56.blindspots.json",
+                "sha256": "sha256:d2c73314f12cc13f5d1b86704804d9faa38f801931ccdc0262e125339933d53f"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-25-ng-56-r3-b453146c",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-25-ng-56-r3-b453146c/session.json",
+                "sha256": "sha256:d1b37d4be80f678cc469f4ae98f1ff74dc8f53c1692ed9c6ecc084dc60acf635"
+            },
+            "state": "done",
+            "task_id": "NG-56"
+        },
+        "verification": {
+            "contract_revision": 3,
+            "implementation_snapshot": "sha256:54dd62164e91ded8abca1bf70df5b53d42958267f12a897e48a3ac3178d26d7e",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-56:70a609c12940d002",
+            "source": {
+                "path": ".agent-loop/runs/NG-56/verification.json",
+                "sha256": "sha256:7878e54ce9fdf49e10cedfab65dbae6d02c2df7afc4d25df9128514a274bd013"
+            },
+            "source_session_id": "2026-11-25-ng-56-r3-b453146c",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-56:70a609c12940d002",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-56"
+}

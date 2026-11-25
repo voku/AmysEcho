@@ -1,0 +1,168 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-56 before calling agent-loop finish NG-56",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-25T18:12:46+00:00",
+            "approved_by": "Lars Moelleken (in session 2026-11-25: 'I approve this full task, so move on')",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-56/contract.json",
+                "sha256": "sha256:280f51c27f3734a6ad3fbfd5dbe4bbf579072bfe0c96b0b12da34604c52cd619"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-56",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "064c945f58db9fd6f2d14f013b4f2d1261a4d29dfa2427099729c39fa047405d",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-56.md",
+                "sha256": "sha256:064c945f58db9fd6f2d14f013b4f2d1261a4d29dfa2427099729c39fa047405d"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "The product contract allows caregiver demo clips: stored only on the device in the profile after an explicit caregiver action that says what is kept, travels in the profile backup, removed with the profile, never uploaded or committed",
+                "A clip is stored as profile data 'demo.<conceptId>' { version: 1, dataUrl } with a strict video data URL check and a size cap; a newer version is not overwritten; it is exported and restored with the profile (tested)",
+                "In the caregiver area each concept on the board offers 'Vormachen aufnehmen': start the camera, a countdown, a recording of at most DEMO_MAX_MS without sound, then watch the new clip and save or discard it; an existing clip can be watched and deleted; the camera stops on leaving, closing or idle (tested with a fake recorder)",
+                "Deleting an own concept for good deletes its clip too",
+                "The gesture view shows 'Vormachen' when concepts on the board have clips; it lists them, plays the chosen one large, with 'Nochmal', 'Langsam' and 'Spiegeln', and closing it changes nothing about the recognition state; listening and stacking go on while it plays (tested)",
+                "The page policy allows playing the clips (media-src data:) and a real-browser test records a clip from a fake camera and plays it"
+            ],
+            "goal": "A caregiver records a short clip of themselves doing a gesture, per concept, kept only on the device and in the profile backup; the child watches it from the gesture view ('Vormachen'), optionally mirrored and slow, and imitates it while recognition keeps listening.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-56/contract.json",
+                "sha256": "sha256:280f51c27f3734a6ad3fbfd5dbe4bbf579072bfe0c96b0b12da34604c52cd619"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-56/contract.json",
+                "sha256": "sha256:280f51c27f3734a6ad3fbfd5dbe4bbf579072bfe0c96b0b12da34604c52cd619"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-56:8ce45a00c679cadf",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:02f2e7c5d6a6049768c7a9adb78ffb54855cd0339845d0b46376af1c989a3cc1",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:742096631727a5af782bbc8dafea1d9b80eeab31a9939a29687b7ca4db0219b9"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-56:8ce45a00c679cadf",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "cb2a56cc8b8e7807e05dcb8d38dfb1b70a43f1cc131fb3c5ef4f8accb7b1a470",
+            "compilation_id": "compilation.NG-56.2026-11-25-181248.57bc49d8",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "4747ca6895d3aba9c11b1de5af99947a01ee9871bced7254b8c6cb03b236442b",
+            "source": {
+                "path": ".agent-loop/recall/NG-56/meta.json",
+                "sha256": "sha256:3b9ec5343b08ffdc0be48a077a4a02def033370fd4e18ee01e8878b99b069df9"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-56/reviews/NG-56.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-25-ng-56-r1-a4b728c9",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-25-ng-56-r1-a4b728c9/session.json",
+                "sha256": "sha256:7f153aee03036a79d6715ab9f437b2574ba07588cdbedaf3f126e09593085150"
+            },
+            "state": "active",
+            "task_id": "NG-56"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-56 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-56",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "implementation",
+            "implementation_snapshot": null,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "Implementation snapshot scoped path does not exist yet: src/demo-clips.ts (a deleted path needs a Contract base_commit that tracks it)",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-56:8ce45a00c679cadf",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-56"
+}
