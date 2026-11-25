@@ -1,11 +1,123 @@
 {
     "attention": null,
-    "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:a5f94617f598f79adda9c89872b5b486d20a29a7",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:fb9e84b7d09e4a2a86954c2f12516aea6c07c64448c0d621242837bf0fe44b55",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-25T06:47:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T06:47:25+00:00",
+                "artifact_references": [],
+                "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:fb9e84b7d09e4a2a86954c2f12516aea6c07c64448c0d621242837bf0fe44b55",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:8512870cd7060fa5",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:fb9e84b7d09e4a2a86954c2f12516aea6c07c64448c0d621242837bf0fe44b55",
+                "outcome": "completed",
+                "run_id": "run:NG-55:8512870cd7060fa5",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:a1c72997",
+                "summary": "Listening lives in createRecogniser (listen(), onFrame push, switchCamera) and attachRecognise (sayWord via requestLocalGermanSpeech, draw listening). Change sites: idle check on frames, sided cache on Camera, carried tiles through switchCamera, dropped cleared on a closed segment, voice failure line in the view; tests and docs.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T06:47:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T06:47:29+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:096c89e093e630ec40c9521478e0961b2142923350b00d1089cddb9880f92004",
+                    "execution-evidence:sha256:76dc0f5a8f273af1a4a36ed91588d327661ddc52f81bfe81dce19977286a05e1",
+                    "execution-evidence:sha256:64b984e98de5bed83607fe08640870e567607c23aa8287916cbb85013169f16c"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:a5f94617f598f79adda9c89872b5b486d20a29a7",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:fb9e84b7d09e4a2a86954c2f12516aea6c07c64448c0d621242837bf0fe44b55",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:8512870cd7060fa5",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:096c89e093e630ec40c9521478e0961b2142923350b00d1089cddb9880f92004",
+                    "execution-evidence:sha256:76dc0f5a8f273af1a4a36ed91588d327661ddc52f81bfe81dce19977286a05e1",
+                    "execution-evidence:sha256:64b984e98de5bed83607fe08640870e567607c23aa8287916cbb85013169f16c"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:a5f94617f598f79adda9c89872b5b486d20a29a7",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:fb9e84b7d09e4a2a86954c2f12516aea6c07c64448c0d621242837bf0fe44b55",
+                "outcome": "completed",
+                "run_id": "run:NG-55:8512870cd7060fa5",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:a41d302a",
+                "summary": "RECOGNISE_IDLE_MS 3 min idle stop (lastHandAt per frame); sayText(text, failed) -> no-voice line (cleared before each try, on a new tile, outside listening); carried tiles on switchCamera; sided frames cached with the buffer; dropped cleared when a segment closes. 5 new tests; 5 mutants caught. npm run verify 706/706 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T06:48:52+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T06:48:52+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:bf2e744571d12abad1c07fb03555e2e2ec5a25e2aa1b6789c882ac4e8953da09",
+                    "execution-evidence:sha256:453cae1d991746a9b7e2b05d3920b331a652d8cd97964e8942fa3da1b7ab49a7",
+                    "execution-evidence:sha256:42292531804aa319bcc2725caa1b5492aeba198c7cb184f79a45cc9680d8add4"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:a5f94617f598f79adda9c89872b5b486d20a29a7",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:fb9e84b7d09e4a2a86954c2f12516aea6c07c64448c0d621242837bf0fe44b55",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:8512870cd7060fa5",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:bf2e744571d12abad1c07fb03555e2e2ec5a25e2aa1b6789c882ac4e8953da09",
+                    "execution-evidence:sha256:453cae1d991746a9b7e2b05d3920b331a652d8cd97964e8942fa3da1b7ab49a7",
+                    "execution-evidence:sha256:42292531804aa319bcc2725caa1b5492aeba198c7cb184f79a45cc9680d8add4"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:a5f94617f598f79adda9c89872b5b486d20a29a7",
+                "context_id": "claude-subagent-ng55-correctness",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:fb9e84b7d09e4a2a86954c2f12516aea6c07c64448c0d621242837bf0fe44b55",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:8512870cd7060fa5",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:5943c733",
+                "summary": "Stale carried tiles: switchCamera sets carried (recognise.ts:700) but it is consumed only on a successful listening start (recognise.ts:639-641). When the restart fails (back camera missing -> problem state), carried survives: Zurueck then a new start from idle shows the old tiles (reproduced: new start -> listening taken [trinken]), contradicting 'any other start begins empty' (recognise.ts:638, docs/recognise.md:277). Fix: consume carried at startCamera entry (const keep = carried; carried = []) and use keep in the success branch, or clear carried in leave/stopCamera; add a test for switch -> failed back camera -> back -> start begins empty. Rest checked: idle check, sided alignment, voice-failure ordering, zu-lang clear, docs.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],

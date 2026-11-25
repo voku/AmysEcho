@@ -1937,3 +1937,50 @@ test("view, continuous: hiding the page, pagehide, a hidden board region and dis
   }
 });
 
+test("controller, continuous: tiles carried to a camera that fails do not come back on a later start; a second switch while starting keeps them", async () => {
+  let facing = "user";
+  const camera = fakeCamera({ noBackCamera: true });
+  const context = setup({ camera });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, facing: () => facing,
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.switchCamera(() => { facing = "environment"; });
+  await settle();
+  assert.equal(recogniser.state().kind, "problem", "no back camera");
+  // Back to the front camera from the problem: a switch from a problem carries nothing.
+  recogniser.back();
+  facing = "user";
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state().taken, [], "an unrelated start begins empty");
+  // A second switch while the first restart still starts keeps the tiles.
+  const slow = fakeCamera({ holdTracker: true });
+  const other = setup({ camera: slow });
+  let side = "user";
+  const held = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => slow.bridge, host: () => ({}), setTimer: other.time.setTimer, now: other.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, facing: () => side,
+  });
+  held.start();
+  await settle();
+  slow.releaseTracker();
+  await settle();
+  await slow.feedAll(MOVES_RIGHT, 10);
+  await handsDown(slow);
+  assert.deepEqual(held.state().taken, ["trinken"]);
+  other.time.advance(RECOGNISE_GUARD_MS);
+  held.switchCamera(() => { side = "environment"; });
+  assert.equal(held.state().kind, "starting");
+  other.time.advance(RECOGNISE_GUARD_MS);
+  held.switchCamera(() => { side = "user"; });
+  slow.releaseTracker();
+  await settle();
+  assert.deepEqual(held.state().taken, ["trinken"]);
+});
+

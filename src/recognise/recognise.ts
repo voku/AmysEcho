@@ -310,6 +310,8 @@ interface Camera {
   sided: LandmarkFrame[];
   /** Card NG-55: when a hand was last seen while listening (or listening began). */
   lastHandAt: number;
+  /** Card NG-55: the tiles a camera switch carried over to this start; empty for any other start. */
+  readonly carry: readonly string[];
   session: CaptureSession | null;
   cancelTimer: () => void;
   /** The once-a-second tick of the recording's time (card NG-45). */
@@ -564,7 +566,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     }
     const own: Camera = {
       controller: new AbortController(), session: null, cancelTimer: () => undefined, cancelTick: () => undefined, preview,
-      recordingEndsAt: Number.POSITIVE_INFINITY, shownSeen: 0, lowerSince: null, lowerMax: 0, buffer: [], dropping: false, sided: [], lastHandAt: 0,
+      recordingEndsAt: Number.POSITIVE_INFINITY, shownSeen: 0, lowerSince: null, lowerMax: 0, buffer: [], dropping: false, sided: [], lastHandAt: 0, carry: carried,
     };
     camera = own;
     const ours = (): boolean => camera === own && !own.controller.signal.aborted;
@@ -590,7 +592,13 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
           if (!ours() || gone()) return;
           if (current.kind === "listening") {
             const at = options.now();
-            const side = toLandmarkFrame(frame, 0);
+            let side: LandmarkFrame;
+            try {
+              side = toLandmarkFrame(frame, 0);
+            } catch {
+              // A frame that cannot be read: the next one goes on.
+              return;
+            }
             if (side.left !== null || side.right !== null) {
               own.lastHandAt = at;
             } else if (at - own.lastHandAt > RECOGNISE_IDLE_MS) {
@@ -636,8 +644,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       });
       if (options.continuous?.() === true) {
         // A camera switch keeps what was taken (card NG-55); any other start begins empty.
-        const taken = carried;
-        carried = [];
+        const taken = own.carry;
         if (taken.length === 0) takenAt.clear();
         own.lastHandAt = options.now();
         show({ kind: "listening", taken, dropped: false });
@@ -697,9 +704,11 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       const live = current.kind === "starting" || current.kind === "countdown" || current.kind === "recording" || current.kind === "listening" || current.kind === "problem";
       if (!live || (pressAt ?? options.now()) < cameraAskedAt + RECOGNISE_GUARD_MS) return false;
       change();
-      carried = current.kind === "listening" ? current.taken : [];
+      // A second switch while the camera still starts keeps what the first one carried.
+      carried = current.kind === "listening" ? current.taken : current.kind === "starting" ? camera?.carry ?? [] : [];
       stopCamera();
       startCamera();
+      carried = [];
       return true;
     },
     back: leave,
