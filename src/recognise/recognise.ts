@@ -591,7 +591,8 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       stopCamera();
       // Card NG-55: a start that carried tiles (after "Weiter" or a camera switch) never loses them:
       // the pause keeps them, says why, and offers the camera switch and "Weiter".
-      if (own.carry.length > 0) show({ kind: "paused", taken: own.carry, line });
+      const keep = current.kind === "listening" ? current.taken : own.carry;
+      if (keep.length > 0) show({ kind: "paused", taken: keep, line });
       else show({ kind: "problem", line });
     };
     show({ kind: "starting", line: text.preparing });
@@ -651,8 +652,9 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       if (!answer.ok) {
         if ("problem" in answer) failed(problemLine(answer.problem));
         else if (camera === own && own.carry.length > 0) {
+          const keep = own.carry;
           stopCamera();
-          show({ kind: "paused", taken: own.carry });
+          show({ kind: "paused", taken: keep });
         } else if (camera === own) leave();
         return;
       }
@@ -746,6 +748,11 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     hide() {
       if (current.kind === "listening") {
         const { taken } = current;
+        stopCamera();
+        show({ kind: "paused", taken });
+      } else if (current.kind === "starting" && (camera?.carry.length ?? 0) > 0) {
+        // Hidden while "Weiter" or a camera switch starts the camera: the tiles it carried stay.
+        const taken = camera!.carry;
         stopCamera();
         show({ kind: "paused", taken });
       } else if (current.kind !== "paused") {
@@ -1134,7 +1141,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         content.push(feedback);
         break;
       case "paused": {
-        line.textContent = voiceLine ?? state.line ?? RECOGNISE_TEXT.paused;
+        // A problem line asks for "Nochmal"; in the pause the button is "Weiter".
+        line.textContent = voiceLine ?? state.line?.replace("„Nochmal“", "„Weiter“") ?? RECOGNISE_TEXT.paused;
         const row = takenRow(state.taken);
         if (row !== null) content.push(row);
         const resume = actionButton("recognise-resume", RECOGNISE_SYMBOLS.resume, RECOGNISE_TEXT.resume);

@@ -1,9 +1,17 @@
 {
-    "attention": null,
-    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+    "attention": {
+        "created_at": "2026-11-25T07:17:55+00:00",
+        "id": "attention:b78711c656537536",
+        "kind": "review_changes_required",
+        "message": "Review requested changes in 3 rounds; a human decides how to continue. Two tile-loss paths remain. (1) recognise.ts:594 failed() pauses with own.carry, the start-time snapshot: after Weiter with [trinken], a new tile hilfe, then the camera stopping, the pause shows only [trinken] (probe-verified); a start without carry that fails while listening still drops all tiles to problem. Fix: keep current.kind==='listening' ? current.taken : own.carry, and pause when that is non-empty. (2) recognise.ts:746-753 hide() during starting with carried tiles (Weiter or switch) calls leave(): state idle, tiles lost (probe-verified), against docs/recognise.md:283. Fix: in hide(), when current.kind==='starting' and camera.carry is non-empty, stopCamera and pause with that carry. Camera is off in every probed path; countdown/recording hide, gone, dispose unchanged; 70/70 tests pass. Also: the problem lines in the pause say tap Nochmal (recognise.ts:146-155) but the pause shows Weiter.",
+        "run_id": "run:NG-55:7b2fb3521aa9c190",
+        "stage_id": "correctness-review",
+        "task_id": "NG-55"
+    },
+    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
     "contract_revision": 2,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
     "history": [
         {
@@ -237,6 +245,86 @@
                 "stage_id": "blindspot-review",
                 "submission_id": "submission:blindspot-review:1:8c89829c",
                 "summary": "Partial-failure blind spot in owner decision (a): '▶ Weiter' from paused calls startCamera, which shows 'starting' without the tiles and, if the camera then fails (problem: busy/permission/stopped, recognise.ts:584-588,643-645,657) or the permission ask ends without a problem (leave(), recognise.ts:645), the paused tiles are gone: 'Nochmal' restarts with carried=[] (recognise.ts:685,661-663). The owner kept the tiles because they are the child's message waiting to be read; a failed resume destroys it irreversibly and no test covers it. Smallest fix: when a start that carried tiles fails or is refused, return to { kind: 'paused', taken: carry } (or keep carry for the problem view's retry), plus one controller test. Also noted: page hide/pagehide calls recogniser.back() in every state (recognise.ts:1341-1344), so a paused view (camera already off) closes and loses the tiles on screen lock, and device auto-lock (often 30 s-2 min) usually fires before RECOGNISE_IDLE_MS; docs/recognise.md 'The view stays open' does not say this. Verified fine: nothing is spoken without a tap; idle stop calls stopCamera and the test asserts camera.running false; paused hides the camera switch and keeps 'Zurück zur Tafel'; no frames buffered while paused (camera=null).",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:16:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:16:31+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ad0d8b8b3ece06f1799be8d3d91b1e7c7ff6a7e3ab2f2cb541867129136fc43c",
+                    "execution-evidence:sha256:460ce2a61a8677010fcb5d5b043d7b198a4a9c74295cf3804d95de3df1532206",
+                    "execution-evidence:sha256:0f62e87b9883befebad7f1951f507555fedfb6e34c3c07992f866088a4bced15"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ad0d8b8b3ece06f1799be8d3d91b1e7c7ff6a7e3ab2f2cb541867129136fc43c",
+                    "execution-evidence:sha256:460ce2a61a8677010fcb5d5b043d7b198a4a9c74295cf3804d95de3df1532206",
+                    "execution-evidence:sha256:0f62e87b9883befebad7f1951f507555fedfb6e34c3c07992f866088a4bced15"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:082078b1",
+                "summary": "Blind-spot fix: failed() and the no-problem refusal pause with own.carry when it is non-empty (line = problem line); paused added to switchCamera's live states and the camera button; recogniser.hide() pauses listening (stopCamera) and keeps paused, else leave; page hide handlers call hide(). Tests: failed switch -> paused with tiles then switch back listens with them; hide -> paused; refused Weiter -> paused with tiles. npm run verify 710/710 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:17:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:17:55+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a6847b0b60d24f51596a1feb3154ff68f0fc83fdf0098f32c243ddeddd7aea85",
+                    "execution-evidence:sha256:a5ce26cf153a90e6c9b87fcbcdbe76c2cb3ec39044278941af34df8266aaf4ce",
+                    "execution-evidence:sha256:c0dbd2db1294306d53e4d65ebcf7afd52297cd05f7325ff117f4d357f096bde3"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a6847b0b60d24f51596a1feb3154ff68f0fc83fdf0098f32c243ddeddd7aea85",
+                    "execution-evidence:sha256:a5ce26cf153a90e6c9b87fcbcdbe76c2cb3ec39044278941af34df8266aaf4ce",
+                    "execution-evidence:sha256:c0dbd2db1294306d53e4d65ebcf7afd52297cd05f7325ff117f4d357f096bde3"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:108d575b9543f54f74988ce76c0be92aeebd9b6e",
+                "context_id": "claude-subagent-ng55-r2-correctness-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:13435055",
+                "summary": "Two tile-loss paths remain. (1) recognise.ts:594 failed() pauses with own.carry, the start-time snapshot: after Weiter with [trinken], a new tile hilfe, then the camera stopping, the pause shows only [trinken] (probe-verified); a start without carry that fails while listening still drops all tiles to problem. Fix: keep current.kind==='listening' ? current.taken : own.carry, and pause when that is non-empty. (2) recognise.ts:746-753 hide() during starting with carried tiles (Weiter or switch) calls leave(): state idle, tiles lost (probe-verified), against docs/recognise.md:283. Fix: in hide(), when current.kind==='starting' and camera.carry is non-empty, stopCamera and pause with that carry. Camera is off in every probed path; countdown/recording hide, gone, dispose unchanged; 70/70 tests pass. Also: the problem lines in the pause say tap Nochmal (recognise.ts:146-155) but the pause shows Weiter.",
                 "task_id": "NG-55",
                 "validation_references": []
             }

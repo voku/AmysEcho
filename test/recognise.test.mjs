@@ -2098,3 +2098,83 @@ test("controller, continuous: 'Weiter' that cannot start the camera keeps the ti
   assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"], line: RECOGNISE_TEXT.problems.denied });
 });
 
+test("controller, continuous: the camera failing while listening pauses with the tiles of now; hiding while 'Weiter' starts keeps them", async () => {
+  let outcome = "trinken";
+  const camera = fakeCamera();
+  const context = setup({ camera });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => ({ kind: "match", conceptId: outcome, hands: "right" }),
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  recogniser.hide();
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  outcome = "hilfe";
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  assert.deepEqual(recogniser.state().taken, ["trinken", "hilfe"]);
+  camera.fail();
+  await settle();
+  assert.equal(recogniser.state().kind, "paused");
+  assert.deepEqual(recogniser.state().taken, ["trinken", "hilfe"], "the tiles of now, not of the start");
+  assert.ok(recogniser.state().line.length > 0, "the line says why");
+  // A start without carried tiles that fails while listening keeps them too.
+  const fresh = fakeCamera();
+  const other = setup({ camera: fresh });
+  const plain = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => fresh.bridge, host: () => ({}), setTimer: other.time.setTimer, now: other.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  plain.start();
+  await settle();
+  await fresh.feedAll(MOVES_RIGHT, 10);
+  await handsDown(fresh);
+  fresh.fail();
+  await settle();
+  assert.deepEqual(plain.state().taken, ["trinken"]);
+  assert.equal(plain.state().kind, "paused");
+  // Hidden while "Weiter" still starts the camera: paused with the tiles, camera off.
+  const slow = fakeCamera({ holdTracker: true });
+  const third = setup({ camera: slow });
+  const held = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => slow.bridge, host: () => ({}), setTimer: third.time.setTimer, now: third.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  held.start();
+  await settle();
+  slow.releaseTracker();
+  await settle();
+  await slow.feedAll(MOVES_RIGHT, 10);
+  await handsDown(slow);
+  held.hide();
+  third.time.advance(RECOGNISE_GUARD_MS);
+  held.start();
+  assert.equal(held.state().kind, "starting");
+  held.hide();
+  assert.deepEqual(held.state(), { kind: "paused", taken: ["trinken"] });
+  assert.equal(slow.running, false);
+});
+
+test("view, continuous: a problem line in the pause names 'Weiter', the button there", async () => {
+  await withView(async (context) => {
+    const { panel, camera, doc } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    camera.fail();
+    await settle();
+    assert.equal(panel().dataset.state, "paused");
+    assert.match(textOf(panel()), /Bitte „Weiter“ tippen\./);
+    assert.doesNotMatch(textOf(panel()), /Nochmal/);
+    doc.visibilityState = "hidden";
+    doc.dispatch("visibilitychange");
+    assert.equal(panel().dataset.state, "paused", "hiding the page keeps the pause");
+  }, { continuous: true });
+});
+

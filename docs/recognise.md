@@ -278,7 +278,9 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
     of the card found that, and the owner chose this instead.
   - The tiles are never lost on the way back:
     - A start that carried tiles ("Weiter", or a camera switch) and fails or is refused goes back
-      to the pause with the tiles, and the line says why (the problem line).
+      to the pause with the tiles, and the line says why (the problem line, with "Weiter" where
+      it names "Nochmal"). The camera failing while listening pauses with the tiles shown then.
+    - Hiding the page while "Weiter" or a switch still starts the camera pauses with the tiles too.
     - The camera switch is shown in the pause too and listens again with the tiles.
     - Hiding the page (a screen lock, another app) stops the camera and pauses with the tiles;
       before, it closed the view. Device locks often come before the 3 minutes.
