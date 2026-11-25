@@ -1,0 +1,190 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-25T20:03:20+00:00",
+            "approved_by": "Lars Moelleken (owner decision in session 2026-11-25: backup 'Ja mit Passwort'; session approved)",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-58/contract.json",
+                "sha256": "sha256:1f04117f4befac2d7413946e44bfcf3a9ead6f207258765ab8ac060f802e2088"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-58",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "a7cb658f88bd21ce9c00f328571bf9a72298a15fb005e7dfb73e70a6d873da8c",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-58.md",
+                "sha256": "sha256:a7cb658f88bd21ce9c00f328571bf9a72298a15fb005e7dfb73e70a6d873da8c"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A backup file is the profile export encrypted with AES-GCM under a PBKDF2-SHA-256 key from the caregiver's password (at least 8 characters, typed twice); nothing about the child is readable without the password; the file name has no name of the child (tested)",
+                "A wrong password or a changed file is refused in German and nothing is written; a file of another format or version is refused (tested)",
+                "Each profile card offers 'Sicherung speichern': a view that says what the file holds (including demo clips of adults), that it must be kept private, and that a lost password cannot be recovered; saving downloads the file (tested with an injected file saver)",
+                "The profile list offers 'Sicherung einspielen' also on a device without profiles: choose the file, type the password; a profile already on the device asks 'Ersetzen' or 'Als Kopie einspielen'; a restored profile becomes the active board when none is active (tested)",
+                "The caregiver texts no longer say that there is no backup; the product contract records the decision (tested)",
+                "A real-browser test saves and restores a synthetic profile with a demo clip through Web Crypto"
+            ],
+            "goal": "A caregiver saves a password-protected backup file of a profile (board, wording, pictures, taught gestures, demo clips) and restores it on another device, so a device can be replaced without losing data.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-58/contract.json",
+                "sha256": "sha256:1f04117f4befac2d7413946e44bfcf3a9ead6f207258765ab8ac060f802e2088"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-58/contract.json",
+                "sha256": "sha256:1f04117f4befac2d7413946e44bfcf3a9ead6f207258765ab8ac060f802e2088"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-25T20:50:17+00:00",
+            "decided_by": "Claude (agent; owner Lars Moelleken decided 'Ja mit Passwort' in session 2026-11-25)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-58:97fde80392bba081",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/9455c81bc6e088dcdf0cf9a352b173dd0e5b703c6d5cec78d7327ebd0e527538.json",
+                "sha256": "sha256:edae1e6cdfa7523cb6c712a6c433a486b24d6e6c16d2af12c8af42a0957a7172"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:11c31946486a0d0e45743fe4892e47477f0e564c58cd0e6fc61218c884a4b4f4",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:e2725e69de34b7cd208aef57b087c5f5e921c9cd411b49fc3ed827daf0bb083b"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/profiles/backup-file.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/backup-file.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/browser/backup.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 5,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-58:97fde80392bba081",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "663234d028e85bbaa845ab262d5bdfc5ebb4c899f5d9ef3edad54ea7d60cc669",
+            "compilation_id": "compilation.NG-58.2026-11-25-200956.c60cf7da",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "3db1e95ecc833d46324285b7ea6905f654245a473274d1f610950a254dbb93c3",
+            "source": {
+                "path": ".agent-loop/recall/NG-58/meta.json",
+                "sha256": "sha256:4a2d0fcc1f20901bf4a2af45936d4d77db1c6d0fe27d4bca5d00645977fc2a5e"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-58/reviews/NG-58.blindspots.json",
+                "sha256": "sha256:145bcfb00aaaca943d8c62a61cdad090099927e74659b604e6fc74ffb1d6d69b"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "ff802fa6af9d0582a06fdabb70db3d1ad891978c",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-25-ng-58-r2-52bd7b37",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-25-ng-58-r2-52bd7b37/session.json",
+                "sha256": "sha256:cabeea74f66209716988070e5604049ce83dc010b0f4ddcda9302d042f83e565"
+            },
+            "state": "done",
+            "task_id": "NG-58"
+        },
+        "verification": {
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:65b5d6c0fb739733ddf4684ef5e285cf142d198340b3223eafd678e4b815ab0e",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-58:97fde80392bba081",
+            "source": {
+                "path": ".agent-loop/runs/NG-58/verification.json",
+                "sha256": "sha256:99af09d96456ea375afcf84d0cbbc9556f38d792e7ee6b5cee2a6e7edbd9ee3d"
+            },
+            "source_session_id": "2026-11-25-ng-58-r2-52bd7b37",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-58:97fde80392bba081",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-58"
+}

@@ -112,7 +112,8 @@ Limits, stated plainly:
   (card NG-7) that a child's first name may be stored as the profile name. Still open on NG-7:
   how long data is kept, who counts as an authorised caregiver, and deletion. Still open on
   NG-14: the IndexedDB adapter has no automated browser test and has not run on a target device,
-  so data entered now may not survive. A profile can be deleted in the area; there is no backup.
+  so data entered now may not survive. A profile can be deleted in the area; since card NG-58 a
+  password-protected backup file can be saved and restored ("Backup", below).
   Clearing the site data of the browser removes **all** profiles in this browser and the offline
   copy of the app, and a browser may remove stored data on its own (docs/storage.md).
 
@@ -279,7 +280,7 @@ and write nothing. The field has the same attributes as the create field.
 
 **Deleting.** Two steps, without a dialog element. "Löschen" replaces the whole body by the
 confirmation: "Profil „<name>“ löschen?", "Alle ausgewählten Begriffe und beigebrachten Gebärden
-dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.", for the active profile also "Das Kind sieht danach
+dieses Profils gehen verloren, außer sie stehen in einer Sicherung.", for the active profile also "Das Kind sieht danach
 Beispiele, bis eine andere Tafel aktiv ist.", a field "Zum Bestätigen den Namen „<name>“
 eingeben" (the stored name, not the "(2)" label), the buttons "Abbrechen" and "Endgültig löschen",
 in that order, and under them the line "Zum Löschen 2 Sekunden gedrückt halten." Focus goes to the
@@ -307,7 +308,7 @@ put another control under a finger. "Abbrechen" (or Escape) brings the normal bo
 focus on that profile's "Löschen" and with what was typed into the create field.
 
 **"Endgültig löschen" is a hold and then a release, not a tap.** Deleting cannot be taken back
-and there is no backup, and a tap by a caregiver cannot be told from a tap by a child or from the
+(only a backup saved before brings the profile back), and a tap by a caregiver cannot be told from a tap by a child or from the
 later taps of someone tapping on one spot. So the button works like the opening control
 (`heldButton`, `createHold`, the injected timer): it has no `click` handler and has to be pressed
 and held for `DELETE_HOLD_MS` (2 seconds), with a pointer or with Enter or Space. While holding,
@@ -429,7 +430,8 @@ name, the chosen concepts, own texts for them and taught gestures are stored onl
 device, and of a gesture only numbers about the movement of the hands, no picture and no video (card NG-19), the only
 video being a demo clip a caregiver records of themselves (card NG-56); the app sends
 nothing, but the device's keyboard may process what is typed on its own; a profile can be renamed
-and deleted here and there is no backup; clearing the website data in the browser removes all
+and deleted here, and that "Sicherung speichern" puts it into a password-protected file that can be
+restored on another device (card NG-58); clearing the website data in the browser removes all
 profiles in this browser and the offline copy of the app; the browser may remove the data on its
 own.
 The field has `autocomplete="off"`, `spellcheck=false`, `autocapitalize="off"` and
@@ -911,6 +913,42 @@ gets the focus on opening, shows a focus outline. The header line is not a live 
 in its guard time says so through `aria-disabled`, and through the status line once a press was
 ignored. The line under "Endgültig löschen" is its description and a live region for the
 countdown. None of this was checked with assistive technology.
+
+**Backup** (card NG-58, owner decisions of 2026-11-25: "Alles mit ins Backup, sodass man das Gerät
+wechseln kann" and "Ja mit Passwort"). Every profile card has "Sicherung speichern" (`aria-label`
+"Sicherung speichern: <name>"). It opens a view that takes over the body: "Sicherung von „<name>“",
+what the file holds (name, concepts, own texts and pictures, taught gestures, the caregivers'
+demo clips), the warning that the file is encrypted but should still be kept private and that a
+forgotten password cannot be recovered, then "Passwort (mindestens 8 Zeichen)" and "Passwort
+wiederholen" (password fields, `autocomplete="new-password"`, focus on the first), "Sicherung
+speichern" and "Abbrechen". A short password or two different ones are said and nothing is made.
+Saving exports the profile (`exportProfile`), encrypts it (`encryptBackup`, `src/profiles/backup-file.ts`:
+AES-GCM under a PBKDF2-SHA-256 key of 600 000 rounds, random salt and IV) and hands the file over as
+a download named `amys-echo-sicherung-<YYYY-MM-DD>.amysecho`: the day only, never the child's name.
+The status line says "Die Sicherung ist gespeichert: <file>. Bitte die Datei und das Passwort gut
+aufheben." The password lives only in the page's field: it is never stored.
+
+Below the profile list, also on a device without any profile, is "Sicherung einspielen": a file
+field ("Sicherungsdatei", `.amysecho`), "Passwort der Sicherung", "Einspielen" and "Abbrechen". The
+file is read (at most `MAX_BACKUP_FILE_BYTES`, 128 MiB), decrypted and checked like any export
+(`parseProfileExport`) before anything is written. Refusals, each a German error line with nothing
+written: no file chosen, no password, "Das Passwort passt nicht zu dieser Datei, oder die Datei
+wurde verändert. …" (AES-GCM refuses a wrong key and a changed byte alike), "Diese Datei ist keine
+Sicherung dieser App, oder sie stammt aus einer neueren Version. …", too large for this device. A
+profile with the same id already on the device asks first: "Die Tafel „<name>“ gibt es auf diesem
+Gerät schon.", "Als Kopie einspielen" (both kept, the copy under a new id) or "Ersetzen" (the
+device's state is overwritten with the backup's), or "Abbrechen"; the focus goes to "Als Kopie
+einspielen", never to "Ersetzen", so an Enter meant for "Einspielen" cannot overwrite anything. A
+restore left with "Abbrechen", Escape or by closing the area while the file is read writes
+nothing, as every other action of the area that is left before its write. A restored profile becomes the
+active board when none is active, which is the case on a new device: "Eingespielt: Tafel von
+„<name>“. Sie ist jetzt die aktive Tafel."
+
+Looked at in headless Chromium at 390 x 844 with a probe that is not part of the repository: save
+(the download is the encrypted file), the site data cleared, restore, the board active again; no
+console error. `test/browser/backup.test.mjs` encrypts at the full 600 000 rounds in Chromium (about
+0.1 s on the CI machine), downloads and restores. Not tried: a phone (how long the rounds take, where
+the download lands, how the file is shared to the new device), a caregiver.
 
 **Vormachen: a caregiver's own clip** (card NG-56, owner decisions of 2026-11-25; product rule in
 [s0a-product-contract-v0.1.md](s0a-product-contract-v0.1.md), section 6). Every row that offers

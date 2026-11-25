@@ -18,7 +18,7 @@ const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest", "./styles.css",
   "./main.js", "./status.js", "./board.js", "./concepts.js", "./speech.js",
   "./app.js", "./board-data.js", "./demo-clips.js", "./teach/fit.js", "./teach/replay.js", "./startup.js", "./caregiver.js", "./profiles/backend.js",
-  "./profiles/indexeddb-backend.js", "./profiles/profile.js", "./profiles/store.js",
+  "./profiles/indexeddb-backend.js", "./profiles/profile.js", "./profiles/store.js", "./profiles/backup.js", "./profiles/backup-file.js",
   "./icons/hilfe.svg", "./icons/trinken.svg", "./icons/pause.svg",
   "./icons/mehr.svg", "./icons/fertig.svg", "./icons/sprechen.svg",
   "./icons/app.svg",

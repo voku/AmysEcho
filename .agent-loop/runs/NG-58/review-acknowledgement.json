@@ -1,0 +1,11 @@
+{
+    "acknowledged_at": "2026-11-25T20:50:16+00:00",
+    "acknowledged_by": "Claude (agent; owner Lars Moelleken decided 'Ja mit Passwort' in session 2026-11-25)",
+    "contract_revision": 2,
+    "implementation_snapshot": "sha256:65b5d6c0fb739733ddf4684ef5e285cf142d198340b3223eafd678e4b815ab0e",
+    "kind": "review_acknowledgement",
+    "report_sha256": "sha256:145bcfb00aaaca943d8c62a61cdad090099927e74659b604e6fc74ffb1d6d69b",
+    "run_id": "run:NG-58:97fde80392bba081",
+    "schema_version": "1.0",
+    "task_id": "NG-58"
+}

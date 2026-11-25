@@ -25,7 +25,7 @@ import {
 import type { BoardEntry, CatalogueConcept, CustomConcept, ResolvedBoard } from "./board-data.js";
 import { MAX_CONCEPT_IDS, MAX_DISPLAY_NAME_LENGTH, ProfileFormatError } from "./profiles/profile.js";
 import type { ProfileV1 } from "./profiles/profile.js";
-import { ProfileSizeError, UnknownProfileError } from "./profiles/store.js";
+import { ProfileConflictError, ProfileSizeError, UnknownProfileError } from "./profiles/store.js";
 import type { ProfileStore } from "./profiles/store.js";
 import { STARTUP_WAIT_MS } from "./startup.js";
 import type { CameraFacing, CaptureBridge, CapturePreview, CaptureSession, FacingStorage } from "./capture/capture.js";
@@ -42,6 +42,9 @@ import { REPLAY_COLOURS, REPLAY_CONNECTIONS, replayBox, replayStepMs, replayStep
 import type { ReplayStep } from "./teach/replay.js";
 import { DEMO_MAX_MS, DemoClipError, DemoRecordingRefusal, clipFromBlob, isDemoDataUrl, openDemoCamera, readDemoClip, removeDemoClip, setDemoClip } from "./demo-clips.js";
 import type { DemoCamera, StoredDemoClip } from "./demo-clips.js";
+import { ExportSizeError, exportProfile, importProfile } from "./profiles/backup.js";
+import type { ProfileExportV1 } from "./profiles/backup.js";
+import { BackupFileError, MIN_BACKUP_PASSWORD_LENGTH, backupFileName, decryptBackup, encryptBackup, isBackupPassword } from "./profiles/backup-file.js";
 
 /** A recording of a gesture example stops by itself after this long (card NG-19). */
 export const TEACH_MAX_RECORDING_MS = 8000;
@@ -227,6 +230,30 @@ export interface CaregiverOptions {
   readonly openDemoCamera?: (facing: CameraFacing) => Promise<DemoCamera>;
   /** Turns a recorded clip into the data URL that is stored, or a `DemoRecordingRefusal`; for tests. Default: `clipFromBlob`. */
   readonly clipFromBlob?: (blob: Blob) => Promise<string>;
+  /** Hands a backup file to the person (card NG-58); for tests. Default: a download through a link. */
+  readonly saveFile?: (file: Blob, name: string) => void;
+  /** Reads a chosen backup file as text; for tests. Default: `Blob.text()`. */
+  readonly readFile?: (file: Blob) => Promise<string>;
+  /** PBKDF2 rounds for a new backup file; for tests. Default: `BACKUP_ITERATIONS`. */
+  readonly backupIterations?: number;
+}
+
+/** The largest backup file that is read at all: the export limit, encrypted and as base64, with room to spare. */
+export const MAX_BACKUP_FILE_BYTES = 128 * 1024 * 1024;
+
+/** A download of `file` under `name` through a link, as the browser offers it. */
+export function downloadFile(file: Blob, name: string): void {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.rel = "noopener";
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  // Revoked later: some browsers start reading the file only after the click has returned.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /**
@@ -354,7 +381,7 @@ const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genü
   + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
   + "Ein Video wird nur als Vormachen-Clip gespeichert, den eine Bezugsperson von sich selbst aufnimmt. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
-  + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
+  + "Ein Profil kann hier umbenannt und gelöscht werden; mit „Sicherung speichern“ kommt es mit Passwort in eine Datei, die auf einem anderen Gerät eingespielt werden kann. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
   + "Der Browser kann diese Daten auch von sich aus löschen.";
 const NONE_ACTIVE = "Gerade ist keine Tafel aktiv. Das Kind sieht Beispiele, bis eine Tafel als aktive Tafel verwendet wird.";
@@ -381,7 +408,7 @@ const DELETE = "Löschen";
 const DELETE_FOR_GOOD = "Endgültig löschen";
 const CANCEL = "Abbrechen";
 const SAVE = "Speichern";
-const DELETE_LOSS = "Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren. Eine Sicherung gibt es noch nicht.";
+const DELETE_LOSS = "Alle ausgewählten Begriffe und beigebrachten Gebärden dieses Profils gehen verloren, außer sie stehen in einer Sicherung.";
 const DELETE_ACTIVE = "Das Kind sieht danach Beispiele, bis eine andere Tafel aktiv ist.";
 const AFTER_CLOSE = "Nach dem Schließen:";
 const afterDamagedLine = (count: number): string => (count === 1
@@ -518,6 +545,35 @@ function demoCameraLine(error: unknown): string {
       return DEMO_REFUSED.unsupported;
   }
 }
+const BACKUP_SAVE = "Sicherung speichern";
+const BACKUP_RESTORE = "Sicherung einspielen";
+const BACKUP_WHAT = "Die Sicherung ist eine Datei mit allem, was zu dieser Tafel gehört: Name, Begriffe, eigene Texte und Bilder, "
+  + "beigebrachte Gebärden und die Vormachen-Clips der Bezugspersonen. Mit ihr kann die Tafel auf einem anderen Gerät eingespielt werden.";
+const BACKUP_PRIVATE = "Die Datei wird mit dem Passwort verschlüsselt. Bitte trotzdem sicher aufbewahren und nicht teilen. "
+  + "Ohne das Passwort kann niemand die Datei öffnen. Ein vergessenes Passwort kann nicht wiederhergestellt werden.";
+const BACKUP_PASSWORD = `Passwort (mindestens ${MIN_BACKUP_PASSWORD_LENGTH} Zeichen)`;
+const BACKUP_REPEAT = "Passwort wiederholen";
+const BACKUP_SHORT = `Das Passwort braucht mindestens ${MIN_BACKUP_PASSWORD_LENGTH} Zeichen.`;
+const BACKUP_MISMATCH = "Die beiden Passwörter sind nicht gleich.";
+const BACKUP_WORKING = "Die Sicherung wird erstellt …";
+const BACKUP_TOO_LARGE = "Diese Tafel ist zu groß für eine Sicherung.";
+const BACKUP_FAILED = "Die Sicherung konnte nicht erstellt werden. Bitte versuche es noch einmal.";
+const RESTORE_INTRO = "Wähle eine Sicherungsdatei (.amysecho) und gib ihr Passwort ein. Die Tafel darin kommt auf dieses Gerät, "
+  + "mit allem, was in ihr gespeichert ist.";
+const RESTORE_FILE = "Sicherungsdatei";
+const RESTORE_PASSWORD = "Passwort der Sicherung";
+const RESTORE_GO = "Einspielen";
+const RESTORE_WORKING = "Die Sicherung wird gelesen …";
+const RESTORE_NO_FILE = "Bitte zuerst eine Sicherungsdatei wählen.";
+const RESTORE_NO_PASSWORD = "Bitte das Passwort der Sicherung eingeben.";
+const RESTORE_WRONG_PASSWORD = "Das Passwort passt nicht zu dieser Datei, oder die Datei wurde verändert. Es wurde nichts eingespielt.";
+const RESTORE_NOT_BACKUP = "Diese Datei ist keine Sicherung dieser App, oder sie stammt aus einer neueren Version. Es wurde nichts eingespielt.";
+const RESTORE_TOO_LARGE = "Diese Sicherung ist zu groß für dieses Gerät. Es wurde nichts eingespielt.";
+const RESTORE_FAILED = "Die Sicherung konnte nicht eingespielt werden. Bitte versuche es noch einmal.";
+const RESTORE_REPLACE = "Ersetzen";
+const RESTORE_COPY = "Als Kopie einspielen";
+const restoreConflictLine = (name: string): string => `Die Tafel ${quoted(name)} gibt es auf diesem Gerät schon.`;
+const RESTORE_CONFLICT_HELP = "„Ersetzen“ überschreibt sie mit dem Stand der Sicherung. „Als Kopie einspielen“ behält beide.";
 const NO_CAMERA_BRIDGE = "Die Kamera kann hier gerade nicht gestartet werden. Bitte die App neu öffnen. Die Tafel funktioniert auch ohne Kamera.";
 const USAGE_LINES: Readonly<Record<Exclude<UsageLevel, "ok">, string>> = {
   near: "Der Platz für dieses Profil ist fast voll. Es passen nur noch wenige Beispiele hinein. Lösche Beispiele, die nicht mehr gebraucht werden.",
@@ -611,7 +667,25 @@ type Mode =
   | { readonly kind: "delete-concept"; readonly id: string; readonly conceptId: string; readonly title: string }
   | PictureMode
   | DemoMode
+  | BackupSaveMode
+  | BackupRestoreMode
   | null;
+/** Saving a backup file of the profile `id` (card NG-58). The password fields live in the page only, never in this object. */
+interface BackupSaveMode {
+  readonly kind: "backup-save";
+  readonly id: string;
+  readonly draft: { busy: boolean };
+}
+/**
+ * Restoring a backup file (card NG-58). Belongs to no profile (`id` is empty): it is offered also on a device
+ * without one. `conflict` holds a checked export whose profile is already on the device, until the caregiver
+ * chooses "Ersetzen" or "Als Kopie einspielen".
+ */
+interface BackupRestoreMode {
+  readonly kind: "backup-restore";
+  readonly id: "";
+  readonly draft: { busy: boolean; conflict: ProfileExportV1 | null };
+}
 /**
  * Recording a caregiver's own clip of the gesture of one concept (card NG-56).
  * Takes over the body like the teaching view. `state.draft` is the new clip,
@@ -1635,7 +1709,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     mode = null;
     const back = was.kind === "reword" || was.kind === "teach" || was.kind === "delete-concept" || was.kind === "picture" || was.kind === "demo"
       ? `${was.kind}:${was.conceptId}`
-      : was.kind === "create-concept" ? "create-concept" : `${was.kind}:${was.id}`;
+      : was.kind === "create-concept" ? "create-concept" : was.kind === "backup-restore" ? "restore" : `${was.kind}:${was.id}`;
     run(() => draw([back]));
   };
 
@@ -2127,6 +2201,158 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     await removeDemoClip(current, open.id, open.conceptId);
     return `Der Clip für ${quoted(open.title)} wurde gelöscht.`;
   });
+
+  // --- Backup (card NG-58): a profile into a password-protected file, and back on any device ---
+  const saveFileTo = options.saveFile ?? downloadFile;
+  const readFileText = options.readFile ?? ((file: Blob): Promise<string> => file.text());
+  const backupOptions = options.backupIterations === undefined ? {} : { iterations: options.backupIterations };
+  /** The password fields and the file field of the open backup view, read when its button is pressed. */
+  let backupFields: { password: HTMLInputElement; repeat: HTMLInputElement | null; file: HTMLInputElement | null } | null = null;
+
+  /** "Sicherung speichern": the profile's export, encrypted with the typed password, handed over as a file. */
+  const saveBackup = (open: BackupSaveMode): void => {
+    const fields = backupFields;
+    if (mode !== open || open.draft.busy || fields === null) return;
+    clearStatus();
+    const password = fields.password.value;
+    if (!isBackupPassword(password)) {
+      say(BACKUP_SHORT, true);
+      run(() => draw(["backup-password"], { toTop: true }));
+      return;
+    }
+    if (fields.repeat === null || fields.repeat.value !== password) {
+      say(BACKUP_MISMATCH, true);
+      run(() => draw(["backup-password"], { toTop: true }));
+      return;
+    }
+    open.draft.busy = true;
+    say(BACKUP_WORKING);
+    run(async () => {
+      try {
+        if (store === null || mode !== open) return;
+        const document = await exportProfile(store, open.id, { now: date });
+        const text = await encryptBackup(document, password, backupOptions);
+        // Closed or left while the key was derived: nothing is handed over on the child's screen.
+        if (mode !== open || !isOpen) return;
+        const name = backupFileName(date());
+        saveFileTo(new Blob([text], { type: "application/octet-stream" }), name);
+        if (mode === open) mode = null;
+        say(`Die Sicherung ist gespeichert: ${name}. Bitte die Datei und das Passwort gut aufheben.`);
+        await draw([`backup-save:${open.id}`]);
+      } catch (error) {
+        open.draft.busy = false;
+        if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) {
+          if (mode === open) mode = null;
+          say(PROFILE_GONE, true);
+          await draw(["profiles-heading"]);
+          return;
+        }
+        say(error instanceof ExportSizeError ? BACKUP_TOO_LARGE : BACKUP_FAILED, true);
+        await draw(["backup-password"], { toTop: true });
+      }
+    });
+  };
+
+  /** Puts a checked export onto the device; a profile that is there already asks first (`conflict`). */
+  const restoreExport = async (current: ProfileStore, open: BackupRestoreMode, document: ProfileExportV1, onConflict: "reject" | "replace" | "copy"): Promise<void> => {
+    let profile: ProfileV1;
+    try {
+      profile = await importProfile(current, document, { onConflict });
+    } catch (error) {
+      if (error instanceof ProfileConflictError && onConflict === "reject") {
+        open.draft.conflict = document;
+        open.draft.busy = false;
+        // Never on "Ersetzen": an Enter meant for "Einspielen" must not overwrite the profile on the device.
+        await draw(["restore-copy"], { toTop: true });
+        return;
+      }
+      throw error;
+    }
+    writes += 1;
+    let activated = false;
+    // A device without an active board shows the restored one to the child: that is what moving to a new device is for.
+    // The profile is written by now: a failure here is said as such, not as a restore that did not happen.
+    try {
+      if ((await current.getActive()) === null) {
+        await current.setActive(profile.id);
+        activated = true;
+      }
+    } catch {
+      activated = false;
+    }
+    if (mode === open) mode = null;
+    // Taking back a change of the board that was just replaced would change the restored one instead.
+    if (onConflict === "replace") dropUndo((offer) => offer.profileId === profile.id);
+    if (isOpen) selectedId = profile.id;
+    say(`Eingespielt: Tafel von ${quoted(profile.displayName)}.${activated ? " Sie ist jetzt die aktive Tafel." : ""}`);
+    await draw([`edit:${profile.id}`, "profiles-heading"]);
+  };
+
+  /** A German line for a restore that did not work; nothing was written. */
+  const restoreErrorLine = (error: unknown): string => {
+    if (error instanceof BackupFileError) return error.reason === "password" ? RESTORE_WRONG_PASSWORD : RESTORE_NOT_BACKUP;
+    if (error instanceof ExportSizeError || error instanceof ProfileSizeError) return RESTORE_TOO_LARGE;
+    return RESTORE_FAILED;
+  };
+
+  /** "Einspielen": the chosen file, read with its password, then put onto the device. */
+  const restoreBackup = (open: BackupRestoreMode): void => {
+    const fields = backupFields;
+    if (mode !== open || open.draft.busy || fields === null) return;
+    clearStatus();
+    const file = fields.file?.files?.[0];
+    if (file === undefined) {
+      say(RESTORE_NO_FILE, true);
+      run(() => draw(["restore-file"], { toTop: true }));
+      return;
+    }
+    const password = fields.password.value;
+    if (password === "") {
+      say(RESTORE_NO_PASSWORD, true);
+      run(() => draw(["restore-file"], { toTop: true }));
+      return;
+    }
+    if (file.size > MAX_BACKUP_FILE_BYTES) {
+      say(RESTORE_TOO_LARGE, true);
+      run(() => draw(["restore-file"], { toTop: true }));
+      return;
+    }
+    open.draft.busy = true;
+    say(RESTORE_WORKING);
+    runWrite(async () => {
+      try {
+        if (store === null || mode !== open) return;
+        const document = await decryptBackup(await readFileText(file), password);
+        // Left ("Abbrechen", Escape, closing) while the file was read: as everywhere in the area, it is dropped.
+        if (mode !== open || !isOpen) return;
+        await restoreExport(store, open, document, "reject");
+      } catch (error) {
+        open.draft.busy = false;
+        if (mode !== open || !isOpen) return;
+        say(restoreErrorLine(error), true);
+        await draw(["restore-file"], { toTop: true });
+      }
+    });
+  };
+
+  /** "Ersetzen" or "Als Kopie einspielen" after the conflict question. */
+  const settleRestoreConflict = (open: BackupRestoreMode, onConflict: "replace" | "copy"): void => {
+    const document = open.draft.conflict;
+    if (mode !== open || open.draft.busy || document === null) return;
+    clearStatus();
+    open.draft.busy = true;
+    runWrite(async () => {
+      try {
+        if (store === null || mode !== open) return;
+        await restoreExport(store, open, document, onConflict);
+      } catch (error) {
+        open.draft.busy = false;
+        open.draft.conflict = null;
+        say(restoreErrorLine(error), true);
+        await draw(["restore-file"], { toTop: true });
+      }
+    });
+  };
 
   const resetWording = (): void => settleWording(async (current, open) => {
     await clearWording(current, open.id, open.conceptId, catalogue);
@@ -2820,6 +3046,102 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       register.set("demo-delete", remove);
       view.append(remove);
     }
+    return view;
+  };
+
+  /** A password field of a backup view. */
+  const passwordField = (id: string, text: string, autocomplete: string, register: Map<string, Focusable>, key: string): { label: HTMLLabelElement; input: HTMLInputElement } => {
+    const label = element("label", "caregiver-backup-label", text);
+    label.htmlFor = id;
+    const input = element("input", "caregiver-input caregiver-backup-password");
+    input.type = "password";
+    input.id = id;
+    input.setAttribute("autocomplete", autocomplete);
+    input.setAttribute("autocapitalize", "off");
+    input.spellcheck = false;
+    register.set(key, input);
+    return { label, input };
+  };
+
+  /** "Sicherung speichern" of one profile (card NG-58): what the file holds, that it is private, and the password twice. */
+  const backupSaveView = (open: BackupSaveMode, profileLabel: string, register: Map<string, Focusable>): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-takeover caregiver-backup");
+    view.append(element("h2", "", `Sicherung von ${quoted(profileLabel)}`), element("p", "caregiver-notice", BACKUP_WHAT),
+      element("p", "caregiver-notice caregiver-warning", BACKUP_PRIVATE));
+    const form = element("form", "caregiver-backup-form");
+    const first = passwordField("caregiver-backup-password", BACKUP_PASSWORD, "new-password", register, "backup-password");
+    const second = passwordField("caregiver-backup-repeat", BACKUP_REPEAT, "new-password", register, "backup-repeat");
+    backupFields = { password: first.input, repeat: second.input, file: null };
+    const save = element("button", "caregiver-button caregiver-primary", BACKUP_SAVE);
+    save.type = "submit";
+    save.disabled = open.draft.busy;
+    register.set("backup-go", save);
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("backup-cancel", cancel);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (aimed(now())) saveBackup(open);
+    });
+    const actions = element("div", "caregiver-profile-actions");
+    actions.append(save, cancel);
+    form.append(first.label, first.input, second.label, second.input, actions);
+    register.set("anchor:backup-password", view);
+    view.append(form);
+    return view;
+  };
+
+  /** "Sicherung einspielen" (card NG-58): the file and its password; or, for a profile that is here already, the choice. */
+  const backupRestoreView = (open: BackupRestoreMode, register: Map<string, Focusable>): HTMLElement => {
+    const view = element("section", "caregiver-section caregiver-takeover caregiver-backup");
+    view.append(element("h2", "", BACKUP_RESTORE));
+    const actions = element("div", "caregiver-profile-actions");
+    const cancel = button(CANCEL);
+    cancel.addEventListener("click", leaveMode);
+    register.set("restore-cancel", cancel);
+    const conflict = open.draft.conflict;
+    if (conflict !== null) {
+      backupFields = null;
+      view.append(element("p", "caregiver-notice caregiver-warning", restoreConflictLine(conflict.profile.displayName)), element("p", "caregiver-notice", RESTORE_CONFLICT_HELP));
+      const replace = button(RESTORE_REPLACE, "caregiver-button caregiver-danger-quiet");
+      replace.disabled = open.draft.busy;
+      replace.addEventListener("click", () => {
+        if (aimed(now())) settleRestoreConflict(open, "replace");
+      });
+      register.set("restore-replace", replace);
+      const copy = button(RESTORE_COPY, "caregiver-button caregiver-primary");
+      copy.disabled = open.draft.busy;
+      copy.addEventListener("click", () => {
+        if (aimed(now())) settleRestoreConflict(open, "copy");
+      });
+      register.set("restore-copy", copy);
+      actions.append(copy, replace, cancel);
+      view.append(actions);
+      return view;
+    }
+    view.append(element("p", "caregiver-notice", RESTORE_INTRO));
+    const form = element("form", "caregiver-backup-form");
+    const fileLabel = element("label", "caregiver-backup-label", RESTORE_FILE);
+    fileLabel.htmlFor = "caregiver-restore-file";
+    const file = element("input", "caregiver-restore-file");
+    file.type = "file";
+    file.id = "caregiver-restore-file";
+    file.accept = ".amysecho,application/octet-stream,application/json";
+    register.set("restore-file", file);
+    const password = passwordField("caregiver-restore-password", RESTORE_PASSWORD, "current-password", register, "restore-password");
+    backupFields = { password: password.input, repeat: null, file };
+    const go = element("button", "caregiver-button caregiver-primary", RESTORE_GO);
+    go.type = "submit";
+    go.disabled = open.draft.busy;
+    register.set("restore-go", go);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (aimed(now())) restoreBackup(open);
+    });
+    actions.append(go, cancel);
+    form.append(fileLabel, file, password.label, password.input, actions);
+    register.set("anchor:restore-file", view);
+    view.append(form);
     return view;
   };
 
@@ -3754,6 +4076,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (!isActive) action(ACTIVATE, "activate", () => activate(profile, label));
     action(EDIT_BOARD, "edit", () => select(profile, label)).setAttribute("aria-pressed", profile.id === selectedId ? "true" : "false");
     action(RENAME, "rename", () => openMode({ kind: "rename", id: profile.id, draft: profile.displayName }, "rename-name"));
+    action(BACKUP_SAVE, "backup-save", () => openMode({ kind: "backup-save", id: profile.id, draft: { busy: false } }, "backup-password"));
     action(DELETE, "delete", () => openMode({ kind: "delete", id: profile.id, draft: { typed: "" } }, "delete-name"), "caregiver-button caregiver-danger-quiet");
     item.append(head, actions);
     return item;
@@ -3780,7 +4103,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       selectedId = profiles.find((profile) => profile.id === activeId)?.id ?? (profiles.length === 1 ? (profiles[0] as ProfileV1).id : null);
     }
     // A rename field or confirmation for a profile that is gone has nothing to show.
-    if (mode !== null && !profiles.some((profile) => profile.id === mode?.id)) mode = null;
+    if (mode !== null && mode.kind !== "backup-restore" && !profiles.some((profile) => profile.id === mode?.id)) mode = null;
+    if (mode === null || (mode.kind !== "backup-save" && mode.kind !== "backup-restore")) backupFields = null;
     // Two profiles of one name (from data stored before the area refused that) are told apart on screen only.
     const labels = new Map<string, string>();
     const met = new Map<string, number>();
@@ -3795,6 +4119,17 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const confirming = mode !== null && mode.kind === "delete" ? profiles.find((profile) => profile.id === mode?.id) : undefined;
     if (confirming !== undefined) {
       return { content: [confirmView(confirming, labelOf(confirming), confirming.id === activeId, register, holds)], afterClose: header, confirming: true };
+    }
+
+    // So do saving and restoring a backup (card NG-58).
+    if (mode !== null && mode.kind === "backup-save") {
+      const open = mode;
+      const owner = profiles.find((profile) => profile.id === open.id);
+      if (owner !== undefined) return { content: [backupSaveView(open, labelOf(owner), register)], afterClose: header, confirming: true };
+      mode = null;
+    }
+    if (mode !== null && mode.kind === "backup-restore") {
+      return { content: [backupRestoreView(mode, register)], afterClose: header, confirming: true };
     }
 
     // So do creating an own concept and the confirmation before one is deleted (card NG-34).
@@ -3897,6 +4232,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       profileSection.append(list);
       if (activeId === null) profileSection.append(element("p", "caregiver-notice caregiver-warning", NONE_ACTIVE));
     }
+    // Card NG-58: a backup comes back here, also on a new device without any profile.
+    const restore = button(BACKUP_RESTORE);
+    restore.addEventListener("click", () => openMode({ kind: "backup-restore", id: "", draft: { busy: false, conflict: null } }, "restore-file"));
+    register.set("restore", restore);
+    profileSection.append(restore);
 
     const form = element("form", "caregiver-create");
     const nameLabel = element("label", "", "Name für ein neues Profil");

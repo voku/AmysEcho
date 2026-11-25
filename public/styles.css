@@ -175,6 +175,11 @@ textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertica
 .caregiver-picture-preview { width: 96px; height: 96px; object-fit: contain; border: 1px solid #c8d3d8; border-radius: 8px; background: #ffffff; }
 .caregiver-picture-label { display: block; margin-top: 1rem; font-weight: 600; }
 .caregiver-picture-file { display: block; margin: .4rem 0; max-width: 100%; font: inherit; min-height: 44px; }
+/* Card NG-58: saving and restoring a backup; a column of labels, fields and buttons like the create form. */
+.caregiver-backup-form { display: grid; gap: .6rem; max-width: 30rem; margin-top: 1rem; }
+.caregiver-backup-label { font-weight: 600; }
+.caregiver-restore-file { max-width: 100%; font: inherit; min-height: 44px; }
+.caregiver-section > .caregiver-button:not(:first-child) { margin-top: .8rem; }
 .caregiver-concept-name { font-weight: 700; overflow-wrap: anywhere; }
 .caregiver-concept-sentence { color: #3d5666; overflow-wrap: anywhere; }
 .caregiver-concept-note { margin: .4rem 0 0; color: #6b4a1c; }

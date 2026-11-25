@@ -41,6 +41,7 @@ Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
 | `profile.ts` | `ProfileV1`, id generation, strict `parseProfile`. |
 | `store.ts` | `ProfileStore`: the key layout and every profile operation. |
 | `backup.ts` | `exportProfile`, `importProfile`. |
+| `backup-file.ts` | The backup file (card NG-58): an export encrypted with a password (`encryptBackup`, `decryptBackup`). |
 | `../board-data.ts` | Per-profile board: concept order, wording, custom concepts. Uses the public `ProfileStore` API only. |
 | `../startup.ts` | `resolveStartupView`: what storage says the board should show. `runStartup`: the start-up sequence. |
 | `../app.ts` | `createApp`: the page's one `ProfileStore`, start-up, `refreshBoard()`. |
@@ -630,6 +631,30 @@ profile/<id>/data/gesture.<conceptId>.<12 hex characters>    one stored example
 - Examples are not deleted when their concept leaves the board, and the caregiver area shows them
   only for concepts on the board. They still count towards the limits and are exported.
 - No picture, video or landmark is stored (recognition.md, "Stored examples").
+
+## The backup file (card NG-58)
+
+What a caregiver saves is not the export itself but the export encrypted with a password they
+choose (owner decision of 2026-11-25), `src/profiles/backup-file.ts`:
+
+```json
+{
+  "format": "amys-echo-backup",
+  "version": 1,
+  "kdf": { "name": "PBKDF2", "hash": "SHA-256", "iterations": 600000, "salt": "<16 bytes, base64>" },
+  "cipher": { "name": "AES-GCM", "iv": "<12 bytes, base64>" },
+  "data": "<the export's UTF-8 JSON, encrypted, with GCM's tag, base64>"
+}
+```
+
+- Only the browser's Web Crypto, no library. The password is taken in Unicode NFC and must have at
+  least 8 characters. A file with fewer than 100 000 or more than 2 000 000 rounds, another
+  algorithm, wrong sizes or another format or version is refused as "format"; a wrong password and a
+  changed byte are refused alike as "password" (GCM). The decrypted content must be a valid export.
+- Nothing about the child is readable without the password: no name, no date (the export's
+  `exportedAt` is inside), and the file name has only the day.
+- A lost password cannot be recovered. Demo clips and pictures are inside, so a file can reach the
+  export limit of 64 MB (plus a third for base64).
 
 ## Export format
 
