@@ -11,7 +11,7 @@ import {
 } from "../dist/capture/capture.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
 import { DEMO_MAX_MS, DemoRecordingRefusal } from "../dist/demo-clips.js";
-import { DEMO_STOP_WAIT_MS } from "../dist/caregiver.js";
+import { DEMO_STOP_WAIT_MS, MAX_BACKUP_FILE_BYTES } from "../dist/caregiver.js";
 import { exportProfile, importProfile } from "../dist/profiles/backup.js";
 import { listExamples } from "../dist/recognition/examples.js";
 import { ProfileStore } from "../dist/profiles/store.js";
@@ -8077,7 +8077,9 @@ test("backup: 'Sicherung speichern' says what the file holds and that it is priv
     assert.equal(area.status(), "Die Sicherung ist gespeichert: amys-echo-sicherung-2026-11-25.amysecho. Bitte die Datei und das Passwort gut aufheben.");
     const text = await file.file.text();
     assert.equal(JSON.parse(text).format, "amys-echo-backup");
-    for (const secret of ["Mia", "Trinken", "trinken"]) assert.equal(text.includes(secret), false, `"${secret}" is not readable in the file`);
+    // Only the readable part counts: in the random ciphertext any short text can turn up by chance.
+    const readable = JSON.stringify({ ...JSON.parse(text), data: "" });
+    for (const secret of ["Mia", "Trinken", "trinken"]) assert.equal(readable.includes(secret), false, `"${secret}" is not readable in the file`);
     assert.equal(backupViewOf(caregiverRegion), null);
     assert.equal(focused.current, buttonNamed(profile("Mia").item, "Sicherung speichern"));
   });
@@ -8150,7 +8152,7 @@ test("backup: a profile that is already on the device asks first; 'Als Kopie ein
       "„Ersetzen“ überschreibt sie mit dem Stand der Sicherung. „Als Kopie einspielen“ behält beide.",
       "Als Kopie einspielen", "Ersetzen", "Abbrechen",
     ]);
-    assert.equal(area.focused.current, view.replace);
+    assert.equal(area.focused.current, view.copy, "never on 'Ersetzen': an Enter must not overwrite the profile");
     await area.act(() => view.copy.click());
     await settleCrypto(area);
     assert.equal(area.status(), "Eingespielt: Tafel von „Mia“.");
@@ -8164,5 +8166,42 @@ test("backup: a profile that is already on the device asks first; 'Als Kopie ein
     await settleCrypto(area);
     assert.deepEqual((await store.get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause"]);
     assert.equal(area.profiles().length, 2);
+  });
+});
+
+test("backup: a save that fails is said and the view stays; a file over the size limit is refused before it is read; a save closed meanwhile hands nothing over", async () => {
+  await withArea({ seed: seedThree, saveFile: () => { throw new Error("no download here"); } }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.profile("Mia").item, "Sicherung speichern").click());
+    const view = backupViewOf(area.caregiverRegion);
+    view.password.value = BACKUP_PASSWORD;
+    view.repeat.value = BACKUP_PASSWORD;
+    await area.act(() => view.form.dispatch("submit"));
+    await settleCrypto(area);
+    assert.equal(area.status(), "Die Sicherung konnte nicht erstellt werden. Bitte versuche es noch einmal.");
+    assert.notEqual(backupViewOf(area.caregiverRegion), null);
+    assert.equal(backupViewOf(area.caregiverRegion).save.disabled, false);
+  });
+  await withArea({ seed: seedThree }, async (area) => {
+    await area.holdOpen();
+    const before = JSON.stringify(area.backend.snapshot());
+    let read = 0;
+    const huge = { size: MAX_BACKUP_FILE_BYTES + 1, text: async () => { read += 1; return ""; } };
+    await restoreBackupFile(area, huge);
+    assert.equal(area.status(), "Diese Sicherung ist zu groß für dieses Gerät. Es wurde nichts eingespielt.");
+    assert.equal(read, 0, "not read at all");
+    assert.equal(JSON.stringify(area.backend.snapshot()), before);
+  });
+  const saved = [];
+  await withArea({ seed: seedThree, saveFile: (file, name) => saved.push({ file, name }) }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.profile("Mia").item, "Sicherung speichern").click());
+    const view = backupViewOf(area.caregiverRegion);
+    view.password.value = BACKUP_PASSWORD;
+    view.repeat.value = BACKUP_PASSWORD;
+    view.form.dispatch("submit");
+    await area.handle.close();
+    await settleCrypto(area);
+    assert.equal(saved.length, 0, "the area closed while the key was derived");
   });
 });

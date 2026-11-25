@@ -648,7 +648,7 @@ choose (owner decision of 2026-11-25), `src/profiles/backup-file.ts`:
 ```
 
 - Only the browser's Web Crypto, no library. The password is taken in Unicode NFC and must have at
-  least 8 characters. A file with fewer than 100 000 or more than 10 000 000 rounds, another
+  least 8 characters. A file with fewer than 100 000 or more than 2 000 000 rounds, another
   algorithm, wrong sizes or another format or version is refused as "format"; a wrong password and a
   changed byte are refused alike as "password" (GCM). The decrypted content must be a valid export.
 - Nothing about the child is readable without the password: no name, no date (the export's

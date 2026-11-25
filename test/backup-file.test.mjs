@@ -31,7 +31,11 @@ test("backup file: the export is encrypted; nothing about the child can be read 
   assert.equal(file.version, 1);
   assert.deepEqual({ ...file.kdf, salt: typeof file.kdf.salt }, { name: "PBKDF2", hash: "SHA-256", iterations: MIN_BACKUP_ITERATIONS, salt: "string" });
   assert.equal(file.cipher.name, "AES-GCM");
-  for (const secret of ["Mia", "Trinken", "trinken", "GkXfo59", "2026-11-25", "demo."]) assert.equal(text.includes(secret), false, `"${secret}" is not readable in the file`);
+  // The readable part of the file (everything but the random ciphertext, where any short text can turn up by chance)
+  // holds nothing of the child; the ciphertext is not the export itself.
+  const readable = JSON.stringify({ ...file, data: "" });
+  for (const secret of ["Mia", "Trinken", "trinken", "GkXfo59", "2026-11-25", "demo."]) assert.equal(readable.includes(secret), false, `"${secret}" is not readable in the file`);
+  assert.equal(Buffer.from(file.data, "base64").toString("latin1").includes(JSON.stringify(document.profile)), false);
   // A new salt and IV each time: the same export never gives the same file.
   assert.notEqual(await encryptBackup(document, PASSWORD, FAST), text);
   assert.deepEqual(await decryptBackup(text, PASSWORD), document);
@@ -51,7 +55,7 @@ test("backup file: a wrong password, a changed file and other files are refused"
   await refused(JSON.stringify({ ...file, data: flipped.toString("base64") }), PASSWORD, "password");
   for (const changed of [
     "not json", "[]", "{}", JSON.stringify({ ...file, format: "amys-echo-profile" }), JSON.stringify({ ...file, version: 2 }),
-    JSON.stringify({ ...file, kdf: { ...file.kdf, iterations: 1000 } }), JSON.stringify({ ...file, kdf: { ...file.kdf, iterations: 1e9 } }),
+    JSON.stringify({ ...file, kdf: { ...file.kdf, iterations: 1000 } }), JSON.stringify({ ...file, kdf: { ...file.kdf, iterations: 1e9 } }), JSON.stringify({ ...file, kdf: { ...file.kdf, iterations: 3_000_000 } }),
     JSON.stringify({ ...file, kdf: { ...file.kdf, hash: "SHA-1" } }), JSON.stringify({ ...file, cipher: { name: "AES-CBC", iv: file.cipher.iv } }),
     JSON.stringify({ ...file, data: "***" }), JSON.stringify({ ...file, cipher: { ...file.cipher, iv: "AAAA" } }),
     // A plain, unencrypted profile export is no backup file.
@@ -73,7 +77,7 @@ test("backup file: passwords of at least 8 characters, counted as characters; th
   // NFC: the same password typed as composed or decomposed characters opens the file.
   const text = await encryptBackup(document, "Bärenstark!", FAST);
   assert.deepEqual(await decryptBackup(text, "Bärenstark!"), document);
-  assert.equal(backupFileName(new Date("2026-11-25T23:59:00Z")), "amys-echo-sicherung-2026-11-25.amysecho");
+  assert.equal(backupFileName(new Date(2026, 10, 25, 23, 59)), "amys-echo-sicherung-2026-11-25.amysecho", "the local day, also just before midnight");
   assert.equal(backupFileName(new Date(Number.NaN)), "amys-echo-sicherung.amysecho");
 });
 

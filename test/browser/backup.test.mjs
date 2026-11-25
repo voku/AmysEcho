@@ -42,7 +42,8 @@ test("backup: a profile with a clip is encrypted at full strength, downloaded an
     assert.equal(download.suggestedFilename(), "amys-echo-sicherung-2026-11-25.amysecho");
     const text = await readFile(await download.path(), "utf8");
     assert.equal(text.length, made.length);
-    assert.equal(text.includes("Mia"), false);
+    // Only the readable part counts: in the random ciphertext any short text can turn up by chance.
+    assert.equal(JSON.stringify({ ...JSON.parse(text), data: "" }).includes("Mia"), false);
     assert.equal(JSON.parse(text).kdf.iterations, made.iterations);
     const restored = await page.evaluate(async (fileText) => {
       const { MemoryBackend } = await import("./profiles/memory-backend.js");

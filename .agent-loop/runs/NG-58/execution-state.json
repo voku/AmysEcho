@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:5417beb5352b9a51d4febad22e6815bb6c7d62d0",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
     "history": [
         {
@@ -65,6 +65,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:41d1cef2",
                 "summary": "Built src/profiles/backup-file.ts (PBKDF2-SHA-256 600k + AES-GCM via Web Crypto, strict parse, BackupFileError format/password, file name without the child's name); caregiver 'Sicherung speichern' per profile and 'Sicherung einspielen' with conflict choice and activation; texts, contract, docs, CSS, sw precache; tests unit (4), caregiver (3), real-browser download+restore at full rounds. npm run verify: 742 unit, 9 browser pass.",
+                "task_id": "NG-58",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T20:26:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T20:26:10+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:42b59c78193bef02da84dc1e0b17ac0833262c37743f6dd57a64147e45a48dc7",
+                    "execution-evidence:sha256:a881bbad16d57619b09954e7035d5e5f5dd8f08f083b2a58c844ccde926a87a0",
+                    "execution-evidence:sha256:6c24bd07683650e31d16c775aedd0d1e4986effc6e661bb778bf937a23e962b4"
+                ],
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:5417beb5352b9a51d4febad22e6815bb6c7d62d0",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "schema_version": "1.0",
+                "task_id": "NG-58",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:42b59c78193bef02da84dc1e0b17ac0833262c37743f6dd57a64147e45a48dc7",
+                    "execution-evidence:sha256:a881bbad16d57619b09954e7035d5e5f5dd8f08f083b2a58c844ccde926a87a0",
+                    "execution-evidence:sha256:6c24bd07683650e31d16c775aedd0d1e4986effc6e661bb778bf937a23e962b4"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:5417beb5352b9a51d4febad22e6815bb6c7d62d0",
+                "context_id": "ng58-cr-fresh-7f3a91",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "outcome": "changes_required",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:3b3a9332",
+                "summary": "context-id: ng58-cr-fresh-7f3a91. F1: after a restore conflict, focus goes to the destructive 'Ersetzen' button (src/caregiver.ts restoreExport, and the caregiver test asserts it); focus a non-destructive control instead. Also: a failure after import reports nothing restored; a save still downloads after the area closed during PBKDF2; MAX_BACKUP_ITERATIONS 10M too high; file name uses the UTC date; no tests for a failed save or the file-size guard.",
                 "task_id": "NG-58",
                 "validation_references": []
             }

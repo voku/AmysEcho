@@ -31,8 +31,8 @@ export const BACKUP_FILE_VERSION = 1;
 export const BACKUP_ITERATIONS = 600_000;
 /** Fewer rounds than this in a file are refused: a file must not weaken the key derivation. */
 export const MIN_BACKUP_ITERATIONS = 100_000;
-/** More rounds than this are refused too: a file must not make the device work for minutes. */
-export const MAX_BACKUP_ITERATIONS = 10_000_000;
+/** More rounds than this are refused too: a crafted file must not keep a phone busy for long (about 3 x the default). */
+export const MAX_BACKUP_ITERATIONS = 2_000_000;
 /** The shortest password, counted in characters. */
 export const MIN_BACKUP_PASSWORD_LENGTH = 8;
 /** The file name a backup is saved under; it names neither the child nor the profile. */
@@ -171,8 +171,9 @@ export async function decryptBackup(text: string, password: string, options: Bac
   }
 }
 
-/** The file name of a backup made at `date`: the day only, never the child's name. */
+/** The file name of a backup made at `date`: the local day only, never the child's name. */
 export function backupFileName(date: Date): string {
-  const day = Number.isNaN(date.getTime()) ? "" : `-${date.toISOString().slice(0, 10)}`;
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  const day = Number.isNaN(date.getTime()) ? "" : `-${String(date.getFullYear()).padStart(4, "0")}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   return `amys-echo-sicherung${day}${BACKUP_FILE_EXTENSION}`;
 }

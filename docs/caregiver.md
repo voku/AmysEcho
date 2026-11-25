@@ -937,7 +937,8 @@ wurde verändert. …" (AES-GCM refuses a wrong key and a changed byte alike), "
 Sicherung dieser App, oder sie stammt aus einer neueren Version. …", too large for this device. A
 profile with the same id already on the device asks first: "Die Tafel „<name>“ gibt es auf diesem
 Gerät schon.", "Als Kopie einspielen" (both kept, the copy under a new id) or "Ersetzen" (the
-device's state is overwritten with the backup's), or "Abbrechen". A restored profile becomes the
+device's state is overwritten with the backup's), or "Abbrechen"; the focus goes to "Als Kopie
+einspielen", never to "Ersetzen", so an Enter meant for "Einspielen" cannot overwrite anything. A restored profile becomes the
 active board when none is active, which is the case on a new device: "Eingespielt: Tafel von
 „<name>“. Sie ist jetzt die aktive Tafel."
 

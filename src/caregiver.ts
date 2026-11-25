@@ -2232,6 +2232,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         if (store === null || mode !== open) return;
         const document = await exportProfile(store, open.id, { now: date });
         const text = await encryptBackup(document, password, backupOptions);
+        // Closed or left while the key was derived: nothing is handed over on the child's screen.
+        if (mode !== open || !isOpen) return;
         const name = backupFileName(date());
         saveFileTo(new Blob([text], { type: "application/octet-stream" }), name);
         if (mode === open) mode = null;
@@ -2260,7 +2262,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       if (error instanceof ProfileConflictError && onConflict === "reject") {
         open.draft.conflict = document;
         open.draft.busy = false;
-        await draw(["restore-replace"], { toTop: true });
+        // Never on "Ersetzen": an Enter meant for "Einspielen" must not overwrite the profile on the device.
+        await draw(["restore-copy"], { toTop: true });
         return;
       }
       throw error;
@@ -2268,9 +2271,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     writes += 1;
     let activated = false;
     // A device without an active board shows the restored one to the child: that is what moving to a new device is for.
-    if ((await current.getActive()) === null) {
-      await current.setActive(profile.id);
-      activated = true;
+    // The profile is written by now: a failure here is said as such, not as a restore that did not happen.
+    try {
+      if ((await current.getActive()) === null) {
+        await current.setActive(profile.id);
+        activated = true;
+      }
+    } catch {
+      activated = false;
     }
     if (mode === open) mode = null;
     selectedId = profile.id;
