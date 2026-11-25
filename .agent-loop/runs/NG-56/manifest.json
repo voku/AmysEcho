@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-56 before calling agent-loop finish NG-56",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-25T18:30:00+00:00",
@@ -77,11 +77,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-25T18:57:36+00:00",
+            "decided_by": "Claude (agent; owner Lars Moelleken approved the full task in session 2026-11-25)",
+            "decision": "follow_up_required",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-56:70a609c12940d002",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/8d934aa5ce673a20d65989f103b30e3fc5c0c11c32b85840c222c47cbbee9f04.json",
+                "sha256": "sha256:775efcaf9b5b98ffa483eefd74bc918ee62df1d1f5d4c86b0ab14b8ed20b4a8c"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -92,7 +98,26 @@
                 "path": ".agent-loop/map/php-symbols.json",
                 "sha256": "sha256:cca8dfe27a9501655d27422c494c2385df64fad19134d9296a9ac8cee5bbf51d"
             },
-            "state": "ready"
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/demo-clips.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/demo-clips.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 4,
+            "state": "stale"
         },
         "outcome_lineage": {
             "observation_mode": "checked",
@@ -115,14 +140,17 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-56/reviews/NG-56.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-56/reviews/NG-56.blindspots.json",
+                "sha256": "sha256:d2c73314f12cc13f5d1b86704804d9faa38f801931ccdc0262e125339933d53f"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
             "owner": "agent-map",
             "path": ".agent-loop/map/search.sqlite",
-            "state": "missing"
+            "state": "unavailable"
         },
         "session": {
             "base_commit": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
@@ -132,37 +160,27 @@
             "session_id": "2026-11-25-ng-56-r3-b453146c",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-25-ng-56-r3-b453146c/session.json",
-                "sha256": "sha256:1bfb8d6194be960fb5399859da9b55652824eb325b839d4d390e6abc571a7ac4"
+                "sha256": "sha256:d1b37d4be80f678cc469f4ae98f1ff74dc8f53c1692ed9c6ecc084dc60acf635"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-56"
         },
         "verification": {
-            "action": "agent-loop workflow status NG-56 --format=json",
-            "action_invocation": {
-                "arguments": [
-                    "workflow",
-                    "status",
-                    "NG-56",
-                    "--format=json"
-                ],
-                "executable": "agent-loop",
-                "template": false
-            },
-            "gate": "execution_review",
-            "implementation_snapshot": "sha256:aee609e6d5490a75e98d30b49e467f71bfee1df821e99605396e52dd1f4ec094",
+            "contract_revision": 3,
+            "implementation_snapshot": "sha256:54dd62164e91ded8abca1bf70df5b53d42958267f12a897e48a3ac3178d26d7e",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "independent review pipeline is incomplete at stage investigate",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-56:70a609c12940d002",
+            "source": {
+                "path": ".agent-loop/runs/NG-56/verification.json",
+                "sha256": "sha256:7878e54ce9fdf49e10cedfab65dbae6d02c2df7afc4d25df9128514a274bd013"
+            },
+            "source_session_id": "2026-11-25-ng-56-r3-b453146c",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-56:70a609c12940d002",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-56"
 }

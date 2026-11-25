@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:5aafc2d81ee83f2d297a824e15e12ccb03ac0fa6",
+    "contract_revision": 3,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-25T18:49:31+00:00",
+    "reference": "execution-evidence:sha256:05afa32dc32b5bf3c78200bbf275e1f2058b23469cd1947c4ad381f9aa9ac036",
+    "run_id": "run:NG-56:70a609c12940d002",
+    "schema_version": "1.0",
+    "source_digest": "sha256:5890c176f228422c4ef9dc7df10c452a64a19d065dbb0e815ab0b286296693d6",
+    "source_reference": "workspace-file:test/demo-clips.test.mjs",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-56"
+}
