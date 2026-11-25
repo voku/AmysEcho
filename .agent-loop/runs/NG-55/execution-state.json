@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
     "contract_revision": 2,
-    "current_attempt": 6,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
     "history": [
         {
@@ -519,6 +519,136 @@
                 "summary": "Build attempt 6: voice counts (failures, emptyLists, lastTaken) reset only on idle, not on starting; test: failure, hide, Weiter, failure -> 'Vorlesen geht nicht. Hol eine Bezugsperson.' (fails with the old reset). npm run verify green.",
                 "task_id": "NG-55",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:29:17+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:29:17+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c6264596b14cfd8d33e8570cdb6c833d821ad6bb897bd557b41c2fa08e344319",
+                    "execution-evidence:sha256:32fb1671899267c8837e3579ac968fa6bb087141cbeebd1803c3862a65164adb",
+                    "execution-evidence:sha256:bb024eb71ad9dc093625bfba6203b9093e4a410ee43d0a384da9142874f19866"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c6264596b14cfd8d33e8570cdb6c833d821ad6bb897bd557b41c2fa08e344319",
+                    "execution-evidence:sha256:32fb1671899267c8837e3579ac968fa6bb087141cbeebd1803c3862a65164adb",
+                    "execution-evidence:sha256:bb024eb71ad9dc093625bfba6203b9093e4a410ee43d0a384da9142874f19866"
+                ],
+                "attempt": 6,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "context_id": "claude-subagent-ng55-r2-correctness-6",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "observations": [
+                    "docs/recognise.md:295 says failures in a row end only when a word is said to its end; the code (src/recognise/recognise.ts:1110) also ends them, and the empty-list count, on the way back to the board. The docs do not say that the counts carry across 'Weiter' or a camera switch.",
+                    "test/recognise.test.mjs:2254 covers the carry-over across 'Weiter' only. The camera-switch path uses the same idle-only reset but has no test of its own.",
+                    "src/recognise/recognise.ts:1110 counts survive rejecting every tile followed by a camera problem and 'Nochmal' (problem, not idle), so a fresh empty message can begin with failures=1; an edge case, arguably the same message."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:6:ca08b48f",
+                "summary": "ffb9290f resets voice-trouble counts (failures, emptyLists, lastTaken) only on idle; they now carry across Weiter and a camera switch. Reverting the condition to the old non-listening/paused reset makes the new 'Weiter' test fail (mutation verified), so the test catches the bug. lastTaken kept across pause/starting is harmless because a kind change clears voiceLine before the listening takenKey check. Build plus recognise and app tests: 75/75 pass. Docs match the code, with one small gap noted as an observation.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:30:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:30:34+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:904737ec8041f3610e3b18a370da14a511d2f172633ff4dc5f2ba3ab614be684",
+                    "execution-evidence:sha256:a70cb249c9bc564661753da7f7a0a9fc014352dc7b9ecd0a6e1a0d1fdccb804e",
+                    "execution-evidence:sha256:590b8db6530b24636ce5c46218df44e91d322084bf421d60e7a58d541b9ae76f"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:904737ec8041f3610e3b18a370da14a511d2f172633ff4dc5f2ba3ab614be684",
+                    "execution-evidence:sha256:a70cb249c9bc564661753da7f7a0a9fc014352dc7b9ecd0a6e1a0d1fdccb804e",
+                    "execution-evidence:sha256:590b8db6530b24636ce5c46218df44e91d322084bf421d60e7a58d541b9ae76f"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "context_id": "claude-subagent-ng55-r2-blindspot-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "observations": [
+                    "recognise.ts hide()/idle stop: a listening view with no tiles now pauses (empty pause with Weiter) instead of returning to the board; camera is off so harmless, but the docs describe the pause only in terms of tiles.",
+                    "recognise.ts paused case: the Nochmal->Weiter swap is a literal replace of the quoted „Nochmal“; a future problem line worded differently would name a button absent in the pause. Inferred, no test covers every problem line in the pause.",
+                    "The pause has no timeout back to the board: after a screen lock the child's tiles stay on screen until someone acts. This is intended (the message is kept) and nothing is stored, so there is no privacy issue."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:00bd641d",
+                "summary": "No new blocking blind spots. Camera stops verified on idle (onFrame fires for every frame, hands or not, capture.ts:491), hide in all states, and a late start after hide (answer.session.stop when !ours). Tiles kept on every carried start path. Speech only from taps (sayWord/confirm, behind the aimed and guard checks). No new storage of child data. The docs match the code.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:33:49+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:33:49+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:389685e2079cd213a07f8547d1679587480fe31bb7db4c85fdce91bdf42999d3",
+                    "execution-evidence:sha256:bb0ad09478c900a0ad8735f2a0cff2904359c9712b20379b3c35881ffba60ab7"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:c08aaddb5cb3c0b8b66ecd364e80a8269178d600",
+                "consistency_references": [
+                    "execution-evidence:sha256:2a6d244999e1e0cb3235c08233d576b43d1457e9f94304b13ad57d036cdb92e0"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:312b8cc5892f6aef4723da0b9adde02b5cbd5a8f7260b236a510f79e56ad53c3",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-55: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-55 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-55:7b2fb3521aa9c190 binds active Session 2026-11-25-ng-55-r2-ae8d1633 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-55 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-55",
+                "validation_references": [
+                    "execution-evidence:sha256:389685e2079cd213a07f8547d1679587480fe31bb7db4c85fdce91bdf42999d3",
+                    "execution-evidence:sha256:bb0ad09478c900a0ad8735f2a0cff2904359c9712b20379b3c35881ffba60ab7"
+                ]
             }
         }
     ],
