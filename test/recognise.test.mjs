@@ -1791,3 +1791,49 @@ test("view, continuous: a movement too long to be a gesture says so; 'Zurück' a
   }, { continuous: true });
 });
 
+test("controller, continuous: whenever the hands leave right as a too-long movement is let go, the next gesture is still compared", async () => {
+  for (const extra of [0, 1, 2, 3]) {
+    const analysed = [];
+    const context = setup();
+    const recogniser = createRecogniser({
+      examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+      speak: () => undefined, onChange: () => undefined, continuous: () => true,
+      analyse: (frames) => { analysed.push(frames.length); return { kind: "match", conceptId: "hilfe", hands: "right" }; },
+    });
+    recogniser.start();
+    await settle();
+    await context.camera.feedAll((i) => MOVES_RIGHT(i % 20), SEGMENT_MAX_MS / 100 + extra);
+    await handsDown(context.camera);
+    await context.camera.feedAll(MOVES_RIGHT, 10);
+    await handsDown(context.camera);
+    assert.equal(analysed.at(-1), 10, `${SEGMENT_MAX_MS / 100 + extra} frames up: ${analysed}`);
+    assert.deepEqual(recogniser.state().taken, ["hilfe"]);
+  }
+});
+
+test("view, continuous: a new tile moves the others, so a press right after it says nothing; the focused picture toggle keeps the focus", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, said, doc } = context;
+    camera.bridge.createPreview = recordingPreviews().createPreview;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    pictureToggle(panel()).focus();
+    const slot = slotOf(panel());
+    slot.moved = [];
+    await camera.feedAll(MOVES_UP);
+    await handsDown(camera);
+    assert.deepEqual(takenTiles(panel()).map((tile) => tile.dataset.concept), ["ball", "trinken"]);
+    assert.deepEqual(slot.moved, [], "the picture and its toggle stay in place while listening");
+    assert.equal(doc.activeElement, pictureToggle(panel()), "the focus stays on the toggle");
+    // "Trinken" moved from the first place to the second: a press there now was aimed at it before.
+    takenTiles(panel())[1].click();
+    assert.deepEqual(said, [], "a press right after the tiles moved says nothing");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[1].click();
+    assert.deepEqual(said, ["Trinken"]);
+  }, { continuous: true });
+});
+

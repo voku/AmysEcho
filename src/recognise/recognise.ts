@@ -435,8 +435,10 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     }
     if (cut.tooLong > 0) dropped = true;
     if (cut.open !== null && cut.open[cut.open.length - 1]!.tMs - cut.open[0]!.tMs > SEGMENT_MAX_MS) {
-      // Somebody stays in view, moving: let it go, and the rest of it, and say so.
-      usedTo = frames.length - 1;
+      // Somebody stays in view, moving: let it go, and the rest of it, and say so. Its last frame with a
+      // hand stays, so that "the rest of it" is always this movement, even if the hands leave right now,
+      // and never the next gesture.
+      usedTo = index.get(cut.open[cut.open.length - 1]!)! - 1;
       dropped = true;
       own.dropping = true;
     } else if (cut.open === null && usedTo < 0) {
@@ -629,6 +631,8 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     },
     sayWord(conceptId, pressAt) {
       if (current.kind !== "listening" || !current.taken.includes(conceptId)) return;
+      // Each new tile moves the others: a press soon after any change may have been aimed at another tile.
+      if (!aimed(pressAt)) return;
       if ((pressAt ?? options.now()) < (takenAt.get(conceptId) ?? Number.POSITIVE_INFINITY) + RECOGNISE_GUARD_MS) return;
       options.sayWord?.(conceptId);
     },
@@ -969,7 +973,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     if (switchFocused && cameraButton.hidden) focusLost = true;
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
-    if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording") previewSlot.replaceChildren();
+    if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording" && state.kind !== "listening") previewSlot.replaceChildren();
     if (state.kind === "idle") {
       board.uncover();
       return;
