@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, MAX_TAKEN, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
+  CAPTURE_BRIDGE_KEY, MAX_CANDIDATES, MAX_TAKEN, RECOGNISE_IDLE_MS, RECOGNISE_FACING_KEY, RECOGNISE_PICTURE_KEY, RECOGNISE_COUNTDOWN_S, RECOGNISE_GUARD_MS, RECOGNISE_MAX_RECORDING_MS, RECOGNISE_SECONDS, RECOGNISE_TEXT, SEEN_HOLD_MS,
   analyseAttempt, attachRecognise, createRecogniser, handsSeen,
 } from "../dist/recognise/recognise.js";
 import { BOARD_SHIELD_MS, GESTURE_LABEL, GESTURE_SHIELD_MS, mountBoard } from "../dist/board.js";
@@ -583,7 +583,7 @@ function memoryStorage(entries = []) {
   return { items, getItem: (key) => items.get(key) ?? null, setItem: (key, value) => { items.set(key, String(value)); } };
 }
 
-async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage(), continuous = false } = {}) {
+async function withView(callback, { examples = [example("trinken", MOVES_RIGHT), example("trinken", MOVES_RIGHT, 0.002), example("ball", MOVES_UP), example("ball", MOVES_UP, 0.002)], camera: cameraOptions = {}, choice = memoryStorage(), continuous = false, voice = true } = {}) {
   const fakes = installDocument();
   try {
     const time = fakeTime();
@@ -592,7 +592,7 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     let open = () => undefined;
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
     const said = [];
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text) => said.push(text) });
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed) => { said.push(text); if (voice === "fails") failed(); return voice !== false; } });
     open = attached.open;
     const panel = () => root.children.find((child) => hasClass(child, "recognise")) ?? null;
     const buttonNamed = (text) => tree(panel() ?? root).find((element) => element.tagName === "button" && (element.textContent === text || element.attributes["aria-label"] === text));
@@ -1835,5 +1835,105 @@ test("view, continuous: a new tile moves the others, so a press right after it s
     takenTiles(panel())[1].click();
     assert.deepEqual(said, ["Trinken"]);
   }, { continuous: true });
+});
+
+// --- The continuous view, follow-ups (card NG-55) ---
+
+test("controller, continuous: the camera stops and the view closes after RECOGNISE_IDLE_MS without a hand; a hand restarts the wait", async () => {
+  assert.equal(RECOGNISE_IDLE_MS, 180_000);
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  recogniser.start();
+  await settle();
+  context.time.advance(RECOGNISE_IDLE_MS - 1000);
+  await context.camera.feed(MOVES_RIGHT(0));
+  context.time.advance(RECOGNISE_IDLE_MS - 1000);
+  await context.camera.feed([]);
+  assert.equal(recogniser.state().kind, "listening", "a hand was seen less than the idle time ago");
+  context.time.advance(1001);
+  await context.camera.feed([]);
+  assert.equal(recogniser.state().kind, "idle");
+  assert.equal(context.camera.running, false);
+});
+
+test("controller, continuous: a camera switch keeps the stacked tiles; a new start begins empty", async () => {
+  let facing = "user";
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH, facing: () => facing,
+  });
+  recogniser.start();
+  await settle();
+  await context.camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(context.camera);
+  assert.deepEqual(recogniser.state().taken, ["trinken"]);
+  context.time.advance(RECOGNISE_GUARD_MS);
+  assert.equal(recogniser.switchCamera(() => { facing = "environment"; }), true);
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: ["trinken"], dropped: false }, "kept over the switch");
+  recogniser.back();
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state().taken, [], "a new start begins empty");
+});
+
+test("controller, continuous: the 'zu lang' line goes once the hands have left the picture", async () => {
+  const context = setup();
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => context.camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => ({ kind: "unknown", reason: "too_far", candidates: [], hands: "right" }),
+  });
+  recogniser.start();
+  await settle();
+  await context.camera.feedAll((i) => MOVES_RIGHT(i % 20), SEGMENT_MAX_MS / 100 + 5);
+  assert.equal(recogniser.state().dropped, true);
+  await handsDown(context.camera);
+  assert.equal(recogniser.state().dropped, false, "the hint was followed: gone, though nothing was taken");
+});
+
+test("view, continuous: a tile that cannot be said shows so in the line; a new tile ends it", async () => {
+  for (const voice of [false, "fails"]) {
+    await withView(async (context) => {
+      const { panel, time, camera } = context;
+      context.gestureButton().click();
+      await settle();
+      await camera.feedAll(MOVES_RIGHT);
+      await handsDown(camera);
+      time.advance(RECOGNISE_GUARD_MS);
+      takenTiles(panel())[0].click();
+      assert.match(textOf(panel()), /Keine Stimme\. Das Wort steht auf der Kachel\./, String(voice));
+      assert.equal(takenTiles(panel()).length, 1, "the tile stays");
+      await camera.feedAll(MOVES_UP);
+      await handsDown(camera);
+      assert.doesNotMatch(textOf(panel()), /Keine Stimme/, "a new tile ends the line");
+    }, { continuous: true, voice });
+  }
+});
+
+test("view, continuous: hiding the page, pagehide, a hidden board region and dispose stop the camera while listening", async () => {
+  for (const how of ["visibilitychange", "pagehide", "region hidden", "dispose"]) {
+    await withView(async (context) => {
+      const { root, panel, camera, doc, win, attached } = context;
+      context.gestureButton().click();
+      await settle();
+      assert.equal(panel().dataset.state, "listening");
+      if (how === "visibilitychange") {
+        doc.visibilityState = "hidden";
+        doc.dispatch("visibilitychange");
+      } else if (how === "pagehide") {
+        win.dispatch("pagehide");
+      } else if (how === "region hidden") {
+        root.hidden = true;
+        await camera.feed(MOVES_RIGHT(0));
+      } else {
+        attached.dispose();
+      }
+      assert.equal(camera.running, false, how);
+    }, { continuous: true });
+  }
 });
 

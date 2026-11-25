@@ -268,6 +268,15 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
     reaching for something else just as it appears.
   - With exactly one tile, "Ja, sagen" (with the tile's picture) speaks its sentence through the
     board, as after one attempt, and the view closes.
+- **When nobody uses it** (card NG-55): after `RECOGNISE_IDLE_MS` (3 minutes) without a hand in
+  the picture the camera stops and the view closes, back to the board. A hand seen restarts the
+  wait. Nothing was spoken, so nothing is lost but the stacked tiles.
+- **No voice** (card NG-55): a tile tap that cannot be said (no local German voice, or the voice
+  reports a failure) shows "Keine Stimme. Das Wort steht auf der Kachel." in the line. The tile
+  stays; the line goes with the next tile or a word said.
+- **A camera switch keeps the tiles** (card NG-55); any other start begins empty. The "zu lang" line
+  goes once the hands have left the picture. Each frame is converted for the cut once, when it
+  arrives, not again on every frame.
 - **The attempt flow** (countdown, "Stopp", answer views) stays for `attachRecognise` without
   `continuous`; the app passes `continuous: true`.
 - **Tested** (fake camera, synthetic hands):
