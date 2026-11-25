@@ -1,8 +1,8 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:eeaf524c7a869f98fabae2a490fe46da2b76d853",
+    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
     "contract_revision": 2,
-    "current_attempt": 5,
+    "current_attempt": 6,
     "current_stage_id": "build",
     "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
     "history": [
@@ -397,6 +397,86 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:4:7a60fe39",
                 "summary": "Tile-loss path remains: 'Weiter' or a camera switch whose bridge lookup returns null (or throws) shows 'problem' and drops the carried tiles (src/recognise/recognise.ts:572-575), contradicting docs/recognise.md:280-282; reproduced against dist. Test gaps (mutations survive the suite): cancelled start with carried tiles (recognise.ts:654), takenAt kept on a carried start so carried tiles stay tappable after Weiter/switch (recognise.ts:674), and failures reset on utterance end (recognise.ts:1328).",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:22:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:22:28+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:4275b57ce922bd40438b8bef675f2c34d51a2c16a3416f7be0274e3ffbc298df",
+                    "execution-evidence:sha256:bc92a9af1566230dc87a088ad681fefd7b9e2fa8946c74cbcebe01ac8fd6ab7e",
+                    "execution-evidence:sha256:0f1edcc0e6e0dfd600f8c470209c8464ba4043d42845fc7dbfa22a554899a528"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:4275b57ce922bd40438b8bef675f2c34d51a2c16a3416f7be0274e3ffbc298df",
+                    "execution-evidence:sha256:bc92a9af1566230dc87a088ad681fefd7b9e2fa8946c74cbcebe01ac8fd6ab7e",
+                    "execution-evidence:sha256:0f1edcc0e6e0dfd600f8c470209c8464ba4043d42845fc7dbfa22a554899a528"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:788a1ed6",
+                "summary": "Build attempt 5: bridge-null branch pauses with carried tiles (noCamera line); tests for a start refused without a problem, a carried tile said after Weiter, and the end-only failure reset; 4 mutants each caught. npm run verify 714/714 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T13:24:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T13:24:56+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:034d01aa5b457e2c299819f61ed4dfd7f4138ce9802365c6d8e8cfe1e3c12cb4",
+                    "execution-evidence:sha256:914caa04d74db7a2558b3207b389e231574d5062edcb90ee906b686451630a15",
+                    "execution-evidence:sha256:b991ea2a30b00dbb47e23971a322b1cd0bcb12f28999ae1a92964d1b86a7f533"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:034d01aa5b457e2c299819f61ed4dfd7f4138ce9802365c6d8e8cfe1e3c12cb4",
+                    "execution-evidence:sha256:914caa04d74db7a2558b3207b389e231574d5062edcb90ee906b686451630a15",
+                    "execution-evidence:sha256:b991ea2a30b00dbb47e23971a322b1cd0bcb12f28999ae1a92964d1b86a7f533"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ffe471830c73091fe3b2cee46ce4a9079dcf4643",
+                "context_id": "claude-subagent-ng55-r2-correctness-5",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:152ce6ff",
+                "summary": "The bridge-null fix is correct, and each new test fails without its change (checked by mutation). One defect remains against owner decision (b). In draw() at src/recognise/recognise.ts:1108 the voice failure count (and emptyLists) is reset on every state other than listening or paused. That includes the 'starting' state shown on 'Weiter' and on a camera switch. So a failure, then 'Weiter', then a second failure shows 'Vorlesen ging nicht' again instead of 'Vorlesen geht nicht. Hol eine Bezugsperson.'. A probe test reproduced this. The owner's rule is that the count resets only when an utterance ends, and docs/recognise.md:295 says the same. Fix: reset failures, emptyLists and lastTaken only on idle (the end of the message), or keep them while starting. Add a test for a failure, then 'Weiter' or a switch, then a failure. No other path loses the tiles or leaves the camera on.",
                 "task_id": "NG-55",
                 "validation_references": []
             }

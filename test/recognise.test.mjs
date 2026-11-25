@@ -2251,3 +2251,25 @@ test("view, continuous: a word said to its end resets the failures in a row", as
   }, { continuous: true, voice: mode });
 });
 
+test("view, continuous: the failures in a row go on across 'Weiter': the second one asks for a caregiver", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, lateFailures, buttonNamed, attached } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    attached.recogniser.hide();
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Weiter").click();
+    await settle();
+    assert.equal(panel().dataset.state, "listening");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen geht nicht\. Hol eine Bezugsperson\./);
+  }, { continuous: true, voice: "fails later" });
+});
+

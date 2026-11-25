@@ -1105,7 +1105,9 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     // A voice line belongs to the view it was shown in: a pause or a new listening starts without it.
     if (state.kind !== lastKind) voiceLine = null;
     lastKind = state.kind;
-    if (state.kind !== "listening" && state.kind !== "paused") {
+    // The counts of voice trouble in a row belong to the message: they end with it (back to the board),
+    // not with a restart of the camera ("Weiter", a camera switch).
+    if (state.kind === "idle") {
       lastTaken = "";
       emptyLists = 0;
       failures = 0;
