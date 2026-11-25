@@ -939,8 +939,18 @@ that takes over the body:
   "Speichern"; it is one queued write through `setDemoClip`, the status line says "Gespeichert:
   Vormachen für „<label>“." and the focus returns to the row's "Vormachen";
 - with a clip stored: "Clip löschen", one tap; the clip can be recorded again.
-- a clip this browser cannot play (one recorded on another device, card NG-59) is replaced by "Dieser
-  Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden.";
+- a stored clip this browser cannot play (one recorded on another device, card NG-59) is replaced
+  by the status line "Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht
+  oder neu aufgenommen werden." (a focus on the player moves to it); a new clip that cannot play is
+  dropped, not offered for saving: "Dieser Clip kann in diesem Browser nicht abgespielt werden und
+  wurde verworfen. Bitte noch einmal aufnehmen." (card NG-60);
+- `facingMode: "user"` is only asked for: a camera that reports it faces away (a device without a
+  front camera) is closed and refused with "Hier läuft nur eine Kamera, die vom Gerät weg zeigt.
+  Vormachen wird mit der vorderen Kamera aufgenommen, damit nie das Kind im Bild ist."; one that
+  reports no facing (a desktop webcam) is used (card NG-60);
+- a recorder that does not hand over its recording within `DEMO_STOP_WAIT_MS` (5 s) after "Aufnahme
+  beenden" is given up with "Die Aufnahme konnte nicht gelesen werden. …"; a failed save or delete
+  leaves the buttons usable, so it can be tried again (card NG-60);
 - while a recording is read after "Aufnahme beenden" the line says "Der Clip wird gelesen …" and
   nothing new can be recorded; a camera that ends by itself (permission taken back, device
   unplugged) stops the view's camera, drops a running recording and says "Die Kamera ist

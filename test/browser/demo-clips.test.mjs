@@ -11,8 +11,10 @@ const DIST = new URL("../../dist/", import.meta.url);
 
 test("demo clips: a clip is recorded from the camera without sound, stored as a video data URL and plays under the page's policy", async () => {
   const { server, origin } = await serveDist(DIST);
-  const browser = await chromium.launch({ args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
+  let browser = null;
   try {
+    // Launched inside the try: a browser that cannot start still lets the server close (card NG-60).
+    browser = await chromium.launch({ args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
     const context = await browser.newContext();
     await context.grantPermissions(["camera"], { origin });
     const page = await context.newPage();
@@ -56,7 +58,7 @@ test("demo clips: a clip is recorded from the camera without sound, stored as a 
     assert.ok(result.loaded.width > 0 && result.loaded.height > 0);
     assert.deepEqual(errors, []);
   } finally {
-    await browser.close();
+    await browser?.close();
     await new Promise((resolve) => server.close(resolve));
   }
 });

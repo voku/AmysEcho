@@ -1,0 +1,15 @@
+{
+    "attention": null,
+    "candidate_revision": "a4e289254ee70fa9f034b2161da0555ce42ce012",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "investigate",
+    "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+    "history": [],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+    "schema_version": "1.0",
+    "task_id": "NG-60"
+}

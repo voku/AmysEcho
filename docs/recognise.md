@@ -494,6 +494,10 @@ read only when it is played; a failed listing is reported and the view has no "V
 
 - A tap opens a box above the view's content: "Welche Gebärde vormachen?" with the concepts that
   have a clip, in board order, as tiles, and "Schließen". With one clip it plays at once.
+- A tap on any control of the box consumes the panel's press time, so a later key press on a
+  guarded button ("Ja, sagen" and the others) is measured from itself, not from that tap (card
+  NG-60). On a playback error the box keeps its status line in place and only swaps the clip and
+  its buttons for "Schließen".
 - The chosen clip plays in the box, muted and inline, under its label, with "Nochmal" (from the
   start), "Langsam" (half speed) and "Spiegeln" (shown like a mirror); both switches show
   `aria-pressed` and are remembered on the device (`amysecho-demo-slow`, `amysecho-demo-mirror`),
