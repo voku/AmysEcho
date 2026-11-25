@@ -276,6 +276,13 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
   - "▶ Weiter" listens again with the same tiles.
   - A hand seen restarts the wait. A first version closed the view and lost the tiles; the review
     of the card found that, and the owner chose this instead.
+  - The tiles are never lost on the way back:
+    - A start that carried tiles ("Weiter", or a camera switch) and fails or is refused goes back
+      to the pause with the tiles, and the line says why (the problem line).
+    - The camera switch is shown in the pause too and listens again with the tiles.
+    - Hiding the page (a screen lock, another app) stops the camera and pauses with the tiles;
+      before, it closed the view. Device locks often come before the 3 minutes.
+    - Opening the caregiver area, or "Zurück zur Tafel", closes the view and ends the message.
 - **No voice** (card NG-55): a tile tap that cannot be said shows the board's own lines, in the
   board's order. The tile stays, and the line goes with the next tile or a word said.
   - An empty voice list (the voices may still load) first gives "Keine Stimme. Bitte noch einmal

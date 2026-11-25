@@ -221,7 +221,7 @@ export type RecogniseState =
    * Card NG-55: nobody was in the picture for `RECOGNISE_IDLE_MS`: the camera is off, the stacked
    * tiles stay (they are the child's message) and can still be tapped; "Weiter" listens again with them.
    */
-  | { readonly kind: "paused"; readonly taken: readonly string[] }
+  | { readonly kind: "paused"; readonly taken: readonly string[]; readonly line?: string }
   /** `hands`: which hands the attempt showed (one-hand and two-hand attempts are compared with examples of their kind only). */
   /**
    * `from`: the unknown answer whose candidate the child tapped; "Nein" goes back to it. Absent
@@ -307,6 +307,11 @@ export interface Recogniser {
   switchCamera(change: () => void, pressAt?: number): boolean;
   /** "Zurück zur Tafel", from every state: camera off, nothing spoken. Always takes effect. */
   back(): void;
+  /**
+   * Card NG-55: the page is hidden (screen lock, another app). The camera goes off in every state;
+   * while listening or paused the view pauses and keeps the tiles; any other state goes back to the board.
+   */
+  hide(): void;
   /** Like `back`, without telling `onChange`: the board is being replaced. */
   dispose(): void;
 }
@@ -584,7 +589,10 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     const failed = (line: string): void => {
       if (camera !== own) return;
       stopCamera();
-      show({ kind: "problem", line });
+      // Card NG-55: a start that carried tiles (after "Weiter" or a camera switch) never loses them:
+      // the pause keeps them, says why, and offers the camera switch and "Weiter".
+      if (own.carry.length > 0) show({ kind: "paused", taken: own.carry, line });
+      else show({ kind: "problem", line });
     };
     show({ kind: "starting", line: text.preparing });
     let started: ReturnType<CaptureBridge["start"]>;
@@ -642,7 +650,10 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     void Promise.resolve(started).then((answer) => {
       if (!answer.ok) {
         if ("problem" in answer) failed(problemLine(answer.problem));
-        else if (camera === own) leave();
+        else if (camera === own && own.carry.length > 0) {
+          stopCamera();
+          show({ kind: "paused", taken: own.carry });
+        } else if (camera === own) leave();
         return;
       }
       if (!ours()) {
@@ -721,17 +732,26 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     },
     switchCamera(change, pressAt) {
       if (disposed) return false;
-      const live = current.kind === "starting" || current.kind === "countdown" || current.kind === "recording" || current.kind === "listening" || current.kind === "problem";
+      const live = current.kind === "starting" || current.kind === "countdown" || current.kind === "recording" || current.kind === "listening" || current.kind === "paused" || current.kind === "problem";
       if (!live || (pressAt ?? options.now()) < cameraAskedAt + RECOGNISE_GUARD_MS) return false;
       change();
       // A second switch while the camera still starts keeps what the first one carried.
-      carried = current.kind === "listening" ? current.taken : current.kind === "starting" ? camera?.carry ?? [] : [];
+      carried = current.kind === "listening" || current.kind === "paused" ? current.taken : current.kind === "starting" ? camera?.carry ?? [] : [];
       stopCamera();
       startCamera();
       carried = [];
       return true;
     },
     back: leave,
+    hide() {
+      if (current.kind === "listening") {
+        const { taken } = current;
+        stopCamera();
+        show({ kind: "paused", taken });
+      } else if (current.kind !== "paused") {
+        leave();
+      }
+    },
     dispose() {
       disposed = true;
       stopCamera();
@@ -1068,7 +1088,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     if (state.kind !== "countdown" && state.kind !== "recording" && state.kind !== "listening") delete panel.dataset["seen"];
     // Card NG-54: no time limit while listening, so no seconds.
     timeBox.hidden = state.kind === "listening";
-    cameraButton.hidden = !(state.kind === "starting" || state.kind === "countdown" || state.kind === "recording" || state.kind === "listening" || state.kind === "problem");
+    cameraButton.hidden = !(state.kind === "starting" || state.kind === "countdown" || state.kind === "recording" || state.kind === "listening" || state.kind === "paused" || state.kind === "problem");
     if (switchFocused && cameraButton.hidden) focusLost = true;
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
@@ -1114,7 +1134,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         content.push(feedback);
         break;
       case "paused": {
-        line.textContent = voiceLine ?? RECOGNISE_TEXT.paused;
+        line.textContent = voiceLine ?? state.line ?? RECOGNISE_TEXT.paused;
         const row = takenRow(state.taken);
         if (row !== null) content.push(row);
         const resume = actionButton("recognise-resume", RECOGNISE_SYMBOLS.resume, RECOGNISE_TEXT.resume);
@@ -1339,9 +1359,9 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
 
   // The camera never runs in the background: hiding the page or leaving it ends the attempt.
   const onHidden = (): void => {
-    if (hiddenPage()) recogniser.back();
+    if (hiddenPage()) recogniser.hide();
   };
-  const onPageHide = (): void => recogniser.back();
+  const onPageHide = (): void => recogniser.hide();
   const listen = typeof document !== "undefined" && typeof document.addEventListener === "function";
   if (listen) document.addEventListener("visibilitychange", onHidden);
   if (typeof window !== "undefined" && typeof window.addEventListener === "function") window.addEventListener("pagehide", onPageHide);

@@ -1965,7 +1965,7 @@ test("view, continuous: hiding the page, pagehide, a hidden board region and dis
   }
 });
 
-test("controller, continuous: tiles carried to a camera that fails do not come back on a later start; a second switch while starting keeps them", async () => {
+test("controller, continuous: tiles carried to a camera that fails stay in the pause, not in a later start; a second switch while starting keeps them", async () => {
   let facing = "user";
   const camera = fakeCamera({ noBackCamera: true });
   const context = setup({ camera });
@@ -1980,8 +1980,13 @@ test("controller, continuous: tiles carried to a camera that fails do not come b
   context.time.advance(RECOGNISE_GUARD_MS);
   recogniser.switchCamera(() => { facing = "environment"; });
   await settle();
-  assert.equal(recogniser.state().kind, "problem", "no back camera");
-  // Back to the front camera from the problem: a switch from a problem carries nothing.
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"], line: RECOGNISE_TEXT.backCamera }, "no back camera: the tiles stay, and the line says why");
+  // The switch back to the front camera from the pause listens again with them.
+  context.time.advance(RECOGNISE_GUARD_MS);
+  assert.equal(recogniser.switchCamera(() => { facing = "user"; }), true);
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "listening", taken: ["trinken"], dropped: false });
+  // "Zurück", then a new start: it begins empty.
   recogniser.back();
   facing = "user";
   recogniser.start();
@@ -2065,5 +2070,31 @@ test("view, continuous: two voice failures in a row reported after the call, as 
     lateFailures.shift()();
     assert.match(textOf(panel()), /Vorlesen geht nicht\. Hol eine Bezugsperson\./, "the second failure in a row");
   }, { continuous: true, voice: "fails later" });
+});
+
+test("controller, continuous: 'Weiter' that cannot start the camera keeps the tiles in the pause; hiding the page pauses and keeps them", async () => {
+  const camera = fakeCamera();
+  const context = setup({ camera });
+  const recogniser = createRecogniser({
+    examples: [], onBoard: ON_BOARD, bridge: () => camera.bridge, host: () => ({}), setTimer: context.time.setTimer, now: context.time.now,
+    speak: () => undefined, onChange: () => undefined, continuous: () => true, analyse: () => MATCH,
+  });
+  recogniser.start();
+  await settle();
+  await camera.feedAll(MOVES_RIGHT, 10);
+  await handsDown(camera);
+  // The page is hidden (a screen lock): the camera goes off, the message stays.
+  recogniser.hide();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"] });
+  assert.equal(camera.running, false);
+  recogniser.hide();
+  assert.equal(recogniser.state().kind, "paused", "hidden again: still paused");
+  // "Weiter", but the camera is now refused: the tiles stay, with the reason.
+  const refused = fakeCamera({ cameraError: "NotAllowedError" });
+  camera.bridge.start = refused.bridge.start;
+  context.time.advance(RECOGNISE_GUARD_MS);
+  recogniser.start();
+  await settle();
+  assert.deepEqual(recogniser.state(), { kind: "paused", taken: ["trinken"], line: RECOGNISE_TEXT.problems.denied });
 });
 

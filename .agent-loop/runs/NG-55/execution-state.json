@@ -1,8 +1,8 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
     "contract_revision": 2,
-    "current_attempt": 2,
+    "current_attempt": 3,
     "current_stage_id": "build",
     "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
     "history": [
@@ -113,6 +113,130 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:5adbea27",
                 "summary": "Async voice failures never escalate: sayWord resets failures to 0 on every 'requested' result (src/recognise/recognise.ts:1303), while real failures arrive later via utterance.onerror, so two failed taps in a row both show 'Vorlesen ging nicht' and never 'Vorlesen geht nicht. Hol eine Bezugsperson.' (reproduced with an asynchronous failed() probe). board.ts:355-362 resets failures only on onEnd. The test (test/recognise.test.mjs:595) only calls failed() synchronously. Fix: do not reset failures on 'requested'; reset on utterance end by passing onEnd to requestLocalGermanSpeech at recognise.ts:1277 (and extend sayText for tests), keep show(null) for a word said; add a test that calls failed() after sayText returns, twice in a row, expecting the 'geht nicht' line. Paused paths, carry, switch, guard, focus and draw checked without defects.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:10:28+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:10:28+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:29b224b7d7d284b445166adab070e3a49017bec8c7bdc6366f0cf1e430b9dc2d",
+                    "execution-evidence:sha256:5f75a794139d96a024b67bb287c510732eca8ba36f331ddaf0acf9751d156bd9",
+                    "execution-evidence:sha256:4f89d19fe39f28c05d1fad4ea59e2bdd2827b95a7d5f72730e1afdefe4d0c490"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:29b224b7d7d284b445166adab070e3a49017bec8c7bdc6366f0cf1e430b9dc2d",
+                    "execution-evidence:sha256:5f75a794139d96a024b67bb287c510732eca8ba36f331ddaf0acf9751d156bd9",
+                    "execution-evidence:sha256:4f89d19fe39f28c05d1fad4ea59e2bdd2827b95a7d5f72730e1afdefe4d0c490"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:daefe643",
+                "summary": "Review fix: failures reset only in the utterance end callback (sayText gets ended), not on 'requested'; late-failure test (two taps, failure after the call) expects the escalation and fails with the old reset; voice line cleared on a kind change; counters reset when the view closes; idle comment. npm run verify 709/709 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:11:34+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:11:34+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:7dfaa9e0647a654be3e703ef339755a64c629259df68daebcb13c60883cc1699",
+                    "execution-evidence:sha256:797263b68e6627e237c09a4164c91901ccf77a4c9aebb5e8e2cd782611d8da58",
+                    "execution-evidence:sha256:f30357ec18aee8808d0999b2cd0c17ba82f205ffecfa300cade9efa09746b8d7"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:7dfaa9e0647a654be3e703ef339755a64c629259df68daebcb13c60883cc1699",
+                    "execution-evidence:sha256:797263b68e6627e237c09a4164c91901ccf77a4c9aebb5e8e2cd782611d8da58",
+                    "execution-evidence:sha256:f30357ec18aee8808d0999b2cd0c17ba82f205ffecfa300cade9efa09746b8d7"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "context_id": "claude-subagent-ng55-r2-correctness-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "observations": [
+                    "src/recognise/recognise.ts:1292-1295 sayWord callbacks have no per-attempt guard, unlike board.ts:354-362 (thisAttempt !== currentAttempt). A failure reported after the view closed or during 'starting' after Weiter still increments failures (show() is skipped), so the next first visible failure reads 'Vorlesen geht nicht. Hol eine Bezugsperson.' instead of 'ging nicht'. A late end is harmless. Low impact; a token captured per sayWord call would match the board.",
+                    "src/recognise/recognise.ts:1300 an engine that fires onend after onerror for the same utterance resets the count and the escalation never shows; board.ts has the same behaviour, so this is parity, not a regression."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:e0d1cdbd",
+                "summary": "51682d75 fixes the attempt-1 defect: failures reset only in the utterance end callback (recognise.ts:1300), default maps to requestLocalGermanSpeech(text, failed, ended) whose onEnd also covers interrupted/canceled as on the board; show(null) on requested only clears a line for a new successful request, as board.ts:365 shows ''. The new test passes and fails (verified in a scratch copy) when the per-request reset is restored. Voice line clears on kind change; counters reset off listening/paused. 69/69 tests pass in recognise+app.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:12:33+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:12:33+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c091bafb6db254b62bc7cfc186d45c549d736d73dd7d903036618e05a48992ca",
+                    "execution-evidence:sha256:c5756fe8ddf892603846ce538be5d2f02a77f06b47d7ef19e52f8d076c836711",
+                    "execution-evidence:sha256:88365f84818fcf226b8c0ab540b7786ab766f7e5f4a6be66413cd9b9e702ba51"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c091bafb6db254b62bc7cfc186d45c549d736d73dd7d903036618e05a48992ca",
+                    "execution-evidence:sha256:c5756fe8ddf892603846ce538be5d2f02a77f06b47d7ef19e52f8d076c836711",
+                    "execution-evidence:sha256:88365f84818fcf226b8c0ab540b7786ab766f7e5f4a6be66413cd9b9e702ba51"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:ac4221ef3e8c407e88e11fa65ef9670ac5db3e0e",
+                "context_id": "claude-subagent-ng55-r2-blindspot",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:8c89829c",
+                "summary": "Partial-failure blind spot in owner decision (a): '▶ Weiter' from paused calls startCamera, which shows 'starting' without the tiles and, if the camera then fails (problem: busy/permission/stopped, recognise.ts:584-588,643-645,657) or the permission ask ends without a problem (leave(), recognise.ts:645), the paused tiles are gone: 'Nochmal' restarts with carried=[] (recognise.ts:685,661-663). The owner kept the tiles because they are the child's message waiting to be read; a failed resume destroys it irreversibly and no test covers it. Smallest fix: when a start that carried tiles fails or is refused, return to { kind: 'paused', taken: carry } (or keep carry for the problem view's retry), plus one controller test. Also noted: page hide/pagehide calls recogniser.back() in every state (recognise.ts:1341-1344), so a paused view (camera already off) closes and loses the tiles on screen lock, and device auto-lock (often 30 s-2 min) usually fires before RECOGNISE_IDLE_MS; docs/recognise.md 'The view stays open' does not say this. Verified fine: nothing is spoken without a tap; idle stop calls stopCamera and the test asserts camera.running false; paused hides the camera switch and keeps 'Zurück zur Tafel'; no frames buffered while paused (camera=null).",
                 "task_id": "NG-55",
                 "validation_references": []
             }
