@@ -938,6 +938,11 @@ that takes over the body:
   "Speichern"; it is one queued write through `setDemoClip`, the status line says "Gespeichert:
   Vormachen für „<label>“." and the focus returns to the row's "Vormachen";
 - with a clip stored: "Clip löschen", one tap; the clip can be recorded again.
+- while a recording is read after "Aufnahme beenden" the line says "Der Clip wird gelesen …" and
+  nothing new can be recorded; a camera that ends by itself (permission taken back, device
+  unplugged) stops the view's camera, drops a running recording and says "Die Kamera ist
+  ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen."; with a clip a newer version stored,
+  the view says so and offers only "Clip löschen", no recording that could not be saved.
 
 The recorder is `openDemoCamera` (`src/demo-clips.ts`): `getUserMedia` without audio and a
 `MediaRecorder` (WebM VP9, VP8 or MP4, whichever the browser has first, at 600 kbit/s). `clipFromBlob`

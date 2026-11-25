@@ -20,7 +20,7 @@ async function storeWithMia(limits) {
 test("demo clips: only base64 WebM or MP4 video data URLs within the size cap are clips", () => {
   for (const value of [
     CLIP, "data:video/mp4;base64,AAAAGGZ0eXBtcDQy", "data:video/webm;codecs=vp9;base64,GkXf", "data:video/webm;codecs=vp8,opus;base64,GkXf",
-    "data:video/mp4;codecs=avc1.42E01E;base64,AAAA", "data:video/webm;codecs=\"vp9\";base64,GkXf",
+    "data:video/mp4;codecs=avc1.42E01E;base64,AAAA", "data:video/mp4; codecs=avc1.42E01E;base64,AAAA", "data:video/webm;codecs=\"vp9\";base64,GkXf",
   ]) assert.equal(isDemoDataUrl(value), true, value);
   for (const value of [
     null, 1, "", "data:video/ogg;base64,AAAA", "data:image/png;base64,AAAA", "data:video/webm,GkXf", "data:video/webm;base64,<script>",

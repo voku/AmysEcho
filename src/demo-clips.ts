@@ -29,7 +29,7 @@ export const DEMO_MAX_MS = 5000;
 export const MAX_DEMO_DATA_URL_LENGTH = 2 * 1024 * 1024;
 const DEMO_NAME_PREFIX = "demo.";
 /** A video data URL as a recorder makes it: the type, maybe its codecs, then base64. */
-const DEMO_DATA_URL_PATTERN = /^data:video\/(?:webm|mp4)(?:;codecs="?[a-z0-9.,+ -]{1,60}"?)?;base64,[A-Za-z0-9+/]+={0,2}$/i;
+const DEMO_DATA_URL_PATTERN = /^data:video\/(?:webm|mp4)(?:; ?codecs="?[a-z0-9.,+ -]{1,60}"?)?;base64,[A-Za-z0-9+/]+={0,2}$/i;
 
 export type StoredDemoClip =
   | { readonly state: "ok"; readonly dataUrl: string }

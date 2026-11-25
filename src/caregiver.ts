@@ -352,7 +352,7 @@ const NAME_DETAILS = "Was wird gespeichert?";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name, die ausgewählten Begriffe, eigene Texte dazu und beigebrachte Gebärden werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
-  + "Ein Video ist nur ein Vormachen-Clip, den eine Bezugsperson von sich selbst aufnimmt. "
+  + "Ein Video wird nur als Vormachen-Clip gespeichert, den eine Bezugsperson von sich selbst aufnimmt. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -487,6 +487,7 @@ const DEMO_READY = "Die Kamera läuft. Tippe auf „Aufnahme starten“.";
 const DEMO_RECORDING = "Die Aufnahme läuft. Jetzt die Gebärde vormachen.";
 const DEMO_READING = "Der Clip wird gelesen …";
 const DEMO_DELETE = "Clip löschen";
+const DEMO_CAMERA_ENDED = "Die Kamera ist ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen.";
 const DEMO_FULL = "Der Platz für dieses Profil ist voll. Der Clip wurde nicht gespeichert. Entferne Clips, Bilder oder Gebärden, dann ist wieder Platz.";
 const NEWER_DEMO = "Der Clip dieses Begriffs wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
 const DEMO_DAMAGED = "Der gespeicherte Clip kann nicht gelesen werden. Er kann gelöscht oder durch einen neuen ersetzt werden.";
@@ -1926,6 +1927,20 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       video.dataset["mirrored"] = String(currentFacing() === "user");
       demo.video = video;
       state.camera = "on";
+      // A camera that goes away by itself (permission taken back, device unplugged) ends the view's camera; a recording is dropped.
+      try {
+        for (const track of camera.stream.getTracks()) {
+          track.addEventListener("ended", () => {
+            if (demoCamera !== demo || state.reading) return;
+            stopDemoCamera();
+            if (!demoOpen(open)) return;
+            say(DEMO_CAMERA_ENDED, true);
+            drawDemo(open, ["demo-camera"]);
+          });
+        }
+      } catch {
+        // Without track events the camera is stopped by the view's own ways out.
+      }
       drawDemo(open, ["demo-record"]);
     }, (error: unknown) => {
       if (demoCamera !== demo) return;
@@ -1942,7 +1957,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const { state } = open;
     const demo = demoCamera;
     if (!demoOpen(open) || demo === null || demo.mode !== open || demo.camera === null) return;
-    if (state.recording || state.countdown !== null) return;
+    // Not while the last recording is still being read: its recorder has stopped and the camera goes with it.
+    if (state.recording || state.countdown !== null || state.reading) return;
     clearStatus();
     state.countdown = TEACH_COUNTDOWN_S;
     const ours = (): boolean => demoCamera === demo && mode === open;
@@ -2694,7 +2710,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       demoPreviewSlot = element("div", "caregiver-demo-preview");
       const text = state.camera === "starting" ? DEMO_STARTING
         : state.countdown !== null ? COUNTDOWN_LINE(state.countdown)
-          : state.recording ? DEMO_RECORDING : DEMO_READY;
+          : state.recording ? DEMO_RECORDING : state.reading ? DEMO_READING : DEMO_READY;
       demoLine = element("p", "caregiver-teach-camera", text);
       demoLine.setAttribute("role", "status");
       view.append(demoPreviewSlot, demoLine);
@@ -2702,7 +2718,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       demoPreviewSlot = null;
       demoLine = null;
     }
-    if (state.reading) view.append(element("p", "caregiver-notice", DEMO_READING));
+    if (state.reading && !cameraRuns) view.append(element("p", "caregiver-notice", DEMO_READING));
     if (state.draft !== null) {
       const video = clipVideo(state.draft, "caregiver-demo-clip");
       if (video !== null) {
@@ -2723,8 +2739,10 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       actions.append(control);
     };
     if (state.draft !== null && !cameraRuns) add(SAVE, "demo-save", saveDemo, true);
-    if (state.camera === "off" && !state.reading) add(CAMERA_START, "demo-camera", () => startDemoCamera(open), state.draft === null);
-    if (state.camera === "on" && state.countdown === null && !state.recording) add(RECORD_START, "demo-record", () => startDemoRecording(open), true);
+    // A clip a newer version stored cannot be replaced by this one: nothing to record for.
+    const newerStored = stored.state === "damaged" && stored.damage === "unsupported-version";
+    if (state.camera === "off" && !state.reading && !newerStored) add(CAMERA_START, "demo-camera", () => startDemoCamera(open), state.draft === null);
+    if (state.camera === "on" && state.countdown === null && !state.recording && !state.reading) add(RECORD_START, "demo-record", () => startDemoRecording(open), true);
     if (state.countdown !== null) add(CANCEL_COUNTDOWN, "demo-countdown-cancel", () => cancelDemoCountdown(open));
     if (state.recording) add(RECORD_STOP, "demo-stop", () => stopDemoRecording(open), true);
     const back = button(state.draft !== null ? DISCARD : BACK);

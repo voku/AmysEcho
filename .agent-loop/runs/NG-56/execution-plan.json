@@ -1,13 +1,13 @@
 {
     "base_commit": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
-    "contract_revision": 1,
+    "contract_revision": 3,
     "contract_source": {
         "path": ".agent-loop/contracts/NG-56/contract.json",
-        "sha256": "sha256:280f51c27f3734a6ad3fbfd5dbe4bbf579072bfe0c96b0b12da34604c52cd619"
+        "sha256": "sha256:bc51028950d053ea62166e7788f47c2787ebdd6f13a68c74c5ad590112531dbc"
     },
-    "digest": "sha256:0b45ba52236a4968bf8911061928f7af6f8906039a8918b42a37faac9491d13b",
+    "digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
     "kind": "governed_execution_plan",
-    "prepared_at": "2026-11-25T18:12:48+00:00",
+    "prepared_at": "2026-11-25T18:35:53+00:00",
     "profile": "standard",
     "roles": [
         {
@@ -44,7 +44,7 @@
             ]
         }
     ],
-    "run_id": "run:NG-56:8ce45a00c679cadf",
+    "run_id": "run:NG-56:70a609c12940d002",
     "schema_version": "1.0",
     "stages": [
         {

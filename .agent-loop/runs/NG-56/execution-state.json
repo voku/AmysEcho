@@ -1,15 +1,117 @@
 {
     "attention": null,
-    "candidate_revision": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
-    "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
-    "execution_plan_digest": "sha256:0b45ba52236a4968bf8911061928f7af6f8906039a8918b42a37faac9491d13b",
-    "history": [],
+    "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+    "contract_revision": 3,
+    "current_attempt": 2,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+    "history": [
+        {
+            "accepted_at": "2026-11-25T18:39:23+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:39:23+00:00",
+                "artifact_references": [],
+                "candidate_revision": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "637f6002e309f1ec2b0128f683c8a91b93b5c7c9",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "completed",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:0d07d0c3",
+                "summary": "Located the seams: profile data is JSON-only key-value per profile (src/profiles/store.ts, 64 MB export limit), pictures already stored as data URLs (board-data.ts symbol.<id>) and exported with the profile; the caregiver area's teaching/picture views (src/caregiver.ts: openMode/leaveMode/stopTeachCamera/draw Built.teaching) give the pattern for a takeover view with a camera; the gesture view (src/recognise/recognise.ts attachRecognise) builds its own top row and draws recogniser states into main/actions, so a separate demo box above body does not touch recogniser state; app.ts readView reads examples per view and passes them to attachRecognise; the page CSP lacks media-src; public/sw.js precaches every module; test/capture.test.mjs counts mirrored CSS rules.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:39:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:39:31+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "context_id": "main-session-ng56-build",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "completed",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:f0440421",
+                "summary": "Built: src/demo-clips.ts (strict demo.<id> entries, set/remove/list/read, browser recorder openDemoCamera without audio, clipFromBlob with size cap); caregiver 'Vormachen' takeover view (camera, countdown, DEMO_MAX_MS recording, save/discard/delete, camera stops on every exit, own-concept delete removes the clip); gesture view 'Vormachen' box (choose, play muted, Nochmal/Langsam/Spiegeln remembered, closes with the view, recogniser untouched); app.ts lists clip ids per view and loads a clip on play; CSP media-src data:, sw precache, CSS for portrait/landscape; product contract amendment; docs; tests (unit, caregiver, recognise, app, real-browser record+play). npm run verify: 730 unit and 8 browser tests pass.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T18:41:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T18:41:59+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:29873750cba44f977889577ac706c8aa67794900b21add15f0b93f83d84a9b69",
+                    "execution-evidence:sha256:7b2ba1d18708ab5dc3e730c76537ecd109f69c9063fe3825e43afecaea3d69bf"
+                ],
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "schema_version": "1.0",
+                "task_id": "NG-56",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:29873750cba44f977889577ac706c8aa67794900b21add15f0b93f83d84a9b69",
+                    "execution-evidence:sha256:7b2ba1d18708ab5dc3e730c76537ecd109f69c9063fe3825e43afecaea3d69bf"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:637f6002e309f1ec2b0128f683c8a91b93b5c7c9:09e61cf65e2fdad0cfd607a9ef755d65cdbdaf5a",
+                "context_id": "ng56-cr-7f3a91",
+                "contract_revision": 3,
+                "execution_plan_digest": "sha256:34a2bf015ca7899265979df246e2fae652623c9fda1ad98b7e0e29f7077448f9",
+                "outcome": "changes_required",
+                "run_id": "run:NG-56:70a609c12940d002",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:7093e717",
+                "summary": "context-id: ng56-cr-7f3a91. While a demo recording is being read the caregiver demo view still offers 'Aufnahme starten' and shows the 'Kamera läuft' line; startDemoRecording does not refuse while reading (src/caregiver.ts). Also: ambiguous German sentence in NAME_NOTICE; codecs regex rejects a space after ';'; recording offered when the stored clip is from a newer version; a camera track that ends on its own is not detected.",
+                "task_id": "NG-56",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
-    "run_id": "run:NG-56:8ce45a00c679cadf",
+    "run_id": "run:NG-56:70a609c12940d002",
     "schema_version": "1.0",
     "task_id": "NG-56"
 }

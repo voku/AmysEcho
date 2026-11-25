@@ -1725,7 +1725,7 @@ const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ei
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
   + "Der Name, die ausgewählten Begriffe, eigene Texte dazu und beigebrachte Gebärden werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Von einer Gebärde werden nur Zahlen zu Bewegung und Handform gespeichert, kein Bild und kein Video. "
-  + "Ein Video ist nur ein Vormachen-Clip, den eine Bezugsperson von sich selbst aufnimmt. "
+  + "Ein Video wird nur als Vormachen-Clip gespeichert, den eine Bezugsperson von sich selbst aufnimmt. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -7519,8 +7519,8 @@ const OTHER_CLIP = "data:video/webm;codecs=vp9;base64,GkXfo59ChoEBQveBAULygQRC84
  * The recorder hands back a fake blob; `clips` are the data URLs the converter returns, in turn,
  * and a DemoRecordingRefusal reason in their place is thrown instead.
  */
-function fakeDemo({ error = null, clips = [CLIP] } = {}) {
-  const log = { facings: [], opened: 0, started: 0, stopped: 0, closed: 0, converted: 0 };
+function fakeDemo({ error = null, clips = [CLIP], holdStop = false } = {}) {
+  const log = { facings: [], opened: 0, started: 0, stopped: 0, closed: 0, converted: 0, endTrack: () => undefined, releaseStop: () => undefined };
   const queue = [...clips];
   return {
     log,
@@ -7528,10 +7528,17 @@ function fakeDemo({ error = null, clips = [CLIP] } = {}) {
       log.facings.push(facing);
       if (error !== null) throw error;
       log.opened += 1;
+      const ended = [];
+      log.endTrack = () => { for (const handler of ended) handler(); };
+      const track = { addEventListener(name, handler) { if (name === "ended") ended.push(handler); } };
       return {
-        stream: { id: "demo-stream" },
+        stream: { id: "demo-stream", getTracks: () => [track] },
         start() { log.started += 1; },
-        async stop() { log.stopped += 1; return { size: 64, type: "video/webm" }; },
+        async stop() {
+          log.stopped += 1;
+          if (holdStop) await new Promise((resolve) => { log.releaseStop = resolve; });
+          return { size: 64, type: "video/webm" };
+        },
         close() { log.closed += 1; },
       };
     },
@@ -7802,5 +7809,56 @@ test("vormachen: the clip is part of the profile export (for a later backup scre
     await area.confirmDelete();
     assert.equal(status(), "„Ball“ wurde endgültig gelöscht.");
     assert.ok(!Object.keys(backend.snapshot()).some((key) => key.includes(id)));
+  });
+});
+
+test("vormachen: while a recording is being read nothing new can be recorded; a camera that goes away is said; a clip of a newer version is not offered a new recording", async () => {
+  const demo = fakeDemo({ holdStop: true });
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, clock } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Hilfe").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).stop.click());
+    await settleDemo(area);
+    let view = demoViewOf(caregiverRegion);
+    assert.equal(view.line, "Der Clip wird gelesen …");
+    assert.equal(view.record, null, "no new recording while the last one is read");
+    assert.equal(view.stop, null);
+    assert.equal(view.camera, null);
+    clock.advance(10_000);
+    assert.equal(demo.log.started, 1);
+    demo.log.releaseStop();
+    await settleDemo(area);
+    view = demoViewOf(caregiverRegion);
+    assert.deepEqual(view.clips, [CLIP]);
+    assert.equal(demo.log.closed, 1);
+    // A camera that ends by itself while it runs: the camera of the view stops and the line says so.
+    await act(() => view.camera.click());
+    await settleDemo(area);
+    assert.notEqual(demoViewOf(caregiverRegion).record, null);
+    demo.log.endTrack();
+    await settleDemo(area);
+    assert.equal(area.status(), "Die Kamera ist ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen.");
+    assert.equal(demo.log.closed, 2);
+    assert.equal(demoViewOf(caregiverRegion).live, null);
+    assert.equal(area.focused.current, demoViewOf(caregiverRegion).camera);
+  });
+  // A clip a newer version stored: said, and no recording offered that could not be saved.
+  await withArea({ seed: async (store) => {
+    const mia = await seedThree(store);
+    await store.data(mia.id).set("demo.trinken", { version: 2, dataUrl: CLIP });
+    return mia;
+  }, ...fakeDemo() }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Trinken").row, "Vormachen").click());
+    const view = demoViewOf(area.caregiverRegion);
+    assert.ok(view.texts.includes("Der Clip dieses Begriffs wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren."));
+    assert.equal(view.camera, null);
+    assert.notEqual(view.remove, null, "it can still be deleted");
   });
 });
