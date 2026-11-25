@@ -592,13 +592,20 @@ async function withView(callback, { examples = [example("trinken", MOVES_RIGHT),
     let open = () => undefined;
     const board = mountBoard(root, VIEW, { now: time.now, gesture: { onStart: () => open() } });
     const said = [];
-    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed) => { said.push(text); if (voice === "fails") failed(); return typeof voice === "string" && voice !== "fails" ? voice : voice !== false; } });
+    const lateFailures = [];
+    const attached = attachRecognise({ root, board, entries: ENTRIES, examples, capture: camera.bridge, setTimer: time.setTimer, now: time.now, storage: () => choice, continuous, sayText: (text, failed) => {
+      said.push(text);
+      if (voice === "fails") failed();
+      // As on a device: the failure comes after the call, from the engine.
+      if (voice === "fails later") { lateFailures.push(failed); return "requested"; }
+      return typeof voice === "string" && voice !== "fails" ? voice : voice !== false;
+    } });
     open = attached.open;
     const panel = () => root.children.find((child) => hasClass(child, "recognise")) ?? null;
     const buttonNamed = (text) => tree(panel() ?? root).find((element) => element.tagName === "button" && (element.textContent === text || element.attributes["aria-label"] === text));
     const tile = (label) => root.children.find((child) => hasClass(child, "concept-board")).children.find((element) => element.attributes["aria-label"] === label);
     const gestureButton = () => root.children.find((child) => hasClass(child, "gesture-start"));
-    await callback({ ...fakes, said, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
+    await callback({ ...fakes, said, lateFailures, choice, time, camera, root, board, attached, panel, buttonNamed, tile, gestureButton, sentence: () => root.children[1].children[0].textContent });
   } finally {
     fakes.restore();
   }
@@ -2039,5 +2046,24 @@ test("view, continuous: after minutes without a hand the camera is off, the tile
     assert.equal(panel().dataset.state, "listening");
     assert.equal(camera.running, true);
   }, { continuous: true });
+});
+
+test("view, continuous: two voice failures in a row reported after the call, as on a device, end with 'Hol eine Bezugsperson'", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, lateFailures } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen ging nicht\. Bitte noch einmal tippen\./);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    assert.doesNotMatch(textOf(panel()), /Vorlesen/, "a new try clears the line while it is said");
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen geht nicht\. Hol eine Bezugsperson\./, "the second failure in a row");
+  }, { continuous: true, voice: "fails later" });
 });
 

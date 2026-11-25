@@ -76,8 +76,8 @@ export const RECOGNISE_GUARD_MS = 700;
 /** Card NG-54: at most this many recognised gestures are stacked while listening; the oldest goes first. */
 export const MAX_TAKEN = 6;
 /**
- * Card NG-55: while listening, the camera stops and the view closes after this long without a hand
- * in the picture: nobody is using it (battery, heat, a camera on in an empty room).
+ * Card NG-55: while listening, the camera stops after this long without a hand in the picture
+ * (battery, heat, a camera on in an empty room); the view stays with the stacked tiles ("paused").
  */
 export const RECOGNISE_IDLE_MS = 3 * 60_000;
 /** The dots of the recording's time: one per second of `RECOGNISE_MAX_RECORDING_MS`. */
@@ -762,7 +762,7 @@ export interface AttachOptions {
    * Card NG-54: says a word; default the device's local German voice. Card NG-55: returns false, or
    * calls `failed`, when it cannot be said. For tests.
    */
-  readonly sayText?: (text: string, failed: () => void) => SpeechAttempt | boolean | void;
+  readonly sayText?: (text: string, failed: () => void, ended: () => void) => SpeechAttempt | boolean | void;
 }
 
 export interface AttachedRecogniser {
@@ -949,6 +949,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   /** As on the board: a second empty voice list, or a second failure, in a row means tapping again does not help. */
   let emptyLists = 0;
   let failures = 0;
+  let lastKind: RecogniseState["kind"] = "idle";
   const pictureButton = button("recognise-picture", "");
   const pictureMark = element("span", "recognise-mark", RECOGNISE_SYMBOLS.picture);
   pictureMark.setAttribute("aria-hidden", "true");
@@ -1072,9 +1073,13 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     // The camera is off in every other state; its preview was closed with it. While it starts the
     // preview waits in the box, which is shown from the countdown on.
     if (state.kind !== "starting" && state.kind !== "countdown" && state.kind !== "recording" && state.kind !== "listening") previewSlot.replaceChildren();
+    // A voice line belongs to the view it was shown in: a pause or a new listening starts without it.
+    if (state.kind !== lastKind) voiceLine = null;
+    lastKind = state.kind;
     if (state.kind !== "listening" && state.kind !== "paused") {
-      voiceLine = null;
       lastTaken = "";
+      emptyLists = 0;
+      failures = 0;
     }
     if (state.kind === "idle") {
       board.uncover();
@@ -1274,7 +1279,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     sayWord: (conceptId) => {
       const entry = byId.get(conceptId);
       if (entry === undefined) return;
-      const say = options.sayText ?? ((text: string, failed: () => void) => requestLocalGermanSpeech(text, failed));
+      const say = options.sayText ?? ((text: string, failed: () => void, ended: () => void) => requestLocalGermanSpeech(text, failed, ended));
       const show = (next: string | null): void => {
         const kind = recogniser.state().kind;
         if (kind !== "listening" && kind !== "paused") return;
@@ -1291,7 +1296,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       };
       let attempt: SpeechAttempt | boolean | void;
       try {
-        attempt = say(entry.labelDe, failed);
+        // As on the board: the failures in a row end only when a word was really said to its end.
+        attempt = say(entry.labelDe, failed, () => { failures = 0; });
       } catch {
         attempt = "failed";
       }
@@ -1299,10 +1305,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       emptyLists = result === "unavailable" ? emptyLists + 1 : 0;
       if (result === "requested") {
         // Said, unless the voice reported a failure already (a later one shows when it comes).
-        if (!failedNow) {
-          failures = 0;
-          show(null);
-        }
+        if (!failedNow) show(null);
       } else if (result === "unavailable") {
         show(emptyLists > 1 ? RECOGNISE_TEXT.noGermanVoice : RECOGNISE_TEXT.noVoice);
       } else if (result === "no-voice") {

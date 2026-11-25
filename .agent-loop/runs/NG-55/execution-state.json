@@ -1,11 +1,123 @@
 {
     "attention": null,
-    "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+    "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-25T07:05:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:05:08+00:00",
+                "artifact_references": [],
+                "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "573454f3fbb20308ecba7a81593a661bd143938a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:6e219d67",
+                "summary": "As revision 1; since then the owner decided: on idle only the camera stops and the tiles stay (paused state with Weiter), and tile voice failures use the board's lines in the board's order.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:05:09+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:05:09+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:3b00b3eb0bbe2dcc9185589914f9e6ef63eea94002556ead740be0bf8131b2ae",
+                    "execution-evidence:sha256:0a4b1310c2e980cf539fe688155d84b40934ac1bee8768e8ce3f30230ad6be4e",
+                    "execution-evidence:sha256:6eed543b0253e7da9f329be7fa7dc301a95292b331b0e4614a90124432955aa0"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:3b00b3eb0bbe2dcc9185589914f9e6ef63eea94002556ead740be0bf8131b2ae",
+                    "execution-evidence:sha256:0a4b1310c2e980cf539fe688155d84b40934ac1bee8768e8ce3f30230ad6be4e",
+                    "execution-evidence:sha256:6eed543b0253e7da9f329be7fa7dc301a95292b331b0e4614a90124432955aa0"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "completed",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:c2c3c80c",
+                "summary": "Idle: paused state (camera off, tiles stay, sayWord/confirm work, Weiter resumes with them); voice: board lines (unavailable twice escalates, no-voice, failed twice escalates); carry per camera start; sided cache; zu-lang clears on close; tests for all; mutants caught. npm run verify 708/708 + 7/7.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T07:06:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T07:06:45+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:61177d75e7201cba971c7a46bbe077843f6461b0fbce1952543eb64d144bac65",
+                    "execution-evidence:sha256:f39adfc0a0335a64783483c52c80192c4ecc3ad746d5bb51ebf802dc78275cfb",
+                    "execution-evidence:sha256:90073c779a1fbef8a29bcc52268991b560ae9ccb6197bee458b0054c42f49e0e"
+                ],
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "schema_version": "1.0",
+                "task_id": "NG-55",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:61177d75e7201cba971c7a46bbe077843f6461b0fbce1952543eb64d144bac65",
+                    "execution-evidence:sha256:f39adfc0a0335a64783483c52c80192c4ecc3ad746d5bb51ebf802dc78275cfb",
+                    "execution-evidence:sha256:90073c779a1fbef8a29bcc52268991b560ae9ccb6197bee458b0054c42f49e0e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:573454f3fbb20308ecba7a81593a661bd143938a:5c0769aac54278d83f00456ee35cdd0517720f4f",
+                "context_id": "claude-subagent-ng55-r2-correctness",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66cb5d150697c741fc7339f3d60cceb20a3b3c4c080879f78b641b6c07f5ea46",
+                "outcome": "changes_required",
+                "run_id": "run:NG-55:7b2fb3521aa9c190",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:5adbea27",
+                "summary": "Async voice failures never escalate: sayWord resets failures to 0 on every 'requested' result (src/recognise/recognise.ts:1303), while real failures arrive later via utterance.onerror, so two failed taps in a row both show 'Vorlesen ging nicht' and never 'Vorlesen geht nicht. Hol eine Bezugsperson.' (reproduced with an asynchronous failed() probe). board.ts:355-362 resets failures only on onEnd. The test (test/recognise.test.mjs:595) only calls failed() synchronously. Fix: do not reset failures on 'requested'; reset on utterance end by passing onEnd to requestLocalGermanSpeech at recognise.ts:1277 (and extend sayText for tests), keep show(null) for a word said; add a test that calls failed() after sayText returns, twice in a row, expecting the 'geht nicht' line. Paused paths, carry, switch, guard, focus and draw checked without defects.",
+                "task_id": "NG-55",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],

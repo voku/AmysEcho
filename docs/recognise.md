@@ -283,6 +283,9 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
   - With no German voice at all: "Keine deutsche Stimme. Hol eine Bezugsperson."
   - When the voice reports a failure: "Vorlesen ging nicht. Bitte noch einmal tippen.", and at a
     second failure in a row "Vorlesen geht nicht. Hol eine Bezugsperson."
+    Failures in a row end only when a word is said to its end, as on the board; a device reports
+    a failure after the tap, and a test does the same.
+  - A voice line belongs to the view it is shown in: the pause and a new listening start without it.
 - **A camera switch keeps the tiles** (card NG-55); any other start begins empty. The "zu lang" line
   goes once the hands have left the picture. Each frame is converted for the cut once, when it
   arrives, not again on every frame.
