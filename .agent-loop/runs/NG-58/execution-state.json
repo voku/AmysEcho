@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:5417beb5352b9a51d4febad22e6815bb6c7d62d0",
+    "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:faf0152385600f01a81b3b46bb0fc492ba312d1f",
     "contract_revision": 2,
     "current_attempt": 2,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
     "history": [
         {
@@ -105,6 +105,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:1:3b3a9332",
                 "summary": "context-id: ng58-cr-fresh-7f3a91. F1: after a restore conflict, focus goes to the destructive 'Ersetzen' button (src/caregiver.ts restoreExport, and the caregiver test asserts it); focus a non-destructive control instead. Also: a failure after import reports nothing restored; a save still downloads after the area closed during PBKDF2; MAX_BACKUP_ITERATIONS 10M too high; file name uses the UTC date; no tests for a failed save or the file-size guard.",
+                "task_id": "NG-58",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T20:32:53+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T20:32:53+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:faf0152385600f01a81b3b46bb0fc492ba312d1f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "schema_version": "1.0",
+                "task_id": "NG-58",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:ff802fa6af9d0582a06fdabb70db3d1ad891978c:faf0152385600f01a81b3b46bb0fc492ba312d1f",
+                "context_id": "main-session-ng58-build",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:ba488e845853e8d173cad9c44ce7aa1360c5b6d5ab4c759b91948dba9cea07de",
+                "outcome": "completed",
+                "run_id": "run:NG-58:97fde80392bba081",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:d63ef7c4",
+                "summary": "Fixed F1: after a conflict the focus goes to 'Als Kopie einspielen' (test asserts it). Also: no download after the area closed during PBKDF2 (tested), activation failure no longer reported as restore failure, MAX_BACKUP_ITERATIONS 2M (tested), local-day file name (tested), tests for a failed save and the size guard; file tests check only the readable part (a 3-letter name appeared by chance in base64 ciphertext once). npm run verify: 743 unit, 9 browser pass.",
                 "task_id": "NG-58",
                 "validation_references": []
             }
