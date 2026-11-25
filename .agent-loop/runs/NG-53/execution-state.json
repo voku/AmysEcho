@@ -1,0 +1,319 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+    "history": [
+        {
+            "accepted_at": "2026-11-24T18:50:27+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T18:50:27+00:00",
+                "artifact_references": [],
+                "candidate_revision": "2f46fc5150fb29a94f68475413ceb5871f4733f5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "schema_version": "1.0",
+                "task_id": "NG-53",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "2f46fc5150fb29a94f68475413ceb5871f4733f5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "outcome": "completed",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:6d7b654c",
+                "summary": "Attempts are built whole by buildFeatureSequence (features.ts) and matched by matchGesture; the evaluation (evaluate.ts simulateProfileUnder) renders single attempts with renderGesture. Change sites: a new segment.ts on LandmarkFrame streams using MAX_BRIDGED_GAP_MS, REST_SPEED and SPEED_SPAN_MS; a simulateStream in evaluate.ts reusing the profile's teaching and score(); tests and docs.",
+                "task_id": "NG-53",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T18:50:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T18:50:29+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:a0dfd65c891385bb7f90ca0fb4bf1f11470ed5823c8eb44b41b05a17d713ef69",
+                    "execution-evidence:sha256:feee2cb5eec63b66275cb95606d902adb459ab10197ee5e937dcb24d35eb51b2",
+                    "execution-evidence:sha256:0c822b6a9f5724fdf3a699f49790c811993f44e3763ce2e3605681c8d51e6c0f",
+                    "execution-evidence:sha256:26b31726a393e8c2863f68a46f8ee84060a26ef1b78c0bed7dd19a88916e6f66",
+                    "execution-evidence:sha256:e941a31875fbe5d7d698e7d4e8985cf370945efdd87c9ae37154db47884ae56e"
+                ],
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:cfb4373ec81760b1931029ffa245fa9e20aa40d6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "schema_version": "1.0",
+                "task_id": "NG-53",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:a0dfd65c891385bb7f90ca0fb4bf1f11470ed5823c8eb44b41b05a17d713ef69",
+                    "execution-evidence:sha256:feee2cb5eec63b66275cb95606d902adb459ab10197ee5e937dcb24d35eb51b2",
+                    "execution-evidence:sha256:0c822b6a9f5724fdf3a699f49790c811993f44e3763ce2e3605681c8d51e6c0f",
+                    "execution-evidence:sha256:26b31726a393e8c2863f68a46f8ee84060a26ef1b78c0bed7dd19a88916e6f66",
+                    "execution-evidence:sha256:e941a31875fbe5d7d698e7d4e8985cf370945efdd87c9ae37154db47884ae56e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:cfb4373ec81760b1931029ffa245fa9e20aa40d6",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "outcome": "completed",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:e2ad9910",
+                "summary": "segmentStream (away: gap > MAX_BRIDGED_GAP_MS + 200; rest: middle of a 1 s rest after a movement; open tail; >10 s dropped) and simulateStream (streams of 6 shuffled known/unknown movements with away or rest+400 ms move pauses, segments matched, same captures scored one by one). away equals one-by-one in all rows; rest fails; no threshold changed. 4 unit tests + 3 eval tests; 4 mutants caught. npm run verify 692/692 + 7/7.",
+                "task_id": "NG-53",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T18:53:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T18:53:25+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:aaf16eb1ee1d53c1fba90f4897a35b1b1f9e5cd8dec987e9cc77bd007f932d8e",
+                    "execution-evidence:sha256:0c55057b2c92051bd30368878c98af4cf644c4c5280643a883d9f4c6fd7bd86f",
+                    "execution-evidence:sha256:55da35935d02a8ef233f5c5e146d6dbbbb14c9f0dac47b9d15ffeb771cf4d459",
+                    "execution-evidence:sha256:c3b8257d94e1a10ecd95c25f119e8c88bb535e533be6647734722aa61f2af8d4",
+                    "execution-evidence:sha256:00a5ffd16d16a2d4393e78f3a571e2ce01d38bca5c4ca540fce30e3766d806a8"
+                ],
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:cfb4373ec81760b1931029ffa245fa9e20aa40d6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "schema_version": "1.0",
+                "task_id": "NG-53",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:aaf16eb1ee1d53c1fba90f4897a35b1b1f9e5cd8dec987e9cc77bd007f932d8e",
+                    "execution-evidence:sha256:0c55057b2c92051bd30368878c98af4cf644c4c5280643a883d9f4c6fd7bd86f",
+                    "execution-evidence:sha256:55da35935d02a8ef233f5c5e146d6dbbbb14c9f0dac47b9d15ffeb771cf4d459",
+                    "execution-evidence:sha256:c3b8257d94e1a10ecd95c25f119e8c88bb535e533be6647734722aa61f2af8d4",
+                    "execution-evidence:sha256:00a5ffd16d16a2d4393e78f3a571e2ce01d38bca5c4ca540fce30e3766d806a8"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:cfb4373ec81760b1931029ffa245fa9e20aa40d6",
+                "context_id": "claude-subagent-ng53-correctness",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "outcome": "changes_required",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:6a2fd8c1",
+                "summary": "AC1 falsified in rest mode: segmentStream places a rest cut inside a bridged dropout (src/recognition/segment.ts:160-164; probe: hand lost 1440-1840 ms inside a rest, segments [0..1640] and [1680..4000], both boundary frames handless). Fix: snap the cut to hand frames (advance cut to the next frame with a hand, end the earlier part at the last hand frame before it) and add a unit test with a dropout inside a rest. All 24 docs table rows reproduce exactly with EVAL_FULL-size options; simulateProfileUnder and seeds unchanged; no threshold changed. Non-blocking: away-mode equality with one-by-one is by construction (withoutEmptyEnds + instant enter/leave make each segment the capture itself), so docs should say the synthetic away rows only check boundary recovery; rest-pause spans include rests so 'said in a pause' cannot fire there; surviving mutants: tri-state null-as-rest, two-hand any-moving rule, open split in rest mode, bridge-limit in movingFrames, gap > vs >=.",
+                "task_id": "NG-53",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T18:58:18+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T18:58:18+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:65d9077740117b040c8db2159d0bd4bc4c491a49e840823870c34076f6da6670",
+                    "execution-evidence:sha256:c9075f98a230660586f68b7fc7b232ebec2f0fabc9d1ffb491ab36ee38ba9d28",
+                    "execution-evidence:sha256:e4d9c5b8ef3baa9b1d1b0eb16260fa1d7363e2654fcc1771b04589574a350b6c",
+                    "execution-evidence:sha256:36fc108b9a6106ef6714ac6367fee9b376caa7fee118aba34f85433974c7aee3",
+                    "execution-evidence:sha256:3740d5d6c0587fd9731e263920618271f5f9332490c0411ac2d5723b25f30ceb"
+                ],
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "schema_version": "1.0",
+                "task_id": "NG-53",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:65d9077740117b040c8db2159d0bd4bc4c491a49e840823870c34076f6da6670",
+                    "execution-evidence:sha256:c9075f98a230660586f68b7fc7b232ebec2f0fabc9d1ffb491ab36ee38ba9d28",
+                    "execution-evidence:sha256:e4d9c5b8ef3baa9b1d1b0eb16260fa1d7363e2654fcc1771b04589574a350b6c",
+                    "execution-evidence:sha256:36fc108b9a6106ef6714ac6367fee9b376caa7fee118aba34f85433974c7aee3",
+                    "execution-evidence:sha256:3740d5d6c0587fd9731e263920618271f5f9332490c0411ac2d5723b25f30ceb"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "context_id": "claude-session-01EXnDSCPSRGXeNLnX4yBJeq-main",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "outcome": "completed",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:ead4f0d2",
+                "summary": "Review fixes: rest cut snapped to hand frames on both sides; 3 new unit tests (loss inside a rest, two hands with one resting, exact gap boundary) each failing against its mutant; docs state the away equality is by construction and why said-in-a-pause cannot occur in rest rows. Table reproduced unchanged. npm run verify 695/695 + 7/7.",
+                "task_id": "NG-53",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T19:01:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T19:01:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:8a73826bb2d12bd0ed32e9b3d671a27698233aef5bf8e4939c3b86d5cc8d83ad",
+                    "execution-evidence:sha256:8b3106bec32395b95882530fa17e75f5b007605543f2ea2ed9815cc9f5065a60",
+                    "execution-evidence:sha256:5d293141e6f192bfa9658f3ab50d59f8c77a2f57e69fc8e3bbe4b3405c313093",
+                    "execution-evidence:sha256:12a28bc96f51dc0d0cb32baf6355fa2e9b58218998a6930813b89a9a375d4da1",
+                    "execution-evidence:sha256:7460283892c92e9cbe8d02b0f22c766acfd2cfb0447df41ae43b3c4597ba3212"
+                ],
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "schema_version": "1.0",
+                "task_id": "NG-53",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:8a73826bb2d12bd0ed32e9b3d671a27698233aef5bf8e4939c3b86d5cc8d83ad",
+                    "execution-evidence:sha256:8b3106bec32395b95882530fa17e75f5b007605543f2ea2ed9815cc9f5065a60",
+                    "execution-evidence:sha256:5d293141e6f192bfa9658f3ab50d59f8c77a2f57e69fc8e3bbe4b3405c313093",
+                    "execution-evidence:sha256:12a28bc96f51dc0d0cb32baf6355fa2e9b58218998a6930813b89a9a375d4da1",
+                    "execution-evidence:sha256:7460283892c92e9cbe8d02b0f22c766acfd2cfb0447df41ae43b3c4597ba3212"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "context_id": "claude-subagent-ng53-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "observations": [
+                    "src/recognition/segment.ts:151 mutant treating moving===null as rest still survives the whole recognition suite (43/43 pass)",
+                    "src/recognition/segment.ts:182 mutant that skips the rest split of the open part still survives the suite",
+                    "src/recognition/segment.ts:94 mutant that drops the SPEED_SPAN_MS + MAX_BRIDGED_GAP_MS look-back limit still survives the suite",
+                    "docs/recognition.md:570-576 by the gate as defined (wrong concept, unknown accepted, said in a pause) the 1 s rest rows and the 600 ms away rows pass it; 'rest fails the gate' rests only on the 1.5 s rest rows, and the 1 s bullet describes a miss rate, not a gate failure"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:5451b6a5",
+                "summary": "Rest-mode cut fix is correct: cut snaps forward to a hand frame (bounded by index), end snaps back to a hand frame (bounded by restFrom, which has a hand and lies after start), so end >= start and no part starts or ends inside a loss; 20000-stream fuzz found no violation or throw. Each snap loop removed alone fails the new loss test; the two-hand and >= gap mutants fail their new tests. EVAL_FULL-size table reproduces exactly; docs now state the away equality is by construction and why said-in-a-pause cannot fire in rest rows. No matcher threshold changed. 54/54 recognition tests pass.",
+                "task_id": "NG-53",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T19:02:54+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T19:02:54+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:edef9d894f1e22c970b11cfc145d9e01c07343198af25b20f2ea4d736bfa90a8",
+                    "execution-evidence:sha256:a6bf3474467d6236dc3489b8d1e37444a038010dc66309a8ecd078726725ca8e",
+                    "execution-evidence:sha256:fe4a68e33eca2b3a2e175551ef3fd9faa31684b02b4011c663ec0c4961c42037",
+                    "execution-evidence:sha256:e685b43812f80ac2a092f99e2256f309c589167963473334e84bbe180fe1d8a1",
+                    "execution-evidence:sha256:3998bf9c0258b5ae82a98c6c91ce09b93927332df5cff599606dd8f8f7028e9d"
+                ],
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "schema_version": "1.0",
+                "task_id": "NG-53",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:edef9d894f1e22c970b11cfc145d9e01c07343198af25b20f2ea4d736bfa90a8",
+                    "execution-evidence:sha256:a6bf3474467d6236dc3489b8d1e37444a038010dc66309a8ecd078726725ca8e",
+                    "execution-evidence:sha256:fe4a68e33eca2b3a2e175551ef3fd9faa31684b02b4011c663ec0c4961c42037",
+                    "execution-evidence:sha256:e685b43812f80ac2a092f99e2256f309c589167963473334e84bbe180fe1d8a1",
+                    "execution-evidence:sha256:3998bf9c0258b5ae82a98c6c91ce09b93927332df5cff599606dd8f8f7028e9d"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "context_id": "claude-subagent-ng53-blindspot",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "observations": [
+                    "src/recognition/segment.ts:131-134,141: the open run has no SEGMENT_MAX_MS cap (only finished runs are dropped in keep). With a hand resting in the lap or a caregiver in view the open run grows without bound. NG-54 re-running segmentStream per frame on the whole history costs O(n) per frame and returns already-finished segments again, so NG-54 must trim consumed frames, dedupe emitted segments by tMs, and cap or discard an open run longer than SEGMENT_MAX_MS.",
+                    "src/recognition/segment.ts:124 with src/recognition/evaluate.ts simulateStream: a tracker loss over 700 ms inside a gesture splits it, and each fragment is matched on its own. That source of wrong concepts exists only in the stream and is not measured: simulateStream never sets dropoutMs (src/recognition/synthetic.ts:112 supports it). The Not measured list in docs/recognition.md omits it. Add a dropoutMs row (e.g. 800 ms) in NG-5 or before NG-54 ships.",
+                    "docs/recognition.md (What follows for the view): 'A child who keeps the hands up between gestures gets nothing said rather than something wrong' rests mostly on rows where whole six-movement streams exceed 10 s and are dropped (too long 26). Merged segments under 10 s were compared in only 2 cases (600 ms rows). Shorter streams, e.g. two gestures with hands up, are unmeasured.",
+                    "Motor access: 'away' makes continuous mode unusable for a child who cannot lower or move the hands out of view. NG-54's card does not say that the explicit Gebaerde/Stopp attempt stays available as a fallback. It should, and the view should show that a segment was dropped (segment.ts:141 drops >10 s silently). SEGMENT_MAX_MS = 10 s is not checked against slow signers."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:809d1068",
+                "summary": "No blocking blind spot. The 'away' choice follows from the evidence (rest fails the gate; away's failure modes with hands in view are drops, not wrong concepts in the measured rows), and docs state that the away equality is by construction and synthetic only. Fixtures are synthetic. The new eval tests add about 4.8 s of an 18 s file. Risks that NG-54 and NG-5 must carry are recorded as observations.",
+                "task_id": "NG-53",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-24T19:06:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-24T19:06:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "schema_version": "1.0",
+                "task_id": "NG-53",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:7b362adbe30ffdacbb7d1272a1379f3e7dc3e2e8b174123ad149d0c5485e45ea",
+                    "execution-evidence:sha256:25aa7d68f04984ebb86993eea9904894f27057b61cceae7f0d660107d7e95c44"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2f46fc5150fb29a94f68475413ceb5871f4733f5:2382137f717e669d0cdda75453a7c8228cc885b5",
+                "consistency_references": [
+                    "execution-evidence:sha256:492e8457d1be03200cc4b6e5fef72643cecd0a828b41d2c1141c1fa173152a4f"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:6372f4e99cca99bfee1598ada8ec7f2a9893e0c3e31ce09421b0f5cb41c4d50f",
+                "outcome": "pass",
+                "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:230df554a0564d74979a125852fd30d67f7c783dc2d4c542eec2fb80070049ec",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-53: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-53 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-53:7b09c79ddbe4d5a9 binds active Session 2026-11-24-ng-53-r1-5e92a9f9 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-53 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-53",
+                "validation_references": [
+                    "execution-evidence:sha256:7b362adbe30ffdacbb7d1272a1379f3e7dc3e2e8b174123ad149d0c5485e45ea",
+                    "execution-evidence:sha256:25aa7d68f04984ebb86993eea9904894f27057b61cceae7f0d660107d7e95c44"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-53:7b09c79ddbe4d5a9",
+    "schema_version": "1.0",
+    "task_id": "NG-53"
+}

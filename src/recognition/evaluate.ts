@@ -1,4 +1,5 @@
-import { buildFeatureSequence, type FeatureSequence } from "./features.js";
+import { buildFeatureSequence, type FeatureSequence, type LandmarkFrame, type Point } from "./features.js";
+import { segmentStream, type SegmentMode } from "./segment.js";
 import { calibrateMaxDistance, DEFAULT_MIN_MARGIN, matchGesture, type GestureExample } from "./matcher.js";
 import {
   createGesture, createLookAlike, createRandom, createSession, fidgeting, renderGesture, renderScript, scriptedHand, trembling,
@@ -545,4 +546,231 @@ export function simulateHandCases(first = 0, count = HAND_CASES.length): { reado
     }
     return { name: handCase.name, report: evaluateBySession(attempts, ["teach"]) };
   });
+}
+
+// --- Continuous streams cut into gestures (card NG-53) ---
+
+export interface StreamOptions {
+  readonly hands: ProfileHands;
+  readonly gestures: number;
+  readonly sloppiness: number;
+  readonly unknownKind: "unrelated" | "other-fingers" | "ends-elsewhere";
+  /** How the stream is cut (`segment.ts`). */
+  readonly mode: SegmentMode;
+  /**
+   * What happens between two movements: "away", the hands leave the picture; "rest", they stay in
+   * view, rest at the end posture, move to the next start posture in `TRANSITION_MS` and rest there.
+   */
+  readonly pause: "away" | "rest";
+  /** How long the pause lasts (for "rest": both rests together, without the move between them). */
+  readonly pauseMs: number;
+  /** Known gestures per gesture and unknown movements per gesture in each later session; default 3 and 2. */
+  readonly attemptsPerGesture?: number;
+  readonly unknownsPerGesture?: number;
+  /** Movements per stream; default 6. */
+  readonly itemsPerStream?: number;
+}
+
+/** What one stream evaluation found; rates are shares of the known gestures or of the unknown movements. */
+export interface StreamReport {
+  readonly knownGestures: number;
+  readonly unknownMovements: number;
+  readonly segments: number;
+  /** Known gesture: one of its segments accepted as the right concept and none as a wrong one. */
+  readonly top1: number;
+  /** Known gesture: a segment of it accepted as a wrong concept. */
+  readonly wrongAccept: number;
+  /** Known gesture: no segment of it accepted. */
+  readonly missed: number;
+  /** Unknown movement: a segment of it accepted as some concept. */
+  readonly falseAccept: number;
+  /** Accepted segments that overlap no movement at all (a pause, a move between postures), as a count. */
+  readonly spuriousAccepts: number;
+  /** Movements cut into more than one segment, and segments that cover more than one movement, as counts. */
+  readonly split: number;
+  readonly merged: number;
+  /** Segments dropped for being too long. */
+  readonly tooLong: number;
+  /** The same movements, each scored as one attempt on its own (no stream, no cut): the baseline of the gate. */
+  readonly perAttempt: EvaluationReport;
+}
+
+/** How long the hands take from the end posture of one movement to the start posture of the next in a "rest" pause. */
+export const TRANSITION_MS = 400;
+const STREAM_FRAME_MS = 37;
+
+interface StreamItem {
+  readonly conceptId: string | null;
+  readonly frames: readonly LandmarkFrame[];
+}
+
+function withoutEmptyEnds(frames: readonly LandmarkFrame[]): LandmarkFrame[] {
+  const has = (frame: LandmarkFrame): boolean => frame.left !== null || frame.right !== null;
+  const first = frames.findIndex(has);
+  if (first < 0) return [];
+  let last = frames.length - 1;
+  while (!has(frames[last]!)) last -= 1;
+  return frames.slice(first, last + 1);
+}
+
+function shifted(frame: LandmarkFrame, byMs: number): LandmarkFrame {
+  return { ...frame, tMs: frame.tMs + byMs };
+}
+
+function between(a: readonly Point[] | null, b: readonly Point[] | null, share: number): Point[] | null {
+  if (a === null || b === null) return null;
+  return a.map((point, index) => [point[0] + (b[index]![0] - point[0]) * share, point[1] + (b[index]![1] - point[1]) * share]);
+}
+
+/**
+ * Joins the movements into one stream with the pause between them, and returns it with each
+ * movement's span (first to last frame with a hand, rests included).
+ */
+function joinStream(items: readonly StreamItem[], pause: StreamOptions["pause"], pauseMs: number): { frames: LandmarkFrame[]; spans: [number, number][] } {
+  const frames: LandmarkFrame[] = [];
+  const spans: [number, number][] = [];
+  let tMs = 0;
+  items.forEach((item, index) => {
+    const own = item.frames;
+    if (index > 0) {
+      const before = frames[frames.length - 1]!;
+      if (pause === "away") {
+        for (let at = STREAM_FRAME_MS; at < pauseMs; at += STREAM_FRAME_MS) frames.push({ tMs: tMs + at, left: null, right: null, shoulders: before.shoulders });
+        tMs += pauseMs;
+      } else {
+        // The hands move from where the last movement left them to where the next one starts.
+        const next = own[0]!;
+        for (let at = STREAM_FRAME_MS; at < TRANSITION_MS; at += STREAM_FRAME_MS) {
+          const share = at / TRANSITION_MS;
+          frames.push({ tMs: tMs + at, left: between(before.left, next.left, share), right: between(before.right, next.right, share), shoulders: before.shoulders });
+        }
+        tMs += TRANSITION_MS;
+      }
+    }
+    const offset = tMs - own[0]!.tMs + (index > 0 ? STREAM_FRAME_MS : 0);
+    for (const frame of own) frames.push(shifted(frame, offset));
+    spans.push([own[0]!.tMs + offset, own[own.length - 1]!.tMs + offset]);
+    tMs = frames[frames.length - 1]!.tMs;
+  });
+  return { frames, spans };
+}
+
+/**
+ * The synthetic profile of `simulateProfile`, used continuously: its later sessions are streams of
+ * known gestures and unknown movements with a pause between them, cut by `segmentStream` and each
+ * segment compared with the examples. The same movements are also scored one by one as attempts
+ * (`perAttempt`), so the two can be compared on exactly the same captures. Made-up movements.
+ */
+export function simulateStream(options: StreamOptions): StreamReport {
+  let seed = 1;
+  const kind = (index: number): SyntheticHands | undefined =>
+    (options.hands === "default" ? undefined : options.hands === "mixed" ? MIXED[index % MIXED.length] : options.hands);
+  const render = (gesture: SyntheticGesture, placement: ReturnType<typeof createSession>, disturbance: Disturbance): LandmarkFrame[] =>
+    renderGesture(gesture, { seed: seed += 1, session: placement, sloppiness: options.sloppiness, disturbance });
+  const examples: GestureExample[] = [];
+  TEACHING.forEach((_, index) => {
+    const placement = createSession(100 + index);
+    for (let g = 0; g < options.gestures; g += 1) {
+      for (let repeat = 0; repeat < 3; repeat += 1) {
+        const result = buildFeatureSequence(render(createGesture(g + 1, kind(g)), placement, { restBeforeMs: 300, restAfterMs: 300 }));
+        if (result.ok) examples.push({ conceptId: `concept-${g}`, sequence: result.sequence });
+      }
+    }
+  });
+  if (examples.length === 0) throw new RangeError("evaluation needs examples");
+  const maxDistance = calibrateMaxDistance(examples);
+  const match = (frames: readonly LandmarkFrame[]): string | null => {
+    const built = buildFeatureSequence(frames);
+    if (!built.ok) return null;
+    const result = matchGesture(built.sequence, examples, { maxDistance, minMargin: DEFAULT_MIN_MARGIN });
+    return result.kind === "match" ? result.conceptId : null;
+  };
+  // Rests around each movement: what the pause leaves in view ("rest"), or a short one as when a caregiver records ("away").
+  const rest = options.pause === "rest" ? options.pauseMs / 2 : 300;
+  const singles: LabelledAttempt[] = [];
+  let known = 0;
+  let unknown = 0;
+  let segmentsSeen = 0;
+  let top1 = 0;
+  let wrongAccept = 0;
+  let missed = 0;
+  let falseAccept = 0;
+  let spuriousAccepts = 0;
+  let split = 0;
+  let merged = 0;
+  let tooLong = 0;
+  USING.forEach((sessionId, sessionIndex) => {
+    const placement = createSession(100 + TEACHING.length + sessionIndex);
+    const items: StreamItem[] = [];
+    for (let g = 0; g < options.gestures; g += 1) {
+      for (let repeat = 0; repeat < (options.attemptsPerGesture ?? 3); repeat += 1) {
+        items.push({ conceptId: `concept-${g}`, frames: withoutEmptyEnds(render(createGesture(g + 1, kind(g)), placement, { restBeforeMs: rest, restAfterMs: rest })) });
+      }
+      for (let other = 0; other < (options.unknownsPerGesture ?? 2); other += 1) {
+        const movement = options.unknownKind === "unrelated"
+          ? createGesture(5000 + (seed += 1), kind(g))
+          : createLookAlike(createGesture(g + 1, kind(g)), seed += 1, options.unknownKind);
+        items.push({ conceptId: null, frames: withoutEmptyEnds(render(movement, placement, { restBeforeMs: rest, restAfterMs: rest })) });
+      }
+    }
+    // A fixed shuffle, so a stream mixes gestures and unknown movements.
+    const random = createRandom(7000 + sessionIndex);
+    const order = items.filter((item) => item.frames.length > 0).map((item) => ({ item, key: random() })).sort((a, b) => a.key - b.key).map(({ item }) => item);
+    for (const item of order) {
+      const built = buildFeatureSequence(item.frames);
+      singles.push({ conceptId: item.conceptId, sessionId, sequence: built.ok ? built.sequence : null });
+    }
+    const perStream = options.itemsPerStream ?? 6;
+    for (let from = 0; from < order.length; from += perStream) {
+      const streamItems = order.slice(from, from + perStream);
+      const { frames, spans } = joinStream(streamItems, options.pause, options.pauseMs);
+      // The stream ends with the hands out of view long enough to finish the last gesture.
+      const cut = segmentStream(frames, options.mode, frames[frames.length - 1]!.tMs + 10_000);
+      tooLong += cut.tooLong;
+      segmentsSeen += cut.segments.length;
+      const answers: (string | null)[][] = streamItems.map(() => []);
+      for (const segment of cut.segments) {
+        const start = segment[0]!.tMs;
+        const end = segment[segment.length - 1]!.tMs;
+        const overlaps = spans.map(([a, b]) => Math.max(0, Math.min(b, end) - Math.max(a, start)));
+        const covered = overlaps.filter((overlap) => overlap > 0).length;
+        if (covered > 1) merged += 1;
+        const best = overlaps.indexOf(Math.max(...overlaps));
+        const answer = match(segment);
+        if (covered === 0) {
+          if (answer !== null) spuriousAccepts += 1;
+          continue;
+        }
+        answers[best]!.push(answer);
+      }
+      streamItems.forEach((item, index) => {
+        const said = answers[index]!;
+        if (said.length > 1) split += 1;
+        const accepted = said.filter((answer): answer is string => answer !== null);
+        if (item.conceptId === null) {
+          unknown += 1;
+          if (accepted.length > 0) falseAccept += 1;
+          return;
+        }
+        known += 1;
+        if (accepted.some((answer) => answer !== item.conceptId)) wrongAccept += 1;
+        else if (accepted.length > 0) top1 += 1;
+        else missed += 1;
+      });
+    }
+  });
+  return {
+    knownGestures: known,
+    unknownMovements: unknown,
+    segments: segmentsSeen,
+    top1: share(top1, known),
+    wrongAccept: share(wrongAccept, known),
+    missed: share(missed, known),
+    falseAccept: share(falseAccept, unknown),
+    spuriousAccepts,
+    split,
+    merged,
+    tooLong,
+    perAttempt: score(examples, maxDistance, singles, DEFAULT_MIN_MARGIN),
+  };
 }

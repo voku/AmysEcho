@@ -9,6 +9,7 @@ import {
   calibrateMaxDistance, limitKey, matchGesture, rankConcepts, MAX_CALIBRATED_MAX_DISTANCE, FALLBACK_MAX_DISTANCE,
 } from "../dist/recognition/matcher.js";
 import { createGesture, createSession, renderGesture } from "../dist/recognition/synthetic.js";
+import { REST_SPLIT_MS, SEGMENT_GAP_MS, SEGMENT_MAX_MS, segmentStream } from "../dist/recognition/segment.js";
 
 const session = createSession(7);
 // One-hand gestures unless a test says otherwise: sequences made with different hands are not compared at all.
@@ -586,4 +587,116 @@ test("shoulders seen only before the movement still anchor the gesture", () => {
   assert.equal(early.anchor, "shoulders");
   assert.ok(dtwDistance(early, built(frames)) < 0.01);
   assert.equal(built(frames.map((frame) => ({ ...frame, shoulders: null }))).anchor, "hands");
+});
+
+// --- Cutting a continuous stream into gestures (card NG-53) ---
+
+
+const STREAM_SHOULDERS = [[-50, 0], [50, 0]];
+/** A made-up hand of 21 points around a wrist at (x, y), in pixels; shoulders are 100 px apart. */
+const streamHand = (x, y) => Array.from({ length: 21 }, (_, index) => [x + (index % 5) * 3, y - Math.floor(index / 5) * 6]);
+/** Frames every 40 ms from `fromMs` to `toMs`, the right hand at `place(tMs)` or out of view (null). */
+const streamFrames = (fromMs, toMs, place) => {
+  const frames = [];
+  for (let tMs = fromMs; tMs <= toMs; tMs += 40) {
+    const at = place(tMs);
+    frames.push({ tMs, left: null, right: at === null ? null : streamHand(at[0], at[1]), shoulders: STREAM_SHOULDERS });
+  }
+  return frames;
+};
+/** A hand moving 100 px in a second from (0, 0), then out of view. */
+const sweep = (fromMs) => (tMs) => (tMs < fromMs || tMs > fromMs + 1000 ? null : [(tMs - fromMs) / 10, 0]);
+const spanOf = (segment) => [segment[0].tMs, segment[segment.length - 1].tMs];
+
+test("segments: the hands out of view longer than the gap end a gesture; a shorter loss, which the builder bridges, never does", () => {
+  assert.equal(SEGMENT_GAP_MS, MAX_BRIDGED_GAP_MS + 200);
+  const first = sweep(0);
+  const second = sweep(1000 + SEGMENT_GAP_MS + 100);
+  const frames = streamFrames(0, 4000, (tMs) => first(tMs) ?? second(tMs));
+  for (const mode of ["away", "rest"]) {
+    const cut = segmentStream(frames, mode);
+    assert.deepEqual(cut.segments.map(spanOf), [[0, 1000], [1800, 2800]], mode);
+    assert.equal(cut.open, null);
+  }
+  // The hand lost for the longest gap the builder bridges, in the middle of one gesture: one segment.
+  const lost = streamFrames(0, 3000, (tMs) => (tMs > 400 && tMs < 400 + MAX_BRIDGED_GAP_MS ? null : tMs <= 1500 ? [tMs / 10, 0] : null));
+  assert.deepEqual(segmentStream(lost, "away").segments.map(spanOf), [[0, 1480]]);
+});
+
+test("segments: a gesture the stream may still be in is open, not finished; an empty stream has nothing", () => {
+  const frames = streamFrames(0, 1200, sweep(0));
+  assert.deepEqual(segmentStream(frames, "away").segments, [], "less than the gap since the hand was last seen");
+  assert.deepEqual(spanOf(segmentStream(frames, "away").open), [0, 1000]);
+  const later = segmentStream(frames, "away", 1000 + SEGMENT_GAP_MS + 1);
+  assert.deepEqual(later.segments.map(spanOf), [[0, 1000]], "finished once the gap has passed");
+  assert.equal(later.open, null);
+  assert.deepEqual(segmentStream([], "away"), { segments: [], tooLong: 0, open: null });
+  assert.deepEqual(segmentStream(streamFrames(0, 2000, () => null), "rest"), { segments: [], tooLong: 0, open: null });
+});
+
+test("segments: 'rest' also cuts in the middle of a rest in view after a movement; a rest alone, or a still hand, is not cut", () => {
+  // Moves for a second, rests 1.6 s, moves back for a second, then leaves.
+  const place = (tMs) => (tMs <= 1000 ? [tMs / 10, 0] : tMs <= 2600 ? [100, 0] : tMs <= 3600 ? [100 - (tMs - 2600) / 10, 0] : null);
+  const frames = streamFrames(0, 6000, place);
+  const rest = segmentStream(frames, "rest").segments.map(spanOf);
+  assert.equal(rest.length, 2);
+  // The cut is where the rest has lasted REST_SPLIT_MS, at the middle of that much rest: both parts keep some of it.
+  // The hand stops at 1 s; the rest is measured from about 1.2 s (the speed looks back SPEED_SPAN_MS), so the cut lies
+  // half of REST_SPLIT_MS later: never at the start of the rest, never past it.
+  assert.ok(rest[0][1] >= 1000 + REST_SPLIT_MS / 2 && rest[0][1] < 1000 + REST_SPLIT_MS, `${rest[0]}`);
+  assert.equal(rest[1][0], rest[0][1] + 40);
+  assert.equal(rest[1][1], 3600);
+  assert.deepEqual(segmentStream(frames, "away").segments.map(spanOf), [[0, 3600]], "'away' does not cut at a rest");
+  // A hand held still in view, then gone: one segment, not cut (nothing moved before the rest).
+  const still = streamFrames(0, 5000, (tMs) => (tMs <= 2500 ? [0, 0] : null));
+  assert.deepEqual(segmentStream(still, "rest").segments.map(spanOf), [[0, 2480]]);
+  // What is left after a cut and never moves again is no gesture.
+  const tail = streamFrames(0, 6000, (tMs) => (tMs <= 1000 ? [tMs / 10, 0] : tMs <= 3500 ? [100, 0] : null));
+  assert.equal(segmentStream(tail, "rest").segments.length, 1);
+});
+
+test("segments: a segment longer than SEGMENT_MAX_MS is dropped and counted, never compared", () => {
+  const frames = streamFrames(0, SEGMENT_MAX_MS + 3000, (tMs) => (tMs <= SEGMENT_MAX_MS + 400 ? [(tMs / 10) % 100, 0] : null));
+  const cut = segmentStream(frames, "away");
+  assert.deepEqual(cut.segments, []);
+  assert.equal(cut.tooLong, 1);
+});
+
+test("segments: a cut at a rest never falls inside a loss of the hand; both parts start and end with a hand", () => {
+  // Moves for a second, rests, is lost for 400 ms in the middle of the rest (bridged), rests, moves back.
+  const place = (tMs) => (tMs <= 1000 ? [tMs / 10, 0] : tMs > 1440 && tMs < 1840 ? null : tMs <= 2800 ? [100, 0] : tMs <= 3800 ? [100 - (tMs - 2800) / 10, 0] : null);
+  const parts = segmentStream(streamFrames(0, 6000, place), "rest").segments;
+  assert.equal(parts.length, 2);
+  for (const part of parts) {
+    assert.notEqual(part[0].right, null, "starts with a hand");
+    assert.notEqual(part[part.length - 1].right, null, "ends with a hand");
+  }
+  assert.ok(parts[0][parts[0].length - 1].tMs <= 1440 && parts[1][0].tMs >= 1840, "the loss lies between the parts");
+});
+
+test("segments: with two hands, one moving keeps the frame moving", () => {
+  // The right hand moves alone for a second, then rests for two while the left hand moves: one gesture, never cut
+  // at the right hand's rest. (The right hand is measured after the left one: its rest must not hide the movement.)
+  const frames = [];
+  for (let tMs = 0; tMs <= 6000; tMs += 40) {
+    const right = tMs <= 1000 ? streamHand(tMs / 10, 0) : tMs <= 3000 ? streamHand(100, 0) : null;
+    const left = tMs > 1000 && tMs <= 3000 ? streamHand(-100 - ((tMs - 1000) / 10) % 100, 0) : null;
+    frames.push({ tMs, left, right, shoulders: STREAM_SHOULDERS });
+  }
+  assert.deepEqual(segmentStream(frames, "rest").segments.map(spanOf), [[0, 3000]]);
+});
+
+test("segments: exactly SEGMENT_GAP_MS without a hand does not cut; longer does", () => {
+  // Frames every 50 ms, so the gap between the last hand frame and the next one is exactly `gapMs`.
+  const at = (gapMs) => {
+    const frames = [];
+    for (let tMs = 0; tMs <= 5000; tMs += 50) {
+      const right = tMs <= 1000 ? streamHand(tMs / 10, 0) : tMs < 1000 + gapMs ? null : tMs <= 2000 + gapMs ? streamHand((tMs - gapMs) / 10, 0) : null;
+      frames.push({ tMs, left: null, right, shoulders: STREAM_SHOULDERS });
+    }
+    return frames;
+  };
+  assert.equal(SEGMENT_GAP_MS % 50, 0);
+  assert.equal(segmentStream(at(SEGMENT_GAP_MS), "away").segments.length, 1);
+  assert.equal(segmentStream(at(SEGMENT_GAP_MS + 50), "away").segments.length, 2);
 });
