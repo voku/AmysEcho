@@ -1,0 +1,50 @@
+{
+    "acceptance_criteria": [
+        "After a failed clip save or delete the view's buttons are enabled again (tested)",
+        "Taps on Vormachen controls do not leave a press time behind for the recogniser's guarded buttons (tested)",
+        "The Vormachen chooser follows the board order (tested)",
+        "A demo camera that reports facingMode 'environment' is closed and refused with a German line; one that reports no facing is allowed (tested)",
+        "A new clip this browser cannot play is dropped with a line that asks to record again; a stored one that cannot play gets a status line, and the focus does not drop to the page; the gesture view keeps its status line in place on a playback error (tested)",
+        "A recording whose recorder never reports its end is given up after a bounded wait with a German line (tested)",
+        "The browser test closes its server when the browser cannot be launched"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-25T19:33:58+00:00",
+    "approved_by": "Lars Moelleken (in session 2026-11-25: 'Finish things from NG-60')",
+    "base_commit": "a4e289254ee70fa9f034b2161da0555ce42ce012",
+    "behavior_anchors": [],
+    "created_at": "2026-11-25T19:33:57+00:00",
+    "goal": "Fix the code-level review notes of 'Vormachen': controls usable after a failed write, demo controls do not disturb the recogniser's press guard, chooser in board order, a back camera refused for demo recording, an unplayable new clip cannot be saved and an unplayable clip is announced, a recorder that never stops does not hang the view, and the browser test cleans up on a launch failure.",
+    "kind": "task_contract",
+    "non_goals": [
+        "No blob: URLs (needs a policy change; measured need first)",
+        "No change to the mirror default (owner decision with the child)",
+        "No device or Safari measurement (needs hardware)"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (in session 2026-11-25: 'Finish things from NG-60')",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/caregiver.ts",
+        "src/recognise/recognise.ts",
+        "src/demo-clips.ts",
+        "test/caregiver.test.mjs",
+        "test/recognise.test.mjs",
+        "test/browser/demo-clips.test.mjs",
+        "docs/caregiver.md",
+        "docs/recognise.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-60",
+    "updated_at": "2026-11-25T19:33:58+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

@@ -487,6 +487,10 @@ const DEMO_READY = "Die Kamera läuft. Tippe auf „Aufnahme starten“.";
 const DEMO_RECORDING = "Die Aufnahme läuft. Jetzt die Gebärde vormachen.";
 const DEMO_READING = "Der Clip wird gelesen …";
 const DEMO_DELETE = "Clip löschen";
+/** How long a stopped recorder may take to hand over its recording before it is given up (card NG-60). */
+export const DEMO_STOP_WAIT_MS = 5000;
+const DEMO_BACK_CAMERA = "Hier läuft nur eine Kamera, die vom Gerät weg zeigt. Vormachen wird mit der vorderen Kamera aufgenommen, damit nie das Kind im Bild ist.";
+const DEMO_DRAFT_UNPLAYABLE = "Dieser Clip kann in diesem Browser nicht abgespielt werden und wurde verworfen. Bitte noch einmal aufnehmen.";
 const DEMO_UNPLAYABLE = "Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden.";
 const DEMO_CAMERA_ENDED = "Die Kamera ist ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen.";
 const DEMO_FULL = "Der Platz für dieses Profil ist voll. Der Clip wurde nicht gespeichert. Entferne Clips, Bilder oder Gebärden, dann ist wieder Platz.";
@@ -1918,6 +1922,22 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         camera.close();
         return;
       }
+      // Card NG-60: "user" is only asked for. A camera that says it faces away (a device without a front camera)
+      // is refused; one that says nothing about its facing (a desktop webcam) is allowed.
+      let facingAway = false;
+      try {
+        facingAway = camera.stream.getTracks().some((track) => (track as { getSettings?: () => { facingMode?: string } }).getSettings?.().facingMode === "environment");
+      } catch {
+        // Nothing reported: allowed.
+      }
+      if (facingAway) {
+        camera.close();
+        demoCamera = null;
+        state.camera = "off";
+        say(DEMO_BACK_CAMERA, true);
+        drawDemo(open, ["demo-camera"]);
+        return;
+      }
       demo.camera = camera;
       const video = document.createElement("video");
       video.className = "caregiver-demo-live";
@@ -2032,7 +2052,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     } catch (error) {
       stopping = Promise.reject(error);
     }
-    void stopping
+    // A recorder that never reports its end (card NG-60) does not leave the view reading: after DEMO_STOP_WAIT_MS it is given up.
+    let cancelWait = (): void => undefined;
+    const waited = new Promise<never>((_, reject) => {
+      try {
+        cancelWait = setTimer(() => reject(new DemoRecordingRefusal("unreadable")), DEMO_STOP_WAIT_MS);
+      } catch {
+        // Without a timer the view waits for the recorder.
+      }
+    });
+    void Promise.race([stopping.finally(() => cancelWait()), waited])
       .then((blob) => makeClip(blob))
       .then((clip) => {
         if (!isDemoDataUrl(clip)) throw new DemoRecordingRefusal("unreadable");
@@ -2076,6 +2105,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
           if (error instanceof ProfileSizeError) say(DEMO_FULL, true);
           else if (error instanceof DemoClipError && error.kind === "unsupported-entry") say(`${NEWER_DEMO} Der Clip wurde nicht geändert.`, true);
           else say(`${WRITE_FAILED} Der Clip ist unverändert.`, true);
+          // The write has ended: the redraw offers "Speichern" and the camera again, so the caregiver can retry (card NG-60).
+          mine.state.busy = false;
           await draw(["demo-save", "demo-camera"], { toTop: true });
         }
       } finally {
@@ -2672,7 +2703,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
    * A clip to watch in the demo view, put into `holder`: muted, inline, with the browser's controls. A clip
    * this browser cannot play (card NG-59: one recorded on another device) is replaced by a line saying so.
    */
-  const clipVideo = (dataUrl: string, className: string, holder: HTMLElement): HTMLVideoElement | null => {
+  const clipVideo = (dataUrl: string, className: string, holder: HTMLElement, unplayable?: () => void): HTMLVideoElement | null => {
     if (!isDemoDataUrl(dataUrl)) {
       holder.append(element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE));
       return null;
@@ -2685,8 +2716,18 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     video.preload = "metadata";
     video.addEventListener("error", () => {
       if (video.hidden) return;
+      if (unplayable !== undefined) {
+        unplayable();
+        return;
+      }
+      // A status line, so a screen reader says it; a focus on the player's controls moves to it (card NG-60).
+      const hadFocus = typeof document !== "undefined" && document.activeElement === video;
       video.hidden = true;
-      holder.append(element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE));
+      const line = element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE);
+      line.setAttribute("role", "status");
+      line.tabIndex = -1;
+      holder.append(line);
+      if (hadFocus) line.focus();
     });
     video.src = dataUrl;
     holder.append(video);
@@ -2736,7 +2777,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (state.draft !== null) {
       const chosen = element("div", "caregiver-demo-new");
       chosen.append(element("p", "caregiver-notice", DEMO_NEW));
-      const video = clipVideo(state.draft, "caregiver-demo-clip", chosen);
+      // A new clip this browser cannot play is not offered for saving (card NG-60): it is dropped, and the line asks to record again.
+      const draft = state.draft;
+      const video = clipVideo(draft, "caregiver-demo-clip", chosen, () => {
+        if (!demoOpen(open) || state.draft !== draft) return;
+        state.draft = null;
+        say(DEMO_DRAFT_UNPLAYABLE, true);
+        drawDemo(open, ["demo-camera"]);
+      });
       if (video !== null) video.autoplay = true;
       view.append(chosen);
     }

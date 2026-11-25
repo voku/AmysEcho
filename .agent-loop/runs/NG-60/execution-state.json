@@ -1,0 +1,227 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+    "history": [
+        {
+            "accepted_at": "2026-11-25T19:39:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:39:42+00:00",
+                "artifact_references": [],
+                "candidate_revision": "a4e289254ee70fa9f034b2161da0555ce42ce012",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "schema_version": "1.0",
+                "task_id": "NG-60",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "a4e289254ee70fa9f034b2161da0555ce42ce012",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "outcome": "completed",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:992142e3",
+                "summary": "Located: settleDemo error path redraws while busy; recognise demo handlers never consume pressedAt; demoIds follow demos.ids; startDemoCamera does not check the track's facing; clipVideo keeps an unplayable draft savable; playDemo error replaceChildren re-inserts the status line; stopDemoRecording waits on stop() without bound; browser test launches outside try.",
+                "task_id": "NG-60",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:39:43+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:39:43+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "schema_version": "1.0",
+                "task_id": "NG-60",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "context_id": "main-session-ng60-build",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "outcome": "completed",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:60b8e9cd",
+                "summary": "Fixed all seven code-level notes with tests (caregiver: failed save/delete retry, facing-away refused, unplayable draft dropped, stored unplayable status line, recorder stop wait DEMO_STOP_WAIT_MS; recognise: press time consumed, board order, status line kept); browser test launch inside try. Docs updated. npm run verify: 735 unit, 8 browser pass.",
+                "task_id": "NG-60",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:41:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:41:26+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:0fedb6bcc4d9243705a8c2b80fba7cf706c063f3f075f72dd11da686337633a2",
+                    "execution-evidence:sha256:e07852e2e89978d53803409d4b0dbfa3abcc06455d0603d96b377f5951aec91a",
+                    "execution-evidence:sha256:4aa2821f94fdac34e2da7fe011ac346be0160efd0934d8f0e2d609e5d5987496",
+                    "execution-evidence:sha256:998d4f974815c22fa3db29a08644c9eaa28aababcf89f78310f9c6b1b32007bc",
+                    "execution-evidence:sha256:07b20482c660df0a8237dab5ad61be1fce359ff9ce4e6286c6e7664447aa2752",
+                    "execution-evidence:sha256:ff695eaf5976d29e46d97e65a0c9d8ef7e368dbed129e67c1df77909775e08bc",
+                    "execution-evidence:sha256:ff4c7add469b1f577ab7429487bcac9957ef129ce42918b301f1ad356d358458"
+                ],
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "schema_version": "1.0",
+                "task_id": "NG-60",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:0fedb6bcc4d9243705a8c2b80fba7cf706c063f3f075f72dd11da686337633a2",
+                    "execution-evidence:sha256:e07852e2e89978d53803409d4b0dbfa3abcc06455d0603d96b377f5951aec91a",
+                    "execution-evidence:sha256:4aa2821f94fdac34e2da7fe011ac346be0160efd0934d8f0e2d609e5d5987496",
+                    "execution-evidence:sha256:998d4f974815c22fa3db29a08644c9eaa28aababcf89f78310f9c6b1b32007bc",
+                    "execution-evidence:sha256:07b20482c660df0a8237dab5ad61be1fce359ff9ce4e6286c6e7664447aa2752",
+                    "execution-evidence:sha256:ff695eaf5976d29e46d97e65a0c9d8ef7e368dbed129e67c1df77909775e08bc",
+                    "execution-evidence:sha256:ff4c7add469b1f577ab7429487bcac9957ef129ce42918b301f1ad356d358458"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "context_id": "ng60-cr-fresh-7f3a91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "observations": [
+                    "stored-clip focus hand-off untested",
+                    "role=status line inserted already filled may not be announced",
+                    "bounded wait covers camera.stop only, not the conversion",
+                    "consumePress reads pressedAt before its let declaration (safe via click handlers)"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:7ca8e3b3",
+                "summary": "context-id: ng60-cr-fresh-7f3a91. All seven fixes verified; 413/413 targeted tests.",
+                "task_id": "NG-60",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:43:22+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:43:22+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:265519423ff1a9a985b6d3a6c692cb14a678c1f291291d98a1802ee59987f162",
+                    "execution-evidence:sha256:8ef18f3b080fa5fffbf615ab0dc85ef760d3c6061e36a1b9eb3565e62c942857",
+                    "execution-evidence:sha256:4dacbce28682a3d5a744abd94a396afcf7db12e9339d80211acb620bb09a51eb",
+                    "execution-evidence:sha256:4a18201ef26c152a49cc2cc3732345f8b714bc874bcd22361067066ab9e1b576",
+                    "execution-evidence:sha256:91a72ce4d81d7bf686c68fbd23d52403a6e337c0109ffdf865b645c426c1619a",
+                    "execution-evidence:sha256:a3625e2689228401586ff647d161f28e9b818e8a75dbcf64b358a50c2321a274",
+                    "execution-evidence:sha256:fd0e218a5915745fb48759f4d1ea1b701a0defe154f6f7f5a8363e6daba77925"
+                ],
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "schema_version": "1.0",
+                "task_id": "NG-60",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:265519423ff1a9a985b6d3a6c692cb14a678c1f291291d98a1802ee59987f162",
+                    "execution-evidence:sha256:8ef18f3b080fa5fffbf615ab0dc85ef760d3c6061e36a1b9eb3565e62c942857",
+                    "execution-evidence:sha256:4dacbce28682a3d5a744abd94a396afcf7db12e9339d80211acb620bb09a51eb",
+                    "execution-evidence:sha256:4a18201ef26c152a49cc2cc3732345f8b714bc874bcd22361067066ab9e1b576",
+                    "execution-evidence:sha256:91a72ce4d81d7bf686c68fbd23d52403a6e337c0109ffdf865b645c426c1619a",
+                    "execution-evidence:sha256:a3625e2689228401586ff647d161f28e9b818e8a75dbcf64b358a50c2321a274",
+                    "execution-evidence:sha256:fd0e218a5915745fb48759f4d1ea1b701a0defe154f6f7f5a8363e6daba77925"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "context_id": "ng60-blindspot-fresh-7c41e2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "observations": [
+                    "stored-clip status line created filled may not be announced",
+                    "a browser that cannot play its own recordings drops every draft; no hint to use another browser",
+                    "no caregiver override for a misreported facingMode environment",
+                    "5 s stop wait not measured on slow devices"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:7fd7b5de",
+                "summary": "context-id: ng60-blindspot-fresh-7c41e2. No blocking blind spot.",
+                "task_id": "NG-60",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-25T19:46:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-25T19:46:26+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "schema_version": "1.0",
+                "task_id": "NG-60",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:e34db56f167898541a3669c5cc86f50627bb93487efc144855353699e3bc1fa0",
+                    "execution-evidence:sha256:0df0cc6d06a6e399d42c9f10481258bbb235fd8856446827af0913d771cb4764"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:a4e289254ee70fa9f034b2161da0555ce42ce012:ca1f160630c553654ee1e1df7e7c94b0c829e92f",
+                "consistency_references": [
+                    "execution-evidence:sha256:6773f39b8324cdbb15468af57937f6d04e40eac8274fbc287ad9f7bad1e96af8"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:4fc9be23c505021a4b92cd99c21ee29b67c30838e65c95ba3c339b5dc3c5036b",
+                "outcome": "pass",
+                "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:8bf993d33111c4c628ac1ef6b2a000f1fb9dc717732a64bbd8d197358029fb27",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-60: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-60 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-60:a9ab7cb12b3e6ea3 binds active Session 2026-11-25-ng-60-r1-b274c569 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-60 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-60",
+                "validation_references": [
+                    "execution-evidence:sha256:e34db56f167898541a3669c5cc86f50627bb93487efc144855353699e3bc1fa0",
+                    "execution-evidence:sha256:0df0cc6d06a6e399d42c9f10481258bbb235fd8856446827af0913d771cb4764"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+    "schema_version": "1.0",
+    "task_id": "NG-60"
+}

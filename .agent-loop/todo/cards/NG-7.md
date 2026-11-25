@@ -4,9 +4,9 @@
 - **Lane:** BLOCKED
 - **Domain:** human
 - **Created:** 2026-11-22T08:00:52+00:00
-- **Updated:** 2026-11-22T15:05:27+00:00
+- **Updated:** 2026-11-25T19:49:50+00:00
 - **Summary:** Human decisions from the product contract that cannot be invented.
-- **Next:** Human task. Record decisions in docs/s0a-product-contract-v0.1.md without personal data.
+- **Next:** Human task. Record decisions in docs/s0a-product-contract-v0.1.md without personal data. Open from the 2026-11-25 session: (1) does the backup file (NG-58) get a password; (2) which default helps a child imitate a demo clip: as seen face to face (now) or mirrored like a mirror ('Spiegeln') — to be tried with the child.
 - **Validation:** Review of docs/s0a-product-contract-v0.1.md
 - **Priority:** 0
 - **Wave:** Wave 1 - board (S1)

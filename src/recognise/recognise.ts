@@ -1036,7 +1036,17 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
    * large, with "Nochmal", "Langsam" and "Spiegeln". The camera and the recognising go on underneath:
    * nothing in the box changes the recogniser's state, so imitating the clip stacks its tile as ever.
    */
-  const demoIds = (options.demos?.ids ?? []).filter((id, index, all) => byId.has(id) && all.indexOf(id) === index);
+  // In board order, whatever order the clips were listed in (card NG-60).
+  const withClip = new Set(options.demos?.ids ?? []);
+  const demoIds = options.entries.map((entry) => entry.id).filter((id, index, all) => withClip.has(id) && all.indexOf(id) === index);
+  /**
+   * Card NG-60: a tap in the box is no press on the recogniser's buttons. The panel notes when a press began
+   * (for the guard of "Ja, sagen" and the others); a demo control consumes that note, so a later key press
+   * on a guarded button is not measured from this tap.
+   */
+  const consumePress = (): void => {
+    pressedAt = null;
+  };
   const demoButton = button("recognise-demo-open", "");
   const demoMark = element("span", "recognise-mark", RECOGNISE_SYMBOLS.demo);
   demoMark.setAttribute("aria-hidden", "true");
@@ -1079,13 +1089,19 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   };
   const demoCloseButton = (): HTMLElement => {
     const close = actionButton("recognise-demo-close", RECOGNISE_SYMBOLS.close, RECOGNISE_TEXT.demoClose);
-    close.addEventListener("click", () => closeDemo(true));
+    close.addEventListener("click", () => {
+      consumePress();
+      closeDemo(true);
+    });
     return close;
   };
   const demoSwitch = (className: string, symbol: string, text: string, on: boolean, flip: () => boolean): HTMLElement => {
     const control = actionButton(className, symbol, text);
     control.setAttribute("aria-pressed", String(on));
-    control.addEventListener("click", () => control.setAttribute("aria-pressed", String(flip())));
+    control.addEventListener("click", () => {
+      consumePress();
+      control.setAttribute("aria-pressed", String(flip()));
+    });
     return control;
   };
   const applyRate = (video: HTMLVideoElement): void => {
@@ -1112,7 +1128,10 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       tile.setAttribute("aria-label", entry.labelDe);
       tile.dataset["concept"] = id;
       conceptContent(tile, entry, 64);
-      tile.addEventListener("click", () => playDemo(id));
+      tile.addEventListener("click", () => {
+        consumePress();
+        playDemo(id);
+      });
       list.append(tile);
       tiles.push(tile);
     }
@@ -1160,8 +1179,10 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
         // The clip's buttons go: a focus on one of them moves to "Schließen".
         const focusInBox = typeof document !== "undefined" && [again, slow, mirror, close].includes(document.activeElement as HTMLElement);
         stopDemoVideo();
+        // The status line stays where it is, so a screen reader hears the change (card NG-60); the clip and its buttons go.
         line.textContent = RECOGNISE_TEXT.demoFailed;
-        demoBox.replaceChildren(line, demoRow(close));
+        for (const child of Array.from(demoBox.children)) if (child !== line) demoBox.removeChild(child);
+        demoBox.append(demoRow(close));
         if (focusInBox) focusOn(close);
       });
       video.src = url;
@@ -1169,6 +1190,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       line.textContent = entry.labelDe;
       const again = actionButton("recognise-demo-again", RECOGNISE_SYMBOLS.again, RECOGNISE_TEXT.again);
       again.addEventListener("click", () => {
+        consumePress();
         try {
           video.currentTime = 0;
           void video.play?.()?.catch(() => undefined);
@@ -1194,6 +1216,7 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     });
   };
   demoButton.addEventListener("click", () => {
+    consumePress();
     if (demoIds.length === 1) playDemo(demoIds[0]!);
     else chooseDemo();
   });

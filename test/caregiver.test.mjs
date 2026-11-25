@@ -11,6 +11,7 @@ import {
 } from "../dist/capture/capture.js";
 import { HAND_POINTS } from "../dist/recognition/features.js";
 import { DEMO_MAX_MS, DemoRecordingRefusal } from "../dist/demo-clips.js";
+import { DEMO_STOP_WAIT_MS } from "../dist/caregiver.js";
 import { exportProfile, importProfile } from "../dist/profiles/backup.js";
 import { listExamples } from "../dist/recognition/examples.js";
 import { ProfileStore } from "../dist/profiles/store.js";
@@ -7519,7 +7520,7 @@ const OTHER_CLIP = "data:video/webm;codecs=vp9;base64,GkXfo59ChoEBQveBAULygQRC84
  * The recorder hands back a fake blob; `clips` are the data URLs the converter returns, in turn,
  * and a DemoRecordingRefusal reason in their place is thrown instead.
  */
-function fakeDemo({ error = null, clips = [CLIP], holdStop = false } = {}) {
+function fakeDemo({ error = null, clips = [CLIP], holdStop = false, reports = undefined } = {}) {
   const log = { facings: [], opened: 0, started: 0, stopped: 0, closed: 0, converted: 0, endTrack: () => undefined, releaseStop: () => undefined };
   const queue = [...clips];
   return {
@@ -7530,7 +7531,11 @@ function fakeDemo({ error = null, clips = [CLIP], holdStop = false } = {}) {
       log.opened += 1;
       const ended = [];
       log.endTrack = () => { for (const handler of ended) handler(); };
-      const track = { addEventListener(name, handler) { if (name === "ended") ended.push(handler); } };
+      const track = {
+        addEventListener(name, handler) { if (name === "ended") ended.push(handler); },
+        // What the camera reports about where it faces; undefined like a desktop webcam.
+        getSettings: () => (reports === undefined ? {} : { facingMode: reports }),
+      };
       return {
         stream: { id: "demo-stream", getTracks: () => [track] },
         start() { log.started += 1; },
@@ -7830,7 +7835,8 @@ test("vormachen: while a recording is being read nothing new can be recorded; a 
     assert.equal(view.record, null, "no new recording while the last one is read");
     assert.equal(view.stop, null);
     assert.equal(view.camera, null);
-    clock.advance(10_000);
+    // Shorter than the wait for a recorder that never ends (card NG-60).
+    clock.advance(DEMO_STOP_WAIT_MS - 1);
     assert.equal(demo.log.started, 1);
     demo.log.releaseStop();
     await settleDemo(area);
@@ -7882,9 +7888,109 @@ test("vormachen (card NG-59): a clip is always recorded with the front camera, w
     await settleDemo(area);
     area.clock.advance(DEMO_MAX_MS);
     await settleDemo(area);
+    // Since card NG-60 such a new clip is dropped, not kept for saving.
+    demoViewOf(caregiverRegion).videos[0].dispatch("error");
+    await settleDemo(area);
+    assert.equal(area.status(), "Dieser Clip kann in diesem Browser nicht abgespielt werden und wurde verworfen. Bitte noch einmal aufnehmen.");
+    assert.equal(demoViewOf(caregiverRegion).save, null);
+  });
+});
+
+test("vormachen (card NG-60): after a failed save the buttons work again; a camera facing away is refused; an unplayable new clip cannot be saved; a recorder that never stops is given up", async () => {
+  const demo = fakeDemo();
+  await withArea({ seed: seedThree, ...demo }, async (area) => {
+    const { holdOpen, act, concept, caregiverRegion, backend, seeded } = area;
+    await holdOpen();
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    await recordDemo(area);
+    backend.failWrite(1);
+    await act(() => demoViewOf(caregiverRegion).save.click());
+    let view = demoViewOf(caregiverRegion);
+    assert.match(area.status(), /Der Clip ist unverändert\./);
+    assert.equal(view.save.disabled, false, "'Speichern' can be tried again");
+    assert.equal(view.camera.disabled, false);
+    await act(() => view.save.click());
+    assert.deepEqual(backend.snapshot()[`profile/${seeded.id}/data/demo.trinken`], { version: 1, dataUrl: CLIP });
+    // A clip that cannot be deleted: "Clip löschen" works again too.
+    await act(() => buttonNamed(concept("Trinken").row, "Vormachen").click());
+    backend.failWrite(1);
+    await act(() => demoViewOf(caregiverRegion).remove.click());
+    view = demoViewOf(caregiverRegion);
+    assert.equal(view.remove.disabled, false);
+  });
+  // A device whose only camera faces away: refused, nothing recorded.
+  const away = fakeDemo({ reports: "environment" });
+  await withArea({ seed: seedThree, ...away }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    await area.act(() => demoViewOf(area.caregiverRegion).camera.click());
+    await settleDemo(area);
+    assert.equal(area.status(), "Hier läuft nur eine Kamera, die vom Gerät weg zeigt. Vormachen wird mit der vorderen Kamera aufgenommen, damit nie das Kind im Bild ist.");
+    assert.equal(away.log.closed, 1);
+    assert.equal(demoViewOf(area.caregiverRegion).live, null);
+    assert.equal(demoViewOf(area.caregiverRegion).record, null);
+  });
+  // A camera that says it faces the user is used.
+  const front = fakeDemo({ reports: "user" });
+  await withArea({ seed: seedThree, ...front }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    await area.act(() => demoViewOf(area.caregiverRegion).camera.click());
+    await settleDemo(area);
+    assert.notEqual(demoViewOf(area.caregiverRegion).record, null);
+  });
+  // A new clip this browser cannot play is dropped, not offered for saving.
+  await withArea({ seed: seedThree, ...fakeDemo() }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    await recordDemo(area);
+    demoViewOf(area.caregiverRegion).videos[0].dispatch("error");
+    await settleDemo(area);
+    const view = demoViewOf(area.caregiverRegion);
+    assert.equal(area.status(), "Dieser Clip kann in diesem Browser nicht abgespielt werden und wurde verworfen. Bitte noch einmal aufnehmen.");
+    assert.equal(view.save, null);
+    assert.deepEqual(view.clips, []);
+    assert.equal(area.focused.current, view.camera);
+  });
+  // A stored clip that cannot play: a status line.
+  await withArea({ seed: async (store) => {
+    const mia = await seedThree(store);
+    await store.data(mia.id).set("demo.trinken", { version: 1, dataUrl: CLIP });
+    return mia;
+  }, ...fakeDemo() }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Trinken").row, "Vormachen").click());
+    demoViewOf(area.caregiverRegion).videos[0].dispatch("error");
+    const line = tree(demoViewOf(area.caregiverRegion).view).find((element) => element.textContent.startsWith("Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann"));
+    assert.equal(line.role, "status");
+    assert.notEqual(demoViewOf(area.caregiverRegion).remove, null);
+  });
+  // A recorder that never hands over its recording: given up after DEMO_STOP_WAIT_MS.
+  const stuck = fakeDemo({ holdStop: true });
+  await withArea({ seed: seedThree, ...stuck }, async (area) => {
+    const { act, caregiverRegion, clock } = area;
+    await area.holdOpen();
+    await act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    await act(() => demoViewOf(caregiverRegion).camera.click());
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).record.click());
+    clock.advance(TEACH_COUNTDOWN_S * 1000);
+    await settleDemo(area);
+    await act(() => demoViewOf(caregiverRegion).stop.click());
+    await settleDemo(area);
+    assert.equal(demoViewOf(caregiverRegion).line, "Der Clip wird gelesen …");
+    clock.advance(DEMO_STOP_WAIT_MS - 1);
+    await settleDemo(area);
+    assert.equal(demoViewOf(caregiverRegion).line, "Der Clip wird gelesen …");
+    clock.advance(1);
+    await settleDemo(area);
     const view = demoViewOf(caregiverRegion);
-    view.videos[0].dispatch("error");
-    assert.equal(view.videos[0].hidden, true);
-    assert.ok(textsIn(view.view).includes("Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden."));
+    assert.equal(area.status(), "Die Aufnahme konnte nicht gelesen werden. Bitte noch einmal aufnehmen.");
+    assert.equal(stuck.log.closed, 1);
+    assert.notEqual(view.camera, null);
+    // The recorder answering late changes nothing.
+    stuck.log.releaseStop();
+    await settleDemo(area);
+    assert.equal(demoViewOf(caregiverRegion).save, null);
   });
 });

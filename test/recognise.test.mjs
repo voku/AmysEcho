@@ -2326,7 +2326,7 @@ test("view, Vormachen: no clip, no button; with clips the top offers 'Vormachen'
     assert.equal(panel().dataset.demo, "choose");
     assert.match(textOf(box), /Welche Gebärde vormachen\?/);
     const choices = tree(box).filter((element) => hasClass(element, "recognise-demo-choice"));
-    assert.deepEqual(choices.map((tile) => tile.dataset.concept), ["ball", "trinken"]);
+    assert.deepEqual(choices.map((tile) => tile.dataset.concept), ["trinken", "ball"], "board order (card NG-60)");
     assert.equal(doc.activeElement, choices[0]);
     assert.deepEqual(clips.loads, [], "nothing is read before a choice");
     // "Schließen": the box goes, the focus returns to "Vormachen", the view listens on.
@@ -2459,5 +2459,30 @@ test("view, Vormachen (card NG-59): a clip this browser cannot play says so inst
     assert.deepEqual(demoButtonsOf(panel()), ["Schließen"]);
     assert.equal(doc.activeElement?.attributes["aria-label"], "Schließen");
     assert.equal(panel().dataset.state, "listening");
+  }, { continuous: true, demos: clips.demos });
+});
+
+test("view, Vormachen (card NG-60): a tap on a demo control leaves no press time behind; a playback error keeps the status line in place", async () => {
+  const clips = demoClips({ trinken: CLIP });
+  await withView(async (context) => {
+    const { panel, camera, time, speech, buttonNamed } = context;
+    context.gestureButton().click();
+    await settle();
+    // A finger on "Vormachen", then on "Schließen".
+    panel().dispatch("pointerdown");
+    demoOpener(panel()).click();
+    await settle();
+    const line = tree(demoBoxOf(panel())).find((element) => hasClass(element, "recognise-demo-line"));
+    demoVideoOf(panel()).dispatch("error");
+    assert.ok(demoBoxOf(panel()).children.includes(line), "the same status line, not taken out and put back");
+    assert.equal(line.textContent, "Dieser Clip kann gerade nicht abgespielt werden.");
+    panel().dispatch("pointerdown");
+    tree(demoBoxOf(panel())).find((element) => element.attributes["aria-label"] === "Schließen").click();
+    // A gesture is recognised; after the guard a key press (no pointer) on "Ja, sagen" counts.
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    buttonNamed("Ja, sagen").click();
+    assert.deepEqual(speech.spoken, ["Ich möchte trinken."]);
   }, { continuous: true, demos: clips.demos });
 });

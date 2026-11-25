@@ -1,0 +1,11 @@
+{
+    "acknowledged_at": "2026-11-25T19:49:31+00:00",
+    "acknowledged_by": "Claude (agent; owner Lars Moelleken asked to finish NG-60 in session 2026-11-25)",
+    "contract_revision": 1,
+    "implementation_snapshot": "sha256:0f05330a6cef51d3f9cadab8d7e7a7466237935839bd887f8a8558102ec45050",
+    "kind": "review_acknowledgement",
+    "report_sha256": "sha256:20ca7e1d71d643b41131500b34ae1afc4c22b82037cfac6927008c9c7b6750de",
+    "run_id": "run:NG-60:a9ab7cb12b3e6ea3",
+    "schema_version": "1.0",
+    "task_id": "NG-60"
+}
