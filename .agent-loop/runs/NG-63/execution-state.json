@@ -1,11 +1,75 @@
 {
     "attention": null,
-    "candidate_revision": "f64cac8d6bb32d75900035253d99dc1880918da4",
+    "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-26T17:21:38+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-26T17:21:38+00:00",
+                "artifact_references": [],
+                "candidate_revision": "f64cac8d6bb32d75900035253d99dc1880918da4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "schema_version": "1.0",
+                "task_id": "NG-63",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "f64cac8d6bb32d75900035253d99dc1880918da4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "outcome": "completed",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:33772982",
+                "summary": "Located the NG-57/NG-61 code points in src/recognise/recognise.ts (sayWord callbacks without an attempt guard, focus after the voice redraw, idle check after the conversion early return, gone() leaving on a hidden page, empty-view idle pause, pressedAt declared after the demo code) and src/caregiver.ts (status line created filled, unplayable draft loop, stop wait not covering makeClip).",
+                "task_id": "NG-63",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-26T17:21:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-26T17:21:44+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "schema_version": "1.0",
+                "task_id": "NG-63",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "context_id": "main-session-ng63-build",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "outcome": "completed",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:5ca45e1f",
+                "summary": "Fixed all seven criteria with tests; three mutation checks (stale guard, pageHidden, conversion-idle) fail as expected. npm run verify: 749 unit, 9 browser pass.",
+                "task_id": "NG-63",
+                "validation_references": []
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
