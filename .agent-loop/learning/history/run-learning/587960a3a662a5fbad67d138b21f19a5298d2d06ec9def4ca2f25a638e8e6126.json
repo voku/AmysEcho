@@ -1,0 +1,15 @@
+{
+    "schema_version": "1.0",
+    "kind": "run_learning_decision",
+    "run_id": "run:NG-63:f206b5145d1defb2",
+    "decision": "follow_up_required",
+    "decided_by": "Claude (agent; owner Lars Moelleken asked for NG-57/NG-61 in session 2026-11-26)",
+    "decided_at": "2026-11-26T17:32:14+00:00",
+    "reason": null,
+    "finding_ids": [],
+    "follow_up_ref": "NG-61",
+    "contract_revision": 1,
+    "implementation_snapshot": "sha256:5657fe1538c5b372bd485fafe654aca1480c113908941a52784a9f1bee82df71",
+    "validation_evidence_sha256": "sha256:332e79dbec90e7749e5abf0c08aa5cff2bf4a5af6af180764b51f8ea3fa00f5c",
+    "review_evidence_sha256": "sha256:f82965f505921d4edb517cf5d35f0e25b169f4bccffa4d658e57c1244480f5ef"
+}

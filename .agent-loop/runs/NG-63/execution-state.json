@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "blindspot-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
     "history": [
         {
@@ -119,6 +119,100 @@
                 "summary": "context-id: ng63-cr-fresh-7f3a91. No defect; all fixes checked; 423/423 targeted tests.",
                 "task_id": "NG-63",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-26T17:26:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-26T17:26:07+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:08399d2fb14f283aedcd76c247e4572ebe03a02ad13ec650461ba619bfd01709",
+                    "execution-evidence:sha256:191c559569e265b6ff9898a0be0b76611ac665d2427e82fcb379fc9bd453a449",
+                    "execution-evidence:sha256:62b8ea0021c1c0b132dfab5ef137c43df51549100b7325089bddaa22a39cee16",
+                    "execution-evidence:sha256:d609cf72d3a52e06024ecf737054e7ec77af29f9bc505ff51e8167d01e256daf",
+                    "execution-evidence:sha256:963845647a5dcd04598a86ce2251894017d6894abc935b6103092cb0ef27986c",
+                    "execution-evidence:sha256:b60981019439bff71466bca25a081213cf4d72062d4dea5398ed6906e5d68049"
+                ],
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "schema_version": "1.0",
+                "task_id": "NG-63",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:08399d2fb14f283aedcd76c247e4572ebe03a02ad13ec650461ba619bfd01709",
+                    "execution-evidence:sha256:191c559569e265b6ff9898a0be0b76611ac665d2427e82fcb379fc9bd453a449",
+                    "execution-evidence:sha256:62b8ea0021c1c0b132dfab5ef137c43df51549100b7325089bddaa22a39cee16",
+                    "execution-evidence:sha256:d609cf72d3a52e06024ecf737054e7ec77af29f9bc505ff51e8167d01e256daf",
+                    "execution-evidence:sha256:963845647a5dcd04598a86ce2251894017d6894abc935b6103092cb0ef27986c",
+                    "execution-evidence:sha256:b60981019439bff71466bca25a081213cf4d72062d4dea5398ed6906e5d68049"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "context_id": "ng63-blindspot-7f3c91e2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "observations": [
+                    "'another browser' advice misleads on iOS (all WebKit) and the other browser lacks the profile without a backup",
+                    "reset of the unplayable count on loadeddata untested",
+                    "focus moves to Weiter then back to the tile; a concept taken twice may get the other tile",
+                    "a hand label without points counts as no hand toward idle",
+                    "unreadable-frame idle tested only with a tile taken",
+                    "sayAttempt does not cover the Ja-sagen speech path"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:50645ee9",
+                "summary": "context-id: ng63-blindspot-7f3c91e2. Nothing blocks.",
+                "task_id": "NG-63",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-26T17:29:06+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-26T17:29:06+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "schema_version": "1.0",
+                "task_id": "NG-63",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:5b9fcaa2fc6cdcb723138352a157f841d5e993b70c0e0da7e0223401d7b55f2b",
+                    "execution-evidence:sha256:5610cd708f727752c424921719c8698f3202eee17c264f189149df66079ad4f0"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "consistency_references": [
+                    "execution-evidence:sha256:09495c2a5543604d3a4d0b0da8a16c5ea5a01ecf6c4772d053ff73d7e8abe0c0"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "outcome": "pass",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:3d7716e6dd682bf7c8d319133a88bcebfeb588d7418451f802e85ef6fdc9602f",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-63: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-63 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-63:f206b5145d1defb2 binds active Session 2026-11-26-ng-63-r1-25bad9c6 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-63 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-63",
+                "validation_references": [
+                    "execution-evidence:sha256:5b9fcaa2fc6cdcb723138352a157f841d5e993b70c0e0da7e0223401d7b55f2b",
+                    "execution-evidence:sha256:5610cd708f727752c424921719c8698f3202eee17c264f189149df66079ad4f0"
+                ]
             }
         }
     ],
