@@ -1,0 +1,187 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-26T17:14:58+00:00",
+            "approved_by": "Lars Moelleken (in session 2026-11-26: 'NG-57 / NG-61 … Kleinere Korrekturen aus den Reviews')",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-63/contract.json",
+                "sha256": "sha256:c817d0ae4536335a46f45e44e267a08c2c98f1c971abcd510d979d6bf88e6ad6"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-63",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "BACKLOG",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "1e1adbb457568506802ef950e385d68cc5dcca4a53de952155a87175abb1a017",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-63.md",
+                "sha256": "sha256:1e1adbb457568506802ef950e385d68cc5dcca4a53de952155a87175abb1a017"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A voice report (failure or end) of an earlier tile tap changes nothing; a newer tap's state is kept (tested)",
+                "When a tile's voice fails while the view is paused, the keyboard focus stays on that tile (tested)",
+                "With no tile taken, idle closes the view instead of pausing; idle also fires when every frame fails conversion (tested)",
+                "A hidden page noticed first through a frame pauses with the tiles like the visibilitychange handler; a hidden board region still closes to idle (tested, the region case asserts idle)",
+                "Voice trouble counts carry across a camera switch (tested, documented)",
+                "Caregiver demo view: the stored-clip error line is a live region filled after insertion; a second unplayable recording in a row says this browser cannot play clips and suggests another browser; the bounded wait after 'Aufnahme beenden' covers the conversion too (tested)",
+                "attachRecognise declares pressedAt before the demo code that consumes it"
+            ],
+            "goal": "Close the code-level review notes of the continuous gesture view (NG-57) and of Vormachen (NG-61): stale voice reports ignored, tile focus kept, idle and page-hide edge cases, and clearer clip failure handling in the caregiver area.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-63/contract.json",
+                "sha256": "sha256:c817d0ae4536335a46f45e44e267a08c2c98f1c971abcd510d979d6bf88e6ad6"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-63/contract.json",
+                "sha256": "sha256:c817d0ae4536335a46f45e44e267a08c2c98f1c971abcd510d979d6bf88e6ad6"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-26T17:32:14+00:00",
+            "decided_by": "Claude (agent; owner Lars Moelleken asked for NG-57/NG-61 in session 2026-11-26)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-63:f206b5145d1defb2",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/587960a3a662a5fbad67d138b21f19a5298d2d06ec9def4ca2f25a638e8e6126.json",
+                "sha256": "sha256:b25514dd67ff5a716e1bf0a7f58436cba7a5c3461bdf42e10e1e14ad165a129e"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:53c2181c5973e4ec677d8527cb41b20dc278e97ffe299f161809208087756113",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:67322248b9bf112633c191bb94445997386e4347bc481d0c65c9d277987b8cbf"
+            },
+            "stale_entries": [
+                {
+                    "path": "src/caregiver.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "src/recognise/recognise.ts",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/caregiver.test.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/recognise.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 4,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-63:f206b5145d1defb2",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "f13c84c780d0c29f16e9ec92cbf282b8f55e7117bf7bdf07dbe55a942412aab3",
+            "compilation_id": "compilation.NG-63.2026-11-26-171500.77edf264",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "607cf4b23aeb2c0c9c91b905f6eac332a3a4b329ed8f67af88db0a589d67d230",
+            "source": {
+                "path": ".agent-loop/recall/NG-63/meta.json",
+                "sha256": "sha256:d135700b26b1db9170cc7ef9027486b07799d8c12bffbef376c4095ada3160d6"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-63/reviews/NG-63.blindspots.json",
+                "sha256": "sha256:f82965f505921d4edb517cf5d35f0e25b169f4bccffa4d658e57c1244480f5ef"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "f64cac8d6bb32d75900035253d99dc1880918da4",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-26-ng-63-r1-25bad9c6",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-26-ng-63-r1-25bad9c6/session.json",
+                "sha256": "sha256:8e1500c3c6f44c1535901c95564a4db33b97e9eafc7d38d8fb956362ab065b2b"
+            },
+            "state": "done",
+            "task_id": "NG-63"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:5657fe1538c5b372bd485fafe654aca1480c113908941a52784a9f1bee82df71",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-63:f206b5145d1defb2",
+            "source": {
+                "path": ".agent-loop/runs/NG-63/verification.json",
+                "sha256": "sha256:bfa20f552d52eba830458a698714ab0a8770ceaa936e83e9c189337498aa8002"
+            },
+            "source_session_id": "2026-11-26-ng-63-r1-25bad9c6",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-63:f206b5145d1defb2",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-63"
+}

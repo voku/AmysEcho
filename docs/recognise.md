@@ -276,6 +276,8 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
   - "▶ Weiter" listens again with the same tiles.
   - A hand seen restarts the wait. A first version closed the view and lost the tiles; the review
     of the card found that, and the owner chose this instead.
+  - With no tile taken there is nothing to keep: idle goes back to the board (card NG-63). A frame
+    that cannot be converted counts as a frame without a hand, so idle comes also then.
   - The tiles are never lost on the way back:
     - A start that carried tiles ("Weiter", or a camera switch) and fails or is refused goes back
       to the pause with the tiles, and the line says why (the problem line, with "Weiter" where
@@ -283,7 +285,8 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
     - Hiding the page while "Weiter" or a switch still starts the camera pauses with the tiles too.
     - The camera switch is shown in the pause too and listens again with the tiles.
     - Hiding the page (a screen lock, another app) stops the camera and pauses with the tiles;
-      before, it closed the view. Device locks often come before the 3 minutes.
+      before, it closed the view. Device locks often come before the 3 minutes. A frame that
+      arrives after the page was hidden but before its event pauses the same way (card NG-63).
     - Opening the caregiver area, or "Zurück zur Tafel", closes the view and ends the message.
 - **No voice** (card NG-55): a tile tap that cannot be said shows the board's own lines, in the
   board's order. The tile stays, and the line goes with the next tile or a word said.
@@ -295,6 +298,12 @@ In the app the gesture view no longer counts down to one attempt: it listens whi
     Failures in a row end only when a word is said to its end, as on the board; a device reports
     a failure after the tap, and a test does the same.
   - A voice line belongs to the view it is shown in: the pause and a new listening start without it.
+  - The counts of trouble in a row belong to the message: they carry across "Weiter" and a camera
+    switch, and end only when the view goes back to the board (tested for both, card NG-63).
+  - A report of an earlier tap (its word stopped by the next tap) changes nothing, as on the
+    board; only the latest tap's failure or end counts (card NG-63).
+  - When a tile's voice fails, the keyboard focus stays on that tile after the redraw, also in the
+    pause, where it would otherwise move to "Weiter" (card NG-63).
 - **A camera switch keeps the tiles** (card NG-55); any other start begins empty. The "zu lang" line
   goes once the hands have left the picture. Each frame is converted for the cut once, when it
   arrives, not again on every frame.

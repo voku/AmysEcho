@@ -979,15 +979,18 @@ that takes over the body:
 - with a clip stored: "Clip löschen", one tap; the clip can be recorded again.
 - a stored clip this browser cannot play (one recorded on another device, card NG-59) is replaced
   by the status line "Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht
-  oder neu aufgenommen werden." (a focus on the player moves to it); a new clip that cannot play is
+  oder neu aufgenommen werden." (a focus on the player moves to it; the live region is put in empty
+  and filled a moment later, so it is read out, card NG-63); a new clip that cannot play is
   dropped, not offered for saving: "Dieser Clip kann in diesem Browser nicht abgespielt werden und
-  wurde verworfen. Bitte noch einmal aufnehmen." (card NG-60);
+  wurde verworfen. Bitte noch einmal aufnehmen." (card NG-60), and from the second one in a row
+  "Dieser Browser kann seine eigenen Clips nicht abspielen. Bitte einen anderen Browser auf diesem
+  Gerät versuchen; die Tafel funktioniert auch ohne Clip." (card NG-63);
 - `facingMode: "user"` is only asked for: a camera that reports it faces away (a device without a
   front camera) is closed and refused with "Hier läuft nur eine Kamera, die vom Gerät weg zeigt.
   Vormachen wird mit der vorderen Kamera aufgenommen, damit nie das Kind im Bild ist."; one that
   reports no facing (a desktop webcam) is used (card NG-60);
-- a recorder that does not hand over its recording within `DEMO_STOP_WAIT_MS` (5 s) after "Aufnahme
-  beenden" is given up with "Die Aufnahme konnte nicht gelesen werden. …"; a failed save or delete
+- a recorder that does not hand over its recording, or a recording that is not read into a clip,
+  within `DEMO_STOP_WAIT_MS` (5 s) after "Aufnahme beenden" is given up with "Die Aufnahme konnte nicht gelesen werden. …"; a failed save or delete
   leaves the buttons usable, so it can be tried again (card NG-60);
 - while a recording is read after "Aufnahme beenden" the line says "Der Clip wird gelesen …" and
   nothing new can be recorded; a camera that ends by itself (permission taken back, device

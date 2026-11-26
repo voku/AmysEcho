@@ -1960,6 +1960,8 @@ test("view, continuous: hiding the page, pagehide, a hidden board region and dis
       } else if (how === "region hidden") {
         root.hidden = true;
         await camera.feed(MOVES_RIGHT(0));
+        // The caregiver area covers the board: the view ends (card NG-63: asserted, not only the camera).
+        assert.equal(attached.recogniser.state().kind, "idle", how);
       } else {
         attached.dispose();
       }
@@ -2045,6 +2047,8 @@ test("view, continuous: after minutes without a hand the camera is off, the tile
     const { panel, time, camera, buttonNamed } = context;
     context.gestureButton().click();
     await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
     time.advance(RECOGNISE_IDLE_MS + 1);
     await camera.feed([]);
     assert.equal(panel().dataset.state, "paused");
@@ -2052,7 +2056,18 @@ test("view, continuous: after minutes without a hand the camera is off, the tile
     buttonNamed("Weiter").click();
     await settle();
     assert.equal(panel().dataset.state, "listening");
+    assert.deepEqual(takenTiles(panel()).map((tile) => tile.dataset.concept), ["trinken"], "'Weiter' keeps the tiles");
     assert.equal(camera.running, true);
+  }, { continuous: true });
+  // Card NG-63: with no tile there is nothing to keep: idle goes back to the board.
+  await withView(async (context) => {
+    const { panel, time, camera } = context;
+    context.gestureButton().click();
+    await settle();
+    time.advance(RECOGNISE_IDLE_MS + 1);
+    await camera.feed([]);
+    assert.equal(panel(), null);
+    assert.equal(camera.running, false);
   }, { continuous: true });
 });
 
@@ -2485,4 +2500,86 @@ test("view, Vormachen (card NG-60): a tap on a demo control leaves no press time
     buttonNamed("Ja, sagen").click();
     assert.deepEqual(speech.spoken, ["Ich möchte trinken."]);
   }, { continuous: true, demos: clips.demos });
+});
+
+// --- Card NG-63: the code points of NG-57 ---
+
+test("view, continuous (card NG-63): a voice report of an earlier tile tap changes nothing; voice trouble counts carry across a camera switch", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, lateFailures } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    // The first word was stopped by the second tap; its report comes late and is stale.
+    lateFailures.shift()();
+    assert.doesNotMatch(textOf(panel()), /Vorlesen/, "a report of an earlier tap says nothing");
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen ging nicht\. Bitte noch einmal tippen\./, "the latest tap's failure counts once");
+    // A camera switch: the count carries on, as across "Weiter".
+    cameraSwitch(panel()).click();
+    await settle();
+    assert.equal(panel().dataset.state, "listening");
+    time.advance(RECOGNISE_GUARD_MS);
+    takenTiles(panel())[0].click();
+    lateFailures.shift()();
+    assert.match(textOf(panel()), /Vorlesen geht nicht\. Hol eine Bezugsperson\./, "the second failure in a row, across the switch");
+  }, { continuous: true, voice: "fails later" });
+});
+
+test("view, continuous (card NG-63): a tile's voice failing in the pause keeps the keyboard focus on that tile", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, doc } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_IDLE_MS + 1);
+    await camera.feed([]);
+    assert.equal(panel().dataset.state, "paused");
+    time.advance(RECOGNISE_GUARD_MS);
+    const tile = takenTiles(panel())[0];
+    tile.focus();
+    tile.click();
+    assert.match(textOf(panel()), /Vorlesen ging nicht/);
+    assert.equal(doc.activeElement?.dataset.concept, "trinken", "not moved to 'Weiter'");
+    assert.ok(hasClass(doc.activeElement, "recognise-taken-tile"));
+  }, { continuous: true, voice: "fails" });
+});
+
+test("view, continuous (card NG-63): a hidden page noticed first through a frame pauses with the tiles", async () => {
+  await withView(async (context) => {
+    const { panel, camera, doc, attached } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    // The page is hidden, and a frame arrives before the visibilitychange event.
+    doc.visibilityState = "hidden";
+    await camera.feed(MOVES_RIGHT(0));
+    assert.equal(attached.recogniser.state().kind, "paused");
+    assert.deepEqual(attached.recogniser.state().taken, ["trinken"]);
+    assert.equal(camera.running, false);
+    assert.ok(panel() !== null);
+  }, { continuous: true });
+});
+
+test("controller, continuous (card NG-63): idle also comes when no frame can be read", async () => {
+  await withView(async (context) => {
+    const { panel, time, camera, attached } = context;
+    context.gestureButton().click();
+    await settle();
+    await camera.feedAll(MOVES_RIGHT);
+    await handsDown(camera);
+    time.advance(RECOGNISE_IDLE_MS + 1);
+    // A hand without points: converting the frame throws, and that counts as a frame without a hand.
+    await camera.feed([{ label: "Right", score: 0.9 }]);
+    assert.equal(attached.recogniser.state().kind, "paused");
+    assert.equal(camera.running, false);
+    assert.ok(panel() !== null);
+  }, { continuous: true });
 });
