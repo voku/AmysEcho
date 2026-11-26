@@ -517,6 +517,7 @@ const DEMO_DELETE = "Clip löschen";
 /** How long a stopped recorder may take to hand over its recording before it is given up (card NG-60). */
 export const DEMO_STOP_WAIT_MS = 5000;
 const DEMO_BACK_CAMERA = "Hier läuft nur eine Kamera, die vom Gerät weg zeigt. Vormachen wird mit der vorderen Kamera aufgenommen, damit nie das Kind im Bild ist.";
+const DEMO_BROWSER_CANNOT_PLAY = "Dieser Browser kann seine eigenen Clips nicht abspielen. Bitte einen anderen Browser auf diesem Gerät versuchen; die Tafel funktioniert auch ohne Clip.";
 const DEMO_DRAFT_UNPLAYABLE = "Dieser Clip kann in diesem Browser nicht abgespielt werden und wurde verworfen. Bitte noch einmal aufnehmen.";
 const DEMO_UNPLAYABLE = "Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann gelöscht oder neu aufgenommen werden.";
 const DEMO_CAMERA_ENDED = "Die Kamera ist ausgegangen. Bitte noch einmal auf „Kamera starten“ tippen.";
@@ -708,6 +709,8 @@ interface DemoState {
   draft: string | null;
   /** A save or delete is asked for and has not ended. */
   busy: boolean;
+  /** New clips in a row this browser could not play (card NG-63); from the second one on the line says so. */
+  unplayable: number;
 }
 /** The camera of the open demo view, from "Kamera starten" until it stops. */
 interface DemoCameraRun {
@@ -1968,7 +1971,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   const openDemo = (profileId: string, entry: BoardEntry): void => {
     openMode({
       kind: "demo", id: profileId, conceptId: entry.id, title: entry.labelDe,
-      state: { camera: "off", countdown: null, recording: false, reading: false, draft: null, busy: false },
+      state: { camera: "off", countdown: null, recording: false, reading: false, draft: null, busy: false, unplayable: 0 },
     }, "demo-camera");
   };
 
@@ -2135,8 +2138,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         // Without a timer the view waits for the recorder.
       }
     });
-    void Promise.race([stopping.finally(() => cancelWait()), waited])
-      .then((blob) => makeClip(blob))
+    // The bound covers reading the recording into a clip too (card NG-63), not only the recorder's hand-over.
+    const converting = stopping.then((blob) => makeClip(blob));
+    void Promise.race([converting.finally(() => cancelWait()), waited])
       .then((clip) => {
         if (!isDemoDataUrl(clip)) throw new DemoRecordingRefusal("unreadable");
         return { clip, line: null as string | null };
@@ -2949,10 +2953,16 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       // A status line, so a screen reader says it; a focus on the player's controls moves to it (card NG-60).
       const hadFocus = typeof document !== "undefined" && document.activeElement === video;
       video.hidden = true;
-      const line = element("p", "caregiver-notice caregiver-warning", DEMO_UNPLAYABLE);
+      // An empty live region first, its text a moment later: a region that arrives with its text is often not read out (card NG-63).
+      const line = element("p", "caregiver-notice caregiver-warning");
       line.setAttribute("role", "status");
       line.tabIndex = -1;
       holder.append(line);
+      try {
+        setTimer(() => { line.textContent = DEMO_UNPLAYABLE; }, 50);
+      } catch {
+        line.textContent = DEMO_UNPLAYABLE;
+      }
       if (hadFocus) line.focus();
     });
     video.src = dataUrl;
@@ -3008,10 +3018,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       const video = clipVideo(draft, "caregiver-demo-clip", chosen, () => {
         if (!demoOpen(open) || state.draft !== draft) return;
         state.draft = null;
-        say(DEMO_DRAFT_UNPLAYABLE, true);
+        state.unplayable += 1;
+        say(state.unplayable > 1 ? DEMO_BROWSER_CANNOT_PLAY : DEMO_DRAFT_UNPLAYABLE, true);
         drawDemo(open, ["demo-camera"]);
       });
-      if (video !== null) video.autoplay = true;
+      if (video !== null) {
+        video.autoplay = true;
+        // A clip that plays ends a run of unplayable ones.
+        video.addEventListener("loadeddata", () => { state.unplayable = 0; });
+      }
       view.append(chosen);
     }
     const actions = element("div", "caregiver-profile-actions");

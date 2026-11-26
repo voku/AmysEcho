@@ -7964,7 +7964,12 @@ test("vormachen (card NG-60): after a failed save the buttons work again; a came
     await area.holdOpen();
     await area.act(() => buttonNamed(area.concept("Trinken").row, "Vormachen").click());
     demoViewOf(area.caregiverRegion).videos[0].dispatch("error");
+    // Card NG-63: the live region is there empty first, its text comes a moment later, so it is read out.
+    const region = tree(demoViewOf(area.caregiverRegion).view).find((element) => element.role === "status" && element.tagName === "p");
+    assert.equal(region.textContent, "");
+    area.clock.advance(50);
     const line = tree(demoViewOf(area.caregiverRegion).view).find((element) => element.textContent.startsWith("Dieser Clip kann in diesem Browser nicht abgespielt werden. Er kann"));
+    assert.equal(line, region);
     assert.equal(line.role, "status");
     assert.notEqual(demoViewOf(area.caregiverRegion).remove, null);
   });
@@ -8230,4 +8235,32 @@ test("backup: a restore left with 'Abbrechen' or by closing while the file is re
       if (leave === "cancel") assert.notEqual(area.status(), "Eingespielt: Tafel von „Mia“. Sie ist jetzt die aktive Tafel.");
     });
   }
+});
+
+test("vormachen (card NG-63): a second unplayable recording in a row says this browser cannot play clips; a conversion that never ends is given up too", async () => {
+  await withArea({ seed: seedThree, ...fakeDemo() }, async (area) => {
+    await area.holdOpen();
+    await area.act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    await recordDemo(area);
+    demoViewOf(area.caregiverRegion).videos[0].dispatch("error");
+    await settleDemo(area);
+    assert.equal(area.status(), "Dieser Clip kann in diesem Browser nicht abgespielt werden und wurde verworfen. Bitte noch einmal aufnehmen.");
+    await recordDemo(area);
+    demoViewOf(area.caregiverRegion).videos[0].dispatch("error");
+    await settleDemo(area);
+    assert.equal(area.status(), "Dieser Browser kann seine eigenen Clips nicht abspielen. Bitte einen anderen Browser auf diesem Gerät versuchen; die Tafel funktioniert auch ohne Clip.");
+  });
+  // The recorder hands over, but reading the recording into a clip never ends.
+  const stuck = { ...fakeDemo(), clipFromBlob: () => new Promise(() => undefined) };
+  await withArea({ seed: seedThree, ...stuck }, async (area) => {
+    const { act, caregiverRegion, clock } = area;
+    await area.holdOpen();
+    await act(() => buttonNamed(area.concept("Hilfe").row, "Vormachen").click());
+    await recordDemo(area);
+    assert.equal(demoViewOf(caregiverRegion).line, "Der Clip wird gelesen …");
+    clock.advance(DEMO_STOP_WAIT_MS);
+    await settleDemo(area);
+    assert.equal(area.status(), "Die Aufnahme konnte nicht gelesen werden. Bitte noch einmal aufnehmen.");
+    assert.notEqual(demoViewOf(caregiverRegion).camera, null);
+  });
 });

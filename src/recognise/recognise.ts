@@ -264,6 +264,8 @@ export interface RecogniserOptions {
   readonly onChange: (state: RecogniseState) => void;
   /** False while the board region is not on screen (the caregiver area took over): the attempt ends. */
   readonly stillShown?: () => boolean;
+  /** Whether the page itself is hidden (card NG-63): then a frame that finds the view gone pauses like `hide()`. */
+  readonly pageHidden?: () => boolean;
   /**
    * A live preview for one camera start (card NG-44), or null for none. Asked once per start,
    * before the camera; the capture closes it when it ends, and so does the controller.
@@ -396,10 +398,30 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
     if (current.kind !== "idle") show({ kind: "idle" });
   };
 
-  /** The attempt ends because the board is no longer shown. */
+  /** The page was hidden: listening pauses with its tiles; anything else ends, a pause stays. */
+  const hideView = (): void => {
+    if (current.kind === "listening") {
+      const { taken } = current;
+      stopCamera();
+      show({ kind: "paused", taken });
+    } else if (current.kind === "starting" && (camera?.carry.length ?? 0) > 0) {
+      // Hidden while "Weiter" or a camera switch starts the camera: the tiles it carried stay.
+      const taken = camera!.carry;
+      stopCamera();
+      show({ kind: "paused", taken });
+    } else if (current.kind !== "paused") {
+      leave();
+    }
+  };
+
+  /**
+   * The attempt ends because the board is no longer shown. A hidden page noticed first through a frame
+   * goes the way of `hide()` (card NG-63: the tiles stay); a hidden board region ends the view.
+   */
   const gone = (): boolean => {
     if (options.stillShown === undefined || options.stillShown()) return false;
-    leave();
+    if (options.pageHidden?.() === true) hideView();
+    else leave();
     return true;
   };
 
@@ -625,22 +647,28 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
           if (!ours() || gone()) return;
           if (current.kind === "listening") {
             const at = options.now();
-            let side: LandmarkFrame;
+            let side: LandmarkFrame | null;
             try {
               side = toLandmarkFrame(frame, 0);
             } catch {
-              // A frame that cannot be read: the next one goes on.
-              return;
+              // A frame that cannot be read shows no hand: it counts toward the idle time (card NG-63), then the next one goes on.
+              side = null;
             }
-            if (side.left !== null || side.right !== null) {
+            if (side !== null && (side.left !== null || side.right !== null)) {
               own.lastHandAt = at;
             } else if (at - own.lastHandAt > RECOGNISE_IDLE_MS) {
               // Nobody has been in the picture for minutes: camera off; the tiles (the child's message) stay.
+              // Without any tile there is nothing to keep: back to the board (card NG-63).
               const taken = current.taken;
+              if (taken.length === 0) {
+                leave();
+                return;
+              }
               stopCamera();
               show({ kind: "paused", taken });
               return;
             }
+            if (side === null) return;
             own.buffer.push(frame);
             own.sided.push(side);
             try {
@@ -758,20 +786,7 @@ export function createRecogniser(options: RecogniserOptions): Recogniser {
       return true;
     },
     back: leave,
-    hide() {
-      if (current.kind === "listening") {
-        const { taken } = current;
-        stopCamera();
-        show({ kind: "paused", taken });
-      } else if (current.kind === "starting" && (camera?.carry.length ?? 0) > 0) {
-        // Hidden while "Weiter" or a camera switch starts the camera: the tiles it carried stay.
-        const taken = camera!.carry;
-        stopCamera();
-        show({ kind: "paused", taken });
-      } else if (current.kind !== "paused") {
-        leave();
-      }
-    },
+    hide: () => hideView(),
     dispose() {
       disposed = true;
       stopCamera();
@@ -1018,6 +1033,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   let emptyLists = 0;
   let failures = 0;
   let lastKind: RecogniseState["kind"] = "idle";
+  /** Counts tile taps: a voice report is acted on only for the latest one (card NG-63). */
+  let sayAttempt = 0;
   const pictureButton = button("recognise-picture", "");
   const pictureMark = element("span", "recognise-mark", RECOGNISE_SYMBOLS.picture);
   pictureMark.setAttribute("aria-hidden", "true");
@@ -1030,6 +1047,8 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
   };
   pictureButton.setAttribute("aria-label", RECOGNISE_TEXT.pictureName);
   showPicture();
+  /** When the latest press on the view began; a click without a pointer (a key) counts from the click. */
+  let pressedAt: number | null = null;
   /**
    * Card NG-56: "Vormachen" at the top when concepts on the board have a caregiver's clip. It opens a
    * box above the view's content: the concepts to choose from (one clip plays at once), then the clip,
@@ -1269,8 +1288,6 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     timeBox.setAttribute("aria-label", RECOGNISE_TEXT.timeLeft(left));
   };
 
-  /** When the latest press on the view began; a click without a pointer (a key) counts from the click. */
-  let pressedAt: number | null = null;
   const pressStart = (): number => {
     const at = pressedAt ?? now();
     pressedAt = null;
@@ -1537,22 +1554,34 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
     onSeen: (hands) => { if (hands !== seen) showSeen(hands); },
     onTimeLeft: showTimeLeft,
     stillShown: () => !root.hidden && !hiddenPage(),
+    pageHidden: () => !root.hidden && hiddenPage(),
     facing: () => facing,
     continuous: () => options.continuous === true,
     sayWord: (conceptId) => {
       const entry = byId.get(conceptId);
       if (entry === undefined) return;
       const say = options.sayText ?? ((text: string, failed: () => void, ended: () => void) => requestLocalGermanSpeech(text, failed, ended));
+      // Card NG-63, as on the board: a report of an earlier tap (its word stopped by this one) changes nothing.
+      sayAttempt += 1;
+      const thisAttempt = sayAttempt;
       const show = (next: string | null): void => {
         const kind = recogniser.state().kind;
         if (kind !== "listening" && kind !== "paused") return;
         if (next === voiceLine) return;
         voiceLine = next;
+        // The redraw makes new tiles: a focus on this word's tile stays on it (card NG-63), not on "Weiter".
+        const active = typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null);
+        const onTile = active !== null && focusable.includes(active) && active.dataset?.["concept"] === conceptId;
         draw(recogniser.state());
+        if (onTile) {
+          const tile = focusable.find((candidate) => candidate.dataset?.["concept"] === conceptId && candidate.className.includes("recognise-taken-tile"));
+          if (tile !== undefined && typeof tile.focus === "function") tile.focus();
+        }
       };
       // Card NG-55: the board's lines, in the board's order; the tile and its word stay.
       let failedNow = false;
       const failed = (): void => {
+        if (thisAttempt !== sayAttempt) return;
         failedNow = true;
         failures += 1;
         show(failures > 1 ? RECOGNISE_TEXT.sayFails : RECOGNISE_TEXT.sayFailed);
@@ -1560,7 +1589,9 @@ export function attachRecognise(options: AttachOptions): AttachedRecogniser {
       let attempt: SpeechAttempt | boolean | void;
       try {
         // As on the board: the failures in a row end only when a word was really said to its end.
-        attempt = say(entry.labelDe, failed, () => { failures = 0; });
+        attempt = say(entry.labelDe, failed, () => {
+          if (thisAttempt === sayAttempt) failures = 0;
+        });
       } catch {
         attempt = "failed";
       }
