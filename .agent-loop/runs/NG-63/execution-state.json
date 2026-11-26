@@ -3,7 +3,7 @@
     "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
     "contract_revision": 1,
     "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_stage_id": "blindspot-review",
     "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
     "history": [
         {
@@ -65,6 +65,58 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:5ca45e1f",
                 "summary": "Fixed all seven criteria with tests; three mutation checks (stale guard, pageHidden, conversion-idle) fail as expected. npm run verify: 749 unit, 9 browser pass.",
+                "task_id": "NG-63",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-26T17:23:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-26T17:23:42+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6507bc1174875566b24eff0d802d04ca245446f432dc90e60939e813b01de338",
+                    "execution-evidence:sha256:5d78820a23e6725ac9048050fbdcad6882d739a5bedba4c8e8c117c9ffe3c4e1",
+                    "execution-evidence:sha256:61739c0735726bf234188073866b1c6fd3fd2f6cafe12b27f9201e4ab011b68e",
+                    "execution-evidence:sha256:23f1e1d874b1b2ec11430c49eb5f2b434b466d41c98dba789f744fee501ef329",
+                    "execution-evidence:sha256:11cdfe79170258a82a54dcfc03d536314ebc57c72e6181e91323e7824608ec01",
+                    "execution-evidence:sha256:0c7ed48a1dc42a808bfb4bfcec5ec8e88f1543b4bf699aeffcd3324fffd2393b"
+                ],
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "schema_version": "1.0",
+                "task_id": "NG-63",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6507bc1174875566b24eff0d802d04ca245446f432dc90e60939e813b01de338",
+                    "execution-evidence:sha256:5d78820a23e6725ac9048050fbdcad6882d739a5bedba4c8e8c117c9ffe3c4e1",
+                    "execution-evidence:sha256:61739c0735726bf234188073866b1c6fd3fd2f6cafe12b27f9201e4ab011b68e",
+                    "execution-evidence:sha256:23f1e1d874b1b2ec11430c49eb5f2b434b466d41c98dba789f744fee501ef329",
+                    "execution-evidence:sha256:11cdfe79170258a82a54dcfc03d536314ebc57c72e6181e91323e7824608ec01",
+                    "execution-evidence:sha256:0c7ed48a1dc42a808bfb4bfcec5ec8e88f1543b4bf699aeffcd3324fffd2393b"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:f64cac8d6bb32d75900035253d99dc1880918da4:df1626ecf8a8a778cddacc63390d6dc02cc4d416",
+                "context_id": "ng63-cr-fresh-7f3a91",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:5fbe8598e078c6cf324f3de4aa400e364928762e56cc4d6e2ae04b11d6eb9fd0",
+                "observations": [
+                    "focus visits Weiter before returning to the tile",
+                    "the 50 ms live-region timer is not cancelled on redraw or close",
+                    "makeClip keeps running after the timeout",
+                    "a refused recording between two unplayable drafts does not reset the counter"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-63:f206b5145d1defb2",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:1ac08c6d",
+                "summary": "context-id: ng63-cr-fresh-7f3a91. No defect; all fixes checked; 423/423 targeted tests.",
                 "task_id": "NG-63",
                 "validation_references": []
             }
