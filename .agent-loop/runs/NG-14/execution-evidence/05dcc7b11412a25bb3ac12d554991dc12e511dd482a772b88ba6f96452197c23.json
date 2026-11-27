@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+    "contract_revision": 2,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-27T21:27:39+00:00",
+    "reference": "execution-evidence:sha256:05dcc7b11412a25bb3ac12d554991dc12e511dd482a772b88ba6f96452197c23",
+    "run_id": "run:NG-14:3d129381a32d4a21",
+    "schema_version": "1.0",
+    "source_digest": "sha256:55f0e46c608463d1470830aa4864d19b22a6063e9c1e1b94fbbbd665d8fe92b2",
+    "source_reference": "workspace-file:test/browser/indexeddb.test.mjs",
+    "stage_id": "correctness-review",
+    "task_id": "NG-14"
+}

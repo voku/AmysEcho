@@ -1,0 +1,175 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-27T21:58:19+00:00",
+            "approved_by": "Lars Moelleken (in session 2026-11-27: 'do it , use the momentum')",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-4268261021822325262/contract.json",
+                "sha256": "sha256:bd3165c56d1550e9b566f7d78a329eff0ed46476858e8e5cc9163c1b0bde26c3"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-4268261021822325262",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "7afd69b578f044414ccf54a1fd9730a52d53e33c3dfa4dfcb050901377120c1f",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-4268261021822325262.md",
+                "sha256": "sha256:7afd69b578f044414ccf54a1fd9730a52d53e33c3dfa4dfcb050901377120c1f"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Page errors in the offline test must be empty in both runs; only a console error naming sw.js is tolerated offline (tested by the existing test)",
+                "The offline test asserts two pictures for the two stored tiles before checking they loaded",
+                "appAssets fails the build for a local reference with a query or hash and says why (the service worker answers board files by exact URL, so './main.js?v=2' would miss the cache offline); tested in bootstrap"
+            ],
+            "goal": "Close three CodeRabbit notes on PR 1261: the offline test keeps page errors apart and allows only the expected failed sw.js update check among console errors; it asserts one picture per stored tile before checking they loaded; appAssets no longer silently skips a local module reference that carries a query or hash.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-4268261021822325262/contract.json",
+                "sha256": "sha256:bd3165c56d1550e9b566f7d78a329eff0ed46476858e8e5cc9163c1b0bde26c3"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-4268261021822325262/contract.json",
+                "sha256": "sha256:bd3165c56d1550e9b566f7d78a329eff0ed46476858e8e5cc9163c1b0bde26c3"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-27T22:08:39+00:00",
+            "decided_by": "Claude Opus 5.5 (agent, session 2026-11-27)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/279a55e47da5ead3ea4962e062df88ac6ddc55ca9973ea27aa3b4687885cf90e.json",
+                "sha256": "sha256:83a2d5b917a674f3d0e51f387e577ef434fdadae9a4cd8fe83dc74839cdf4f91"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:befcecaf3cc6bd0688d77e8c963c1fc4581e38359414a5f787d78daf91c29531",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:259992f0aecc2e888843c31304749bb94baf338b2f7f4355bee5f0bda76cb58f"
+            },
+            "stale_entries": [
+                {
+                    "path": "scripts/offline-smoke.mjs",
+                    "reason": "hash"
+                },
+                {
+                    "path": "test/bootstrap.test.mjs",
+                    "reason": "hash"
+                }
+            ],
+            "stale_entries_count": 2,
+            "state": "stale"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "bbffb2ea9fcedad0eb1f6318bef17c2644dc59193db52ed8908e2b70b3a2de9a",
+            "compilation_id": "compilation.NG-4268261021822325262.2026-11-27-215820.2754fa48",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "b1e0f8511af07721241764b636199b877ac94e817f710159a50d95a2839466cd",
+            "source": {
+                "path": ".agent-loop/recall/NG-4268261021822325262/meta.json",
+                "sha256": "sha256:30cb2d09969f3c96616110bc2af08b482510c45de9f701608b2b9e4a5132f4ee"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-4268261021822325262/reviews/NG-4268261021822325262.blindspots.json",
+                "sha256": "sha256:6fe540edbc78540d2c25a3cebf66627dd03bd420f8e40b805791d5dfb88462e3"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "2aeaa0417f6ba0f4852b5024eb0f325a11a8062f",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-27-ng-4268261021822325262-r2-991db18b",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-27-ng-4268261021822325262-r2-991db18b/session.json",
+                "sha256": "sha256:fbab32718af9c81642562f916f18f47032e766a302c49085a57b80bc35603b60"
+            },
+            "state": "done",
+            "task_id": "NG-4268261021822325262"
+        },
+        "verification": {
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:c07c5ef53a78ef5c06e8971170fea014989697d3904f5eb27c0dbd9e7c2d1f35",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+            "source": {
+                "path": ".agent-loop/runs/NG-4268261021822325262/verification.json",
+                "sha256": "sha256:7b4eca19b5a4cbc72684f454f3af67f109e39f0c5e6afb25f9d91907356c0019"
+            },
+            "source_session_id": "2026-11-27-ng-4268261021822325262-r2-991db18b",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-4268261021822325262"
+}

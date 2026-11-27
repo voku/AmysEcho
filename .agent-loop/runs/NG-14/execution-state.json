@@ -1,0 +1,301 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+    "contract_revision": 2,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+    "history": [
+        {
+            "accepted_at": "2026-11-27T21:23:17+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T21:23:17+00:00",
+                "artifact_references": [],
+                "candidate_revision": "88a1b280788b4f52e622b3cb059e30df73f9a3ce",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "schema_version": "1.0",
+                "task_id": "NG-14",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "88a1b280788b4f52e622b3cb059e30df73f9a3ce",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "outcome": "completed",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:e7b02d9c",
+                "summary": "VERIFIED: sw.js pre-cache list was hand-kept (38 entries) and matched the import walk in test/bootstrap.test.mjs; test-only modules (profiles/memory-backend.js, recognition/evaluate.js, recognition/synthetic.js) and icons/licences.json are unreferenced by the app; no browser test covered the service worker install, an offline start or the IndexedDB adapter; Playwright 1.63.0 and test/browser/ runner already exist (NG-3), so no new dependency is needed.",
+                "task_id": "NG-14",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T21:23:27+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T21:23:27+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:84ba9bf24e760424423af085a171a85f1f761d8205df2e974422bd652741b95b",
+                    "execution-evidence:sha256:2a55cbeba70a504dbd6df839fd72cc216498571a291af4c0476b6f458b212df0",
+                    "execution-evidence:sha256:6b54891a2c9f7c0cb119c42403d48dd5a6b5c11c2cdf71064cb7540ec1e40d46",
+                    "execution-evidence:sha256:64cf3d983b343f57411e7c01a1ff7c477cc00ae5bfd8b1b824e8ed5c43a242b9",
+                    "execution-evidence:sha256:45f01e2b92bcb42c807a1556903f89c8b623f0ece598e7eaa4653b45a1213f21",
+                    "execution-evidence:sha256:3e7903728f9814b8ab0cd615cec6341fcdaded0db01abb6a88ec9677398e253e",
+                    "execution-evidence:sha256:36b885e4f378a82039c155ac8923a7f77f56b01322943fa5323d79aeba61793d",
+                    "execution-evidence:sha256:f79b38113ff845cb7a05e365fa57f43bb78b321ccd82d840e6feab8fecf387b6",
+                    "execution-evidence:sha256:d4a836667f53edda52f0b56c5b2d08a938005d55fdc6f6e97b29522d62264c6f",
+                    "execution-evidence:sha256:149ceb34defbcb51d64a970e6f296aeabb9e0454d842e8553a7f907ec24cd208"
+                ],
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "schema_version": "1.0",
+                "task_id": "NG-14",
+                "to_stage": "pre-review-validation",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:84ba9bf24e760424423af085a171a85f1f761d8205df2e974422bd652741b95b",
+                    "execution-evidence:sha256:2a55cbeba70a504dbd6df839fd72cc216498571a291af4c0476b6f458b212df0",
+                    "execution-evidence:sha256:6b54891a2c9f7c0cb119c42403d48dd5a6b5c11c2cdf71064cb7540ec1e40d46",
+                    "execution-evidence:sha256:64cf3d983b343f57411e7c01a1ff7c477cc00ae5bfd8b1b824e8ed5c43a242b9",
+                    "execution-evidence:sha256:45f01e2b92bcb42c807a1556903f89c8b623f0ece598e7eaa4653b45a1213f21",
+                    "execution-evidence:sha256:3e7903728f9814b8ab0cd615cec6341fcdaded0db01abb6a88ec9677398e253e",
+                    "execution-evidence:sha256:36b885e4f378a82039c155ac8923a7f77f56b01322943fa5323d79aeba61793d",
+                    "execution-evidence:sha256:f79b38113ff845cb7a05e365fa57f43bb78b321ccd82d840e6feab8fecf387b6",
+                    "execution-evidence:sha256:d4a836667f53edda52f0b56c5b2d08a938005d55fdc6f6e97b29522d62264c6f",
+                    "execution-evidence:sha256:149ceb34defbcb51d64a970e6f296aeabb9e0454d842e8553a7f907ec24cd208"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "context_id": "claude-main-10c1930a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "outcome": "completed",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:cc1fefc7",
+                "summary": "Pre-cache list generated by the build (appAssets in scripts/offline-smoke.mjs, written by scripts/assemble.mjs; public/sw.js keeps const ASSETS = []); new Chromium tests test/browser/offline.test.mjs and test/browser/indexeddb.test.mjs; bootstrap test for the generator; docs and source comments updated. npm ci --ignore-scripts && npm run verify exit 0 on the host: 750 Node tests pass, 12 browser tests pass, 2 DGS tests skipped (origin/main_old not fetched locally).",
+                "task_id": "NG-14",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T21:25:14+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T21:25:14+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "from_stage": "pre-review-validation",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "schema_version": "1.0",
+                "task_id": "NG-14",
+                "to_stage": "correctness-review",
+                "validation_references": [
+                    "execution-evidence:sha256:e85c66b68effe7ca91f12db3ab1f091757317246bac31928a2d3739ae41190cb",
+                    "execution-evidence:sha256:17301c6689472ec8ce5f001ffe8343f5ddb6a32760c229c798d245a300f89e36"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "outcome": "pass",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "stage_id": "pre-review-validation",
+                "submission_id": "deterministic:sha256:9e4c1735279a0ccc36e757eff7682e4c49b78ba2ee18f64fbbbc87bde9ccfc6d",
+                "summary": "[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-14",
+                "validation_references": [
+                    "execution-evidence:sha256:e85c66b68effe7ca91f12db3ab1f091757317246bac31928a2d3739ae41190cb",
+                    "execution-evidence:sha256:17301c6689472ec8ce5f001ffe8343f5ddb6a32760c229c798d245a300f89e36"
+                ]
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T21:27:39+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T21:27:39+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:eca18d7b423f962d3eac34b73f47c4b13a184fac88ba25e11803c2f16dc7fb4a",
+                    "execution-evidence:sha256:600215942e8598007863a8cd8dbb1c6f72641efa3a39bc23bb85e738d18c8136",
+                    "execution-evidence:sha256:8371a6cfab5e31dba9b50af276d747aa461af380c869f9bcac4cb3265f3235da",
+                    "execution-evidence:sha256:9da1cd5611b434cb9b87bb1b2c304df2737969b27043cc8a0a891890365d2c0f",
+                    "execution-evidence:sha256:8dfec3a58f18da3497b9f938515da42e26cd064e429ae7ac60bc330e77fa90c8",
+                    "execution-evidence:sha256:05dcc7b11412a25bb3ac12d554991dc12e511dd482a772b88ba6f96452197c23",
+                    "execution-evidence:sha256:f33b23bb6c3197585773a79c071c8ce7f61a61856215101000823f2bfbecee1b",
+                    "execution-evidence:sha256:6226845d11f92732fe62e4e76bf856577830e2087191992532005744d7173790",
+                    "execution-evidence:sha256:9d9f734ec6e410d1a49a79fcda54796235554bc5f80c6bc149f581ace71ac37d",
+                    "execution-evidence:sha256:05f7e95db680b41a9cc37679f8a3151984a9755b91b735ceb75c0060b9aae673"
+                ],
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "schema_version": "1.0",
+                "task_id": "NG-14",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:eca18d7b423f962d3eac34b73f47c4b13a184fac88ba25e11803c2f16dc7fb4a",
+                    "execution-evidence:sha256:600215942e8598007863a8cd8dbb1c6f72641efa3a39bc23bb85e738d18c8136",
+                    "execution-evidence:sha256:8371a6cfab5e31dba9b50af276d747aa461af380c869f9bcac4cb3265f3235da",
+                    "execution-evidence:sha256:9da1cd5611b434cb9b87bb1b2c304df2737969b27043cc8a0a891890365d2c0f",
+                    "execution-evidence:sha256:8dfec3a58f18da3497b9f938515da42e26cd064e429ae7ac60bc330e77fa90c8",
+                    "execution-evidence:sha256:05dcc7b11412a25bb3ac12d554991dc12e511dd482a772b88ba6f96452197c23",
+                    "execution-evidence:sha256:f33b23bb6c3197585773a79c071c8ce7f61a61856215101000823f2bfbecee1b",
+                    "execution-evidence:sha256:6226845d11f92732fe62e4e76bf856577830e2087191992532005744d7173790",
+                    "execution-evidence:sha256:9d9f734ec6e410d1a49a79fcda54796235554bc5f80c6bc149f581ace71ac37d",
+                    "execution-evidence:sha256:05f7e95db680b41a9cc37679f8a3151984a9755b91b735ceb75c0060b9aae673"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "context_id": "ng14-cr-7f3a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "observations": [
+                    "appAssets does not follow dynamic import(), CSS url() or manifest icons outside icons/ (scripts/offline-smoke.mjs:54-65); nothing missed today",
+                    "offline test error filter for sw.js is broader than a failed update check (test/browser/offline.test.mjs:132)",
+                    "docs/storage.md quotes about 1.7 s for 10,000 puts; another run logged about 1 s"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:5db50f16",
+                "summary": "Independent correctness review of 88a1b28..HEAD passed: generated pre-cache list equals the removed hand list; fill-then-digest order consistent; browser tests non-vacuous (server stopped, offline context, fromServiceWorker asserted, SW fetches recorded 73/73); build, bootstrap 15/15 and browser 5/5 pass.",
+                "task_id": "NG-14",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T21:29:55+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T21:29:55+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:ee4b68397698fb918cf663172f28812ca3f5d32d02725feacf3b58a10de02de6",
+                    "execution-evidence:sha256:c61bb983b7ed18d4ad02bf6011f73a1b4108213113d262e2e5228667d5d0dafa",
+                    "execution-evidence:sha256:37a83bb33cb04fc628d551fd38f3dc97297eb325da871fcdb9ee09045dc521bc",
+                    "execution-evidence:sha256:09deb1bdd15bbd1739f7a0d5a44e5ea26c58e0efda443e0c03c5ba198db6ff8c",
+                    "execution-evidence:sha256:49a30b61488b056257de4b016b4ea9ded94531fc5fdcf5c1f2f9b0e61cb56534",
+                    "execution-evidence:sha256:1e333e087421580ae251323d1b2c56efa5aa3917f38f662086dbd2d40c6b1b79",
+                    "execution-evidence:sha256:a8f96c35d6dc866d8acd67eeaa4ece54f473f21f2ab53286ddeb8448730267a2",
+                    "execution-evidence:sha256:5e42f846cc42dd91736b7c55435462af3062368e4b0b4d81f6b7309ddd7d63b7",
+                    "execution-evidence:sha256:bd0435d2e0f8af6a0d21a75b13a06551ffe34ab3faba6cef980760abfc335864",
+                    "execution-evidence:sha256:0089b58f33331306f2bc31f8d9108e39c3e2053854c67371444b16931a1f8f47"
+                ],
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "schema_version": "1.0",
+                "task_id": "NG-14",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:ee4b68397698fb918cf663172f28812ca3f5d32d02725feacf3b58a10de02de6",
+                    "execution-evidence:sha256:c61bb983b7ed18d4ad02bf6011f73a1b4108213113d262e2e5228667d5d0dafa",
+                    "execution-evidence:sha256:37a83bb33cb04fc628d551fd38f3dc97297eb325da871fcdb9ee09045dc521bc",
+                    "execution-evidence:sha256:09deb1bdd15bbd1739f7a0d5a44e5ea26c58e0efda443e0c03c5ba198db6ff8c",
+                    "execution-evidence:sha256:49a30b61488b056257de4b016b4ea9ded94531fc5fdcf5c1f2f9b0e61cb56534",
+                    "execution-evidence:sha256:1e333e087421580ae251323d1b2c56efa5aa3917f38f662086dbd2d40c6b1b79",
+                    "execution-evidence:sha256:a8f96c35d6dc866d8acd67eeaa4ece54f473f21f2ab53286ddeb8448730267a2",
+                    "execution-evidence:sha256:5e42f846cc42dd91736b7c55435462af3062368e4b0b4d81f6b7309ddd7d63b7",
+                    "execution-evidence:sha256:bd0435d2e0f8af6a0d21a75b13a06551ffe34ab3faba6cef980760abfc335864",
+                    "execution-evidence:sha256:0089b58f33331306f2bc31f8d9108e39c3e2053854c67371444b16931a1f8f47"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "context_id": "bsr-ng14-7f3a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "observations": [
+                    "camera hooks in test/browser/offline.test.mjs are not asserted installed; a missing navigator.mediaDevices would leave the counts at 0",
+                    "offline console-error filter for sw.js may hide a real worker error",
+                    "docs/storage.md timings (0.3 s cold start, 1.7 s for 10,000 puts) vary between runs; state them as one example",
+                    "the tests serve the app at the root, not under the GitHub Pages subpath",
+                    "a picture deleted from public/icons stays in a local dist and its pre-cache until dist is cleaned; CI builds clean",
+                    "ASSET_REVISION comment in public/sw.js still speaks of every asset below",
+                    "browser test files run concurrently; possible flakiness on a loaded CI runner"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:8faa2776",
+                "summary": "Independent blind-spot review passed: generated list identical (38 entries) to the old hand list, so the update path is unchanged; test-only modules excluded; build fails without the empty ASSETS line; bootstrap 15/15 and new browser tests 5/5 pass.",
+                "task_id": "NG-14",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T21:32:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T21:32:00+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "schema_version": "1.0",
+                "task_id": "NG-14",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:261dd1c721d3459f67440272069fbdb2abd98dd03310774e77c2b594ff7c4111",
+                    "execution-evidence:sha256:ca0b172d098f4d747dce36d21587dbb4b75755837aa6ee7bea26686cf48e5bb4"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+                "consistency_references": [
+                    "execution-evidence:sha256:37dcba9807c98eed7a27f735268c4daccfcde27b56c55d396487d32c2b0631c0"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+                "outcome": "pass",
+                "run_id": "run:NG-14:3d129381a32d4a21",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:5f149a126dccb9e76cdbef082dbd0e70d0ed5bd305735c7001ddaa639cd9a6af",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-14: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/moellekenl/PhpstormProjects/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-14 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-14:3d129381a32d4a21 binds active Session 2026-11-27-ng-14-r2-e85be693 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/moellekenl/PhpstormProjects/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-14 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[export] Validation ran against an exported copy of the accepted candidate (tracked files only) because the shared checkout holds files outside the approved scope. Ignored files such as vendor/ are absent; declare their preparation in the Contract.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-14",
+                "validation_references": [
+                    "execution-evidence:sha256:261dd1c721d3459f67440272069fbdb2abd98dd03310774e77c2b594ff7c4111",
+                    "execution-evidence:sha256:ca0b172d098f4d747dce36d21587dbb4b75755837aa6ee7bea26686cf48e5bb4"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "routed_review_attention_ids": [],
+    "run_id": "run:NG-14:3d129381a32d4a21",
+    "schema_version": "1.0",
+    "task_id": "NG-14"
+}

@@ -1,0 +1,165 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-4268261021822325262 before calling agent-loop finish NG-4268261021822325262",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-27T21:57:51+00:00",
+            "approved_by": "Lars Moelleken (in session 2026-11-27: 'do it , use the momentum')",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-4268261021822325262/contract.json",
+                "sha256": "sha256:694fc57f2f3ed6e596b674ded484cfcbb2ca7f6f4d58e99d580bdf471f3974e2"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-4268261021822325262",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "7afd69b578f044414ccf54a1fd9730a52d53e33c3dfa4dfcb050901377120c1f",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-4268261021822325262.md",
+                "sha256": "sha256:7afd69b578f044414ccf54a1fd9730a52d53e33c3dfa4dfcb050901377120c1f"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Page errors in the offline test must be empty in both runs; only a console error naming sw.js is tolerated offline (tested by the existing test)",
+                "The offline test asserts two pictures for the two stored tiles before checking they loaded",
+                "appAssets queues './x.js?v=2' and './x.js#h' as x.js, so their imports are listed; the pre-cache entry is the plain path (tested in bootstrap)"
+            ],
+            "goal": "Close three CodeRabbit notes on PR 1261: the offline test keeps page errors apart and allows only the expected failed sw.js update check among console errors; it asserts one picture per stored tile before checking they loaded; appAssets follows local module references that carry a query or hash by their path.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-4268261021822325262/contract.json",
+                "sha256": "sha256:694fc57f2f3ed6e596b674ded484cfcbb2ca7f6f4d58e99d580bdf471f3974e2"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-4268261021822325262/contract.json",
+                "sha256": "sha256:694fc57f2f3ed6e596b674ded484cfcbb2ca7f6f4d58e99d580bdf471f3974e2"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-4268261021822325262:6c9757a1b9e058d0",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:7f3c1d6f7e261a3fc8baf41fd48ba3fcf6c3ee20f41f53a392d63728b1fedfd4",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:b345aa1a8baebf2c1a03042803d994fede67e65b5925d6941c98a4abb877ec8a"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-4268261021822325262:6c9757a1b9e058d0",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "7427b650abb45e87bb9c274cd8adb1d34ff0923e9988db0fe6c56c20d34753e6",
+            "compilation_id": "compilation.NG-4268261021822325262.2026-11-27-215751.c2969cf4",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "c097e7b095a327a279f82c32ec622c10422395add5677d3436a5a522e52c30c7",
+            "source": {
+                "path": ".agent-loop/recall/NG-4268261021822325262/meta.json",
+                "sha256": "sha256:e369d83f9d10df21564d870e38416bd9e9af3d3f17a2d3e6610c587889bb2fc1"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-4268261021822325262/reviews/NG-4268261021822325262.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "2aeaa0417f6ba0f4852b5024eb0f325a11a8062f",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-27-ng-4268261021822325262-r1-d6806760",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-27-ng-4268261021822325262-r1-d6806760/session.json",
+                "sha256": "sha256:d46923d77e913e230ba07d08feb6a07f7ceb02ef303767635bea38036170f958"
+            },
+            "state": "active",
+            "task_id": "NG-4268261021822325262"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-4268261021822325262 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-4268261021822325262",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:a189be201f01becfabb26253bab6269f234c07bd9dcbf6f5cb298671e3965467",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-4268261021822325262:6c9757a1b9e058d0",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-4268261021822325262"
+}

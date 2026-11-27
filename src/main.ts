@@ -12,7 +12,7 @@ if (root === null || boardRegion === null) {
 
 // The app writes into the board region only; see src/app.ts and src/startup.ts
 // for the start-up sequence.
-// The IndexedDB adapter has no automated test yet (card NG-14).
+// The IndexedDB adapter is tested in Chromium (test/browser/indexeddb.test.mjs, card NG-14).
 export const app = createApp(boardRegion, {
   openBackend: () => openIndexedDbBackend(),
   catalogue: CONCEPTS,

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
-import { precacheList, smoke } from "../scripts/offline-smoke.mjs";
+import { appAssets, precacheList, smoke } from "../scripts/offline-smoke.mjs";
 import { getBootstrapState } from "../dist/status.js";
 import { CONCEPTS, findConcept } from "../dist/concepts.js";
 
@@ -222,6 +222,44 @@ test("service-worker pre-cache includes the full local concept bundle", async ()
     assert.ok(listed.includes(asset), `pre-cache list lacks ./${asset}`);
   }
   assert.equal(new Set(listed).size, listed.length, "an entry is listed twice");
+});
+
+test("the pre-cache list is generated from the built app: no hand list, no test-only module, a missing module fails", async () => {
+  const dist = new URL("../dist/", import.meta.url);
+  const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.match(source, /^const ASSETS = \[\];$/m, "public/sw.js keeps a hand-written pre-cache list");
+  const listed = await precacheList(await readFile(new URL("sw.js", dist), "utf8"));
+  assert.deepEqual(listed, await appAssets(dist));
+  for (const testOnly of ["profiles/memory-backend.js", "recognition/evaluate.js", "recognition/synthetic.js", "icons/licences.json", "sw.js"]) {
+    assert.ok(!listed.includes(testOnly), `pre-cached although the app does not load it: ${testOnly}`);
+  }
+  assert.ok(!listed.some((path) => path.startsWith("vendor/")), "the tracker is in the board's pre-cache");
+
+  const copy = await mkdtemp(join(tmpdir(), "amysecho-assets-"));
+  try {
+    await cp(dist, copy, { recursive: true });
+    const copyUrl = pathToFileURL(`${copy}/`);
+    // A module that an import names but the build did not write.
+    await rm(join(copy, "profiles", "profile.js"));
+    await assert.rejects(appAssets(copyUrl), /profiles\/profile\.js is referenced but not built/);
+    // A reference that leaves the app.
+    await writeFile(join(copy, "index.html"), (await readFile(new URL("index.html", dist), "utf8")).replace('src="./main.js"', 'src="https://cdn.invalid/main.js"'));
+    await assert.rejects(appAssets(copyUrl), /not a local file: https:\/\/cdn\.invalid\/main\.js/);
+    // A versioned reference would be fetched offline under a URL the pre-cache does not hold.
+    for (const versioned of ["./main.js?v=2", "./main.js#start"]) {
+      await writeFile(join(copy, "index.html"), (await readFile(new URL("index.html", dist), "utf8")).replace('src="./main.js"', `src="${versioned}"`));
+      await assert.rejects(appAssets(copyUrl), /with a query or hash; the offline cache matches exact URLs/);
+    }
+    // The same in a module's import.
+    await writeFile(join(copy, "index.html"), await readFile(new URL("index.html", dist), "utf8"));
+    await cp(new URL("profiles/profile.js", dist), join(copy, "profiles", "profile.js"));
+    const main = await readFile(new URL("main.js", dist), "utf8");
+    assert.match(main, /from "\.\/app\.js";/);
+    await writeFile(join(copy, "main.js"), main.replace('from "./app.js";', 'from "./app.js?v=2";'));
+    await assert.rejects(appAssets(copyUrl), /main\.js names \.\/app\.js\?v=2 with a query or hash/);
+  } finally {
+    await rm(copy, { recursive: true, force: true });
+  }
 });
 
 test("the offline smoke check fetches exactly the service worker's pre-cache list and fails for an entry that is not served", async () => {

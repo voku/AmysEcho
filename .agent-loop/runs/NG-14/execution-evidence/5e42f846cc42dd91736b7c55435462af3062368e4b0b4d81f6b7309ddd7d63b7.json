@@ -1,0 +1,16 @@
+{
+    "attempt": 1,
+    "candidate_revision": "git-tree-v1:88a1b280788b4f52e622b3cb059e30df73f9a3ce:4413319c9ac29ef53c2f531089bd4fe808481555",
+    "contract_revision": 2,
+    "evidence_kind": "artifact",
+    "execution_plan_digest": "sha256:d6438e1f8572acdcf0f97bba0beccc536cfc8df3e91fe3e97413d5da9e6c24ae",
+    "kind": "execution_evidence",
+    "recorded_at": "2026-11-27T21:29:55+00:00",
+    "reference": "execution-evidence:sha256:5e42f846cc42dd91736b7c55435462af3062368e4b0b4d81f6b7309ddd7d63b7",
+    "run_id": "run:NG-14:3d129381a32d4a21",
+    "schema_version": "1.0",
+    "source_digest": "sha256:ee0aa9262a54b9f11b1adae1e1881ab7c6ef05e92d0ec7038949889859ac6a95",
+    "source_reference": "workspace-file:src/profiles/indexeddb-backend.ts",
+    "stage_id": "blindspot-review",
+    "task_id": "NG-14"
+}
