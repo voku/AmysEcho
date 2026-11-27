@@ -65,6 +65,120 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress --no-scripts
       - name: Exercise installed agent-loop CLI
         run: php vendor/bin/agent-loop workflow help
+      - name: Probe exact installed runtime and candidate validation (evidence only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'CLI proxy: %s\n' "$(realpath vendor/bin/agent-loop)"
+          php --version
+          fixture="$(mktemp)"
+          trap 'rm -f "$fixture"' EXIT
+          curl --fail --silent --show-error --location \
+            https://raw.githubusercontent.com/voku/agent-loop/2bd7fde8a95fadb0b4ad221a8fc0b9c2338b86c0/tests/Support/VerifyStageRunFixture.php \
+            --output "$fixture"
+          test "$(git hash-object "$fixture")" = fe1815f51179c082006b162fed33834ece7daaa8
+          export PROBE_FIXTURE="$fixture"
+          php -d memory_limit=512M <<'PHP'
+          <?php
+          declare(strict_types=1);
+
+          use Composer\InstalledVersions;
+          use voku\AgentLoop\Execution\ExecutionGateway;
+          use voku\AgentLoop\Execution\ExecutionPlanStore;
+          use voku\AgentLoop\Execution\ExecutionProfile;
+          use voku\AgentLoop\Execution\ExecutionProfileName;
+          use voku\AgentLoop\Execution\ExecutionStateStore;
+          use voku\AgentLoop\Execution\StageCandidateObservation;
+          use voku\AgentLoop\Execution\StageOutcome;
+          use voku\AgentLoop\Run\GovernedRunStore;
+          use voku\AgentLoop\Tests\Support\VerifyStageRunFixture;
+          use voku\AgentLoop\Workflow\TaskContractStore;
+
+          require getcwd() . '/vendor/autoload.php';
+          require (string) getenv('PROBE_FIXTURE');
+
+          function expect(bool $condition, string $message): void
+          {
+              if (!$condition) {
+                  throw new RuntimeException($message);
+              }
+              echo "PASS: ", $message, "\n";
+          }
+
+          $lock = json_decode((string) file_get_contents('composer.lock'), true, 512, JSON_THROW_ON_ERROR);
+          $package = null;
+          foreach (array_merge($lock['packages'], $lock['packages-dev']) as $entry) {
+              if ($entry['name'] === 'voku/agent-loop') {
+                  $package = $entry;
+                  break;
+              }
+          }
+          expect(is_array($package), 'Lock contains agent-loop');
+          $version = InstalledVersions::getPrettyVersion('voku/agent-loop');
+          $reference = InstalledVersions::getReference('voku/agent-loop');
+          $source = (new ReflectionClass(ExecutionProfile::class))->getFileName();
+          expect(is_string($source) && is_file($source), 'Resolved ExecutionProfile source exists');
+          $installPath = realpath((string) InstalledVersions::getInstallPath('voku/agent-loop'));
+          $sourcePath = realpath($source);
+          expect(is_string($installPath) && is_string($sourcePath) && str_starts_with($sourcePath, $installPath . DIRECTORY_SEPARATOR), 'Loaded class belongs to installed package');
+          $bytes = file_get_contents($sourcePath);
+          expect(is_string($bytes), 'Read resolved class source');
+          $blob = sha1('blob ' . strlen($bytes) . "\0" . $bytes);
+          echo json_encode(['locked' => $package['version'], 'loaded' => $version, 'reference' => $reference, 'class_source' => $sourcePath, 'git_blob' => $blob], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES), "\n";
+          expect(ltrim((string) $version, 'v') === ltrim($package['version'], 'v'), 'Installed version matches lock');
+          expect($reference === $package['source']['reference'] && $reference === '2bd7fde8a95fadb0b4ad221a8fc0b9c2338b86c0', 'Installed reference matches frozen release');
+          expect($blob === 'e413671f2cd81ecdf2b7ba1650d93b71265b2a9f', 'Loaded profile bytes match released Git blob');
+
+          // Synthetic owner fixture: no real consumer task or human approval is altered.
+          $fixture = new VerifyStageRunFixture();
+          try {
+              $fixture->reachPreReviewWith("<?php\nthis is broken\n", profile: ExecutionProfileName::STANDARD);
+              $store = new ExecutionPlanStore($fixture->root);
+              $plan = $store->load('VER-1');
+              $stages = array_map(static fn ($stage): string => $stage->id, $plan->stages);
+              echo json_encode(['plan_digest' => $plan->digest(), 'stages' => $stages], JSON_THROW_ON_ERROR), "\n";
+              expect($stages === ['investigate', 'build', 'pre-review-validation', 'correctness-review', 'blindspot-review', 'verify'], 'New standard plan includes deterministic gate');
+              $gateway = new ExecutionGateway($fixture->root);
+              $failed = $gateway->runDeterministicStage('VER-1', 'pre-review-validation', $fixture->workspace);
+              expect($failed->currentStageId === 'build', 'Broken candidate routes to build, not review');
+              $repair = $gateway->prepareStage('VER-1', 'build');
+              expect(str_contains($repair->prompt, '[FAIL] php -l src/Foo.php'), 'Repair receives real failing check');
+              $written = file_put_contents($fixture->workspace . '/src/Foo.php', "<?php\nfinal class Foo { public const int X = 1; }\n");
+              expect($written !== false, 'Repair candidate written');
+              $candidate = $fixture->candidate();
+              $gateway->recordStageCandidate(new StageCandidateObservation(
+                  $repair->taskId, $repair->runId, $repair->contractRevision,
+                  $repair->executionPlanDigest, $repair->stageId, $repair->attempt,
+                  $repair->candidateRevision, $candidate,
+              ));
+              $fixture->submit($gateway, $repair, StageOutcome::COMPLETED, $candidate, 'ctx:repair');
+              $passed = $gateway->runDeterministicStage('VER-1', 'pre-review-validation', $fixture->workspace);
+              expect($passed->currentStageId === 'correctness-review', 'Repaired candidate passes before review');
+              expect($passed->candidateRevision === $candidate, 'Review route is bound to repaired candidate');
+              $state = (new ExecutionStateStore($fixture->root))->find('VER-1');
+              expect($state !== null, 'Execution state persists');
+              $history = array_map(static fn ($entry): array => [$entry->result->stageId, $entry->result->outcome->value], $state->history);
+              echo json_encode(['history' => $history], JSON_THROW_ON_ERROR), "\n";
+              expect($history === [['investigate', 'completed'], ['build', 'completed'], ['pre-review-validation', 'failed'], ['build', 'completed'], ['pre-review-validation', 'pass']], 'No review was accepted before validation pass');
+          } finally {
+              $fixture->remove();
+          }
+
+          $legacy = new VerifyStageRunFixture();
+          try {
+              $legacy->reachPreReviewWith("<?php\nfinal class Foo {}\n", legacyPlan: true);
+              $store = new ExecutionPlanStore($legacy->root);
+              $before = file_get_contents($store->path('VER-1'));
+              $contract = (new TaskContractStore($legacy->root))->load('VER-1');
+              $run = (new GovernedRunStore($legacy->root))->findForContract($contract);
+              expect($run !== null, 'Legacy fixture has matching Run');
+              $loaded = $store->prepare($run, $contract);
+              expect(is_string($before) && $before === file_get_contents($store->path('VER-1')), 'Existing legacy plan is preserved byte-for-byte');
+              expect($loaded->stage('build')->next(StageOutcome::COMPLETED) === 'review', 'Legacy graph is not silently upgraded');
+          } finally {
+              $legacy->remove();
+          }
+          PHP
       - name: Verify Composer inputs are unchanged
         run: git diff --exit-code -- composer.json composer.lock
 
