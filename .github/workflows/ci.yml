@@ -179,6 +179,83 @@ jobs:
               $legacy->remove();
           }
           PHP
+      - name: Reproduce stale vendor against newer lock (isolated control)
+        shell: bash
+        run: |
+          set -euo pipefail
+          project="$PWD"
+          probe="$(mktemp -d)"
+          trap 'rm -rf -- "$probe"' EXIT
+          cp composer.json "$probe/composer.json"
+          curl --fail --silent --show-error --location \
+            https://raw.githubusercontent.com/voku/AmysEcho/d6970d3eb69ed540b99b0d492cc1759a55a1267c/composer.lock \
+            --output "$probe/composer.lock"
+          test "$(git hash-object "$probe/composer.lock")" = 503817343b92dc606f3103b614491ab66bd381fd
+          cd "$probe"
+          composer install --no-interaction --prefer-dist --no-progress --no-scripts
+          # Deliberately model a lock update without reinstalling vendor.
+          cp "$project/composer.lock" composer.lock
+          mkdir -p .agent-loop/learning src
+          printf '/.agent-loop/\n/vendor/\n' > .gitignore
+          printf '<?php\nfinal class Foo {}\n' > src/Foo.php
+          git init -q
+          git config user.name 'Synthetic CI fixture'
+          git config user.email 'fixture@example.invalid'
+          git add .
+          git commit -qm 'Synthetic baseline'
+          base="$(git rev-parse HEAD)"
+
+          prepare() {
+            php vendor/bin/agent-loop workflow plan "$1" --by 'Synthetic fixture planner' \
+              --file src/Foo.php --goal 'Change Foo in isolated fixture' \
+              --validation 'php -l src/Foo.php' --base-commit "$base"
+            php vendor/bin/agent-loop workflow approve "$1" --revision 1 --by 'Synthetic fixture approver'
+            php vendor/bin/agent-loop workflow execution-profile "$1" --profile standard --by 'Synthetic fixture approver'
+            php vendor/bin/agent-loop enter "$1" --format=json > "$1-enter.json"
+          }
+
+          # No real approvals: all tasks and their actor labels exist only in this disposable directory.
+          prepare PROBE-1
+          php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          require 'vendor/autoload.php';
+          $lock = json_decode((string) file_get_contents('composer.lock'), true, 512, JSON_THROW_ON_ERROR);
+          $locked = array_values(array_filter($lock['packages-dev'], static fn (array $p): bool => $p['name'] === 'voku/agent-loop'))[0]['version'];
+          $loaded = Composer\InstalledVersions::getPrettyVersion('voku/agent-loop');
+          $plan = json_decode((string) file_get_contents('.agent-loop/runs/PROBE-1/execution-plan.json'), true, 512, JSON_THROW_ON_ERROR);
+          $state = json_decode((string) file_get_contents('.agent-loop/runs/PROBE-1/execution-state.json'), true, 512, JSON_THROW_ON_ERROR);
+          $stages = array_column($plan['stages'], 'id');
+          echo json_encode(['locked' => $locked, 'loaded' => $loaded, 'reference' => Composer\InstalledVersions::getReference('voku/agent-loop'), 'stages' => $stages, 'state_keys' => array_keys($state)], JSON_THROW_ON_ERROR), "\n";
+          if ($locked !== '0.20.107' || $loaded !== '0.20.106'
+              || $stages !== ['investigate', 'build', 'correctness-review', 'blindspot-review', 'verify']
+              || array_key_exists('routed_review_attention_ids', $state)) {
+              throw new RuntimeException('Stale-vendor control did not reproduce historical plan/state shape.');
+          }
+          echo "PASS: stale installed runtime reproduces both historical signatures\n";
+          PHP
+
+          sha256sum .agent-loop/runs/PROBE-1/execution-plan.json > legacy.sha256
+          composer install --no-interaction --prefer-dist --no-progress --no-scripts
+          # Use a new task after upgrade; the old plan must not change.
+          prepare PROBE-2
+          sha256sum --check legacy.sha256
+          php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          require 'vendor/autoload.php';
+          $loaded = Composer\InstalledVersions::getPrettyVersion('voku/agent-loop');
+          $plan = json_decode((string) file_get_contents('.agent-loop/runs/PROBE-2/execution-plan.json'), true, 512, JSON_THROW_ON_ERROR);
+          $state = json_decode((string) file_get_contents('.agent-loop/runs/PROBE-2/execution-state.json'), true, 512, JSON_THROW_ON_ERROR);
+          $stages = array_column($plan['stages'], 'id');
+          echo json_encode(['loaded' => $loaded, 'reference' => Composer\InstalledVersions::getReference('voku/agent-loop'), 'stages' => $stages, 'state_keys' => array_keys($state)], JSON_THROW_ON_ERROR), "\n";
+          if ($loaded !== '0.20.107'
+              || $stages !== ['investigate', 'build', 'pre-review-validation', 'correctness-review', 'blindspot-review', 'verify']
+              || !array_key_exists('routed_review_attention_ids', $state)) {
+              throw new RuntimeException('Reinstall did not restore new-plan behavior.');
+          }
+          echo "PASS: reinstall restores new-plan behavior; old plan unchanged\n";
+          PHP
       - name: Verify Composer inputs are unchanged
         run: git diff --exit-code -- composer.json composer.lock
 
