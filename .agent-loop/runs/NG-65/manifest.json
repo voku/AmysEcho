@@ -1,0 +1,156 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-27T20:31:59+00:00",
+            "approved_by": "Lars Moelleken (in session 2026-11-27: 'Lass die Sperre weg, macht in environments like this no sense')",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-65/contract.json",
+                "sha256": "sha256:dd4914dfdfbd5b731a00a7d24232f719deaa222fd65a4353b438116db69a4cc2"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-65",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "state": "not_linked"
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Surgical change applied within declared fast-path scope",
+                "Required verification passes"
+            ],
+            "goal": "Record the owner decision that the agent-loop policy deny of git push is not applied in this repository, so host-status 'policy: missing' is expected",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-65/contract.json",
+                "sha256": "sha256:dd4914dfdfbd5b731a00a7d24232f719deaa222fd65a4353b438116db69a4cc2"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-65/contract.json",
+                "sha256": "sha256:dd4914dfdfbd5b731a00a7d24232f719deaa222fd65a4353b438116db69a4cc2"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-27T20:34:24+00:00",
+            "decided_by": "fast-path-auto-close",
+            "decision": "no_durable_learning",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-65:a8d702a9d6b43a14",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/b0c2f869d7c9a86549657785077eae32650941138f9157e72dd3bbf5f86e3505.json",
+                "sha256": "sha256:fcfa3c00d93589c3877de46e8acda7cc3cd4d4d8db4b820a247eed9bd75a1b32"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:4f1297994035d55a1f1451937b21b73f5d24df3374e9299e8261d19cafe06aad",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:c48a44b6007037b99ae408c913e420a2f107a79d879982c18d4fdfc3ed0a9d90"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-65:a8d702a9d6b43a14",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "f5ac07f65f9c647fc8cb0027fc1a3cb419d32ff1edd30fdeb554ab3838b1615e",
+            "compilation_id": "compilation.NG-65.2026-11-27-203159.93768603",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "ed0a96ce03788c02b21a2ed256629d294a80acea4c976cf2fffde8e10665c960",
+            "source": {
+                "path": ".agent-loop/recall/NG-65/meta.json",
+                "sha256": "sha256:e367a5f2c217e6b076d13c2cc40116504b51f6755d44e34b9a871c2484fd7273"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-65/reviews/NG-65.blindspots.json",
+                "sha256": "sha256:47f2a17fcb78c8ca52e5644445e8ed598cf0b3f2deb231248b22388d34dd3cc0"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "caf6d0ca3b27f4682ce1ad0acbb67317fe9d7352",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-27-ng-65-r1-952c4a39",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-27-ng-65-r1-952c4a39/session.json",
+                "sha256": "sha256:4dbac18d6c44ea2b95f9a8208a44d1c949be4327667c937d3ffca6f3c98aad5a"
+            },
+            "state": "done",
+            "task_id": "NG-65"
+        },
+        "verification": {
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:ac6aebded1e48546e40b0440293a74f9c5030941f8ba5e44660e1ddb65adf0ba",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-65:a8d702a9d6b43a14",
+            "source": {
+                "path": ".agent-loop/runs/NG-65/verification.json",
+                "sha256": "sha256:1a68486a8591f89908ae40fd346ce5e8afe894a8afad0cbad29dd117a15dda1a"
+            },
+            "source_session_id": "2026-11-27-ng-65-r1-952c4a39",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-65:a8d702a9d6b43a14",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-65"
+}

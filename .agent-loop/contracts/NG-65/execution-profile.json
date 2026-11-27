@@ -1,0 +1,13 @@
+{
+    "contract_revision": 1,
+    "contract_source": {
+        "path": ".agent-loop/contracts/NG-65/contract.json",
+        "sha256": "sha256:dd4914dfdfbd5b731a00a7d24232f719deaa222fd65a4353b438116db69a4cc2"
+    },
+    "kind": "execution_profile_selection",
+    "profile": "manual",
+    "schema_version": "1.0",
+    "selected_at": "2026-11-27T20:31:59+00:00",
+    "selected_by": "Lars Moelleken (in session 2026-11-27: 'Lass die Sperre weg, macht in environments like this no sense')",
+    "task_id": "NG-65"
+}

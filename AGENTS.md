@@ -50,6 +50,10 @@ Keep this section outside the managed router markers above.
   declarations only: no call relations, and no deterministic `agent-loop edit` for TypeScript. It
   is built from scoped files that already exist, so a Contract that names only new files gets no
   map; add an existing neighbour file to the scope when the task needs code facts.
+- `agent-loop init sync-policy` wants to add `Bash(git push *)` to the deny list in
+  `.claude/settings.json`. It is not applied here (owner decision, 2026-11-27): cloud sessions push
+  their own branches and merge on green CI. `init host-status` therefore reports `policy: missing`
+  and suggests `init sync-policy`; that is expected, do not run it.
 
 ## Validation
 
