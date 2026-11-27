@@ -1,9 +1,9 @@
 {
     "disagreements": [],
     "mode": "governed",
-    "next_action": "perform the approved host-native implementation for NG-64 before calling agent-loop finish NG-64",
+    "next_action": "none",
     "next_action_invocation": null,
-    "next_action_kind": "host_work",
+    "next_action_kind": "none",
     "references": {
         "approval": {
             "approved_at": "2026-11-27T20:13:15+00:00",
@@ -66,11 +66,17 @@
             "state": "not_required"
         },
         "learning": {
+            "decided_at": "2026-11-27T20:16:11+00:00",
+            "decided_by": "fast-path-auto-close",
+            "decision": "no_durable_learning",
             "observation_mode": "checked",
             "owner": "agent-learning",
-            "review_observations": [],
             "run_id": "run:NG-64:cb95163c440122b2",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/5755c772cde189384313166aec09dc67421ee450c36530144b76bb97513f65c7.json",
+                "sha256": "sha256:bcfd783fe5bdbb037ec449c06a73dc231c5758bef673b45fcb16e88d0385d43e"
+            },
+            "state": "decided"
         },
         "map": {
             "observation_mode": "checked",
@@ -104,8 +110,11 @@
         "review": {
             "observation_mode": "checked",
             "owner": "agent-recall-compiler",
-            "path": ".agent-loop/recall/NG-64/reviews/NG-64.blindspots.json",
-            "state": "missing"
+            "source": {
+                "path": ".agent-loop/recall/NG-64/reviews/NG-64.blindspots.json",
+                "sha256": "sha256:b6aec8402ceee11bdd9f0d1cba446d5d82a3c276413b34ab0bf26298dc326f7c"
+            },
+            "state": "warn"
         },
         "search_index": {
             "observation_mode": "checked",
@@ -121,28 +130,27 @@
             "session_id": "2026-11-27-ng-64-r1-3a020827",
             "source": {
                 "path": ".agent-loop/sessions/2026-11-27-ng-64-r1-3a020827/session.json",
-                "sha256": "sha256:8b326a9d46494a61e32b1207d312bc405d245893238e78dbd3e7bf5764f17260"
+                "sha256": "sha256:d5844d3b1876e24e342a6dacfdcfa9e909e0c7e0434f4a143b20304cd3ac627b"
             },
-            "state": "active",
+            "state": "done",
             "task_id": "NG-64"
         },
         "verification": {
-            "action": "npm ci --ignore-scripts",
-            "action_invocation": null,
-            "gate": "validation",
-            "implementation_snapshot": "sha256:a14d7b536938106af87c82dfe899da58bf037fc24d012511e500d8c6a301a3a1",
+            "contract_revision": 1,
+            "implementation_snapshot": "sha256:f8d4bce4422606e950981e2b3ded5ddb1b87a6132dde2d8e01b7fc19b97b272c",
             "observation_mode": "checked",
             "owner": "agent-loop",
-            "reason": "validation evidence missing or not passed for current implementation: npm ci --ignore-scripts (no current evidence), npm run verify (no current evidence)",
-            "recall_outcome_draft": null,
-            "repair_action": null,
-            "repair_invocation": null,
-            "state": "blocked",
-            "validation_failed": false
+            "run_id": "run:NG-64:cb95163c440122b2",
+            "source": {
+                "path": ".agent-loop/runs/NG-64/verification.json",
+                "sha256": "sha256:edb46bd36b2fcbf20b3ea79ddadb94381505c9014fdae96563029e728bd69fa5"
+            },
+            "source_session_id": "2026-11-27-ng-64-r1-3a020827",
+            "state": "passed"
         }
     },
     "run_id": "run:NG-64:cb95163c440122b2",
     "schema_version": "1.0",
-    "state": "incomplete",
+    "state": "complete",
     "task_id": "NG-64"
 }
