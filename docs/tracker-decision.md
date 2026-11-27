@@ -208,7 +208,8 @@ Each step is small. "CI" means Node tests with synthetic or replayed landmark fr
 **NG-3 (camera capture)**
 3. The adapter from tracker output to landmark frames, in `src/recognition/`, rebuilt from the
    spike's sketch, with its tests. CI: all of it.
-4. Vendor the five files under `public/vendor/mediapipe/` with licence notice and checksums; CSP
+4. Vendor the five files (built as it was done: `scripts/assemble.mjs` puts them under
+   `dist/vendor/mediapipe/<version>-<digest>/`, not `public/`) with licence notice and checksums; CSP
    `'wasm-unsafe-eval'`; separate tracker cache in `sw.js`. CI: checksum test, CSP test, offline
    smoke check extended to the tracker files.
 5. Tracker worker with a small message protocol (init, frame, result, close, error). CI: protocol

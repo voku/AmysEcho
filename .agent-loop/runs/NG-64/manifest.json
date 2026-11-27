@@ -1,0 +1,148 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-64 before calling agent-loop finish NG-64",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-27T20:13:15+00:00",
+            "approved_by": "Lars Moelleken (in session 2026-11-27: 'Do it!' on the Dream table)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-64/contract.json",
+                "sha256": "sha256:77422d8d53ba5735b0285ac6f77afd69e1ef0595a1c7106ee9ae5090eb0050f5"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-64",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "state": "not_linked"
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "Surgical change applied within declared fast-path scope",
+                "Required verification passes"
+            ],
+            "goal": "Fix two doc paths the Dream guidance-consistency pass found: the MediaPipe vendor location in the tracker decision and the src-relative paths in the storage layer table",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-64/contract.json",
+                "sha256": "sha256:77422d8d53ba5735b0285ac6f77afd69e1ef0595a1c7106ee9ae5090eb0050f5"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-64/contract.json",
+                "sha256": "sha256:77422d8d53ba5735b0285ac6f77afd69e1ef0595a1c7106ee9ae5090eb0050f5"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-64:cb95163c440122b2",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:4f1297994035d55a1f1451937b21b73f5d24df3374e9299e8261d19cafe06aad",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:c48a44b6007037b99ae408c913e420a2f107a79d879982c18d4fdfc3ed0a9d90"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-64:cb95163c440122b2",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "3bf624d2aa620a762b8459e476c76b70fe2063d3e31eaa1aaf540dc62e500e95",
+            "compilation_id": "compilation.NG-64.2026-11-27-201316.7e90be50",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "5be8c2d8a63b44ed5916ab19bdf042378fbe41d3373e49c487d0e6e9a10d9a81",
+            "source": {
+                "path": ".agent-loop/recall/NG-64/meta.json",
+                "sha256": "sha256:252d09f7e6d962d7eea0422f9887ab036b70db100fd92f17383e77980534e063"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-64/reviews/NG-64.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "320a1406de8549c91503bf96149b224d9dd86885",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-27-ng-64-r1-3a020827",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-27-ng-64-r1-3a020827/session.json",
+                "sha256": "sha256:8b326a9d46494a61e32b1207d312bc405d245893238e78dbd3e7bf5764f17260"
+            },
+            "state": "active",
+            "task_id": "NG-64"
+        },
+        "verification": {
+            "action": "npm ci --ignore-scripts",
+            "action_invocation": null,
+            "gate": "validation",
+            "implementation_snapshot": "sha256:a14d7b536938106af87c82dfe899da58bf037fc24d012511e500d8c6a301a3a1",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "validation evidence missing or not passed for current implementation: npm ci --ignore-scripts (no current evidence), npm run verify (no current evidence)",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-64:cb95163c440122b2",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-64"
+}
