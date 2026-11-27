@@ -1,11 +1,251 @@
 {
     "attention": null,
-    "candidate_revision": "2aeaa0417f6ba0f4852b5024eb0f325a11a8062f",
+    "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
     "contract_revision": 2,
-    "current_attempt": 1,
-    "current_stage_id": "investigate",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
-    "history": [],
+    "history": [
+        {
+            "accepted_at": "2026-11-27T22:02:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T22:02:08+00:00",
+                "artifact_references": [],
+                "candidate_revision": "2aeaa0417f6ba0f4852b5024eb0f325a11a8062f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "schema_version": "1.0",
+                "task_id": "NG-4268261021822325262",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "2aeaa0417f6ba0f4852b5024eb0f325a11a8062f",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "outcome": "completed",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:ca8d6e9d",
+                "summary": "VERIFIED (momentum from NG-14 run 1): record() mixed page and console errors and filtered both by /sw.js/; images.every passes with zero images; reference() kept query/hash while public/sw.js:76 matches the cache by exact URL, so a versioned module would miss the cache offline.",
+                "task_id": "NG-4268261021822325262",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T22:02:08+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T22:02:08+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:dabe51b16acdfaf5ffcae2b1259a38b02c698990f26eb619d8a52bf1e21acc35",
+                    "execution-evidence:sha256:5e5ca49d0dacfaa8515f7a5526d25a1add785b523f7f48871e2213d0e85603c0",
+                    "execution-evidence:sha256:b0794b420bc0ced409d4ba28d5f07b1281589fcd0685e4f4860a56bddaffed63"
+                ],
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "schema_version": "1.0",
+                "task_id": "NG-4268261021822325262",
+                "to_stage": "pre-review-validation",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:dabe51b16acdfaf5ffcae2b1259a38b02c698990f26eb619d8a52bf1e21acc35",
+                    "execution-evidence:sha256:5e5ca49d0dacfaa8515f7a5526d25a1add785b523f7f48871e2213d0e85603c0",
+                    "execution-evidence:sha256:b0794b420bc0ced409d4ba28d5f07b1281589fcd0685e4f4860a56bddaffed63"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "context_id": "claude-main-10c1930a",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "outcome": "completed",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:9dfac5ab",
+                "summary": "Page and console errors split; two pictures asserted; appAssets refuses query/hash references with a reason; bootstrap covers page and import cases. npm ci --ignore-scripts && npm run verify exit 0 (750 Node, 12 browser pass, 2 DGS skipped locally).",
+                "task_id": "NG-4268261021822325262",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T22:03:51+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T22:03:51+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "from_stage": "pre-review-validation",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "schema_version": "1.0",
+                "task_id": "NG-4268261021822325262",
+                "to_stage": "correctness-review",
+                "validation_references": [
+                    "execution-evidence:sha256:3e4bc2c98bf1208f9543797d74c22b7baa3b60f89e655e4118e4eb0a7e539e45",
+                    "execution-evidence:sha256:9f583e69e3b737fd3040b69cbb3cf2fc720837f2f4769fa9a0ddf4048e4cebdb"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "outcome": "pass",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "stage_id": "pre-review-validation",
+                "submission_id": "deterministic:sha256:dea304084fc27f4a0370fd1c194aaa38df2ee605fa4c5bd2665c73657f006703",
+                "summary": "[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-4268261021822325262",
+                "validation_references": [
+                    "execution-evidence:sha256:3e4bc2c98bf1208f9543797d74c22b7baa3b60f89e655e4118e4eb0a7e539e45",
+                    "execution-evidence:sha256:9f583e69e3b737fd3040b69cbb3cf2fc720837f2f4769fa9a0ddf4048e4cebdb"
+                ]
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T22:05:05+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T22:05:05+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:bc0f9f7ed242646ec18bd01d8123236d18a7287c2536ccdfb67c3686093011b4",
+                    "execution-evidence:sha256:ad596777c36a69a5f49323e9155e0e12bf8e1027164e252985b9721da33ae4b4",
+                    "execution-evidence:sha256:b725ae9717a2a62320b6177dee62eecc4ed0606d3f409402a1838ed2afd60316"
+                ],
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "schema_version": "1.0",
+                "task_id": "NG-4268261021822325262",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:bc0f9f7ed242646ec18bd01d8123236d18a7287c2536ccdfb67c3686093011b4",
+                    "execution-evidence:sha256:ad596777c36a69a5f49323e9155e0e12bf8e1027164e252985b9721da33ae4b4",
+                    "execution-evidence:sha256:b725ae9717a2a62320b6177dee62eecc4ed0606d3f409402a1838ed2afd60316"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "context_id": "cr-ng4268-opus-a1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "observations": [
+                    "decodeURIComponent in reference() changes the returned path for %XX names; none exist today (scripts/offline-smoke.mjs:51)",
+                    "rejecting a hash is stricter than the cache needs; fragments are not sent (scripts/offline-smoke.mjs:50)",
+                    "profile.js stays deleted across later bootstrap steps; they rely on index.html being read first (test/bootstrap.test.mjs:241)"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:47db5291",
+                "summary": "Independent correctness review passed: page errors apart and empty in both runs; [true,true] pictures asserted; appAssets throws for query/hash references, matching public/sw.js:76; each bootstrap step fails only for its own reason; build 0, bootstrap 15/15, offline 1/1.",
+                "task_id": "NG-4268261021822325262",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T22:06:41+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T22:06:41+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:269e836942933e0aff0d78c6fcbf71fc42efc9507f71ec65a068cd5f2ff188a4",
+                    "execution-evidence:sha256:2252e981b0356c28c49270c2479b8a8aab4387579f5e447ac72682e16b73829c",
+                    "execution-evidence:sha256:1dbaab3b40e8bd7ce181811696bd28afc875f8c195c4e9845c7224b6fb37aacb"
+                ],
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "schema_version": "1.0",
+                "task_id": "NG-4268261021822325262",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:269e836942933e0aff0d78c6fcbf71fc42efc9507f71ec65a068cd5f2ff188a4",
+                    "execution-evidence:sha256:2252e981b0356c28c49270c2479b8a8aab4387579f5e447ac72682e16b73829c",
+                    "execution-evidence:sha256:1dbaab3b40e8bd7ce181811696bd28afc875f8c195c4e9845c7224b6fb37aacb"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "context_id": "bsr-ng426-a1",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "observations": [
+                    "decodeURIComponent added without a test; a malformed escape ends the build with a bare URIError",
+                    "the reason for refusing a hash is inaccurate: fetch and the Cache API ignore fragments",
+                    "service-worker console output, worker errors and console.warn are not recorded by the offline test",
+                    "docs/storage.md:53-55 still calls the tolerated sw.js failure a page error and does not mention the query/hash rule"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:12f5f1b0",
+                "summary": "Independent blind-spot review passed: no reference in src/ or public/ carries a query or hash, so the check breaks neither Pages nor CI; build 0, bootstrap 15/15, offline 1/1.",
+                "task_id": "NG-4268261021822325262",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-27T22:08:38+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-27T22:08:38+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "schema_version": "1.0",
+                "task_id": "NG-4268261021822325262",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:030dc71c6c30c587e757135188c570aaf494d46746ab500e6448c7ad67860108",
+                    "execution-evidence:sha256:4af2929cb267d8dacd8669e3053711ce7782810dd956f759f968d7a936bfede3"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2aeaa0417f6ba0f4852b5024eb0f325a11a8062f:cb2c0633ac80a9d04a1b5a6b41720a16eb2918f8",
+                "consistency_references": [
+                    "execution-evidence:sha256:e6c61caa8fa70bac8d63bdbd554580655ef27a66a21ff5299318df58478c9978"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:66977290eba98903e859bad733f37c9d6c0b93423f7b392105747107925d7c6c",
+                "outcome": "pass",
+                "run_id": "run:NG-4268261021822325262:b1dbb4d3c72d9a41",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:269259efb53e6b79fc7a0825848473e94fb331265b0bf5e660bbf577d6b8317b",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-4268261021822325262: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/moellekenl/PhpstormProjects/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-4268261021822325262 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-4268261021822325262:b1dbb4d3c72d9a41 binds active Session 2026-11-27-ng-4268261021822325262-r2-991db18b to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/moellekenl/PhpstormProjects/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-4268261021822325262 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-4268261021822325262",
+                "validation_references": [
+                    "execution-evidence:sha256:030dc71c6c30c587e757135188c570aaf494d46746ab500e6448c7ad67860108",
+                    "execution-evidence:sha256:4af2929cb267d8dacd8669e3053711ce7782810dd956f759f968d7a936bfede3"
+                ]
+            }
+        }
+    ],
     "kind": "governed_execution_state",
     "last_attention_id": null,
     "recovery_history": [],
