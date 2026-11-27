@@ -52,6 +52,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          # Evidence branch intentionally pins historical lock; do not use PR merge ref.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
