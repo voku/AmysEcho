@@ -1,0 +1,15 @@
+{
+    "schema_version": "1.0",
+    "kind": "run_learning_decision",
+    "run_id": "run:NG-64:cb95163c440122b2",
+    "decision": "no_durable_learning",
+    "decided_by": "fast-path-auto-close",
+    "decided_at": "2026-11-27T20:16:11+00:00",
+    "reason": "Fast-path micro-task completed within declared surgical bounds.",
+    "finding_ids": [],
+    "follow_up_ref": null,
+    "contract_revision": 1,
+    "implementation_snapshot": "sha256:f8d4bce4422606e950981e2b3ded5ddb1b87a6132dde2d8e01b7fc19b97b272c",
+    "validation_evidence_sha256": "sha256:eba7f6080cdab85df066e6c03b2f6617f63a98bc7976e16d3edcbf8e0594d74e",
+    "review_evidence_sha256": "sha256:b6aec8402ceee11bdd9f0d1cba446d5d82a3c276413b34ab0bf26298dc326f7c"
+}

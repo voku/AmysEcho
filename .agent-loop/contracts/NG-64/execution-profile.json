@@ -1,0 +1,13 @@
+{
+    "contract_revision": 1,
+    "contract_source": {
+        "path": ".agent-loop/contracts/NG-64/contract.json",
+        "sha256": "sha256:77422d8d53ba5735b0285ac6f77afd69e1ef0595a1c7106ee9ae5090eb0050f5"
+    },
+    "kind": "execution_profile_selection",
+    "profile": "manual",
+    "schema_version": "1.0",
+    "selected_at": "2026-11-27T20:13:15+00:00",
+    "selected_by": "Lars Moelleken (in session 2026-11-27: 'Do it!' on the Dream table)",
+    "task_id": "NG-64"
+}

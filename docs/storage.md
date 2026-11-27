@@ -42,9 +42,9 @@ Product rules: `docs/s0a-product-contract-v0.1.md`, sections 3 and 6.
 | `store.ts` | `ProfileStore`: the key layout and every profile operation. |
 | `backup.ts` | `exportProfile`, `importProfile`. |
 | `backup-file.ts` | The backup file (card NG-58): an export encrypted with a password (`encryptBackup`, `decryptBackup`). |
-| `../board-data.ts` | Per-profile board: concept order, wording, custom concepts. Uses the public `ProfileStore` API only. |
-| `../startup.ts` | `resolveStartupView`: what storage says the board should show. `runStartup`: the start-up sequence. |
-| `../app.ts` | `createApp`: the page's one `ProfileStore`, start-up, `refreshBoard()`. |
+| `src/board-data.ts` | Per-profile board: concept order, wording, custom concepts. Uses the public `ProfileStore` API only. |
+| `src/startup.ts` | `resolveStartupView`: what storage says the board should show. `runStartup`: the start-up sequence. |
+| `src/app.ts` | `createApp`: the page's one `ProfileStore`, start-up, `refreshBoard()`. |
 
 ## Key layout
 

@@ -1,0 +1,17 @@
+{
+    "base_commit": "320a1406de8549c91503bf96149b224d9dd86885",
+    "contract_revision": 1,
+    "contract_source": {
+        "path": ".agent-loop/contracts/NG-64/contract.json",
+        "sha256": "sha256:77422d8d53ba5735b0285ac6f77afd69e1ef0595a1c7106ee9ae5090eb0050f5"
+    },
+    "digest": "sha256:5334404210c955eea189a852f4ab3b347444a5b0992a80642318c628cd95a947",
+    "kind": "governed_execution_plan",
+    "prepared_at": "2026-11-27T20:13:16+00:00",
+    "profile": "manual",
+    "roles": [],
+    "run_id": "run:NG-64:cb95163c440122b2",
+    "schema_version": "1.0",
+    "stages": [],
+    "task_id": "NG-64"
+}
