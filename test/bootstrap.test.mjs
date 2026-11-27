@@ -245,6 +245,18 @@ test("the pre-cache list is generated from the built app: no hand list, no test-
     // A reference that leaves the app.
     await writeFile(join(copy, "index.html"), (await readFile(new URL("index.html", dist), "utf8")).replace('src="./main.js"', 'src="https://cdn.invalid/main.js"'));
     await assert.rejects(appAssets(copyUrl), /not a local file: https:\/\/cdn\.invalid\/main\.js/);
+    // A versioned reference would be fetched offline under a URL the pre-cache does not hold.
+    for (const versioned of ["./main.js?v=2", "./main.js#start"]) {
+      await writeFile(join(copy, "index.html"), (await readFile(new URL("index.html", dist), "utf8")).replace('src="./main.js"', `src="${versioned}"`));
+      await assert.rejects(appAssets(copyUrl), /with a query or hash; the offline cache matches exact URLs/);
+    }
+    // The same in a module's import.
+    await writeFile(join(copy, "index.html"), await readFile(new URL("index.html", dist), "utf8"));
+    await cp(new URL("profiles/profile.js", dist), join(copy, "profiles", "profile.js"));
+    const main = await readFile(new URL("main.js", dist), "utf8");
+    assert.match(main, /from "\.\/app\.js";/);
+    await writeFile(join(copy, "main.js"), main.replace('from "./app.js";', 'from "./app.js?v=2";'));
+    await assert.rejects(appAssets(copyUrl), /main\.js names \.\/app\.js\?v=2 with a query or hash/);
   } finally {
     await rm(copy, { recursive: true, force: true });
   }

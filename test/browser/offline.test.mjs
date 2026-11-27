@@ -41,13 +41,13 @@ function watchCamera() {
   }
 }
 
-/** Collects page errors, console errors and every request the context makes, service worker included. */
+/** Collects page errors, console errors (apart) and every request the context makes, service worker included. */
 function record(context) {
-  const seen = { errors: [], requests: [] };
+  const seen = { pageErrors: [], consoleErrors: [], requests: [] };
   context.on("request", (request) => seen.requests.push(request.url()));
-  context.on("weberror", (error) => seen.errors.push(String(error.error())));
+  context.on("weberror", (error) => seen.pageErrors.push(String(error.error())));
   const watch = (page) => page.on("console", (message) => {
-    if (message.type() === "error") seen.errors.push(message.text());
+    if (message.type() === "error") seen.consoleErrors.push(message.text());
   });
   for (const page of context.pages()) watch(page);
   context.on("page", watch);
@@ -100,7 +100,8 @@ test("offline: after one online visit the app cold-starts with no network, shows
       await store.setActive(mia.id);
     });
     assert.deepEqual(await page.evaluate(() => window.__camera), { getUserMedia: 0, permissionQueries: 0, enumerateDevices: 0 });
-    assert.deepEqual(online.errors, []);
+    assert.deepEqual(online.pageErrors, []);
+    assert.deepEqual(online.consoleErrors, []);
     await context.close();
     context = null;
 
@@ -120,8 +121,9 @@ test("offline: after one online visit the app cold-starts with no network, shows
 
     const tiles = await cold.$$eval("#board-region button.concept", (buttons) => buttons.map((button) => button.getAttribute("aria-label")));
     assert.deepEqual(tiles, ["Trinken", "Pause"]);
-    // Every picture of the board loaded from the cache.
-    assert.equal(await cold.$$eval("#board-region button.concept img", (images) => images.every((image) => image.complete && image.naturalWidth > 0)), true);
+    // One picture per stored tile, each loaded from the cache.
+    const pictures = await cold.$$eval("#board-region button.concept img", (images) => images.map((image) => image.complete && image.naturalWidth > 0));
+    assert.deepEqual(pictures, [true, true]);
     // A tap after the board's press shield (BOARD_SHIELD_MS, 700 ms) fills the sentence.
     await cold.waitForTimeout(800);
     await cold.click("#board-region button.concept[aria-label='Trinken']");
@@ -133,8 +135,10 @@ test("offline: after one online visit the app cold-starts with no network, shows
     for (const url of [...online.requests, ...offline.requests]) {
       assert.ok(url.startsWith(origin) || url.startsWith("data:") || url.startsWith("blob:"), `request off the origin: ${url}`);
     }
-    // The worker's update check of sw.js may fail with no network; that is no page error, and it is the only failure allowed.
-    assert.deepEqual(offline.errors.filter((line) => !/sw\.js/.test(line)), []);
+    // No page error. The worker's update check of sw.js may fail with no network: a console line
+    // naming sw.js is the only console error allowed offline.
+    assert.deepEqual(offline.pageErrors, []);
+    assert.deepEqual(offline.consoleErrors.filter((line) => !/sw\.js/.test(line)), []);
     console.log(`# offline: cold start to the stored board took ${startMs} ms (desktop Chromium; the target device is NG-6)`);
   } finally {
     await context?.close();

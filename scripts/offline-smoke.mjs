@@ -33,8 +33,9 @@ const TYPES = {
  * of its own (card NG-3). Returns sorted paths relative to `dist`, with "" for
  * the scope itself; scripts/assemble.mjs writes them into dist/sw.js.
  *
- * Throws for a reference that leaves `dist`, names a missing file, or is not
- * a relative path, so a broken page fails the build rather than the install.
+ * Throws for a reference that leaves `dist`, names a missing file, is not a
+ * relative path, or carries a query or hash, so a broken page fails the build
+ * rather than the install or the offline start.
  */
 export async function appAssets(dist = DIST) {
   const root = new URL(".", dist).href;
@@ -44,7 +45,10 @@ export async function appAssets(dist = DIST) {
     assert.match(target, /^\.\.?\//, `${from} names something that is not a local file: ${target}`);
     const url = new URL(target, new URL(from, root));
     assert.ok(url.href.startsWith(root), `${from} names a file outside dist/: ${target}`);
-    return url.href.slice(root.length);
+    // The service worker answers board files by exact URL (caches.match without ignoreSearch), so
+    // "./main.js?v=2" would be fetched offline under a URL the pre-cache does not hold.
+    assert.ok(url.search === "" && url.hash === "", `${from} names ${target} with a query or hash; the offline cache matches exact URLs, so use the plain path`);
+    return decodeURIComponent(url.href.slice(root.length));
   };
   const add = (path) => {
     if (found.has(path)) return;
