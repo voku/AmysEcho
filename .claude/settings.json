@@ -4,7 +4,8 @@
         "ask": [],
         "deny": [
             "Bash(gh pr create *)",
-            "Bash(gh pr merge *)"
+            "Bash(gh pr merge *)",
+            "Bash(git push *)"
         ]
     }
 }
