@@ -26,13 +26,20 @@ vendor/bin/agent-loop enter <task-id> --format=json
 
 For a new task, the kernel returns a `command_template` PLAN command. Fill missing Contract inputs from the request and repository evidence, execute without extra human confirmation, then call `enter` again and obey the structured `next_action_kind` / `next_action`.
 
-Approval records authority for the exact Contract revision; Run, Session and Recall preparation happens deterministically behind `enter`. Never fabricate an approval actor or self-approve.
+Approval records authority for the exact Contract revision; Run, Session and Recall preparation happens deterministically behind `enter`. Never fabricate an approval actor or self-approve. When you record a named human's explicit decision for them, keep their name in `--by` and pass `--recorded-by <your agent name>`; both are self-asserted attribution, not authenticated identity.
 
 ## Contract Intent & Scope
 
 A PLAN must carry enough durable intent that future agents do not need the chat context:
 - **Task ID:** Reuse a supplied stable external identifier (e.g. `ISSUE-123`). For an explicitly requested new local card without one, follow `agent-loop-workflow` to obtain the Kanban owner's generated card ID and reuse it unchanged. Never derive an ID by incrementing a branch-local maximum.
 - **Scope (`--file` / `--scope`):** Smallest stable boundary containing the change (single file or cohesive component directory plus tests; never the entire repo root).
+Before requesting Contract approval, identify the behavior being changed and inspect existing tests that assert it, including CLI inputs, persisted fields, outputs and error cases. Include affected test files in the proposed scope. Treat filename matches and search hits as leads, not proof of affected behavior.
+
+With `enter TASK --request '<task description>' --format=json`, inspect the available ranked Map candidates, bounded structural slices and blind spots before proposing scope. When the *separate, optional developer tool* `itp-context-source-hints` is installed, run it against relevant exact PHP files from those Map results (for example `vendor/bin/itp-context-source-hints --root=. --file=src/Ui/View.php`). It returns bounded, syntax-only `#[Rule]` identifiers and source digests, without loading project rule definitions. Do not infer absent dependencies from unavailable or stale Map evidence, absent ITP tooling, or a rule-free file.
+
+Read the referenced rule enum source to verify `verifiedBy` tests, `refs` (including ADRs) and `changeGuidance`. Also inspect behavior assertions, CLI, browser, JavaScript/TypeScript, build, deployment and runtime integration when relevant. Only grounded dependencies belong in the proposed scope. After approval, the host may run the same ITP developer tool against exact PHP files from the approved Contract and use the results as low-authority context. Loop production code must not call ITP or depend on dev-only metadata; the developer tool remains optional and cannot change Contract authority. JavaScript/TypeScript does not yet have equivalent native ITP attributes.
+
+Once you can name the changed symbol, list its structural readers from the current Map before planning: `vendor/bin/agent-loop enter <task-id> --target '<Class>::$property' --target '<Class>::method' --format=json` returns the declaring file and the test/source files whose resolved relations reference it under `references.target_evidence` (authority `none`, bounded, never scope). Name the persisted field or method whose behavior changes, not only the class; read the listed tests' assertions before choosing scope, and treat an abstention or an empty list as missing evidence, not as "no affected tests". For listed PHP files, the optional `itp-context-source-hints` developer tool above reports any `#[Rule]` identifiers to verify.
 For a required **scope-only** expansion after approval, batch paths with
 `workflow plan TASK --by ACTOR --supersede --add-scope PATH` (repeat
 `--add-scope` for each path). This preserves the Goal, validation,

@@ -7,6 +7,13 @@ Before the CLI is runnable, do only reversible workspace bootstrap, not product 
 
 For durable tasks, run `vendor/bin/agent-loop enter <task-id> --format=json` before edits and `vendor/bin/agent-loop finish <task-id> --format=json` after host work; follow each returned `next_action_kind` / `next_action` until `none` / complete. Execute `command`, fill evidence-backed `command_template`, perform `host_work`; only `decision_required` needs a genuine human-authority decision. Show the exact current decision subject: before asking, present every field of `human_decision.card`, keeping commands verbatim (translate its prose only when `language` differs from `requested_language`); never invent approval.
 
+Commit messages:
+
+- Before a developer-facing commit, inspect the staged change and the task or decision evidence.
+- Write an accurate title and a grounded reason for the change, in the format the repository's commit convention requires. Do not invent intent, benefits or proof.
+- If the reason stays unclear after bounded investigation, stop that commit and ask the developer one targeted question, even in autonomous mode.
+- Reuse an earlier answer while it still applies. Do not answer for the developer or bypass a rejected hook; if the hook rule itself looks wrong, tell the developer instead.
+
 Use skills for specialist work: a router may select a specialist but never a lifecycle phase. Only the current result routes task start/progress, Recall/L2, repair, Learning, review, or close. Do not pre-build Map/Search or invent Session/Recall state. Use ephemeral sessions for untracked exploration. Claim hooks, checks, CI, merges, and releases only with evidence.
 
 ### Agent Learning
