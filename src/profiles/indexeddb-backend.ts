@@ -1,11 +1,11 @@
 /**
  * Browser `KeyValueBackend` over one IndexedDB object store.
  *
- * NOT COVERED BY AN AUTOMATED TEST. Node has no IndexedDB, so the test suite
- * never imports this file; it is only type-checked. Card NG-14 adds a
- * real-browser test. Until then treat it as unverified and keep it thin: all
- * profile logic lives in store.ts and backup.ts, which are tested against the
- * in-memory backend.
+ * Node has no IndexedDB, so the Node tests never import this file; it is
+ * tested in Chromium instead (test/browser/indexeddb.test.mjs, card NG-14).
+ * Safari, Firefox and target devices are not covered (card NG-6). Keep it
+ * thin: all profile logic lives in store.ts and backup.ts, which are tested
+ * against the in-memory backend.
  *
  * Atomicity comes from IndexedDB itself: each `write` batch is one readwrite
  * transaction, which the browser commits completely or not at all.

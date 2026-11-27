@@ -111,8 +111,8 @@ Limits, stated plainly:
 - **A first name is allowed; the storage is still unproven.** The owner decided on 2026-11-22
   (card NG-7) that a child's first name may be stored as the profile name. Still open on NG-7:
   how long data is kept, who counts as an authorised caregiver, and deletion. Still open on
-  NG-14: the IndexedDB adapter has no automated browser test and has not run on a target device,
-  so data entered now may not survive. A profile can be deleted in the area; since card NG-58 a
+  NG-14 and NG-6: the IndexedDB adapter is tested in Chromium only (since card NG-14) and has not
+  run on a target device, so data entered now may still not survive there. A profile can be deleted in the area; since card NG-58 a
   password-protected backup file can be saved and restored ("Backup", below).
   Clearing the site data of the browser removes **all** profiles in this browser and the offline
   copy of the app, and a browser may remove stored data on its own (docs/storage.md).

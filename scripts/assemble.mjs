@@ -135,9 +135,17 @@ await writeFile(new URL("manifest.json", vendor), `${JSON.stringify({
  * installed app picks up the whole new set instead of mixing old and new
  * files (card NG-39). The hand-set part of the name stays in public/sw.js.
  */
-const { precacheList } = await import("./offline-smoke.mjs");
+const { appAssets, precacheList } = await import("./offline-smoke.mjs");
 const workerUrl = new URL("../dist/sw.js", import.meta.url);
-const worker = await readFile(workerUrl, "utf8");
+/*
+ * The pre-cache list is generated from the built app (card NG-14), so a new
+ * module or picture cannot be forgotten in it. public/sw.js leaves it empty.
+ */
+const EMPTY_LIST = /^const ASSETS = \[\];$/m;
+const template = await readFile(workerUrl, "utf8");
+if (!EMPTY_LIST.test(template)) throw new Error("dist/sw.js: the empty `const ASSETS = [];` line to fill is not found");
+const assets = (await appAssets(new URL("../dist/", import.meta.url))).map((path) => JSON.stringify(`./${path}`));
+const worker = template.replace(EMPTY_LIST, `const ASSETS = [\n  ${assets.join(", ")}\n];`);
 const NAME = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/;
 const base = NAME.exec(worker)?.[1];
 if (base === undefined) throw new Error("dist/sw.js: CACHE_NAME not found");

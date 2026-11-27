@@ -14,18 +14,11 @@
 const ASSET_REVISION = "teach-replay-1"; // card NG-4: fit line and replay in the teaching view
 const CACHE_PREFIX = "amysecho-ng-";
 const CACHE_NAME = CACHE_PREFIX + "capture-v2";
-const ASSETS = [
-  "./", "./index.html", "./manifest.webmanifest", "./styles.css",
-  "./main.js", "./status.js", "./board.js", "./concepts.js", "./speech.js",
-  "./app.js", "./board-data.js", "./demo-clips.js", "./teach/fit.js", "./teach/replay.js", "./startup.js", "./caregiver.js", "./profiles/backend.js",
-  "./profiles/indexeddb-backend.js", "./profiles/profile.js", "./profiles/store.js", "./profiles/backup.js", "./profiles/backup-file.js",
-  "./icons/hilfe.svg", "./icons/trinken.svg", "./icons/pause.svg",
-  "./icons/mehr.svg", "./icons/fertig.svg", "./icons/sprechen.svg",
-  "./icons/app.svg",
-  "./capture/capture.js", "./capture/tracker-worker.js",
-  "./recognition/tracker-adapter.js", "./recognition/features.js", "./recognition/examples.js",
-  "./recognition/matcher.js", "./recognition/dtw.js", "./recognition/segment.js", "./recognise/recognise.js"
-];
+/* Filled in by scripts/assemble.mjs (card NG-14) from the built app: the page,
+ * what it links, every module reached through static imports, the tracker's
+ * module worker, and the pictures (appAssets in scripts/offline-smoke.mjs).
+ * Left empty here on purpose: there is no hand-kept list to forget a file in. */
+const ASSETS = [];
 /* Tracker files live under vendor/mediapipe/<version>-<digest>/ and are
  * answered only from the cache named "amysecho-tracker-<version>-<digest>",
  * never from another cache (an old build's file must not answer for a new

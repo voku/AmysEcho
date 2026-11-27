@@ -1,0 +1,45 @@
+{
+    "acceptance_criteria": [
+        "dist/sw.js gets its pre-cache list from scripts/assemble.mjs (static imports from the page's module scripts, the tracker worker, styles, manifest, pictures); public/sw.js holds no hand list; test-only modules are not pre-cached (tested)",
+        "Browser test: online visit installs the worker and fills its cache; after closing the browser and stopping the server, a cold start offline shows the stored profile's board, a tile tap fills the sentence, no request leaves the origin, getUserMedia is never called, no page error",
+        "Browser test of the IndexedDB adapter: round trip across a reopen, prefix listing with neighbouring keys, a rejected batch writes nothing, versionchange closes an older connection, one large batch of 10,000 puts with its time logged"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-27T19:47:23+00:00",
+    "approved_by": "Lars Moelleken (in session 2026-11-27: 'I (Lars Moelleken) approve this session … so do it')",
+    "base_commit": "88a1b280788b4f52e622b3cb059e30df73f9a3ce",
+    "behavior_anchors": [],
+    "created_at": "2026-11-27T19:47:17+00:00",
+    "goal": "CI proves in Chromium that after one online visit the installed app cold-starts with no network and shows the child's stored board, no request leaves the origin and the board path never asks for the camera; the IndexedDB adapter is exercised in a real browser; the service worker's pre-cache list is generated at build time from the app's import graph instead of kept by hand.",
+    "kind": "task_contract",
+    "non_goals": [
+        "Touch input, screen reader, narrow-layout measurements, Safari/Firefox, a physical device, STARTUP_WAIT_MS from a target device, two-tab drift and the Web Locks decision, noscript/blank-page fallbacks: these stay on NG-14 or move to follow-up cards"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "Lars Moelleken (in session 2026-11-27: 'I approve this session … so do it')",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "public/sw.js",
+        "scripts/assemble.mjs",
+        "scripts/offline-smoke.mjs",
+        "test/bootstrap.test.mjs",
+        "test/browser/offline.test.mjs",
+        "test/browser/indexeddb.test.mjs",
+        "src/main.ts",
+        "src/profiles/indexeddb-backend.ts",
+        "docs/storage.md"
+    ],
+    "status": "superseded",
+    "tags": [],
+    "task_id": "NG-14",
+    "updated_at": "2026-11-27T19:56:55+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

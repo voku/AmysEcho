@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { once } from "node:events";
 import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -21,6 +21,64 @@ const TYPES = {
   ".json": "application/json",
   ".txt": "text/plain; charset=utf-8",
 };
+
+/**
+ * What the built app needs offline, worked out from `dist` itself (card
+ * NG-14): the page; the module scripts and the style sheet and manifest it
+ * links; every module those reach through static imports; module workers
+ * started as `new Worker(new URL("...", import.meta.url))` and what they
+ * import; and every picture under icons/. Test-only modules that nothing
+ * imports (the in-memory backend, the synthetic recognition data) are left
+ * out. The hand tracker (vendor/mediapipe/) is never followed: it has a cache
+ * of its own (card NG-3). Returns sorted paths relative to `dist`, with "" for
+ * the scope itself; scripts/assemble.mjs writes them into dist/sw.js.
+ *
+ * Throws for a reference that leaves `dist`, names a missing file, or is not
+ * a relative path, so a broken page fails the build rather than the install.
+ */
+export async function appAssets(dist = DIST) {
+  const root = new URL(".", dist).href;
+  const found = new Set(["", "index.html"]);
+  const pending = [];
+  const reference = (target, from) => {
+    assert.match(target, /^\.\.?\//, `${from} names something that is not a local file: ${target}`);
+    const url = new URL(target, new URL(from, root));
+    assert.ok(url.href.startsWith(root), `${from} names a file outside dist/: ${target}`);
+    return url.href.slice(root.length);
+  };
+  const add = (path) => {
+    if (found.has(path)) return;
+    found.add(path);
+    if (path.endsWith(".js")) pending.push(path);
+  };
+  const page = await readFile(new URL("index.html", root), "utf8");
+  for (const match of page.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)) add(reference(match[1], "index.html"));
+  for (const match of page.matchAll(/<link\b[^>]*\bhref="([^"]+)"/g)) add(reference(match[1], "index.html"));
+  while (pending.length > 0) {
+    const path = pending.pop();
+    const source = await readFile(new URL(path, root), "utf8").catch(() => {
+      throw new Error(`appAssets: ${path} is referenced but not built`);
+    });
+    // `import "./x.js";`, `import ... from "./x.js";` and `export ... from "./x.js";`, as tsc writes them.
+    for (const match of source.matchAll(/^\s*(?:import\s+(?:[^"';]*?\sfrom\s+)?|export\s+[^"';]*?\sfrom\s+)["']([^"']+)["']\s*;/gm)) {
+      add(reference(match[1], path));
+    }
+    for (const match of source.matchAll(/new Worker\(\s*new URL\(\s*["']([^"']+)["']\s*,\s*import\.meta\.url\s*\)/g)) {
+      add(reference(match[1], path));
+    }
+  }
+  for (const name of await readdir(new URL("icons/", root))) {
+    if (name.endsWith(".svg")) add(`icons/${name}`);
+  }
+  for (const path of found) {
+    if (path === "") continue;
+    assert.ok(!path.startsWith("vendor/"), `appAssets: the hand tracker is not pre-cached with the board: ${path}`);
+    await readFile(new URL(path, root)).catch(() => {
+      throw new Error(`appAssets: ${path} is referenced but not built`);
+    });
+  }
+  return [...found].sort();
+}
 
 /**
  * The pre-cache list of a built service worker, as the worker itself hands it
@@ -142,7 +200,7 @@ export async function trackerSmoke(dist = DIST) {
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const paths = await smoke();
-  console.log(`NG local bundle smoke OK (${paths.length} files from the service worker's pre-cache list); browser offline and actual speech are unverified`);
+  console.log(`NG local bundle smoke OK (${paths.length} files from the service worker's pre-cache list); the offline start in a browser is test/browser/offline.test.mjs, actual speech is unverified`);
   const tracker = await trackerSmoke();
   console.log(`NG tracker files OK (${tracker.length} files with their sha256, served, none in the board's pre-cache)`);
 }
